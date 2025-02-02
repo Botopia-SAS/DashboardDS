@@ -4,6 +4,9 @@ import {
     ShoppingBag,
     Tag,
     UsersRound,
+    Car,
+    BookOpen,
+    LifeBuoy,
   } from "lucide-react";
   
   export const navLinks = [
@@ -13,14 +16,24 @@ import {
       label: "Dashboard",
     },
     {
-      url: "/collections",
+      url: "/packages",
       icon: <Shapes />,
-      label: "Collections",
+      label: "Packages",
+    },
+    {
+      url: "/classes",
+      icon: <BookOpen />,
+      label: "Classes",
+    },
+    {
+      url: "/collections",
+      icon: <LifeBuoy />,
+      label: "Driving Test",
     },
     {
       url: "/products",
-      icon: <Tag />,
-      label: "Products",
+      icon: <Car />,
+      label: "Driving Lessons",
     },
     {
       url: "/orders",

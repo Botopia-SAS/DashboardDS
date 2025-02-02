@@ -6,10 +6,17 @@ const collectionSchema = new mongoose.Schema({
     required: true,
     unique: true,
   },
-  description: String,
+  description: {
+    type: String,
+  },
   image: {
     type: String,
     required: true,
+  },
+  price: {
+    type: Number, // 🔹 Asegurar que `price` es un número
+    required: true, // 🔹 Hacerlo obligatorio
+    min: 0, // 🔹 Evitar valores negativos
   },
   products: [
     {
@@ -25,8 +32,9 @@ const collectionSchema = new mongoose.Schema({
     type: Date,
     default: Date.now,
   }
-})
+});
 
-const Collection =mongoose.models.Collection || mongoose.model("Collection", collectionSchema);
+// Evitar redefinir el modelo si ya existe
+const Collection = mongoose.models.Collection || mongoose.model("Collection", collectionSchema);
 
 export default Collection;

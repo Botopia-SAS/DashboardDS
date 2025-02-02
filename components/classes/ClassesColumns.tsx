@@ -6,31 +6,37 @@ import Link from "next/link";
 import Image from "next/image";
 import { ArrowUpRight } from "lucide-react";
 
-
-// 1. Definir el tipo CollectionType
-export type CollectionType = {
+// 1. Definir el tipo DrivingClassType
+export type DrivingClassType = {
   _id: string;
   title: string;
-  description: string;
-  price: number; // Añadir precio
+  length: number; // Duración en horas
+  price: number; // Precio en dólares
   image: string; // URL de la imagen
 };
 
-// 2. Usar el tipo en la definición de las columnas
-export const columns: ColumnDef<CollectionType>[] = [
+// 2. Definir las columnas de la tabla
+export const columns: ColumnDef<DrivingClassType>[] = [
   {
     accessorKey: "title",
     header: "Title",
     cell: ({ row }) => (
       <Link
-        href={`/collections/${row.original._id}`}
+        href={`/classes/${row.original._id}`}
         className="flex items-center gap-2 font-semibold text-blue-500 hover:text-blue-700 transition-colors duration-200"
       >
-      {row.original.title}
-      <ArrowUpRight size={16} className="opacity-75" />
+        {row.original.title}
+        <ArrowUpRight size={16} className="opacity-75" />
       </Link>
     ),
-  },  
+  },
+  {
+    accessorKey: "length",
+    header: "Length (Hours)",
+    cell: ({ row }) => (
+      <p className="font-medium text-gray-700">{row.original.length} hrs</p>
+    ),
+  },
   {
     accessorKey: "price",
     header: "Price ($)",
@@ -47,22 +53,22 @@ export const columns: ColumnDef<CollectionType>[] = [
           <Image
             src={row.original.image}
             alt={row.original.title}
-            width={200} // Ajusta el tamaño aquí
-            height={200}
+            width={100}
+            height={100}
             className="rounded-lg object-cover border border-gray-300 shadow-md hover:scale-105 transition-transform duration-200"
           />
         ) : (
-          <p>No image</p>
+          <p className="text-gray-500">No image</p>
         )}
       </>
     ),
-  },  
-
+  },
   {
     id: "actions",
+    header: "Actions",
     cell: ({ row }) => (
       <div className="flex justify-center">
-        <Delete item="collection" id={row.original._id} />
+        <Delete item="class" id={row.original._id} />
       </div>
     ),
   },

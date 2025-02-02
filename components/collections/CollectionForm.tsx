@@ -21,60 +21,63 @@ import ImageUpload from "../custom ui/ImageUpload";
 import { useState } from "react";
 import toast from "react-hot-toast";
 import Delete from "../custom ui/Delete";
-
-// 1. Define el tipo CollectionType
-type CollectionType = {
-  _id: string;
-  title: string;
-  description: string;
-  image: string;
-};
+import { CollectionType } from "./CollectionColumns";
 
 const formSchema = z.object({
   title: z.string().min(2).max(20),
   description: z.string().min(2).max(500).trim(),
   image: z.string(),
+  price: z.coerce.number().min(0.1),
 });
 
 interface CollectionFormProps {
-  initialData?: CollectionType | null; // Ahora sí sabe qué es CollectionType
+  initialData?: CollectionType | null; //Must have "?" to make it optional
 }
 
 const CollectionForm: React.FC<CollectionFormProps> = ({ initialData }) => {
   const router = useRouter();
+
   const [loading, setLoading] = useState(false);
 
   const form = useForm<z.infer<typeof formSchema>>({
     resolver: zodResolver(formSchema),
-    defaultValues: initialData
-      ? initialData
-      : {
-          title: "",
-          description: "",
-          image: "",
-        },
+    defaultValues: {
+      title: initialData?.title || "",
+      description: initialData?.description || "",
+      image: initialData?.image || "",
+      price: initialData?.price ?? 0.1, // Usa `??` para evitar undefined
+    },
   });
+  
 
-  const handleKeyPress = (
-    e:
-      | React.KeyboardEvent<HTMLInputElement>
-      | React.KeyboardEvent<HTMLTextAreaElement>
-  ) => {
+  const handleKeyPress = (e: React.KeyboardEvent<HTMLInputElement> | React.KeyboardEvent<HTMLTextAreaElement>) => {
     if (e.key === "Enter") {
       e.preventDefault();
     }
-  };
+  }
 
   const onSubmit = async (values: z.infer<typeof formSchema>) => {
     try {
       setLoading(true);
+
+      // Asegurar que el precio sea un número y la imagen tenga un valor por defecto
+      const formattedValues = {
+        title: values.title.trim(),  // Elimina espacios extras
+        description: values.description.trim(), // Asegura que no esté vacío
+        price: Number(values.price) || 0.1,  // Convierte a número seguro
+        image: values.image || "/placeholder.jpg",  // Evita imágenes vacías
+      };
+
       const url = initialData
         ? `/api/collections/${initialData._id}`
         : "/api/collections";
       const res = await fetch(url, {
         method: "POST",
-        body: JSON.stringify(values),
+        body: JSON.stringify(formattedValues),
       });
+
+      const data = await res.json();
+
       if (res.ok) {
         setLoading(false);
         toast.success(`Collection ${initialData ? "updated" : "created"}`);
@@ -91,11 +94,11 @@ const CollectionForm: React.FC<CollectionFormProps> = ({ initialData }) => {
     <div className="p-10">
       {initialData ? (
         <div className="flex items-center justify-between">
-          <p className="text-heading2-bold">Edit Collection</p>
+          <p className="text-heading2-bold">Create Driving Test</p>
           <Delete id={initialData._id} item="collection" />
         </div>
       ) : (
-        <p className="text-heading2-bold">Create Collection</p>
+        <p className="text-heading2-bold">Create Driving Test</p>
       )}
       <Separator className="bg-grey-1 mt-4 mb-7" />
       <Form {...form}>
@@ -107,11 +110,7 @@ const CollectionForm: React.FC<CollectionFormProps> = ({ initialData }) => {
               <FormItem>
                 <FormLabel>Title</FormLabel>
                 <FormControl>
-                  <Input
-                    placeholder="Title"
-                    {...field}
-                    onKeyDown={handleKeyPress}
-                  />
+                  <Input placeholder="Title" {...field} onKeyDown={handleKeyPress} />
                 </FormControl>
                 <FormMessage />
               </FormItem>
@@ -124,12 +123,7 @@ const CollectionForm: React.FC<CollectionFormProps> = ({ initialData }) => {
               <FormItem>
                 <FormLabel>Description</FormLabel>
                 <FormControl>
-                  <Textarea
-                    placeholder="Description"
-                    {...field}
-                    rows={5}
-                    onKeyDown={handleKeyPress}
-                  />
+                  <Textarea placeholder="Description" {...field} rows={5} onKeyDown={handleKeyPress} />
                 </FormControl>
                 <FormMessage />
               </FormItem>
@@ -149,6 +143,24 @@ const CollectionForm: React.FC<CollectionFormProps> = ({ initialData }) => {
                   />
                 </FormControl>
                 <FormMessage />
+              </FormItem>
+            )}
+          />
+          <FormField
+            control={form.control}
+            name="price"
+            render={({ field }) => (
+              <FormItem>
+                <FormLabel>Price ($)</FormLabel>
+                <FormControl>
+                  <Input
+                    type="number"
+                    placeholder="Price"
+                    {...field}
+                    onKeyDown={handleKeyPress}
+                  />
+                </FormControl>
+                <FormMessage className="text-red-1" />
               </FormItem>
             )}
           />

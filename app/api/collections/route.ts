@@ -18,22 +18,34 @@ export const POST = async (req: NextRequest) => {
 
     await connectToDB();
 
-    const { title, description, image } = await req.json();
+    const requestData = await req.json();
 
+    // 🔹 Incluir `price` en la extracción del request
+    const { title, description, image, price } = requestData;
+
+    if (!title || !image || price === undefined) {
+      return new NextResponse("Title, image, and price are required", { status: 400 });
+    }
+
+    // 🔹 Validar que `price` sea un número válido
+    const parsedPrice = Number(price);
+    if (isNaN(parsedPrice) || parsedPrice < 0) {
+      return new NextResponse("Invalid price value", { status: 400 });
+    }
+
+    // 🔹 Verificar si la colección ya existe
     const existingCollection = await Collection.findOne({ title });
 
     if (existingCollection) {
       return new NextResponse("Collection already exists", { status: 400 });
     }
 
-    if (!title || !image) {
-      return new NextResponse("Title and image are required", { status: 400 });
-    }
-
+    // 🔹 Crear la colección incluyendo `price`
     const newCollection = await Collection.create({
       title,
       description,
       image,
+      price: parsedPrice, // Guardar el precio como número
     });
 
     await newCollection.save();
