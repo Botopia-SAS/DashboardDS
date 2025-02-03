@@ -52,18 +52,18 @@ export async function PATCH(req: NextRequest, context: { params: Promise<{ class
   }
 }
 
-// ✅ DELETE A CLASS
-export async function DELETE(req: NextRequest, context: { params: { classId: string } }) {
+// ✅ DELETE CLASS BY ID
+export async function DELETE(req: NextRequest) {
   try {
     await connectToDB();
 
-    const { classId } = await context.params; // ⚠️ DEBES usar `await` al extraer params
+    // ✅ Extraer `classId` desde la URL
+    const url = new URL(req.url);
+    const classId = url.pathname.split("/").pop(); // 🚀 Extrae el último segmento
 
     if (!classId) {
-      return NextResponse.json({ message: "Class ID is required" }, { status: 400 });
+      return NextResponse.json({ message: "Missing classId" }, { status: 400 });
     }
-
-    console.log("📌 Intentando eliminar la clase con ID:", classId);
 
     const deletedClass = await DrivingClass.findByIdAndDelete(classId);
     if (!deletedClass) {
@@ -76,5 +76,4 @@ export async function DELETE(req: NextRequest, context: { params: { classId: str
     return NextResponse.json({ message: "Failed to delete class" }, { status: 500 });
   }
 }
-
 
