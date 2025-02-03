@@ -23,7 +23,7 @@ import { Combobox } from "@/components/ui/combobox";
 // ✅ Definir esquema de validación con `zod`
 export const packageSchema = z.object({
   title: z.string().min(2).max(75),
-  description: z.string().min(2).max(500).trim(), // 🔹 Volvemos a agregarlo
+  description: z.string().min(2).max(2000).trim(), // 🔹 Volvemos a agregarlo
   media: z.array(z.string()).default([]),
   price: z.coerce.number().min(0.1),
   category: z.enum(["Lessons", "Packages"]), // ✅ Agregamos "Lessons"
