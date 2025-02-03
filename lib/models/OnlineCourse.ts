@@ -5,7 +5,7 @@ const OnlineCourseSchema = new Schema({
   description: { type: String, required: true, trim: true },
   image: { type: String, required: false, trim: true }, // ✅ Nuevo campo para la imagen
   hasPrice: { type: Boolean, default: false },
-  price: { type: Number, min: 0, required: function (this: any) { return this.hasPrice; } },
+  price: { type: Number, min: 0, required: function (this: { hasPrice: boolean }) { return this.hasPrice; } },
   type: { type: String, enum: ["Book", "Buy"], required: true },
   buttonLabel: { type: String, required: true, trim: true, maxLength: 20 },
   createdAt: { type: Date, default: Date.now },

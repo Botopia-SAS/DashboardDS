@@ -13,11 +13,13 @@ const eslintConfig = [
   ...compat.extends("next/core-web-vitals", "next/typescript"),
   {
     rules: {
-      "@typescript-eslint/no-unused-vars": "warn",  // ⚠ Solo advertencia, no bloquea el build
+      "@typescript-eslint/no-unused-vars": "warn",
       "@typescript-eslint/no-empty-interface": "off", // 🚀 Desactiva esta regla
-      "@typescript-eslint/no-explicit-any": "warn",  // ⚠ Advertencia en vez de error
+      "@typescript-eslint/no-explicit-any": "warn", // ⚠ Lo deja como advertencia en vez de error
+      "@typescript-eslint/no-empty-interface": "off",
     },
   },
 ];
 
 export default eslintConfig;
+
