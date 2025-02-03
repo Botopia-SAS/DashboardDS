@@ -23,10 +23,10 @@ const LeftSideBar = () => {
           <Link
             href={link.url}
             key={link.label}
-            className={`flex items-center gap-4 px-4 py-3 rounded-xl transition-all duration-300
+            className={`flex items-center gap-4 px-4 py-2 rounded-xl transition-all duration-300
               ${pathname === link.url 
                 ? "bg-blue-500 text-white shadow-lg scale-105"
-                : "text-gray-300 hover:bg-gray-700 hover:text-white hover:shadow-md hover:scale-105"
+                : "text-gray-300 hover:bg-gray-700 hover:text-white hover:shadow-md hover:scale-110"
               }`}
           >
             {link.icon}

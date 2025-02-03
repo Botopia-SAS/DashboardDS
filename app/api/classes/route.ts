@@ -18,15 +18,30 @@ export async function GET() {
 export async function POST(req: Request) {
   try {
     await connectToDB();
+
     const body = await req.json();
     const newClass = new DrivingClass({
-      ...body,
-      objectives: body.objectives || [], // ✅ Asegurar que siempre se envía un array vacío si no hay datos
+      title: body.title,
+      alsoKnownAs: body.alsoKnownAs,
+      length: body.length,
+      price: body.price,
+      overview: body.overview,
+      objectives: body.objectives,
+      contact: body.contact,
+      buttonLabel: body.buttonLabel,
+      image: body.image,
+      headquarters: body.headquarters, // 🚀 Se almacena en MongoDB
     });
+
     await newClass.save();
+
+    console.log("[DEBUG] Guardado en MongoDB:", newClass); 
+    
     return NextResponse.json(newClass, { status: 201 });
+
   } catch (error) {
     console.error("[POST_CLASS_ERROR]", error);
     return NextResponse.json({ message: "Failed to create class" }, { status: 500 });
   }
 }
+

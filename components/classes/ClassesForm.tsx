@@ -4,7 +4,6 @@ import { zodResolver } from "@hookform/resolvers/zod";
 import { useForm } from "react-hook-form";
 import { z } from "zod";
 import { useRouter } from "next/navigation";
-import { useState } from "react";
 import { Separator } from "../ui/separator";
 import { Button } from "@/components/ui/button";
 import {
@@ -19,6 +18,9 @@ import { Input } from "@/components/ui/input";
 import { Textarea } from "../ui/textarea";
 import ImageUpload from "../custom ui/ImageUpload"; // 📸 Componente de subida de imagen
 import toast from "react-hot-toast";
+import { Combobox } from "../ui/combobox";
+import { useEffect, useState } from "react";
+import Select from "react-select";
 
 const formSchema = z.object({
   title: z.string().min(2).max(50),
@@ -26,12 +28,12 @@ const formSchema = z.object({
   length: z.coerce.number().min(0.1, "Must be at least 0.1 hours"),
   price: z.coerce.number().min(0.1, "Price must be greater than 0"),
   overview: z.string().min(10).max(2000),
-  objectives: z.array(z.string().min(1)).default([]), // ✅ Nuevo campo
-  contact: z.string(),
+  objectives: z.array(z.string().min(1)).default([]),
+  contact: z.string().regex(/^\d{10,15}$/, "Enter a valid phone number (10-15 digits)"),
   buttonLabel: z.string().min(1).max(20),
   image: z.string().optional(),
+  headquarters: z.array(z.string()).min(1, "Please select at least one headquarters"),
 });
-
 
 interface FormProps {
   initialData?: {
@@ -45,10 +47,56 @@ interface FormProps {
     contact: string;
     buttonLabel: string;
     image?: string;
+    headquarters?: string[];
   } | null;
 }
 
 const CustomForm: React.FC<FormProps> = ({ initialData }) => {
+
+  const [headquartersOptions, setHeadquartersOptions] = useState<{ label: string; value: string }[]>([]);
+  const [selectedHeadquarters, setSelectedHeadquarters] = useState<{ label: string; value: string }[]>([]);
+  const [selectAll, setSelectAll] = useState(false);
+
+  useEffect(() => {
+    const fetchLocations = async () => {
+      try {
+        const res = await fetch("/api/locations"); // 🚀 Petición a Locations
+        const data = await res.json();
+
+        const zones = data.map((location: any) => ({
+          label: location.zone,  // 📍 Mostrará la zona en el dropdown
+          value: location.zone,  // 📍 Guardará la zona como valor
+        }));
+
+        setHeadquartersOptions(zones);
+      } catch (error) {
+        console.error("Failed to fetch locations:", error);
+      }
+    };
+
+    fetchLocations();
+  }, []);
+
+  // ✅ Función para manejar selección en el dropdown
+  const handleSelectChange = (selectedOptions: any) => {
+    const selectedValues = selectedOptions.map((hq: { value: string }) => hq.value);
+    form.setValue("headquarters", selectedValues);
+    setSelectedHeadquarters(selectedOptions || []);
+  };
+
+  // ✅ Función para manejar "Seleccionar Todos"
+  const handleSelectAll = () => {
+    if (selectAll) {
+      form.setValue("headquarters", []); // Vacía el formulario
+      setSelectedHeadquarters([]);
+    } else {
+      const allValues = headquartersOptions.map((hq) => hq.value);
+      form.setValue("headquarters", allValues);
+      setSelectedHeadquarters(headquartersOptions);
+    }
+    setSelectAll(!selectAll);
+  };
+
   const router = useRouter();
   const form = useForm<z.infer<typeof formSchema>>({
     resolver: zodResolver(formSchema),
@@ -58,10 +106,11 @@ const CustomForm: React.FC<FormProps> = ({ initialData }) => {
       length: initialData?.length ?? 1,
       price: initialData?.price ?? 0.1,
       overview: initialData?.overview || "",
-      objectives: initialData?.objectives ?? [], 
+      objectives: initialData?.objectives ?? [],
       contact: initialData?.contact || "",
       buttonLabel: initialData?.buttonLabel || "",
-      image: initialData?.image || "", // 📸 Valor por defecto
+      image: initialData?.image || "",
+      headquarters: initialData?.headquarters ?? [], // ✅ Asegura que sea un array
     },
   });
 
@@ -69,13 +118,20 @@ const CustomForm: React.FC<FormProps> = ({ initialData }) => {
     try {
       const url = initialData ? `/api/classes/${initialData._id}` : "/api/classes";
       const method = initialData ? "PATCH" : "POST";
+  
+      const payload = {
+        ...values,
+        headquarters: form.getValues("headquarters"), // ✅ Envía como array
+      };
 
+      console.log("[DEBUG] Enviando datos al backend:", payload);
+  
       const res = await fetch(url, {
         method,
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify(values),
+        body: JSON.stringify(payload),
       });
-
+  
       if (res.ok) {
         toast.success(`Class ${initialData ? "updated" : "created"} successfully`);
         router.push("/classes");
@@ -87,6 +143,7 @@ const CustomForm: React.FC<FormProps> = ({ initialData }) => {
       toast.error("Something went wrong!");
     }
   };
+  
 
   return (
     <div className="p-10 mx-auto bg-white rounded-lg shadow-md">
@@ -143,9 +200,34 @@ const CustomForm: React.FC<FormProps> = ({ initialData }) => {
               onClick={() => form.setValue("alsoKnownAs", [...form.getValues("alsoKnownAs"), ""])}
               className="mt-2 bg-blue-500 text-white"
             >
-              + Add Alias
+              + Add Also Know As
             </Button>
           </FormItem>
+
+          {/* 🔹 HEADQUARTERS */}
+          <FormItem>
+            <FormLabel>Headquarters Available</FormLabel>
+            <div className="flex flex-col gap-2">
+
+              {/* ✅ Checkbox para seleccionar todos */}
+              <label className="flex items-center gap-2">
+                <input type="checkbox" checked={selectAll} onChange={handleSelectAll} />
+                <span>Select All</span>
+              </label>
+
+              {/* ✅ Multi-Select Dropdown */}
+              <Select
+                isMulti
+                options={headquartersOptions}
+                value={selectedHeadquarters}
+                onChange={handleSelectChange}
+                placeholder="Select locations..."
+                className="w-full"
+              />
+            </div>
+            <FormMessage />
+          </FormItem>
+
 
           {/* 🔹 LENGTH */}
           <FormField
@@ -235,7 +317,7 @@ const CustomForm: React.FC<FormProps> = ({ initialData }) => {
               <FormItem>
                 <FormLabel>Contact</FormLabel>
                 <FormControl>
-                  <Input type="email" {...field} placeholder="Enter contact info" />
+                  <Input type="tel" {...field} placeholder="Enter phone number" />
                 </FormControl>
                 <FormMessage />
               </FormItem>
@@ -290,3 +372,4 @@ const CustomForm: React.FC<FormProps> = ({ initialData }) => {
 };
 
 export default CustomForm;
+

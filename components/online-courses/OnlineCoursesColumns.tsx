@@ -6,35 +6,27 @@ import Link from "next/link";
 import Image from "next/image";
 import { ArrowUpRight } from "lucide-react";
 
-// 1. Definir el tipo DrivingClassType
-export type DrivingClassType = {
+// 1. Definir el tipo OnlineCourseType
+export type OnlineCourseType = {
   _id: string;
   title: string;
-  length: number; // Duración en horas
-  price: number; // Precio en dólares
-  image: string; // URL de la imagen
+  price: number;
+  image: string; // ✅ Agregar la imagen
 };
 
 // 2. Definir las columnas de la tabla
-export const columns: ColumnDef<DrivingClassType>[] = [
+export const columns: ColumnDef<OnlineCourseType>[] = [
   {
     accessorKey: "title",
     header: "Title",
     cell: ({ row }) => (
       <Link
-        href={`/classes/${row.original._id}`}
+        href={`/online-courses/${row.original._id}`}
         className="flex items-center gap-2 font-semibold text-blue-500 hover:text-blue-700 transition-colors duration-200"
       >
         {row.original.title}
         <ArrowUpRight size={16} className="opacity-75" />
       </Link>
-    ),
-  },
-  {
-    accessorKey: "length",
-    header: "Length (Hours)",
-    cell: ({ row }) => (
-      <p className="font-medium text-gray-700">{row.original.length} hrs</p>
     ),
   },
   {
@@ -66,10 +58,13 @@ export const columns: ColumnDef<DrivingClassType>[] = [
   {
     id: "actions",
     header: "Actions",
-    cell: ({ row }) => (
-      <div className="flex justify-center">
-        <Delete item="classes" id={row.original._id} />
-      </div>
-    ),
-  },
+    cell: ({ row }) => {
+      console.log("🛠 Online Course ID:", row.original._id); // 👀 Verifica el ID en la consola
+      return (
+        <div className="flex justify-center">
+          <Delete item="online-courses" id={row.original._id} />
+        </div>
+      );
+    },
+  },  
 ];

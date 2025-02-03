@@ -7,6 +7,8 @@ import {
     Car,
     BookOpen,
     LifeBuoy,
+    CalendarDays,
+    MapPinCheck
   } from "lucide-react";
   
   export const navLinks = [
@@ -39,6 +41,16 @@ import {
       url: "/orders",
       icon: <ShoppingBag />,
       label: "Orders",
+    },
+    {
+      url: "/book", // ✅ Nuevo enlace para "Book"
+      icon: <CalendarDays />, // ✅ Puedes cambiar este ícono si prefieres otro
+      label: "Book",
+    },
+    {
+      url: "/locations", // ✅ Nuevo enlace para "Book"
+      icon: <MapPinCheck />, // ✅ Puedes cambiar este ícono si prefieres otro
+      label: "Locations",
     },
     {
       url: "/customers",
