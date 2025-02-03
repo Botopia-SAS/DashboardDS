@@ -26,16 +26,19 @@ export async function GET(req: NextRequest) {
 }
 
 // ✅ PATCH PRODUCT
-export async function PATCH(req: Request, { params }: { params: { productId: string } }) {
+export async function PATCH(req: NextRequest) {
   try {
     await connectToDB();
     const body = await req.json();
 
-    if (!params.productId) {
+    // Extraer `productId` igual que en GET y DELETE
+    const productId = req.nextUrl.pathname.split("/").pop();
+
+    if (!productId) {
       return NextResponse.json({ message: "Product ID is required" }, { status: 400 });
     }
 
-    const updatedProduct = await Product.findByIdAndUpdate(params.productId, body, { new: true });
+    const updatedProduct = await Product.findByIdAndUpdate(productId, body, { new: true });
     if (!updatedProduct) {
       return NextResponse.json({ message: "Product not found" }, { status: 404 });
     }
