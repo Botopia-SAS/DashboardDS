@@ -26,17 +26,16 @@ export async function GET(req: NextRequest) {
 }
 
 // ✅ PATCH PRODUCT
-export async function PATCH(req: NextRequest, context: any) { // 👈 Se usa "context: any" para evitar errores de TypeScript
+export async function PATCH(req: Request, { params }: { params: { productId: string } }) {
   try {
     await connectToDB();
     const body = await req.json();
 
-    const productId = req.nextUrl.pathname.split("/").pop();
-    if (!productId) {
+    if (!params.productId) {
       return NextResponse.json({ message: "Product ID is required" }, { status: 400 });
     }
 
-    const updatedProduct = await Product.findByIdAndUpdate(productId, body, { new: true });
+    const updatedProduct = await Product.findByIdAndUpdate(params.productId, body, { new: true });
     if (!updatedProduct) {
       return NextResponse.json({ message: "Product not found" }, { status: 404 });
     }
