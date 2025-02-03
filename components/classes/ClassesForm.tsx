@@ -18,7 +18,6 @@ import { Input } from "@/components/ui/input";
 import { Textarea } from "../ui/textarea";
 import ImageUpload from "../custom ui/ImageUpload"; // 📸 Componente de subida de imagen
 import toast from "react-hot-toast";
-import { Combobox } from "../ui/combobox";
 import { useEffect, useState } from "react";
 import Select from "react-select";
 

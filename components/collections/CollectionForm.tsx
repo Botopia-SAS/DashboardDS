@@ -37,7 +37,7 @@ interface CollectionFormProps {
 const CollectionForm: React.FC<CollectionFormProps> = ({ initialData }) => {
   const router = useRouter();
 
-  const [loading, setLoading] = useState(false);
+  const [, setLoading] = useState(false);
 
   const form = useForm<z.infer<typeof formSchema>>({
     resolver: zodResolver(formSchema),
@@ -76,7 +76,6 @@ const CollectionForm: React.FC<CollectionFormProps> = ({ initialData }) => {
         body: JSON.stringify(formattedValues),
       });
 
-      const data = await res.json();
 
       if (res.ok) {
         setLoading(false);

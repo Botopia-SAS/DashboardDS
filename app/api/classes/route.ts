@@ -1,4 +1,4 @@
-import { NextRequest, NextResponse } from "next/server";
+import { NextResponse } from "next/server";
 import { connectToDB } from "@/lib/mongoDB";
 import DrivingClass from "@/lib/models/Class"; // ✅ Importar el modelo correcto
 

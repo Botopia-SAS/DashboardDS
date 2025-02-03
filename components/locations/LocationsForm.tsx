@@ -18,7 +18,7 @@ import { Input } from "@/components/ui/input";
 import { Textarea } from "../ui/textarea";
 import ImageUpload from "../custom ui/ImageUpload";
 import toast from "react-hot-toast";
-import { useState, useRef } from "react";
+import { useRef } from "react";
 import { useJsApiLoader, Autocomplete } from "@react-google-maps/api";
 
 const formSchema = z.object({

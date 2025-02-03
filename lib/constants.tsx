@@ -2,7 +2,6 @@ import {
     LayoutDashboard,
     Shapes,
     ShoppingBag,
-    Tag,
     UsersRound,
     Car,
     BookOpen,

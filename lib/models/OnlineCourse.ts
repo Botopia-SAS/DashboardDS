@@ -1,4 +1,4 @@
-import mongoose, { Schema, model, models } from "mongoose";
+import { Schema, model, models } from "mongoose";
 
 const OnlineCourseSchema = new Schema({
   title: { type: String, required: true, trim: true },

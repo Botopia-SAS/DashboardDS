@@ -1,6 +1,6 @@
 import Product from "@/lib/models/Product";
 import { connectToDB } from "@/lib/mongoDB";
-import { getAuth, auth } from "@clerk/nextjs/server";
+import { auth } from "@clerk/nextjs/server";
 import { NextRequest, NextResponse } from "next/server";
 
 export const GET = async (
