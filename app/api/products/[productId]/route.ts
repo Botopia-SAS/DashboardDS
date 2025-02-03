@@ -8,7 +8,7 @@ export const GET = async (req: NextRequest) => {
   try {
     await connectToDB();
 
-    const productId = req.nextUrl.pathname.split("/").pop(); // 🔹 Extraemos `productId` sin usar `{ params }`
+    const productId = req.nextUrl.pathname.split("/").pop();
 
     if (!productId) {
       return new NextResponse("Product ID is required", { status: 400 });
@@ -20,12 +20,24 @@ export const GET = async (req: NextRequest) => {
       return new NextResponse("Product not found", { status: 404 });
     }
 
-    return NextResponse.json(product, { status: 200 });
+    // 🔥 Asegurar que todos los campos están en la respuesta
+    return NextResponse.json({
+      _id: product._id,
+      title: product.title,
+      description: product.description,
+      media: product.media,
+      price: product.price,
+      category: product.category, // 🔥 Incluir `category`
+      type: product.type, // 🔥 Incluir `type`
+      buttonLabel: product.buttonLabel, // 🔥 Incluir `buttonLabel`
+    }, { status: 200 });
+
   } catch (error) {
     console.error("❌ Internal Server Error:", error);
     return new NextResponse("Internal Server Error", { status: 500 });
   }
 };
+
 
 // ✅ POST PRODUCT (Sin cambios)
 export const POST = async (req: NextRequest) => {
