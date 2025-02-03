@@ -48,14 +48,27 @@ export const PATCH = async (req: NextRequest, { params }: { params: { locationId
   }
 };
 
-// DELETE - Eliminar una ubicación
-export const DELETE = async (req: NextRequest, { params }: { params: { locationId: string } }) => {
+// ✅ DELETE LOCATION BY ID
+export async function DELETE(req: NextRequest) {
   try {
     await connectToDB();
-    await Locations.findByIdAndDelete(params.locationId);
-    return new NextResponse("Location deleted successfully", { status: 200 });
-  } catch (err) {
-    console.error("[locationId_DELETE] Error:", err);
-    return new NextResponse("Internal Server Error", { status: 500 });
+
+    // ✅ Extraer `locationId` desde la URL
+    const url = new URL(req.url);
+    const locationId = url.pathname.split("/").pop(); // 🚀 Extrae el último segmento de la URL
+
+    if (!locationId) {
+      return NextResponse.json({ message: "Missing locationId" }, { status: 400 });
+    }
+
+    const deletedLocation = await Locations.findByIdAndDelete(locationId);
+    if (!deletedLocation) {
+      return NextResponse.json({ message: "Location not found" }, { status: 404 });
+    }
+
+    return NextResponse.json({ message: "Location deleted successfully" }, { status: 200 });
+  } catch (error) {
+    console.error("[DELETE_LOCATION_ERROR]", error);
+    return NextResponse.json({ message: "Failed to delete location" }, { status: 500 });
   }
-};
+}
