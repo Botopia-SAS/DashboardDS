@@ -2,19 +2,20 @@ import { NextRequest, NextResponse } from "next/server";
 import { connectToDB } from "@/lib/mongoDB";
 import DrivingClass from "@/lib/models/Class"; // ✅ Asegura que el modelo es el correcto
 
-export async function GET(req: NextRequest, { params }: { params: { classId: string } }) {
+// ✅ GET CLASS BY ID
+export async function GET(req: NextRequest) {
   try {
     await connectToDB();
 
-    // ✅ Esperar los params antes de acceder a ellos
-    const { classId } = await params;
+    // ✅ Extraer `classId` desde la URL
+    const url = new URL(req.url);
+    const classId = url.pathname.split("/").pop(); // 🚀 Extrae el último segmento
 
     if (!classId) {
       return NextResponse.json({ message: "Missing classId" }, { status: 400 });
     }
 
     const drivingClass = await DrivingClass.findById(classId);
-
     if (!drivingClass) {
       return NextResponse.json({ message: "Class not found" }, { status: 404 });
     }
