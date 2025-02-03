@@ -1,18 +1,17 @@
-import { NextResponse, NextRequest } from "next/server";
+import { NextResponse } from "next/server";
 import { connectToDB } from "@/lib/mongoDB";
 import Product from "@/lib/models/Product";
 
 // ✅ GET SINGLE PACKAGE
-export async function GET(req: NextRequest) {
+export async function GET(req: Request, { params }: { params: { productId: string } }) {
   try {
     await connectToDB();
 
-    const productId = req.nextUrl.pathname.split("/").pop();
-    if (!productId) {
+    if (!params.productId) {
       return NextResponse.json({ message: "Product ID is required" }, { status: 400 });
     }
 
-    const product = await Product.findById(productId);
+    const product = await Product.findById(params.productId);
     if (!product) {
       return NextResponse.json({ message: "Product not found" }, { status: 404 });
     }
@@ -24,19 +23,16 @@ export async function GET(req: NextRequest) {
   }
 }
 
-export async function PATCH(req: NextRequest) {
+export async function PATCH(req: Request, { params }: { params: { productId: string } }) {
   try {
     await connectToDB();
     const body = await req.json();
 
-    // ✅ Extraer `productId` desde `req.nextUrl.pathname`
-    const productId = req.nextUrl.pathname.split("/").pop();
-
-    if (!productId) {
+    if (!params.productId) {
       return NextResponse.json({ message: "Product ID is required" }, { status: 400 });
     }
 
-    const updatedProduct = await Product.findByIdAndUpdate(productId, body, { new: true });
+    const updatedProduct = await Product.findByIdAndUpdate(params.productId, body, { new: true });
     if (!updatedProduct) {
       return NextResponse.json({ message: "Product not found" }, { status: 404 });
     }
@@ -49,16 +45,15 @@ export async function PATCH(req: NextRequest) {
 }
 
 // ✅ DELETE - Eliminar un paquete
-export async function DELETE(req: NextRequest) {
+export async function DELETE(req: Request, { params }: { params: { productId: string } }) {
   try {
     await connectToDB();
 
-    const productId = req.nextUrl.pathname.split("/").pop();
-    if (!productId) {
+    if (!params.productId) {
       return NextResponse.json({ message: "Product ID is required" }, { status: 400 });
     }
 
-    const deletedProduct = await Product.findByIdAndDelete(productId);
+    const deletedProduct = await Product.findByIdAndDelete(params.productId);
     if (!deletedProduct) {
       return NextResponse.json({ message: "Product not found" }, { status: 404 });
     }
@@ -69,6 +64,3 @@ export async function DELETE(req: NextRequest) {
     return NextResponse.json({ message: "Failed to delete product" }, { status: 500 });
   }
 }
-
-
-
