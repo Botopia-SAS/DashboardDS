@@ -25,14 +25,13 @@ export async function GET(req: NextRequest) {
   }
 }
 
-export async function PATCH(req: NextRequest) {
+// ✅ PATCH PRODUCT
+export async function PATCH(req: NextRequest, context: any) { // 👈 Se usa "context: any" para evitar errores de TypeScript
   try {
     await connectToDB();
     const body = await req.json();
 
-    // ✅ Extraer `productId` desde la URL manualmente
     const productId = req.nextUrl.pathname.split("/").pop();
-
     if (!productId) {
       return NextResponse.json({ message: "Product ID is required" }, { status: 400 });
     }
