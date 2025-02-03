@@ -3,15 +3,12 @@ import { connectToDB } from "@/lib/mongoDB";
 import { auth } from "@clerk/nextjs/server";
 import { NextRequest, NextResponse } from "next/server";
 
-// ✅ GET SINGLE PRODUCT (Corrección: `params` ya no es una promesa)
-export const GET = async (
-  req: NextRequest,
-  { params }: { params: { productId: string } }
-) => {
+// ✅ GET SINGLE PRODUCT (Extrae `productId` desde la URL manualmente)
+export const GET = async (req: NextRequest) => {
   try {
     await connectToDB();
 
-    const { productId } = params; // 🔹 No usar `await` aquí
+    const productId = req.nextUrl.pathname.split("/").pop(); // 🔹 Extraemos `productId` sin usar `{ params }`
 
     if (!productId) {
       return new NextResponse("Product ID is required", { status: 400 });
@@ -30,7 +27,7 @@ export const GET = async (
   }
 };
 
-// ✅ POST PRODUCT (No requiere cambios)
+// ✅ POST PRODUCT (Sin cambios)
 export const POST = async (req: NextRequest) => {
   try {
     await connectToDB();
@@ -50,7 +47,7 @@ export const POST = async (req: NextRequest) => {
       return new NextResponse("All fields are required", { status: 400 });
     }
 
-    const processedMedia = hasImage ? media : []; // 🔹 Si `hasImage` es `false`, `media` será un array vacío
+    const processedMedia = hasImage ? media : [];
 
     const newProduct = new Product({
       title,
@@ -71,13 +68,10 @@ export const POST = async (req: NextRequest) => {
   }
 };
 
-// ✅ DELETE PRODUCT (Corrección: `params` ya no es una promesa)
-export const DELETE = async (
-  req: NextRequest,
-  { params }: { params: { productId: string } } // 🔹 Corregido
-) => {
+// ✅ DELETE PRODUCT (Extrae `productId` desde la URL manualmente)
+export const DELETE = async (req: NextRequest) => {
   try {
-    const { productId } = params; // 🔹 No usar `await` aquí
+    const productId = req.nextUrl.pathname.split("/").pop(); // 🔹 Extraemos `productId`
 
     if (!productId) {
       return new NextResponse("Product ID is required", { status: 400 });
@@ -104,24 +98,22 @@ export const DELETE = async (
   }
 };
 
-// ✅ PATCH PRODUCT (No requiere cambios)
-export const PATCH = async (
-  req: NextRequest,
-  { params }: { params: { productId: string } }
-) => {
+// ✅ PATCH PRODUCT (Extrae `productId` desde la URL manualmente)
+export const PATCH = async (req: NextRequest) => {
   try {
     await connectToDB();
+    const body = await req.json();
 
-    if (!params.productId) {
+    const productId = req.nextUrl.pathname.split("/").pop(); // 🔹 Extraemos `productId`
+
+    if (!productId) {
       return new NextResponse("Product ID is required", { status: 400 });
     }
 
-    const data = await req.json();
-
     const updatedProduct = await Product.findByIdAndUpdate(
-      params.productId,
-      data,
-      { new: true } // Retorna el producto actualizado
+      productId,
+      body,
+      { new: true }
     );
 
     if (!updatedProduct) {
