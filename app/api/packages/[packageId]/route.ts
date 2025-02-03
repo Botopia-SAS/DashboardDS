@@ -8,10 +8,7 @@ export async function GET(req: NextRequest) {
   try {
     await connectToDB();
 
-    const url = new URL(req.url);
-    const pathParts = url.pathname.split("/");
-    const productId = pathParts[pathParts.length - 1];
-
+    const productId = req.nextUrl.pathname.split("/").pop();
     if (!productId) {
       return NextResponse.json({ message: "Product ID is required" }, { status: 400 });
     }
@@ -34,9 +31,7 @@ export async function PATCH(req: NextRequest) {
     const body = await req.json();
 
     // ✅ Extraer `productId` desde la URL manualmente
-    const url = new URL(req.url);
-    const pathParts = url.pathname.split("/");
-    const productId = pathParts[pathParts.length - 1]; // Último segmento de la URL
+    const productId = req.nextUrl.pathname.split("/").pop();
 
     if (!productId) {
       return NextResponse.json({ message: "Product ID is required" }, { status: 400 });
@@ -59,10 +54,7 @@ export async function DELETE(req: NextRequest) {
   try {
     await connectToDB();
 
-    const url = new URL(req.url);
-    const pathParts = url.pathname.split("/");
-    const productId = pathParts[pathParts.length - 1];
-
+    const productId = req.nextUrl.pathname.split("/").pop();
     if (!productId) {
       return NextResponse.json({ message: "Product ID is required" }, { status: 400 });
     }
@@ -78,5 +70,6 @@ export async function DELETE(req: NextRequest) {
     return NextResponse.json({ message: "Failed to delete product" }, { status: 500 });
   }
 }
+
 
 
