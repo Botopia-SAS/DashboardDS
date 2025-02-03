@@ -1,17 +1,20 @@
 import { NextResponse } from "next/server";
 import { connectToDB } from "@/lib/mongoDB";
 import Package from "@/lib/models/Package";
+import type { Params } from "next/dist/server/request/params"; // Importación opcional en Next 14
 
 // ✅ GET SINGLE PACKAGE
-export async function GET(req: Request, { params }: { params: { packageId: string } }) {
+export async function GET(req: Request, context: { params: Params }) {
   try {
     await connectToDB();
 
-    if (!params.packageId) {
+    const { packageId } = context.params;
+
+    if (!packageId) {
       return NextResponse.json({ message: "Package ID is required" }, { status: 400 });
     }
 
-    const packageData = await Package.findById(params.packageId);
+    const packageData = await Package.findById(packageId);
     if (!packageData) {
       return NextResponse.json({ message: "Package not found" }, { status: 404 });
     }
@@ -23,16 +26,18 @@ export async function GET(req: Request, { params }: { params: { packageId: strin
   }
 }
 
-export async function PATCH(req: Request, { params }: { params: { packageId: string } }) {
+export async function PATCH(req: Request, context: { params: Params }) {
   try {
     await connectToDB();
     const body = await req.json();
 
-    if (!params.packageId) {
+    const { packageId } = context.params;
+
+    if (!packageId) {
       return NextResponse.json({ message: "Package ID is required" }, { status: 400 });
     }
 
-    const updatedPackage = await Package.findByIdAndUpdate(params.packageId, body, { new: true });
+    const updatedPackage = await Package.findByIdAndUpdate(packageId, body, { new: true });
     if (!updatedPackage) {
       return NextResponse.json({ message: "Package not found" }, { status: 404 });
     }
@@ -45,15 +50,17 @@ export async function PATCH(req: Request, { params }: { params: { packageId: str
 }
 
 // ✅ DELETE - Eliminar un paquete
-export async function DELETE(req: Request, { params }: { params: { packageId: string } }) {
+export async function DELETE(req: Request, context: { params: Params }) {
   try {
     await connectToDB();
 
-    if (!params.packageId) {
+    const { packageId } = context.params;
+
+    if (!packageId) {
       return NextResponse.json({ message: "Package ID is required" }, { status: 400 });
     }
 
-    const deletedPackage = await Package.findByIdAndDelete(params.packageId);
+    const deletedPackage = await Package.findByIdAndDelete(packageId);
     if (!deletedPackage) {
       return NextResponse.json({ message: "Package not found" }, { status: 404 });
     }
