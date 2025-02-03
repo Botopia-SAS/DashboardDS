@@ -30,8 +30,9 @@ export async function PATCH(req: NextRequest) {
     await connectToDB();
     const body = await req.json();
 
-    // ✅ Extraer `productId` desde la URL correctamente
-    const productId = req.nextUrl.pathname.split("/").pop(); 
+    // ✅ Extraer `productId` desde `req.url`
+    const urlParts = req.nextUrl.pathname.split("/");
+    const productId = urlParts[urlParts.length - 1]; // Última parte de la URL
 
     if (!productId) {
       return NextResponse.json({ message: "Product ID is required" }, { status: 400 });
