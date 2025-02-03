@@ -69,7 +69,7 @@ export const columns: ColumnDef<LocationType>[] = [
     id: "actions",
     cell: ({ row }) => (
       <div className="flex justify-center">
-        <Delete item="location" id={row.original._id} />
+        <Delete item="locations" id={row.original._id} />
       </div>
     ),
   },
