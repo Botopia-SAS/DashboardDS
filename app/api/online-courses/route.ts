@@ -1,4 +1,4 @@
-import { NextResponse } from "next/server";
+import { NextRequest, NextResponse } from "next/server";
 import { connectToDB } from "@/lib/mongoDB";
 import OnlineCourse from "@/lib/models/OnlineCourse";
 
@@ -39,24 +39,28 @@ export async function POST(req: Request) {
   }
 }
 
-// ✅ DELETE ONLINE COURSE
-export async function DELETE(req: Request, { params }: { params: { id?: string } }) {
+// ✅ DELETE: Ahora extrae el `id` desde la URL
+export async function DELETE(req: NextRequest) {
   try {
     await connectToDB();
 
-    if (!params.id) {
-      return NextResponse.json({ message: "Missing course ID" }, { status: 400 });
+    // ✅ Extraer `courseId` desde `req.nextUrl.pathname`
+    const url = new URL(req.url);
+    const pathParts = url.pathname.split("/");
+    const courseId = pathParts[pathParts.length - 1]; // Último segmento de la URL
+
+    if (!courseId) {
+      return NextResponse.json({ message: "Course ID is required" }, { status: 400 });
     }
 
-    const deletedCourse = await OnlineCourse.findByIdAndDelete(params.id);
+    console.log("📌 Intentando eliminar:", courseId);
 
+    const deletedCourse = await OnlineCourse.findByIdAndDelete(courseId);
     if (!deletedCourse) {
       return NextResponse.json({ message: "Course not found" }, { status: 404 });
     }
 
-    console.log("✅ Course deleted:", deletedCourse);
-
-    return NextResponse.json({ message: "Course deleted successfully" }, { status: 200 });
+    return NextResponse.json({ message: "Online Course deleted successfully" }, { status: 200 });
   } catch (error) {
     console.error("[DELETE_COURSE_ERROR]", error);
     return NextResponse.json({ message: "Failed to delete course" }, { status: 500 });
