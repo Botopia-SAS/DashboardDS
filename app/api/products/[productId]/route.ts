@@ -3,14 +3,15 @@ import { connectToDB } from "@/lib/mongoDB";
 import { auth } from "@clerk/nextjs/server";
 import { NextRequest, NextResponse } from "next/server";
 
+// ✅ GET SINGLE PRODUCT (Corrección: `params` ya no es una promesa)
 export const GET = async (
   req: NextRequest,
-  { params }: { params: Promise<{ productId: string }> } // 🔹 `params` es una Promesa
+  { params }: { params: { productId: string } }
 ) => {
   try {
     await connectToDB();
 
-    const { productId } = await params; // 🔹 Hacer `await` antes de acceder a `productId`
+    const { productId } = params; // 🔹 No usar `await` aquí
 
     if (!productId) {
       return new NextResponse("Product ID is required", { status: 400 });
@@ -29,6 +30,7 @@ export const GET = async (
   }
 };
 
+// ✅ POST PRODUCT (No requiere cambios)
 export const POST = async (req: NextRequest) => {
   try {
     await connectToDB();
@@ -41,7 +43,7 @@ export const POST = async (req: NextRequest) => {
       price,
       category,
       type,
-      buttonLabel
+      buttonLabel,
     } = await req.json();
 
     if (!title || !description || !price || !category || !type || !buttonLabel) {
@@ -58,24 +60,24 @@ export const POST = async (req: NextRequest) => {
       price,
       category,
       type,
-      buttonLabel
+      buttonLabel,
     });
 
     await newProduct.save();
     return NextResponse.json(newProduct, { status: 201 });
-
   } catch (error) {
     console.error("[POST_PRODUCT]", error);
     return new NextResponse("Internal Server Error", { status: 500 });
   }
 };
 
+// ✅ DELETE PRODUCT (Corrección: `params` ya no es una promesa)
 export const DELETE = async (
   req: NextRequest,
-  { params }: { params: Promise<{ productId: string }> } // 🔹 `params` es una Promesa
+  { params }: { params: { productId: string } } // 🔹 Corregido
 ) => {
   try {
-    const { productId } = await params; // 🔹 Hacer `await` antes de acceder a `productId`
+    const { productId } = params; // 🔹 No usar `await` aquí
 
     if (!productId) {
       return new NextResponse("Product ID is required", { status: 400 });
@@ -102,6 +104,7 @@ export const DELETE = async (
   }
 };
 
+// ✅ PATCH PRODUCT (No requiere cambios)
 export const PATCH = async (
   req: NextRequest,
   { params }: { params: { productId: string } }
@@ -132,4 +135,5 @@ export const PATCH = async (
   }
 };
 
+// Mantiene el modo dinámico
 export const dynamic = "force-dynamic";
