@@ -1,73 +1,75 @@
-import { NextResponse } from "next/server";
+import { NextResponse, NextRequest } from "next/server";
 import { connectToDB } from "@/lib/mongoDB";
 import Package from "@/lib/models/Package";
-import type { Params } from "next/dist/server/request/params"; // Importación opcional en Next 14
+import Product from "@/lib/models/Product";
 
 // ✅ GET SINGLE PACKAGE
-export async function GET(req: Request, context: { params: Params }) {
+export async function GET(req: NextRequest) {
   try {
     await connectToDB();
 
-    const { packageId } = context.params;
-
-    if (!packageId) {
-      return NextResponse.json({ message: "Package ID is required" }, { status: 400 });
+    const productId = req.nextUrl.pathname.split("/").pop();
+    if (!productId) {
+      return NextResponse.json({ message: "Product ID is required" }, { status: 400 });
     }
 
-    const packageData = await Package.findById(packageId);
-    if (!packageData) {
-      return NextResponse.json({ message: "Package not found" }, { status: 404 });
+    const product = await Product.findById(productId);
+    if (!product) {
+      return NextResponse.json({ message: "Product not found" }, { status: 404 });
     }
 
-    return NextResponse.json(packageData, { status: 200 });
+    return NextResponse.json(product, { status: 200 });
   } catch (error) {
-    console.error("[GET_PACKAGE_ERROR]", error);
-    return NextResponse.json({ message: "Failed to fetch package" }, { status: 500 });
+    console.error("[GET_PRODUCT_ERROR]", error);
+    return NextResponse.json({ message: "Failed to fetch product" }, { status: 500 });
   }
 }
 
-export async function PATCH(req: Request, context: { params: Params }) {
+export async function PATCH(req: NextRequest) {
   try {
     await connectToDB();
     const body = await req.json();
 
-    const { packageId } = context.params;
+    // ✅ Extraer `productId` desde la URL manualmente
+    const productId = req.nextUrl.pathname.split("/").pop();
 
-    if (!packageId) {
-      return NextResponse.json({ message: "Package ID is required" }, { status: 400 });
+    if (!productId) {
+      return NextResponse.json({ message: "Product ID is required" }, { status: 400 });
     }
 
-    const updatedPackage = await Package.findByIdAndUpdate(packageId, body, { new: true });
-    if (!updatedPackage) {
-      return NextResponse.json({ message: "Package not found" }, { status: 404 });
+    const updatedProduct = await Product.findByIdAndUpdate(productId, body, { new: true });
+    if (!updatedProduct) {
+      return NextResponse.json({ message: "Product not found" }, { status: 404 });
     }
 
-    return NextResponse.json(updatedPackage, { status: 200 });
+    return NextResponse.json(updatedProduct, { status: 200 });
   } catch (error) {
-    console.error("[PATCH_PACKAGE_ERROR]", error);
-    return NextResponse.json({ message: "Failed to update package" }, { status: 500 });
+    console.error("[PATCH_PRODUCT_ERROR]", error);
+    return NextResponse.json({ message: "Failed to update product" }, { status: 500 });
   }
 }
 
 // ✅ DELETE - Eliminar un paquete
-export async function DELETE(req: Request, context: { params: Params }) {
+export async function DELETE(req: NextRequest) {
   try {
     await connectToDB();
 
-    const { packageId } = context.params;
-
-    if (!packageId) {
-      return NextResponse.json({ message: "Package ID is required" }, { status: 400 });
+    const productId = req.nextUrl.pathname.split("/").pop();
+    if (!productId) {
+      return NextResponse.json({ message: "Product ID is required" }, { status: 400 });
     }
 
-    const deletedPackage = await Package.findByIdAndDelete(packageId);
-    if (!deletedPackage) {
-      return NextResponse.json({ message: "Package not found" }, { status: 404 });
+    const deletedProduct = await Product.findByIdAndDelete(productId);
+    if (!deletedProduct) {
+      return NextResponse.json({ message: "Product not found" }, { status: 404 });
     }
 
-    return NextResponse.json({ message: "Package deleted successfully" }, { status: 200 });
+    return NextResponse.json({ message: "Product deleted successfully" }, { status: 200 });
   } catch (error) {
-    console.error("[DELETE_PACKAGE_ERROR]", error);
-    return NextResponse.json({ message: "Failed to delete package" }, { status: 500 });
+    console.error("[DELETE_PRODUCT_ERROR]", error);
+    return NextResponse.json({ message: "Failed to delete product" }, { status: 500 });
   }
 }
+
+
+
