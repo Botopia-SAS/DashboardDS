@@ -23,6 +23,7 @@ export async function POST(req: Request) {
     // ✅ Crear un nuevo Package sin `description`
     const newPackage = new Package({
       title: body.title,
+      description: body.description, // 🔥 Se agrega `description`
       media: body.media || [], // ✅ Asegurar que media es un array
       price: body.price,
       category: body.category,
