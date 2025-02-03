@@ -1,6 +1,5 @@
 import { NextResponse, NextRequest } from "next/server";
 import { connectToDB } from "@/lib/mongoDB";
-import Package from "@/lib/models/Package";
 import Product from "@/lib/models/Product";
 
 // ✅ GET SINGLE PACKAGE
