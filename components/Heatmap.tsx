@@ -7,7 +7,7 @@ interface HeatmapProps {
 
 const Heatmap: React.FC<HeatmapProps> = ({ data }) => {
   const heatmapRef = useRef<HTMLDivElement | null>(null);
-  const heatmapInstance = useRef<h337.Heatmap<{ x: number; y: number; value: number }> | null>(null);
+  const heatmapInstance = useRef<h337.Heatmap<"value", "x", "y"> | null>(null);
 
   useEffect(() => {  
     if (!heatmapRef.current) {
@@ -43,6 +43,7 @@ const Heatmap: React.FC<HeatmapProps> = ({ data }) => {
     // Actualizar heatmap
     heatmapInstance.current.setData({
       max: maxVal,
+      min: 0,
       data,
     });
   }, [data]);  
