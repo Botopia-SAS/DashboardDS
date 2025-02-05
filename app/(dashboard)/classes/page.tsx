@@ -53,7 +53,7 @@ const DrivingClassesDashboard = () => {
     <div className="px-5 py-5">
       {/* 🔹 MENÚ SUPERIOR */}
       <div className="flex justify-between items-center bg-gray-800 text-white px-5 py-3 rounded-lg shadow-md">
-        <h1 className="text-xl font-semibold">Driving School Dashboard</h1>
+        <h1 className="text-xl font-semibold">Driving School Classes</h1>
 
         {/* 🔹 Menú Desktop */}
         <div className="hidden md:flex gap-6">
