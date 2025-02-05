@@ -18,8 +18,6 @@ export async function GET() {
       return NextResponse.json({ success: false, error: error.message }, { status: 500 });
     }
 
-    console.log("📊 Datos crudos desde Supabase:", data);
-
     // Formatear datos para el heatmap
     const heatmap = data.map((entry) => ({
       id: entry.id,
@@ -51,8 +49,6 @@ export async function GET() {
       acc[entry.event_type] = (acc[entry.event_type] || 0) + 1;
       return acc;
     }, {});
-
-    console.log("📊 Datos formateados:", { heatmap, users, totalEvents, avgSession, eventsByType });
 
     return NextResponse.json({
       success: true,

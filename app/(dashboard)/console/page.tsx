@@ -14,6 +14,13 @@ export default function Dashboard() {
   const [loading, setLoading] = useState(true);
   const [selectedPage, setSelectedPage] = useState("");
 
+  const pageImages: Record<string, string> = {
+    "/": "/images/home.png",  // La ruta de las imágenes
+    "/Book-Now": "/images/book-now.png",
+    "/Lessons": "/images/lessons.png",
+    // Agregar más páginas y sus imágenes correspondientes
+  };
+
   useEffect(() => {
     setLoading(true);
     fetch("/api/heatmap")
@@ -45,14 +52,8 @@ export default function Dashboard() {
   }, []);
 
   useEffect(() => {
-    console.log("🔍 Página seleccionada para iframe:", selectedPage);
+    console.log("🔍 Página seleccionada:", selectedPage);
   }, [selectedPage]);
-
-  // 🔹 Definir baseUrl dependiendo del entorno
-  const baseUrl =
-    typeof window !== "undefined" && window.location.hostname === "localhost"
-      ? "http://driving-school-mocha.vercel.app" // Usa HTTP en localhost
-      : "https://driving-school-mocha.vercel.app"; // Usa HTTPS en producción
 
   return (
     <div className="p-6 grid grid-cols-1 lg:grid-cols-3 gap-6">
@@ -83,19 +84,22 @@ export default function Dashboard() {
         <CardContent>
           <h2 className="text-xl font-bold">Vista Previa con Heatmap</h2>
           {selectedPage ? (
-            <div className="relative w-full h-[500px] border overflow-hidden">
-              {/* Iframe para vista previa */}
-              <iframe
-                src={`${baseUrl}${selectedPage}`} // 🔹 Ahora usa baseUrl dinámico
-                className="absolute top-0 left-0 w-full h-full"
+            <div className="relative w-full h-[700px] border overflow-hidden">
+              {/* Imagen de vista previa */}
+              <img
+                src={pageImages[selectedPage] || "/images/default.png"} // Usa la imagen correspondiente
+                alt={`Vista previa de ${selectedPage}`}
+                className="absolute top-0 left-0 w-full h-full object-cover z-0"  // Asegura que la imagen esté en el fondo
               />
-              {/* Heatmap sobre el iframe */}
+
+              {/* Heatmap sobre la imagen */}
               {!loading && heatmapData.length > 0 && (
-                <div className="absolute top-0 left-0 w-full h-full pointer-events-none">
+                <div className="absolute top-0 left-0 w-full h-full pointer-events-none z-10 bg-transparent">
                   <Heatmap data={heatmapData.filter((d) => d.pathname === selectedPage)} />
                 </div>
               )}
             </div>
+
           ) : (
             <p className="text-gray-500">Selecciona una página para ver la vista previa.</p>
           )}

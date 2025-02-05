@@ -9,24 +9,16 @@ const Heatmap: React.FC<HeatmapProps> = ({ data }) => {
   const heatmapRef = useRef<HTMLDivElement | null>(null);
   const heatmapInstance = useRef<h337.Heatmap<"value", "x", "y"> | null>(null);
 
-  useEffect(() => {  
+  useEffect(() => {
+    // Verifica si el contenedor existe
     if (!heatmapRef.current) {
       console.warn("🚨 heatmapRef.current es null");
       return;
     }
-  
+
     const container = heatmapRef.current as HTMLElement;
-    if (!container) {
-      console.warn("🚨 Contenedor no encontrado");
-      return;
-    }
-  
-    if (!data || data.length === 0) {
-      console.warn("🚨 No hay datos para el heatmap, esperando actualización...");
-      return;
-    }
-  
-    // Crear la instancia solo cuando hay datos
+
+    // Crear la instancia de Heatmap solo una vez cuando se monta el componente
     if (!heatmapInstance.current) {
       heatmapInstance.current = h337.create({
         container,
@@ -36,19 +28,30 @@ const Heatmap: React.FC<HeatmapProps> = ({ data }) => {
         blur: 0.75,
       });
     }
-  
-    // Calcular el `max` dinámicamente
-    const maxVal = Math.max(...data.map((d) => d.value), 10);
-  
-    // Actualizar heatmap
-    heatmapInstance.current.setData({
-      max: maxVal,
-      min: 0,
-      data,
-    });
-  }, [data]);  
 
-  return <div ref={heatmapRef} className="w-full h-[500px] bg-gray-200 relative" />;
+    // Calcular el valor máximo de manera explícita y más eficiente
+    const maxVal = data.length > 0 ? Math.max(...data.map((d) => d.value)) : 10;
+
+    // Actualizar heatmap solo si hay datos
+    if (data && data.length > 0) {
+      heatmapInstance.current.setData({
+        max: maxVal,
+        min: 0,
+        data,
+      });
+    } else {
+      console.warn("🚨 No hay datos para el heatmap.");
+    }
+
+    // Limpiar la instancia del heatmap cuando el componente se desmonte
+    return () => {
+      if (heatmapInstance.current) {
+        heatmapInstance.current = null;
+      }
+    };
+  }, [data]);
+
+  return <div ref={heatmapRef} className="w-full h-full bg-transparent relative" />;
 };
 
 export default Heatmap;
