@@ -28,7 +28,7 @@ const Delete: React.FC<DeleteProps> = ({ item, id }) => {
       setLoading(true);
 
       // 🔹 Mapeo de entidades permitidas
-      const validEntities = ["products", "collections", "classes", "online-courses", "packages", "locations", "fqa"];
+      const validEntities = ["products", "collections", "classes", "online-courses", "packages", "locations", "fqa", "instructors"];
 
       // 🔹 Verificar si `item` es válido, si no, error
       if (!validEntities.includes(item)) {

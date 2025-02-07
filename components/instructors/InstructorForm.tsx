@@ -65,11 +65,11 @@ interface InstructorData {
 const InstructorForm = ({ initialData }: { initialData?: InstructorData }) => {
     const router = useRouter();
     const [loading, setLoading] = useState(false);
-    const [schedule, setSchedule] = useState<{ 
-        date: string; 
-        slots: { start: string; end: string; booked?: boolean }[] 
+    const [schedule, setSchedule] = useState<{
+        date: string;
+        slots: { start: string; end: string; booked?: boolean }[]
     }[]>(initialData?.schedule || []);
-    
+
 
     const form = useForm({
         resolver: zodResolver(formSchema),
@@ -125,7 +125,7 @@ const InstructorForm = ({ initialData }: { initialData?: InstructorData }) => {
             )
         );
     };
-    
+
 
     // Eliminar un slot
     const removeSlot = (date: string, index: number) => {
@@ -169,37 +169,47 @@ const InstructorForm = ({ initialData }: { initialData?: InstructorData }) => {
 
     // Manejo del submit
     const onSubmit = async (values: InstructorData) => {
+        console.log("✅ onSubmit ejecutado con valores:", values); 
+        console.log("📅 Schedule antes de enviar:", schedule);
+    
         setLoading(true);
     
         try {
-            const res = await fetch("/api/instructors", {
-                method: initialData ? "PUT" : "POST", // Cambia a PUT si es edición
+            const res = await fetch(`/api/instructors`, {
+                method: initialData ? "PATCH" : "POST", 
                 headers: { "Content-Type": "application/json" },
                 body: JSON.stringify({
-                    ...values, 
+                    instructorId: (initialData as any)?._id, // ⬅️ Agregamos el instructorId para edición
+                    ...values,
                     schedule: schedule.map(day => ({
                         date: day.date,
                         slots: day.slots.map(slot => ({
                             start: slot.start,
                             end: slot.end,
-                            booked: slot.booked || false, // ✅ Asegurar que `booked` se envía
+                            booked: slot.booked || false,
                         })),
-                    }))
+                    })),
                 }),
             });
+    
+            console.log("🛜 Respuesta del servidor:", res);
     
             if (res.ok) {
                 toast.success("Instructor saved successfully!");
                 router.push("/instructors");
             } else {
+                const errorText = await res.text();
+                console.error("❌ Error en la respuesta:", errorText);
                 toast.error("Error saving instructor.");
             }
         } catch (err) {
+            console.error("❌ Server error:", err);
             toast.error("Server error.");
         } finally {
             setLoading(false);
         }
-    };    
+    };
+    
 
     return (
 
@@ -301,7 +311,11 @@ const InstructorForm = ({ initialData }: { initialData?: InstructorData }) => {
                     </div>
 
                     <div className="flex gap-4">
-                        <Button type="submit" disabled={loading}>
+                        <Button
+                            type="submit"
+                            disabled={loading}
+                            className="bg-blue-600 text-white"
+                        >
                             {initialData ? "Save Changes" : "Create Instructor"}
                         </Button>
 

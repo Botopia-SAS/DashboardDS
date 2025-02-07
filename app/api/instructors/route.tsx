@@ -45,34 +45,50 @@ export const GET = async () => {
   }
 };
 
-export async function PUT(req: Request) {
+export async function PATCH(req: Request) {
     try {
         await connectToDB();
-        const { id, name, photo, certifications, experience, schedule } = await req.json();
+        const { instructorId, ...updates } = await req.json();
+
+        if (!instructorId) {
+            return NextResponse.json({ message: "Instructor ID is required" }, { status: 400 });
+        }
 
         const updatedInstructor = await Instructor.findByIdAndUpdate(
-            id,
-            {
-                name,
-                photo,
-                certifications,
-                experience,
-                schedule: schedule.map((day: { date: string, slots: { start: string, end: string, booked?: boolean }[] }) => ({
-                    date: day.date,
-                    slots: day.slots.map(slot => ({
-                        start: slot.start,
-                        end: slot.end,
-                        booked: slot.booked || false, // ✅ Asegurar que se guarde
-                    }))
-                }))
-            },
+            instructorId,
+            { $set: updates },
             { new: true }
         );
 
+        if (!updatedInstructor) {
+            return NextResponse.json({ message: "Instructor not found" }, { status: 404 });
+        }
+
         return NextResponse.json(updatedInstructor, { status: 200 });
     } catch (error) {
-        console.error(error);
+        console.error("❌ Error al actualizar instructor:", error);
         return NextResponse.json({ message: "Error updating instructor" }, { status: 500 });
     }
 }
 
+export async function DELETE(req: Request) {
+    try {
+        await connectToDB();
+        
+        const { instructorId } = await req.json();
+        if (!instructorId) {
+            return NextResponse.json({ message: "Instructor ID is required" }, { status: 400 });
+        }
+
+        const deletedInstructor = await Instructor.findByIdAndDelete(instructorId);
+
+        if (!deletedInstructor) {
+            return NextResponse.json({ message: "Instructor not found" }, { status: 404 });
+        }
+
+        return NextResponse.json({ message: "Instructor deleted successfully" }, { status: 200 });
+    } catch (error) {
+        console.error("❌ Error al eliminar instructor:", error);
+        return NextResponse.json({ message: "Error deleting instructor" }, { status: 500 });
+    }
+}

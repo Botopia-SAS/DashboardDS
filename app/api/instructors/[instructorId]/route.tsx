@@ -31,28 +31,33 @@ export const GET = async (req: NextRequest, context: { params: Promise<{ instruc
   }
 };
 
-export const DELETE = async (req: NextRequest, { params }: any) => {
+export async function DELETE(req: Request, context: { params: Promise<{ instructorId: string }> }) {
   try {
-    await connectToDB();
+      await connectToDB();
 
-    const { instructorId } = params;
+      // 🔹 Esperar a que `params` se resuelva antes de acceder a `instructorId`
+      const resolvedParams = await context.params;
+      const { instructorId } = resolvedParams;
 
-    if (!mongoose.Types.ObjectId.isValid(instructorId)) {
-      return new NextResponse("Invalid Instructor ID", { status: 400 });
-    }
+      console.log("🗑️ Eliminando instructor con ID:", instructorId);
 
-    const result = await Instructor.deleteOne({ _id: new ObjectId(instructorId) });
+      if (!mongoose.Types.ObjectId.isValid(instructorId)) {
+          return new NextResponse("Invalid Instructor ID", { status: 400 });
+      }
 
-    if (!result.deletedCount) {
-      return new NextResponse("Instructor not found", { status: 404 });
-    }
+      const deletedInstructor = await Instructor.findByIdAndDelete(instructorId);
 
-    return new NextResponse("Instructor deleted successfully", { status: 200 });
-  } catch (err) {
-    console.log("[INSTRUCTOR_DELETE]", err);
-    return new NextResponse("Internal Server Error", { status: 500 });
+      if (!deletedInstructor) {
+          return new NextResponse("Instructor not found", { status: 404 });
+      }
+
+      return NextResponse.json({ message: "Instructor deleted successfully" }, { status: 200 });
+  } catch (error) {
+      console.error("❌ Error deleting instructor:", error);
+      return new NextResponse("Error deleting instructor", { status: 500 });
   }
-};
+}
+
 
 export const PATCH = async (req: NextRequest, { params }: any) => {
   try {
