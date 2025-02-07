@@ -31,11 +31,11 @@ export const GET = async (req: NextRequest, context: { params: Promise<{ instruc
   }
 };
 
-export const DELETE = async (req: NextRequest, { params }: { params: { id: string } }) => {
+export const DELETE = async (req: NextRequest, { params }: { params: { instructorId: string } }) => {
   try {
     await connectToDB();
     
-    const result = await Instructor.deleteOne({ _id: new ObjectId(params.id) });
+    const result = await Instructor.deleteOne({ _id: new ObjectId(params.instructorId) });
 
     if (!result.deletedCount) {
       return new NextResponse("Instructor not found", { status: 404 });
@@ -48,7 +48,7 @@ export const DELETE = async (req: NextRequest, { params }: { params: { id: strin
   }
 };
 
-export const PATCH = async (req: NextRequest, { params }: { params: { id: string } }) => {
+export const PATCH = async (req: NextRequest, { params }: { params: { instructorId: string } }) => {
   try {
     await connectToDB();
     
@@ -59,7 +59,7 @@ export const PATCH = async (req: NextRequest, { params }: { params: { id: string
     }
 
     const updatedInstructor = await Instructor.updateOne(
-      { _id: new ObjectId(params.id) },
+      { _id: new ObjectId(params.instructorId) },
       { $set: updates }
     );
 
