@@ -11,11 +11,11 @@ type LocationType = {
   description: string;
   zone: string;
   locationImage?: string;
-  instructors: { name: string; image?: string | null }[];
+  instructors: string[]; // ✅ Ahora solo guardamos los IDs
 };
 
 const LocationDetails = () => {
-  const params = useParams(); // ✅ Usamos useParams() para acceder correctamente
+  const params = useParams();
   const [loading, setLoading] = useState(true);
   const [locationDetails, setLocationDetails] = useState<LocationType | null>(null);
 
@@ -40,7 +40,13 @@ const LocationDetails = () => {
 
         const data = await res.json();
         console.log("✅ Location details fetched successfully:", data);
-        setLocationDetails(data);
+
+        // 📌 Transformar instructores a solo IDs
+        setLocationDetails({
+          ...data,
+          instructors: data.instructors.map((inst: { _id: string }) => inst._id),
+        });
+
       } catch (err) {
         console.error("[locationId_GET] Error:", err);
       } finally {
@@ -49,7 +55,7 @@ const LocationDetails = () => {
     };
 
     fetchLocationDetails();
-  }, [params?.locationId]); // ✅ Ahora el efecto depende de params.locationId correctamente
+  }, [params?.locationId]);
 
   if (loading) return <Loader />;
   if (!locationDetails) return <p className="text-center text-red-500">Location not found</p>;
