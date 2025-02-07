@@ -31,11 +31,17 @@ export const GET = async (req: NextRequest, context: { params: Promise<{ instruc
   }
 };
 
-export const DELETE = async (req: NextRequest, { params }: { params: { instructorId: string } }) => {
+export const DELETE = async (req: NextRequest, { params }: any) => {
   try {
     await connectToDB();
-    
-    const result = await Instructor.deleteOne({ _id: new ObjectId(params.instructorId) });
+
+    const { instructorId } = params;
+
+    if (!mongoose.Types.ObjectId.isValid(instructorId)) {
+      return new NextResponse("Invalid Instructor ID", { status: 400 });
+    }
+
+    const result = await Instructor.deleteOne({ _id: new ObjectId(instructorId) });
 
     if (!result.deletedCount) {
       return new NextResponse("Instructor not found", { status: 404 });
@@ -47,6 +53,7 @@ export const DELETE = async (req: NextRequest, { params }: { params: { instructo
     return new NextResponse("Internal Server Error", { status: 500 });
   }
 };
+
 
 export const PATCH = async (req: NextRequest, { params }: { params: { instructorId: string } }) => {
   try {
