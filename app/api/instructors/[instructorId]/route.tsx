@@ -58,7 +58,6 @@ export async function DELETE(req: Request, context: { params: Promise<{ instruct
   }
 }
 
-
 export const PATCH = async (req: NextRequest, { params }: any) => {
   try {
     await connectToDB();

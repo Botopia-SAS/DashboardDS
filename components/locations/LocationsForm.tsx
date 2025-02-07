@@ -1,7 +1,8 @@
 "use client";
 
+import { useEffect, useState } from "react";
 import { zodResolver } from "@hookform/resolvers/zod";
-import { useForm, useFieldArray } from "react-hook-form";
+import { useForm } from "react-hook-form";
 import { z } from "zod";
 import { useRouter } from "next/navigation";
 import { Separator } from "../ui/separator";
@@ -18,30 +19,29 @@ import { Input } from "@/components/ui/input";
 import { Textarea } from "../ui/textarea";
 import ImageUpload from "../custom ui/ImageUpload";
 import toast from "react-hot-toast";
-import { useRef } from "react";
-import { useJsApiLoader, Autocomplete } from "@react-google-maps/api";
+import Select from "react-select"; // 📌 Librería para Select
 
 const formSchema = z.object({
     title: z.string().min(2).max(100),
     description: z.string().min(10).max(2000),
     zone: z.string().min(1, "Please select a valid location"),
     locationImage: z.string().optional(),
-    instructors: z.array(
-        z.object({
-            name: z.string().min(1),
-            image: z.string().optional().nullable(),
-        })
-    ).default([]),
+    instructors: z.array(z.string()).default([]), // 📌 Array de IDs de instructores
 });
 
 // Definir el tipo correcto
+interface Instructor {
+    _id: string;
+    name: string;
+}
+
 interface LocationType {
     _id?: string;
     title: string;
     description: string;
     zone: string;
     locationImage?: string;
-    instructors: { name: string; image?: string | null }[];
+    instructors: string[]; // Solo guardamos los IDs
 }
 
 interface LocationsFormProps {
@@ -63,27 +63,39 @@ const LocationsForm: React.FC<LocationsFormProps> = ({ initialData }) => {
         },
     });
 
-    const { fields, append, remove } = useFieldArray({
-        control: form.control,
-        name: "instructors",
-    });
+    const [instructorsList, setInstructorsList] = useState<Instructor[]>([]);
+    const [selectAll, setSelectAll] = useState(false);
 
-    const { isLoaded } = useJsApiLoader({
-        googleMapsApiKey: process.env.NEXT_PUBLIC_GOOGLE_MAPS_API_KEY || "",
-        libraries: ["places"],
-    });
+    // ✅ Obtener instructores desde la API al cargar el formulario
+    useEffect(() => {
+        const fetchInstructors = async () => {
+            try {
+                const res = await fetch("/api/instructors");
+                if (!res.ok) throw new Error("Failed to fetch instructors");
+                const data: Instructor[] = await res.json();
+                setInstructorsList(data);
+            } catch (error) {
+                console.error("Error fetching instructors:", error);
+            }
+        };
 
-    const autocompleteRef = useRef<google.maps.places.Autocomplete | null>(null);
+        fetchInstructors();
+    }, []);
 
-    const onLoad = (autocomplete: google.maps.places.Autocomplete) => {
-        autocompleteRef.current = autocomplete;
-    };
+    // 📌 Convertir la lista de instructores en opciones para `react-select`
+    const instructorOptions = instructorsList.map((inst) => ({
+        value: inst._id,
+        label: inst.name,
+    }));
 
-    const onPlaceChanged = () => {
-        if (autocompleteRef.current) {
-            const place = autocompleteRef.current.getPlace();
-            form.setValue("zone", place?.formatted_address || "");
+    // 📌 Manejar selección de todos los instructores
+    const handleSelectAll = () => {
+        if (selectAll) {
+            form.setValue("instructors", []); // Desmarcar todos
+        } else {
+            form.setValue("instructors", instructorsList.map((inst) => inst._id)); // Seleccionar todos
         }
+        setSelectAll(!selectAll);
     };
 
     const onSubmit = async (values: FormData) => {
@@ -148,7 +160,7 @@ const LocationsForm: React.FC<LocationsFormProps> = ({ initialData }) => {
                         )}
                     />
 
-                    {/* Zone - Google Places Autocomplete */}
+                    {/* Zone */}
                     <FormField
                         control={form.control}
                         name="zone"
@@ -156,13 +168,7 @@ const LocationsForm: React.FC<LocationsFormProps> = ({ initialData }) => {
                             <FormItem>
                                 <FormLabel>Zone</FormLabel>
                                 <FormControl>
-                                    {isLoaded ? (
-                                        <Autocomplete onLoad={onLoad} onPlaceChanged={onPlaceChanged}>
-                                            <Input {...field} placeholder="Enter a location" />
-                                        </Autocomplete>
-                                    ) : (
-                                        <p>Loading...</p>
-                                    )}
+                                    <Input {...field} placeholder="Enter a location" />
                                 </FormControl>
                                 <FormMessage />
                             </FormItem>
@@ -188,32 +194,38 @@ const LocationsForm: React.FC<LocationsFormProps> = ({ initialData }) => {
                         )}
                     />
 
-                    {/* Instructors */}
-                    <FormItem>
-                        <FormLabel>Instructors</FormLabel>
-                        {fields.map((field, index) => (
-                            <div key={field.id} className="flex items-center gap-4 mb-2 w-full">
-                                <Input
-                                    className="flex-grow"
-                                    {...form.register(`instructors.${index}.name`)}
-                                    placeholder="Instructor name"
-                                />
-                                <ImageUpload
-                                    value={
-                                        form.watch(`instructors.${index}.image`)
-                                            ? [form.watch(`instructors.${index}.image`)].filter(Boolean) as string[]
-                                            : []
-                                    }
-                                    onChange={(url) => form.setValue(`instructors.${index}.image`, url || null)}
-                                    onRemove={() => form.setValue(`instructors.${index}.image`, null)}
-                                />
-                                <Button type="button" variant="destructive" onClick={() => remove(index)}>✕</Button>
-                            </div>
-                        ))}
-                        <Button type="button" onClick={() => append({ name: "", image: null })}>
-                            + Add Instructor
-                        </Button>
-                    </FormItem>
+                    {/* Instructors Dropdown */}
+                    <FormField
+                        control={form.control}
+                        name="instructors"
+                        render={({ field }) => (
+                            <FormItem>
+                                <FormLabel>Instructors</FormLabel>
+                                <FormControl>
+                                    <Select
+                                        isMulti
+                                        options={instructorOptions}
+                                        value={instructorOptions.filter((option) => field.value.includes(option.value))}
+                                        onChange={(selected) =>
+                                            form.setValue("instructors", selected.map((opt) => opt.value))
+                                        }
+                                    />
+                                </FormControl>
+                                <FormMessage />
+                            </FormItem>
+                        )}
+                    />
+
+                    {/* Select All Checkbox */}
+                    <div className="flex items-center gap-2">
+                        <input
+                            type="checkbox"
+                            checked={selectAll}
+                            onChange={handleSelectAll}
+                            className="cursor-pointer"
+                        />
+                        <label className="text-gray-700">Select All Instructors</label>
+                    </div>
 
                     {/* Submit Button */}
                     <div className="flex gap-4">
