@@ -54,19 +54,24 @@ export const DELETE = async (req: NextRequest, { params }: any) => {
   }
 };
 
-
-export const PATCH = async (req: NextRequest, { params }: { params: { instructorId: string } }) => {
+export const PATCH = async (req: NextRequest, { params }: any) => {
   try {
     await connectToDB();
-    
+
+    const { instructorId } = params;
+
+    if (!mongoose.Types.ObjectId.isValid(instructorId)) {
+      return new NextResponse("Invalid Instructor ID", { status: 400 });
+    }
+
     const updates = await req.json();
-    
+
     if (updates.schedule && !Array.isArray(updates.schedule)) {
       return new NextResponse("Schedule must be an array", { status: 400 });
     }
 
     const updatedInstructor = await Instructor.updateOne(
-      { _id: new ObjectId(params.instructorId) },
+      { _id: new ObjectId(instructorId) },
       { $set: updates }
     );
 
