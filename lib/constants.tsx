@@ -42,13 +42,13 @@ import {
       label: "Orders",
     },
     {
-      url: "/book", // ✅ Nuevo enlace para "Book"
-      icon: <CalendarDays />, // ✅ Puedes cambiar este ícono si prefieres otro
-      label: "Book",
+      url: "/instructors",
+      icon: <CalendarDays />, 
+      label: "Instructors",
     },
     {
-      url: "/locations", // ✅ Nuevo enlace para "Book"
-      icon: <MapPinCheck />, // ✅ Puedes cambiar este ícono si prefieres otro
+      url: "/locations",
+      icon: <MapPinCheck />,
       label: "Locations",
     },
     {
