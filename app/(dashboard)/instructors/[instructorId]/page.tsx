@@ -21,7 +21,6 @@ type InstructorType = {
 };
 
 const InstructorDetails = ({ params }: { params: Promise<{ instructorId?: string }> }) => {
-  const router = useRouter();
   const [loading, setLoading] = useState(true);
   const [instructorDetails, setInstructorDetails] = useState<InstructorType | null>(null);
 

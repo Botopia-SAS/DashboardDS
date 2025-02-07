@@ -1,7 +1,6 @@
 import { connectToDB } from "@/lib/mongoDB";
-import { NextRequest, NextResponse } from "next/server";
-import Instructor from "@/lib/models/Instructor"; // Modelo de MongoDB
-import { auth } from "@clerk/nextjs/server";    
+import { NextResponse } from "next/server";
+import Instructor from "@/lib/models/Instructor"; // Modelo de MongoDB   
 
 export const dynamic = "force-dynamic";
 

@@ -148,7 +148,7 @@ const InstructorForm = ({ initialData }: { initialData?: InstructorData }) => {
         now.setMonth(now.getMonth() + MAX_MONTHS_AHEAD);
 
         schedule.forEach((day) => {
-            let currentDate = new Date(day.date);
+            const currentDate = new Date(day.date);
             while (currentDate <= now) {
                 const formattedDate = currentDate.toISOString().split("T")[0];
 
