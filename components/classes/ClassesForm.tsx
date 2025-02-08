@@ -16,7 +16,7 @@ import {
 } from "@/components/ui/form";
 import { Input } from "@/components/ui/input";
 import { Textarea } from "../ui/textarea";
-import ImageUpload from "../custom ui/ImageUpload"; // 📸 Componente de subida de imagen
+import ImageUpload from "../custom ui/ImageUpload";
 import toast from "react-hot-toast";
 import { useEffect, useState } from "react";
 import Select from "react-select";
@@ -60,6 +60,8 @@ const CustomForm: React.FC<FormProps> = ({ initialData }) => {
     const fetchLocations = async () => {
       try {
         const res = await fetch("/api/locations"); // 🚀 Petición a Locations
+        if (!res.ok) throw new Error("Failed to fetch locations");
+
         const data = await res.json();
 
         const zones = data.map((location: any) => ({
@@ -95,6 +97,15 @@ const CustomForm: React.FC<FormProps> = ({ initialData }) => {
     }
     setSelectAll(!selectAll);
   };
+
+  // 📌 Cargar las headquarters seleccionadas cuando `initialData` esté disponible
+  useEffect(() => {
+    if (initialData?.headquarters && headquartersOptions.length > 0) {
+      const selected = headquartersOptions.filter(hq => initialData.headquarters?.includes(hq.value));
+      setSelectedHeadquarters(selected);
+      form.setValue("headquarters", selected.map(hq => hq.value)); // ✅ Sincroniza el formulario
+    }
+  }, [initialData, headquartersOptions]); // 🚀 Se ejecuta cuando `initialData` y `headquartersOptions` cambian
 
   const router = useRouter();
   const form = useForm<z.infer<typeof formSchema>>({

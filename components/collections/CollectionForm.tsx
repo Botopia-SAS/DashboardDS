@@ -59,36 +59,41 @@ const CollectionForm: React.FC<CollectionFormProps> = ({ initialData }) => {
   const onSubmit = async (values: z.infer<typeof formSchema>) => {
     try {
       setLoading(true);
-
-      // Asegurar que el precio sea un número y la imagen tenga un valor por defecto
+  
+      // Asegurar formato correcto de datos
       const formattedValues = {
-        title: values.title.trim(),  // Elimina espacios extras
-        description: values.description.trim(), // Asegura que no esté vacío
-        price: Number(values.price) || 0.1,  // Convierte a número seguro
-        image: values.image || "/placeholder.jpg",  // Evita imágenes vacías
+        title: values.title.trim(),
+        description: values.description.trim(),
+        price: Number(values.price) || 0.1,
+        image: values.image || "/placeholder.jpg",
       };
-
+  
       const url = initialData
-        ? `/api/collections/${initialData._id}`
-        : "/api/collections";
+        ? `/api/collections/${initialData._id}` // ✅ Si existe, se actualiza
+        : "/api/collections"; // ✅ Si no, se crea
+  
+      const method = initialData ? "PATCH" : "POST"; // ✅ Determinar el método
+  
       const res = await fetch(url, {
-        method: "POST",
+        method,
+        headers: { "Content-Type": "application/json" },
         body: JSON.stringify(formattedValues),
       });
-
-
+  
       if (res.ok) {
-        setLoading(false);
-        toast.success(`Collection ${initialData ? "updated" : "created"}`);
-        window.location.href = "/collections";
+        toast.success(`Collection ${initialData ? "updated" : "created"} successfully!`);
         router.push("/collections");
+      } else {
+        toast.error("Failed to submit form");
       }
     } catch (err) {
-      console.log("[collections_POST]", err);
+      console.error("[collections_SUBMIT]", err);
       toast.error("Something went wrong! Please try again.");
+    } finally {
+      setLoading(false);
     }
   };
-
+  
   return (
     <div className="p-10">
       {initialData ? (

@@ -62,7 +62,7 @@ export const columns: ColumnDef<CollectionType>[] = [
     id: "actions",
     cell: ({ row }) => (
       <div className="flex justify-center">
-        <Delete item="collection" id={row.original._id} />
+        <Delete item="collections" id={row.original._id} />
       </div>
     ),
   },

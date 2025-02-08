@@ -2,24 +2,20 @@ import Collection from "@/lib/models/Collection";
 import { connectToDB } from "@/lib/mongoDB";
 import { NextRequest, NextResponse } from "next/server";
 
-export const GET = async (
-  req: NextRequest,
-  context: { params: Promise<{ collectionId: string }> } // 🔥 `params` es una promesa
-) => {
+export const GET = async (req: NextRequest, context: { params: Promise<{ collectionId: string }> }) => {
   try {
     await connectToDB();
 
-    const { collectionId } = await context.params; // 🔥 Hacer `await` en `params`
+    // ✅ Corregir la obtención de `collectionId`
+    const params = await context.params;
+    const collectionId = params.collectionId;
 
     if (!collectionId) {
       return new NextResponse("Collection ID is required", { status: 400 });
     }
 
     console.log("🔍 Fetching collection:", collectionId);
-    const collection = await Collection.findById(collectionId).populate({
-      path: "products",
-      model: "Product",
-    });
+    const collection = await Collection.findById(collectionId); // ✅ Ya sin `populate`
 
     if (!collection) {
       return new NextResponse("Collection not found", { status: 404 });
@@ -32,41 +28,58 @@ export const GET = async (
   }
 };
 
-export const POST = async (
+// ✅ UPDATE Collection by ID
+export const PATCH = async (
   req: NextRequest,
-  context: { params: Promise<{ collectionId: string }> } // 🔥 `params` es una promesa
+  context: { params: { collectionId: string } }
 ) => {
   try {
-    const { collectionId } = await context.params; // 🔥 Hacer `await` en `params`
+    await connectToDB();
+
+    const { collectionId } = context.params;
 
     if (!collectionId) {
       return new NextResponse("Collection ID is required", { status: 400 });
     }
 
-    await connectToDB();
+    const body = await req.json();
+    const updatedCollection = await Collection.findByIdAndUpdate(collectionId, body, { new: true });
 
-    const collection = await Collection.findById(collectionId);
-    if (!collection) {
+    if (!updatedCollection) {
       return new NextResponse("Collection not found", { status: 404 });
     }
 
-    const { title, description, image, price } = await req.json();
-    const parsedPrice = parseFloat(price);
-
-    if (!title || !description || !image || isNaN(parsedPrice)) {
-      return new NextResponse("Title, description, image, and price are required", { status: 400 });
-    }
-
-    console.log("✅ Updating collection:", collectionId);
-    const updatedCollection = await Collection.findByIdAndUpdate(
-      collectionId,
-      { title, description, image, price: parsedPrice },
-      { new: true }
-    );
-
     return NextResponse.json(updatedCollection, { status: 200 });
   } catch (error) {
-    console.error("[POST Collection Error]:", error);
+    console.error("[PATCH Collection Error]:", error);
+    return new NextResponse("Internal Server Error", { status: 500 });
+  }
+};
+
+// ✅ DELETE Collection by ID
+export const DELETE = async (
+  req: NextRequest,
+  context: { params: { collectionId: string } }
+) => {
+  try {
+    await connectToDB();
+
+    const { collectionId } = context.params;
+
+    if (!collectionId) {
+      return new NextResponse("Collection ID is required", { status: 400 });
+    }
+
+    console.log("🗑️ Deleting collection:", collectionId);
+    const deletedCollection = await Collection.findByIdAndDelete(collectionId);
+
+    if (!deletedCollection) {
+      return new NextResponse("Collection not found", { status: 404 });
+    }
+
+    return NextResponse.json({ message: "Collection deleted successfully" }, { status: 200 });
+  } catch (error) {
+    console.error("[DELETE Collection Error]:", error);
     return new NextResponse("Internal Server Error", { status: 500 });
   }
 };

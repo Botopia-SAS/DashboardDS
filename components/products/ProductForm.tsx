@@ -25,7 +25,7 @@ import { Combobox } from "@/components/ui/combobox";
 import { Switch } from "@/components/ui/switch";
 
 const formSchema = z.object({
-  title: z.string().min(2).max(25),
+  title: z.string().min(2).max(70),
   description: z.string().min(2).max(500).trim(),
   hasImage: z.boolean().default(false),
   media: z.array(z.string()).default([]),
