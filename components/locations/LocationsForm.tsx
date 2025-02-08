@@ -20,6 +20,12 @@ import { Textarea } from "../ui/textarea";
 import ImageUpload from "../custom ui/ImageUpload";
 import toast from "react-hot-toast";
 import Select from "react-select"; // 📌 Librería para Select
+import { useJsApiLoader, Autocomplete } from "@react-google-maps/api"
+import { useRef } from "react";
+
+
+// Configurar la API de Google Maps
+const GOOGLE_MAPS_API_KEY = process.env.NEXT_PUBLIC_GOOGLE_MAPS_API_KEY || "";
 
 const formSchema = z.object({
     title: z.string().min(2).max(100),
@@ -28,6 +34,7 @@ const formSchema = z.object({
     locationImage: z.string().optional(),
     instructors: z.array(z.string()).default([]), // 📌 Array de IDs de instructores
 });
+
 
 // Definir el tipo correcto
 interface Instructor {
@@ -48,8 +55,11 @@ interface LocationsFormProps {
     initialData?: LocationType;
 }
 
+const LIBRARIES: ("places")[] = ["places"];
+
 const LocationsForm: React.FC<LocationsFormProps> = ({ initialData }) => {
     const router = useRouter();
+    const [isClient, setIsClient] = useState(false);
     type FormData = z.infer<typeof formSchema>;
 
     const form = useForm<FormData>({
@@ -64,7 +74,12 @@ const LocationsForm: React.FC<LocationsFormProps> = ({ initialData }) => {
     });
 
     const [instructorsList, setInstructorsList] = useState<Instructor[]>([]);
-    const [selectAll, setSelectAll] = useState(false);
+    const [selectAll, setSelectAll] = useState(false);// ✅ Cargar Google Maps API
+
+    const { isLoaded, loadError } = useJsApiLoader({
+        googleMapsApiKey: GOOGLE_MAPS_API_KEY,
+        libraries: LIBRARIES, // ✅ Usar la constante
+    });
 
     // ✅ Obtener instructores desde la API al cargar el formulario
     useEffect(() => {
@@ -82,6 +97,10 @@ const LocationsForm: React.FC<LocationsFormProps> = ({ initialData }) => {
         fetchInstructors();
     }, []);
 
+    useEffect(() => {
+        setIsClient(true);
+      }, []);
+
     // 📌 Convertir la lista de instructores en opciones para `react-select`
     const instructorOptions = instructorsList.map((inst) => ({
         value: inst._id,
@@ -97,6 +116,26 @@ const LocationsForm: React.FC<LocationsFormProps> = ({ initialData }) => {
         }
         setSelectAll(!selectAll);
     };
+
+    const autocompleteRef = useRef<google.maps.places.Autocomplete | null>(null); // 📌 Define la referencia
+
+    const onLoad = (autocomplete: google.maps.places.Autocomplete) => {
+        autocompleteRef.current = autocomplete; // ✅ Guarda la referencia de Autocomplete
+    };
+
+    const onPlaceChanged = () => {
+        if (autocompleteRef.current) {
+            const place = autocompleteRef.current.getPlace();
+            console.log("📌 Selected Place:", place);
+
+            if (place?.formatted_address) {
+                form.setValue("zone", place.formatted_address); // Asigna el valor al formulario
+            } else {
+                toast.error("Please select a valid address from the dropdown.");
+            }
+        }
+    };
+
 
     const onSubmit = async (values: FormData) => {
         try {
@@ -161,19 +200,21 @@ const LocationsForm: React.FC<LocationsFormProps> = ({ initialData }) => {
                     />
 
                     {/* Zone */}
-                    <FormField
-                        control={form.control}
-                        name="zone"
-                        render={({ field }) => (
-                            <FormItem>
-                                <FormLabel>Zone</FormLabel>
-                                <FormControl>
-                                    <Input {...field} placeholder="Enter a location" />
-                                </FormControl>
-                                <FormMessage />
-                            </FormItem>
-                        )}
-                    />
+                    <FormField control={form.control} name="zone" render={({ field }) => (
+                        <FormItem>
+                            <FormLabel>Zone</FormLabel>
+                            <FormControl>
+                                {isLoaded ? (
+                                    <Autocomplete onLoad={onLoad} onPlaceChanged={onPlaceChanged}>
+                                        <Input {...field} placeholder="Enter a location" />
+                                    </Autocomplete>
+                                ) : (
+                                    <p>Loading...</p>
+                                )}
+                            </FormControl>
+                            <FormMessage />
+                        </FormItem>
+                    )} />
 
                     {/* Location Image */}
                     <FormField
@@ -202,14 +243,14 @@ const LocationsForm: React.FC<LocationsFormProps> = ({ initialData }) => {
                             <FormItem>
                                 <FormLabel>Instructors</FormLabel>
                                 <FormControl>
-                                    <Select
-                                        isMulti
-                                        options={instructorOptions}
-                                        value={instructorOptions.filter((option) => field.value.includes(option.value))}
-                                        onChange={(selected) =>
-                                            form.setValue("instructors", selected.map((opt) => opt.value))
-                                        }
-                                    />
+                                    {isClient && (
+                                        <Select
+                                            isMulti
+                                            options={instructorOptions}
+                                            value={instructorOptions.filter((option) => form.watch("instructors").includes(option.value))}
+                                            onChange={(selected) => form.setValue("instructors", selected.map((opt) => opt.value))}
+                                        />
+                                    )}
                                 </FormControl>
                                 <FormMessage />
                             </FormItem>

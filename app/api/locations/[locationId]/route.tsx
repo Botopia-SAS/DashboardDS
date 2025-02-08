@@ -1,10 +1,12 @@
 import { connectToDB } from "@/lib/mongoDB";
 import { NextRequest, NextResponse } from "next/server";
 import Locations from "@/lib/models/Locations";
+import mongoose from "mongoose";
 
 // Forzamos dynamic para evitar problemas de caché en estas rutas:
 export const dynamic = "force-dynamic";
 
+// ✅ GET LOCATION BY ID (Corrige el problema de los instructores vacíos)
 export const GET = async (req: NextRequest, context: { params: Promise<{ locationId: string }> }) => {
   try {
     await connectToDB();
@@ -16,7 +18,8 @@ export const GET = async (req: NextRequest, context: { params: Promise<{ locatio
       return new NextResponse("Missing locationId", { status: 400 });
     }
 
-    const location = await Locations.findById(locationId);
+    // ✅ Usamos `.populate("instructors")` para cargar los detalles de los instructores
+    const location = await Locations.findById(locationId).populate("instructors");
 
     if (!location) {
       return new NextResponse("Location not found", { status: 404 });
@@ -29,7 +32,7 @@ export const GET = async (req: NextRequest, context: { params: Promise<{ locatio
   }
 };
 
-// ✅ UPDATE LOCATION BY ID
+// ✅ UPDATE LOCATION BY ID (Corrige el problema al guardar instructores)
 export async function PATCH(req: NextRequest) {
   try {
     await connectToDB();
@@ -44,9 +47,17 @@ export async function PATCH(req: NextRequest) {
 
     // ✅ Obtener los datos del request
     const body = await req.json();
+    const { instructors, ...updateData } = body;
+
+    // ✅ Asegurar que los instructores sean `ObjectId[]`
+    const instructorsObjectIds = instructors.map((id: string) => new mongoose.Types.ObjectId(id));
 
     // ✅ Actualizar la ubicación en la base de datos
-    const updatedLocation = await Locations.findByIdAndUpdate(locationId, body, { new: true });
+    const updatedLocation = await Locations.findByIdAndUpdate(
+      locationId,
+      { ...updateData, instructors: instructorsObjectIds },
+      { new: true }
+    ).populate("instructors"); // ✅ Populamos instructores después de actualizar
 
     if (!updatedLocation) {
       return NextResponse.json({ message: "Location not found" }, { status: 404 });
@@ -59,7 +70,7 @@ export async function PATCH(req: NextRequest) {
   }
 }
 
-// ✅ DELETE LOCATION BY ID
+// ✅ DELETE LOCATION BY ID (No necesita cambios)
 export async function DELETE(req: NextRequest) {
   try {
     await connectToDB();

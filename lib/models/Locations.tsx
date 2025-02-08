@@ -19,14 +19,8 @@ const locationSchema = new mongoose.Schema({
   },
   instructors: [
     {
-      name: {
-        type: String,
-        required: true,
-      },
-      image: {
-        type: String, // URL de la imagen del instructor
-        required: false,
-      },
+      type: mongoose.Schema.Types.ObjectId,
+      ref: "Instructor", // ✅ Referencia al modelo "Instructor"
     },
   ],
   createdAt: {
