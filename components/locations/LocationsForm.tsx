@@ -76,7 +76,7 @@ const LocationsForm: React.FC<LocationsFormProps> = ({ initialData }) => {
     const [instructorsList, setInstructorsList] = useState<Instructor[]>([]);
     const [selectAll, setSelectAll] = useState(false);// ✅ Cargar Google Maps API
 
-    const { isLoaded, loadError } = useJsApiLoader({
+    const { isLoaded, } = useJsApiLoader({
         googleMapsApiKey: GOOGLE_MAPS_API_KEY,
         libraries: LIBRARIES, // ✅ Usar la constante
     });

@@ -19,7 +19,7 @@ import { Textarea } from "../ui/textarea";
 import ImageUpload from "../custom ui/ImageUpload";
 import toast from "react-hot-toast";
 import { useEffect, useState } from "react";
-import Select from "react-select";
+import Select, { MultiValue, ActionMeta } from "react-select";
 
 const formSchema = z.object({
   title: z.string().min(2).max(50),
@@ -64,10 +64,14 @@ const CustomForm: React.FC<FormProps> = ({ initialData }) => {
 
         const data = await res.json();
 
-        const zones = data.map((location: any) => ({
-          label: location.zone,  // 📍 Mostrará la zona en el dropdown
-          value: location.zone,  // 📍 Guardará la zona como valor
-        }));
+        interface Location {
+          zone: string;
+        }
+        
+        const zones = data.map((location: Location) => ({
+          label: location.zone,
+          value: location.zone,
+        }));        
 
         setHeadquartersOptions(zones);
       } catch (error) {
@@ -79,11 +83,11 @@ const CustomForm: React.FC<FormProps> = ({ initialData }) => {
   }, []);
 
   // ✅ Función para manejar selección en el dropdown
-  const handleSelectChange = (selectedOptions: any) => {
-    const selectedValues = selectedOptions.map((hq: { value: string }) => hq.value);
-    form.setValue("headquarters", selectedValues);
-    setSelectedHeadquarters(selectedOptions || []);
-  };
+  const handleSelectChange = (newValue: MultiValue<{ label: string; value: string }>, actionMeta: ActionMeta<{ label: string; value: string }>) => {
+      const selectedValues = newValue.map((hq) => hq.value);
+      form.setValue("headquarters", selectedValues);
+      setSelectedHeadquarters(newValue as { label: string; value: string }[]);
+    };
 
   // ✅ Función para manejar "Seleccionar Todos"
   const handleSelectAll = () => {
@@ -98,16 +102,6 @@ const CustomForm: React.FC<FormProps> = ({ initialData }) => {
     setSelectAll(!selectAll);
   };
 
-  // 📌 Cargar las headquarters seleccionadas cuando `initialData` esté disponible
-  useEffect(() => {
-    if (initialData?.headquarters && headquartersOptions.length > 0) {
-      const selected = headquartersOptions.filter(hq => initialData.headquarters?.includes(hq.value));
-      setSelectedHeadquarters(selected);
-      form.setValue("headquarters", selected.map(hq => hq.value)); // ✅ Sincroniza el formulario
-    }
-  }, [initialData, headquartersOptions]); // 🚀 Se ejecuta cuando `initialData` y `headquartersOptions` cambian
-
-  const router = useRouter();
   const form = useForm<z.infer<typeof formSchema>>({
     resolver: zodResolver(formSchema),
     defaultValues: {
@@ -123,6 +117,19 @@ const CustomForm: React.FC<FormProps> = ({ initialData }) => {
       headquarters: initialData?.headquarters ?? [], // ✅ Asegura que sea un array
     },
   });
+
+  // 📌 Cargar las headquarters seleccionadas cuando `initialData` esté disponible
+  useEffect(() => {
+    if (initialData?.headquarters && headquartersOptions.length > 0) {
+      const selected = headquartersOptions.filter(hq =>
+         initialData.headquarters?.includes(hq.value)
+        );
+      setSelectedHeadquarters(selected);
+      form.setValue("headquarters", selected.map(hq => hq.value)); // ✅ Sincroniza el formulario
+    }
+  }, [initialData, headquartersOptions, form]); // 🚀 Se ejecuta cuando `initialData` y `headquartersOptions` cambian
+
+  const router = useRouter();
 
   const onSubmit = async (values: z.infer<typeof formSchema>) => {
     try {
