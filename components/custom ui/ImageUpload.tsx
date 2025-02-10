@@ -9,9 +9,17 @@ interface ImageUploadProps {
   onRemove: (value: string) => void;
 }
 
+// Definir el tipo esperado del resultado de Cloudinary
+interface CloudinaryUploadResult {
+  event?: string;
+  info?: string | {
+    secure_url?: string;
+  };
+}
+
 const ImageUpload: React.FC<ImageUploadProps> = ({ onChange, onRemove, value }) => {
-  const onUpload = (result: any) => {
-    if (result?.info?.secure_url) {
+  const onUpload = (result: CloudinaryUploadResult) => {
+    if (typeof result.info === 'object' && result.info?.secure_url) {
       onChange(result.info.secure_url);
     } else {
       console.error("Error: Upload result does not contain a secure URL.");
