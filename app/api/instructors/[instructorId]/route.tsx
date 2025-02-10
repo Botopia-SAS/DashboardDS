@@ -58,11 +58,11 @@ export async function DELETE(req: Request, context: { params: Promise<{ instruct
   }
 }
 
-export const PATCH = async (req: NextRequest, { params }: any) => {
+export const PATCH = async (req: NextRequest, context: { params: { instructorId: string } }) => {
   try {
     await connectToDB();
 
-    const { instructorId } = params;
+    const { instructorId } = context.params;
 
     if (!mongoose.Types.ObjectId.isValid(instructorId)) {
       return new NextResponse("Invalid Instructor ID", { status: 400 });
