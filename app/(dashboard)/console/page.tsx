@@ -4,6 +4,7 @@ import { useEffect, useState } from "react";
 import dynamic from "next/dynamic";
 import { Card, CardContent } from "@/components/ui/card";
 import { BarChart, Bar, XAxis, YAxis, Tooltip, ResponsiveContainer } from "recharts";
+import Image from "next/image";
 
 const Heatmap = dynamic(() => import("@/components/Heatmap"), { ssr: false });
 
@@ -51,10 +52,6 @@ export default function Dashboard() {
       .finally(() => setLoading(false));
   }, []);
 
-  useEffect(() => {
-    console.log("🔍 Página seleccionada:", selectedPage);
-  }, [selectedPage]);
-
   return (
     <div className="p-6 grid grid-cols-1 lg:grid-cols-3 gap-6">
       {/* Selector de página */}
@@ -86,10 +83,12 @@ export default function Dashboard() {
           {selectedPage ? (
             <div className="relative w-full h-[700px] border overflow-hidden">
               {/* Imagen de vista previa */}
-              <img
-                src={pageImages[selectedPage] || "/images/default.png"} // Usa la imagen correspondiente
+              <Image
+                src={pageImages[selectedPage] || "/images/default.png"}
                 alt={`Vista previa de ${selectedPage}`}
-                className="absolute top-0 left-0 w-full h-full object-cover z-0"  // Asegura que la imagen esté en el fondo
+                layout="fill"
+                objectFit="cover"
+                className="absolute top-0 left-0 z-0"
               />
 
               {/* Heatmap sobre la imagen */}

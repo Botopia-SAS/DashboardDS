@@ -85,6 +85,7 @@ const CustomForm: React.FC<FormProps> = ({ initialData }) => {
   // ✅ Función para manejar selección en el dropdown
   const handleSelectChange = (newValue: MultiValue<{ label: string; value: string }>, actionMeta: ActionMeta<{ label: string; value: string }>) => {
       const selectedValues = newValue.map((hq) => hq.value);
+      console.log(actionMeta)
       form.setValue("headquarters", selectedValues);
       setSelectedHeadquarters(newValue as { label: string; value: string }[]);
     };

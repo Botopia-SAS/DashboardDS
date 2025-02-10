@@ -4,6 +4,12 @@ import { useEffect, useState } from "react";
 import Loader from "@/components/custom ui/Loader";
 import CollectionForm from "@/components/collections/CollectionForm";
 
+type ProductType = {
+  id: string;
+  name: string;
+  price: number;
+};
+
 // Define el tipo correcto para CollectionType
 type CollectionType = {
   id: string;
@@ -13,7 +19,7 @@ type CollectionType = {
   description: string;
   image: string;
   price: number;
-  products: any[];
+  products: ProductType
 };
 
 const CollectionDetails = ({ params }: { params: Promise<{ collectionId: string }> }) => {
