@@ -10,7 +10,7 @@ type ParamsType = {
 // ✅ GET Collection by ID
 export async function GET(
   req: NextRequest,
-  { params }: { params: { collectionId: string } }
+  context: { params: Record<string, string | string[]> }
 ) {
   try {
     await connectToDB();
