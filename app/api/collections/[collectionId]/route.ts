@@ -3,11 +3,14 @@ import { connectToDB } from "@/lib/mongoDB";
 import { NextRequest, NextResponse } from "next/server";
 
 // ✅ GET Collection by ID
-export async function GET(req: NextRequest, context: { params: { collectionId?: string } }) {
+export const GET = async (
+  req: NextRequest,
+  { params }: { params: { collectionId: string } } // Asegúrate de que collectionId sea obligatorio
+) => {
   try {
     await connectToDB();
 
-    const collectionId = context.params.collectionId;
+    const { collectionId } = params;
 
     if (!collectionId) {
       return new NextResponse("Collection ID is required", { status: 400 });
@@ -25,14 +28,17 @@ export async function GET(req: NextRequest, context: { params: { collectionId?: 
     console.error("[GET Collection Error]:", error);
     return new NextResponse("Internal Server Error", { status: 500 });
   }
-}
+};
 
 // ✅ UPDATE Collection by ID
-export async function PATCH(req: NextRequest, context: { params: { collectionId?: string } }) {
+export const PATCH = async (
+  req: NextRequest,
+  { params }: { params: { collectionId: string } } // Asegúrate de que collectionId sea obligatorio
+) => {
   try {
     await connectToDB();
 
-    const collectionId = context.params.collectionId;
+    const { collectionId } = params;
 
     if (!collectionId) {
       return new NextResponse("Collection ID is required", { status: 400 });
@@ -50,14 +56,17 @@ export async function PATCH(req: NextRequest, context: { params: { collectionId?
     console.error("[PATCH Collection Error]:", error);
     return new NextResponse("Internal Server Error", { status: 500 });
   }
-}
+};
 
 // ✅ DELETE Collection by ID
-export async function DELETE(req: NextRequest, context: { params: { collectionId?: string } }) {
+export const DELETE = async (
+  req: NextRequest,
+  { params }: { params: { collectionId: string } } // Asegúrate de que collectionId sea obligatorio
+) => {
   try {
     await connectToDB();
 
-    const collectionId = context.params.collectionId;
+    const { collectionId } = params;
 
     if (!collectionId) {
       return new NextResponse("Collection ID is required", { status: 400 });
@@ -75,4 +84,4 @@ export async function DELETE(req: NextRequest, context: { params: { collectionId
     console.error("[DELETE Collection Error]:", error);
     return new NextResponse("Internal Server Error", { status: 500 });
   }
-}
+};
