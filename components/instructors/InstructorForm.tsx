@@ -436,7 +436,7 @@ const InstructorForm = ({ initialData }: { initialData?: InstructorData }) => {
 
     try {
       // Encripta la contraseña antes de enviarla al servidor
-      const hashedPassword = await bcrypt.hash(values.password as string, 10);
+      //const hashedPassword = await bcrypt.hash(values.password as string, 10); Si no se usa eliminarlo
 
       const res = await fetch(`/api/instructors`, {
         method: initialData ? "PATCH" : "POST",
