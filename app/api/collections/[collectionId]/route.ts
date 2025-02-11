@@ -3,7 +3,7 @@ import { connectToDB } from "@/lib/mongoDB";
 import { NextRequest, NextResponse } from "next/server";
 
 // ✅ GET Collection by ID
-export async function GET(req: NextRequest, context: { params: Record<string, string> }) {
+export async function GET(req: NextRequest, context: { params: { collectionId?: string } }) {
   try {
     await connectToDB();
 
@@ -28,7 +28,7 @@ export async function GET(req: NextRequest, context: { params: Record<string, st
 }
 
 // ✅ UPDATE Collection by ID
-export async function PATCH(req: NextRequest, context: { params: Record<string, string> }) {
+export async function PATCH(req: NextRequest, context: { params: { collectionId?: string } }) {
   try {
     await connectToDB();
 
@@ -53,7 +53,7 @@ export async function PATCH(req: NextRequest, context: { params: Record<string, 
 }
 
 // ✅ DELETE Collection by ID
-export async function DELETE(req: NextRequest, context: { params: Record<string, string> }) {
+export async function DELETE(req: NextRequest, context: { params: { collectionId?: string } }) {
   try {
     await connectToDB();
 
