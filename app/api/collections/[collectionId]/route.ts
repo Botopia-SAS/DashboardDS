@@ -1,41 +1,57 @@
+import { NextRequest, NextResponse } from "next/server";
 import Collection from "@/lib/models/Collection";
 import { connectToDB } from "@/lib/mongoDB";
-import { NextRequest, NextResponse } from "next/server";
+
+type RouteParams = {
+  params: { collectionId?: string }; // Hacemos explícito que collectionId es opcional
+};
 
 // ✅ GET Collection by ID
-export async function GET(req: NextRequest, context: { params: any }) {
+export async function GET(req: NextRequest, { params }: RouteParams) {
   try {
     await connectToDB();
 
-    const collectionId = context?.params?.collectionId;
+    const collectionId = params.collectionId;
 
-    if (!collectionId || typeof collectionId !== "string") {
-      return new NextResponse("Collection ID is required", { status: 400 });
+    if (!collectionId) {
+      return NextResponse.json(
+        { error: "Collection ID is required" },
+        { status: 400 }
+      );
     }
 
     console.log("🔍 Fetching collection:", collectionId);
     const collection = await Collection.findById(collectionId);
 
     if (!collection) {
-      return new NextResponse("Collection not found", { status: 404 });
+      return NextResponse.json(
+        { error: "Collection not found" },
+        { status: 404 }
+      );
     }
 
     return NextResponse.json(collection, { status: 200 });
   } catch (error) {
     console.error("[GET Collection Error]:", error);
-    return new NextResponse("Internal Server Error", { status: 500 });
+    return NextResponse.json(
+      { error: "Internal Server Error" },
+      { status: 500 }
+    );
   }
 }
 
 // ✅ UPDATE Collection by ID
-export async function PATCH(req: NextRequest, context: { params: any }) {
+export async function PATCH(req: NextRequest, { params }: RouteParams) {
   try {
     await connectToDB();
 
-    const collectionId = context?.params?.collectionId;
+    const collectionId = params.collectionId;
 
-    if (!collectionId || typeof collectionId !== "string") {
-      return new NextResponse("Collection ID is required", { status: 400 });
+    if (!collectionId) {
+      return NextResponse.json(
+        { error: "Collection ID is required" },
+        { status: 400 }
+      );
     }
 
     const body = await req.json();
@@ -46,32 +62,44 @@ export async function PATCH(req: NextRequest, context: { params: any }) {
     );
 
     if (!updatedCollection) {
-      return new NextResponse("Collection not found", { status: 404 });
+      return NextResponse.json(
+        { error: "Collection not found" },
+        { status: 404 }
+      );
     }
 
     return NextResponse.json(updatedCollection, { status: 200 });
   } catch (error) {
     console.error("[PATCH Collection Error]:", error);
-    return new NextResponse("Internal Server Error", { status: 500 });
+    return NextResponse.json(
+      { error: "Internal Server Error" },
+      { status: 500 }
+    );
   }
 }
 
 // ✅ DELETE Collection by ID
-export async function DELETE(req: NextRequest, context: { params: any }) {
+export async function DELETE(req: NextRequest, { params }: RouteParams) {
   try {
     await connectToDB();
 
-    const collectionId = context?.params?.collectionId;
+    const collectionId = params.collectionId;
 
-    if (!collectionId || typeof collectionId !== "string") {
-      return new NextResponse("Collection ID is required", { status: 400 });
+    if (!collectionId) {
+      return NextResponse.json(
+        { error: "Collection ID is required" },
+        { status: 400 }
+      );
     }
 
     console.log("🗑️ Deleting collection:", collectionId);
     const deletedCollection = await Collection.findByIdAndDelete(collectionId);
 
     if (!deletedCollection) {
-      return new NextResponse("Collection not found", { status: 404 });
+      return NextResponse.json(
+        { error: "Collection not found" },
+        { status: 404 }
+      );
     }
 
     return NextResponse.json(
@@ -80,6 +108,9 @@ export async function DELETE(req: NextRequest, context: { params: any }) {
     );
   } catch (error) {
     console.error("[DELETE Collection Error]:", error);
-    return new NextResponse("Internal Server Error", { status: 500 });
+    return NextResponse.json(
+      { error: "Internal Server Error" },
+      { status: 500 }
+    );
   }
 }
