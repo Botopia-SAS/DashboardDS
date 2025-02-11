@@ -6,11 +6,14 @@ import mongoose from "mongoose";
 export const dynamic = "force-dynamic";
 
 // ✅ GET: Obtener un instructor por ID
-export async function GET(req: NextRequest, context: { params: { instructorId: string } }) {
+export async function GET(
+  req: NextRequest,
+  { params }: { params: { instructorId: string } } // Ajusta el tipo aquí
+) {
   try {
     await connectToDB();
 
-    const instructorId = context.params.instructorId;
+    const instructorId = params.instructorId;
 
     if (!instructorId) {
       return new NextResponse("Instructor ID is required", { status: 400 });
@@ -32,11 +35,14 @@ export async function GET(req: NextRequest, context: { params: { instructorId: s
 }
 
 // ✅ DELETE: Eliminar un instructor por ID
-export async function DELETE(req: NextRequest, context: { params: { instructorId: string } }) {
+export async function DELETE(
+  req: NextRequest,
+  { params }: { params: { instructorId: string } } // Ajusta el tipo aquí
+) {
   try {
     await connectToDB();
 
-    const instructorId = context.params.instructorId;
+    const instructorId = params.instructorId;
 
     console.log("🗑️ Eliminando instructor con ID:", instructorId);
 
@@ -58,11 +64,14 @@ export async function DELETE(req: NextRequest, context: { params: { instructorId
 }
 
 // ✅ PATCH: Actualizar un instructor por ID
-export async function PATCH(req: NextRequest, context: { params: { instructorId: string } }) {
+export async function PATCH(
+  req: NextRequest,
+  { params }: { params: { instructorId: string } } // Ajusta el tipo aquí
+) {
   try {
     await connectToDB();
 
-    const instructorId = context.params.instructorId;
+    const instructorId = params.instructorId;
 
     if (!mongoose.Types.ObjectId.isValid(instructorId)) {
       return new NextResponse("Invalid Instructor ID", { status: 400 });
