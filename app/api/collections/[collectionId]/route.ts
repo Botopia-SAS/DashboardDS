@@ -2,20 +2,18 @@ import Collection from "@/lib/models/Collection";
 import { connectToDB } from "@/lib/mongoDB";
 import { NextRequest, NextResponse } from "next/server";
 
-export const GET = async (req: NextRequest, context: { params: Promise<{ collectionId: string }> }) => {
+export const GET = async (req: NextRequest, context: { params: { collectionId: string } }) => {
   try {
     await connectToDB();
 
-    // ✅ Corregir la obtención de `collectionId`
-    const params = await context.params;
-    const collectionId = params.collectionId;
+    const collectionId = context.params.collectionId; // ✅ Eliminado el `await`
 
     if (!collectionId) {
       return new NextResponse("Collection ID is required", { status: 400 });
     }
 
     console.log("🔍 Fetching collection:", collectionId);
-    const collection = await Collection.findById(collectionId); // ✅ Ya sin `populate`
+    const collection = await Collection.findById(collectionId);
 
     if (!collection) {
       return new NextResponse("Collection not found", { status: 404 });
@@ -27,6 +25,7 @@ export const GET = async (req: NextRequest, context: { params: Promise<{ collect
     return new NextResponse("Internal Server Error", { status: 500 });
   }
 };
+
 
 // ✅ UPDATE Collection by ID
 export const PATCH = async (
@@ -59,12 +58,12 @@ export const PATCH = async (
 // ✅ DELETE Collection by ID
 export const DELETE = async (
   req: NextRequest,
-  context: { params: { collectionId: string } }
+  context: { params?: { collectionId?: string } }
 ) => {
   try {
     await connectToDB();
 
-    const { collectionId } = context.params;
+    const collectionId = context.params?.collectionId;
 
     if (!collectionId) {
       return new NextResponse("Collection ID is required", { status: 400 });
@@ -83,3 +82,4 @@ export const DELETE = async (
     return new NextResponse("Internal Server Error", { status: 500 });
   }
 };
+
