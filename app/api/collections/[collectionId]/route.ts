@@ -7,17 +7,16 @@ type ParamsType = {
   [key: string]: string; // Para admitir otros posibles parámetros en la URL
 };
 
-// ✅ GET Collection by ID
 export async function GET(
-  req: NextRequest,
-  context: { params: Record<string, string | string[]> }
+  _: NextRequest,
+  { params }: { params: { collectionId?: string } }
 ) {
   try {
     await connectToDB();
 
     const collectionId = params.collectionId;
 
-    if (!collectionId || typeof collectionId !== "string") {
+    if (!collectionId) {
       return new NextResponse("Collection ID is required", { status: 400 });
     }
 
