@@ -28,7 +28,7 @@ import ImageUpload from "../custom ui/ImageUpload";
 import FullCalendar from "@fullcalendar/react";
 import timeGridPlugin from "@fullcalendar/timegrid";
 import interactionPlugin from "@fullcalendar/interaction";
-import bcrypt from "bcryptjs";
+//import bcrypt from "bcryptjs"; Si no se usa eliminarlo
 // import { useRef } from "react";  Si no se usa eliminarlo
 
 type CalendarEvent = {
