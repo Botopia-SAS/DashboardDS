@@ -2,18 +2,14 @@ import { NextRequest, NextResponse } from "next/server";
 import Collection from "@/lib/models/Collection";
 import { connectToDB } from "@/lib/mongoDB";
 
-type RouteParams = {
-  params: { collectionId?: string }; // Hacemos explícito que collectionId es opcional
-};
-
-// ✅ GET Collection by ID
-export async function GET(req: NextRequest, { params }: RouteParams) {
+// ✅ Fetch Collection by ID (Usando POST en lugar de GET)
+export async function POST(req: NextRequest) {
   try {
     await connectToDB();
 
-    const collectionId = params.collectionId;
+    const { collectionId } = await req.json();
 
-    if (!collectionId) {
+    if (!collectionId || typeof collectionId !== "string") {
       return NextResponse.json(
         { error: "Collection ID is required" },
         { status: 400 }
@@ -32,7 +28,7 @@ export async function GET(req: NextRequest, { params }: RouteParams) {
 
     return NextResponse.json(collection, { status: 200 });
   } catch (error) {
-    console.error("[GET Collection Error]:", error);
+    console.error("[POST Collection Error]:", error);
     return NextResponse.json(
       { error: "Internal Server Error" },
       { status: 500 }
@@ -41,23 +37,22 @@ export async function GET(req: NextRequest, { params }: RouteParams) {
 }
 
 // ✅ UPDATE Collection by ID
-export async function PATCH(req: NextRequest, { params }: RouteParams) {
+export async function PATCH(req: NextRequest) {
   try {
     await connectToDB();
 
-    const collectionId = params.collectionId;
+    const { collectionId, ...updateData } = await req.json();
 
-    if (!collectionId) {
+    if (!collectionId || typeof collectionId !== "string") {
       return NextResponse.json(
         { error: "Collection ID is required" },
         { status: 400 }
       );
     }
 
-    const body = await req.json();
     const updatedCollection = await Collection.findByIdAndUpdate(
       collectionId,
-      body,
+      updateData,
       { new: true }
     );
 
@@ -79,13 +74,13 @@ export async function PATCH(req: NextRequest, { params }: RouteParams) {
 }
 
 // ✅ DELETE Collection by ID
-export async function DELETE(req: NextRequest, { params }: RouteParams) {
+export async function DELETE(req: NextRequest) {
   try {
     await connectToDB();
 
-    const collectionId = params.collectionId;
+    const { collectionId } = await req.json();
 
-    if (!collectionId) {
+    if (!collectionId || typeof collectionId !== "string") {
       return NextResponse.json(
         { error: "Collection ID is required" },
         { status: 400 }
