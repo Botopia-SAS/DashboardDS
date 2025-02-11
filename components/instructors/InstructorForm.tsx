@@ -161,7 +161,7 @@ const InstructorForm = ({ initialData }: { initialData?: InstructorData }) => {
   }, [schedule]);
 
   useEffect(() => {
-    if (schedule.length === 0) return; // Evita actualizar si el estado está vacío
+    if (schedule.length === 0) return; // ✅ Evita actualizar si el estado está vacío
 
     console.log("📆 Schedule actualizado, recalculando eventos...");
 
@@ -179,11 +179,12 @@ const InstructorForm = ({ initialData }: { initialData?: InstructorData }) => {
 
     setCalendarEvents(newEvents);
 
-    // 🔹 Espera 50ms antes de actualizar el key del calendario para asegurar sincronización
     setTimeout(() => {
       setCalendarKey((prevKey) => prevKey + 1);
     }, 50);
-  }, [JSON.stringify(schedule)]); // 🔹 Compara el estado serializado para detectar cambios reales
+
+    return undefined; // ✅ Se asegura que no devuelva JSX ni nada inesperado
+  }, [schedule]);
 
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [currentSlot, setCurrentSlot] = useState<{
