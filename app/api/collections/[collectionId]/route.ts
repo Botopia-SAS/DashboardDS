@@ -1,21 +1,14 @@
 import Collection from "@/lib/models/Collection";
 import { connectToDB } from "@/lib/mongoDB";
 
-type Context = {
-  params: ParamsType;
-};
-import { NextRequest, NextResponse } from "next/server";
-
-type ParamsType = {
-  collectionId: string;
-  [key: string]: string; // Para admitir otros posibles parámetros en la URL
-};
-
-export async function GET(req: NextRequest, context: Context) {
+export async function GET(
+  req: NextRequest,
+  { params }: { params: Record<string, string> }
+) {
   try {
     await connectToDB();
 
-    const { collectionId } = context.params;
+    const collectionId = params.collectionId;
 
     if (!collectionId) {
       return new NextResponse("Collection ID is required", { status: 400 });
