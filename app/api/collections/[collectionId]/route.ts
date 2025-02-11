@@ -2,16 +2,12 @@ import Collection from "@/lib/models/Collection";
 import { connectToDB } from "@/lib/mongoDB";
 import { NextRequest, NextResponse } from "next/server";
 
-interface Params {
-  params: { collectionId: string };
-}
-
 // ✅ GET Collection by ID
-export const GET = async (req: NextRequest, { params }: Params) => {
+export const GET = async (req: NextRequest, context: { params: { collectionId: string } }) => {
   try {
     await connectToDB();
 
-    const collectionId = params.collectionId;
+    const collectionId = context.params.collectionId;
 
     if (!collectionId) {
       return new NextResponse("Collection ID is required", { status: 400 });
@@ -32,11 +28,11 @@ export const GET = async (req: NextRequest, { params }: Params) => {
 };
 
 // ✅ UPDATE Collection by ID
-export const PATCH = async (req: NextRequest, { params }: Params) => {
+export const PATCH = async (req: NextRequest, context: { params: { collectionId: string } }) => {
   try {
     await connectToDB();
 
-    const collectionId = params.collectionId;
+    const collectionId = context.params.collectionId;
 
     if (!collectionId) {
       return new NextResponse("Collection ID is required", { status: 400 });
@@ -57,11 +53,11 @@ export const PATCH = async (req: NextRequest, { params }: Params) => {
 };
 
 // ✅ DELETE Collection by ID
-export const DELETE = async (req: NextRequest, { params }: Params) => {
+export const DELETE = async (req: NextRequest, context: { params: { collectionId: string } }) => {
   try {
     await connectToDB();
 
-    const collectionId = params.collectionId;
+    const collectionId = context.params.collectionId;
 
     if (!collectionId) {
       return new NextResponse("Collection ID is required", { status: 400 });
