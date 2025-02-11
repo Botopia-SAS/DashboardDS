@@ -2,8 +2,13 @@ import Collection from "@/lib/models/Collection";
 import { connectToDB } from "@/lib/mongoDB";
 import { NextRequest, NextResponse } from "next/server";
 
+type ParamsType = {
+  collectionId: string;
+  [key: string]: string; // Para admitir otros posibles parámetros en la URL
+};
+
 // ✅ GET Collection by ID
-export async function GET(req: NextRequest, context: { params: any }) {
+export async function GET(req: NextRequest, context: { params: ParamsType }) {
   try {
     await connectToDB();
 
@@ -28,7 +33,7 @@ export async function GET(req: NextRequest, context: { params: any }) {
 }
 
 // ✅ UPDATE Collection by ID
-export async function PATCH(req: NextRequest, context: { params: any }) {
+export async function PATCH(req: NextRequest, context: { params: ParamsType }) {
   try {
     await connectToDB();
 
@@ -39,7 +44,11 @@ export async function PATCH(req: NextRequest, context: { params: any }) {
     }
 
     const body = await req.json();
-    const updatedCollection = await Collection.findByIdAndUpdate(collectionId, body, { new: true });
+    const updatedCollection = await Collection.findByIdAndUpdate(
+      collectionId,
+      body,
+      { new: true }
+    );
 
     if (!updatedCollection) {
       return new NextResponse("Collection not found", { status: 404 });
@@ -53,7 +62,10 @@ export async function PATCH(req: NextRequest, context: { params: any }) {
 }
 
 // ✅ DELETE Collection by ID
-export async function DELETE(req: NextRequest, context: { params: any }) {
+export async function DELETE(
+  req: NextRequest,
+  context: { params: ParamsType }
+) {
   try {
     await connectToDB();
 
@@ -70,7 +82,10 @@ export async function DELETE(req: NextRequest, context: { params: any }) {
       return new NextResponse("Collection not found", { status: 404 });
     }
 
-    return NextResponse.json({ message: "Collection deleted successfully" }, { status: 200 });
+    return NextResponse.json(
+      { message: "Collection deleted successfully" },
+      { status: 200 }
+    );
   } catch (error) {
     console.error("[DELETE Collection Error]:", error);
     return new NextResponse("Internal Server Error", { status: 500 });
