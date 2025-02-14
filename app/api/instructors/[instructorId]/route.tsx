@@ -5,11 +5,16 @@ import mongoose from "mongoose";
 
 export const dynamic = "force-dynamic";
 
-// ✅ Nuevo método GET para obtener un instructor por ID
-export async function GET(req: NextRequest, { params }: { params: { instructorId: string } }) {
+// ✅ Método POST para obtener un instructor por ID (sin GET)
+export async function POST(req: NextRequest) {
   try {
     await connectToDB();
-    const { instructorId } = params;
+    
+    const { instructorId } = await req.json();
+
+    if (!instructorId) {
+      return NextResponse.json({ error: "Instructor ID is required" }, { status: 400 });
+    }
 
     if (!mongoose.Types.ObjectId.isValid(instructorId)) {
       return NextResponse.json({ error: "Invalid Instructor ID" }, { status: 400 });
@@ -25,7 +30,7 @@ export async function GET(req: NextRequest, { params }: { params: { instructorId
 
     return NextResponse.json(instructor, { status: 200 });
   } catch (err) {
-    console.error("[GET Instructor] Error:", err);
+    console.error("[POST Instructor] Error:", err);
     return NextResponse.json({ error: "Internal Server Error" }, { status: 500 });
   }
 }
