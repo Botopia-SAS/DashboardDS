@@ -429,22 +429,18 @@ const InstructorForm = ({ initialData }: { initialData?: InstructorData }) => {
 
   // Manejo del submit
   const onSubmit = async (values: InstructorData) => {
-    console.log("✅ onSubmit ejecutado con valores:", values);
+    console.log("✅ Enviando al servidor los siguientes valores:", values);
     console.log("📅 Schedule antes de enviar:", schedule);
-
+  
     setLoading(true);
-
+  
     try {
-      // Encripta la contraseña antes de enviarla al servidor
-      //const hashedPassword = await bcrypt.hash(values.password as string, 10); Si no se usa eliminarlo
-
       const res = await fetch(`/api/instructors`, {
         method: initialData ? "PATCH" : "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
           instructorId: initialData?._id ?? "",
           ...values,
-          email: values.email, // ✅ Nuevo campo
           schedule: schedule.map((day) => ({
             date: day.date,
             slots: day.slots.map((slot) => ({
@@ -456,9 +452,9 @@ const InstructorForm = ({ initialData }: { initialData?: InstructorData }) => {
           })),
         }),
       });
-
+  
       console.log("🛜 Respuesta del servidor:", res);
-
+  
       if (res.ok) {
         toast.success("Instructor saved successfully!");
         router.push("/instructors");
@@ -474,6 +470,7 @@ const InstructorForm = ({ initialData }: { initialData?: InstructorData }) => {
       setLoading(false);
     }
   };
+  
 
   const formattedEvents = schedule.flatMap((day) =>
     day.slots.map((slot) => ({
