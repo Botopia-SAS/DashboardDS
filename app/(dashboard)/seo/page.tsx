@@ -9,7 +9,7 @@ export default function SEOSettings() {
 
   useEffect(() => {
     async function fetchSEOSettings() {
-      const res = await fetch("/api/seo/fetch");
+      const res = await fetch("/api/seo");
       const data = await res.json();
       setMetaTitle(data.metaTitle);
       setMetaDescription(data.metaDescription);

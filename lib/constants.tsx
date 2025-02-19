@@ -7,7 +7,8 @@ import {
     BookOpen,
     LifeBuoy,
     CalendarDays,
-    MapPinCheck
+    MapPinCheck,
+    Search // ✅ Importamos el icono de búsqueda
   } from "lucide-react";
   
   export const navLinks = [
@@ -56,4 +57,9 @@ import {
       icon: <UsersRound />,
       label: "Customers",
     },
+    {
+      url: "/seo",  // ✅ Agregamos la URL para la sección de SEO
+      icon: <Search />,  // ✅ Usamos un icono de búsqueda para representar SEO
+      label: "SEO",
+    }
   ];
