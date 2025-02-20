@@ -26,7 +26,8 @@ const InstructorDetails = ({ params }: { params: Promise<{ instructorId?: string
 
   useEffect(() => {
     const resolveParams = async () => {
-      const resolvedParams = await params;
+      const resolvedParams = await params; // Espera a que params se resuelva
+      console.log("✅ Resolved Params:", resolvedParams); // Confirmar que instructorId llega correctamente
       setInstructorId(resolvedParams?.instructorId ?? null);
     };
 
@@ -40,34 +41,38 @@ const InstructorDetails = ({ params }: { params: Promise<{ instructorId?: string
         setLoading(false);
         return;
       }
-
+  
       try {
         console.log("🔍 Fetching instructor details for ID:", instructorId);
-        const res = await fetch(`/api/instructors/${instructorId}`);
-
+        const res = await fetch(`/api/instructors?instructorId=${instructorId}`);
+  
         if (!res.ok) {
           console.error("❌ Failed to fetch instructor details. Status:", res.status);
           throw new Error(`Failed to fetch: ${res.status}`);
         }
-
+  
         const data = await res.json();
         console.log("✅ Instructor details fetched successfully:", data);
-
-        if (typeof data.photo !== "string" || !data.photo.startsWith("http")) {
-          console.warn("⚠️ Invalid photo URL detected. Using default.");
-          data.photo = "/default-avatar.png";
+  
+        // 📌 Filtrar el instructor correcto
+        const selectedInstructor = data.find((inst: any) => inst._id === instructorId);
+  
+        if (!selectedInstructor) {
+          console.warn("⚠️ No matching instructor found for ID:", instructorId);
+          setInstructorDetails(null);
+        } else {
+          setInstructorDetails(selectedInstructor);
         }
-
-        setInstructorDetails(data);
       } catch (err) {
         console.error("[fetchInstructorDetails] Error:", err);
       } finally {
         setLoading(false);
       }
     };
-
+  
     if (instructorId) fetchInstructorDetails();
   }, [instructorId]);
+  
 
   if (loading) return <Loader />;
   if (!instructorDetails) return <p className="text-center text-red-500">Instructor not found</p>;

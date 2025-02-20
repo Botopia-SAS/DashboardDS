@@ -94,9 +94,7 @@ interface InstructorData {
 
 const InstructorForm = ({ initialData }: { initialData?: InstructorData }) => {
   const recurrenceOptions = ["None", "Daily", "Weekly", "Monthly"];
-
-  //const calendarRef = useRef(null); Si no se usa eliminarlo
-
+  const [recurrenceEnd, setRecurrenceEnd] = useState<string | null>(null);
   const router = useRouter();
   const [loading, setLoading] = useState(false);
   const [schedule, setSchedule] = useState<
@@ -110,9 +108,29 @@ const InstructorForm = ({ initialData }: { initialData?: InstructorData }) => {
       }[];
     }[]
   >([]);
-
   const [calendarEvents, setCalendarEvents] = useState<CalendarEvent[]>([]);
   const [calendarKey, setCalendarKey] = useState(0); // 🔹 Clave única para forzar re-render
+  const [isModalOpen, setIsModalOpen] = useState(false);
+  const [currentSlot, setCurrentSlot] = useState<{
+    start: string;
+    end: string;
+    booked: boolean;
+    recurrence: string;
+    isEditing?: boolean; // 🔹 Agregamos esta propiedad opcional
+    originalStart?: string; // 🔹 Agregado
+    originalEnd?: string; // 🔹 Agregado
+  }>({
+    start: "",
+    end: "",
+    booked: false,
+    recurrence: "None",
+    isEditing: false, // Inicialmente, asumimos que no estamos editando
+  });
+  const [copiedSlot, setCopiedSlot] = useState<{
+    duration: number;
+    booked: boolean;
+    recurrence: string;
+  } | null>(null);
 
   useEffect(() => {
     if (schedule.length === 0) return; // Evita actualizaciones innecesarias
@@ -186,29 +204,6 @@ const InstructorForm = ({ initialData }: { initialData?: InstructorData }) => {
     return undefined; // ✅ Se asegura que no devuelva JSX ni nada inesperado
   }, [schedule]);
 
-  const [isModalOpen, setIsModalOpen] = useState(false);
-  const [currentSlot, setCurrentSlot] = useState<{
-    start: string;
-    end: string;
-    booked: boolean;
-    recurrence: string;
-    isEditing?: boolean; // 🔹 Agregamos esta propiedad opcional
-    originalStart?: string; // 🔹 Agregado
-    originalEnd?: string; // 🔹 Agregado
-  }>({
-    start: "",
-    end: "",
-    booked: false,
-    recurrence: "None",
-    isEditing: false, // Inicialmente, asumimos que no estamos editando
-  });
-
-  const [copiedSlot, setCopiedSlot] = useState<{
-    duration: number;
-    booked: boolean;
-    recurrence: string;
-  } | null>(null);
-
   // Genera una contraseña aleatoria
   const generatePassword = () => {
     const chars =
@@ -245,56 +240,38 @@ const InstructorForm = ({ initialData }: { initialData?: InstructorData }) => {
   const handleUpdateSlot = () => {
     console.log("📝 handleUpdateSlot ejecutado");
 
-    if (
-      !currentSlot ||
-      !currentSlot.originalStart ||
-      !currentSlot.originalEnd
-    ) {
+    if (!currentSlot || !currentSlot.originalStart || !currentSlot.originalEnd) {
       console.error("❌ No hay currentSlot definido.");
       return;
     }
 
-    console.log(
-      "📌 CurrentSlot recibido en update:",
-      JSON.stringify(currentSlot, null, 2)
-    );
-    console.log(
-      "📌 Estado ANTES de actualizar `schedule`:",
-      JSON.stringify(schedule, null, 2)
-    );
-
     setSchedule((prevSchedule) => {
-      const newSchedule = prevSchedule.map((day) => ({
-        ...day,
-        slots: day.slots.map((slot) =>
-          normalizeTime(slot.start) ===
-            normalizeTime(currentSlot.originalStart || "") &&
-          normalizeTime(slot.end) ===
-            normalizeTime(currentSlot.originalEnd || "")
-            ? {
-                start: currentSlot.start,
-                end: currentSlot.end,
+      return prevSchedule.map((day) => {
+        return {
+          ...day,
+          slots: day.slots.map((slot) => {
+            if (
+              normalizeTime(slot.start) === normalizeTime(currentSlot.originalStart || "") &&
+              normalizeTime(slot.end) === normalizeTime(currentSlot.originalEnd || "") &&
+              slot.recurrence === currentSlot.recurrence
+            ) {
+              // ✅ Mantener la fecha del slot original
+              const originalDate = slot.start.split("T")[0];
+
+              return {
+                start: `${originalDate}T${currentSlot.start.split("T")[1]}`,
+                end: `${originalDate}T${currentSlot.end.split("T")[1]}`,
                 booked: currentSlot.booked,
                 recurrence: currentSlot.recurrence,
-              }
-            : slot
-        ),
-      }));
-
-      console.log(
-        "✅ Estado DESPUÉS de actualizar `schedule`:",
-        JSON.stringify(newSchedule, null, 2)
-      );
-
-      return newSchedule;
+              };
+            }
+            return slot;
+          }),
+        };
+      });
     });
 
-    setTimeout(() => {
-      console.log(
-        "📆 Eventos de FullCalendar después de actualización:",
-        JSON.stringify(schedule, null, 2)
-      );
-    }, 200);
+    console.log("✅ Estado del schedule actualizado después de modificar:", schedule);
 
     setIsModalOpen(false);
     setCurrentSlot({ start: "", end: "", booked: false, recurrence: "None" });
@@ -431,9 +408,9 @@ const InstructorForm = ({ initialData }: { initialData?: InstructorData }) => {
   const onSubmit = async (values: InstructorData) => {
     console.log("✅ Enviando al servidor los siguientes valores:", values);
     console.log("📅 Schedule antes de enviar:", schedule);
-  
+
     setLoading(true);
-  
+
     try {
       const res = await fetch(`/api/instructors`, {
         method: initialData ? "PATCH" : "POST",
@@ -452,9 +429,9 @@ const InstructorForm = ({ initialData }: { initialData?: InstructorData }) => {
           })),
         }),
       });
-  
+
       console.log("🛜 Respuesta del servidor:", res);
-  
+
       if (res.ok) {
         toast.success("Instructor saved successfully!");
         router.push("/instructors");
@@ -470,7 +447,6 @@ const InstructorForm = ({ initialData }: { initialData?: InstructorData }) => {
       setLoading(false);
     }
   };
-  
 
   const formattedEvents = schedule.flatMap((day) =>
     day.slots.map((slot) => ({
@@ -553,8 +529,8 @@ const InstructorForm = ({ initialData }: { initialData?: InstructorData }) => {
                         Array.isArray(field.value)
                           ? field.value
                           : field.value
-                          ? [field.value]
-                          : []
+                            ? [field.value]
+                            : []
                       }
                       onChange={(url) => field.onChange(url)}
                       onRemove={() => field.onChange("")}
@@ -668,11 +644,10 @@ const InstructorForm = ({ initialData }: { initialData?: InstructorData }) => {
                   setCurrentSlot((prev) =>
                     prev
                       ? {
-                          ...prev,
-                          start: `${prev.start.split("T")[0]}T${
-                            e.target.value
+                        ...prev,
+                        start: `${prev.start.split("T")[0]}T${e.target.value
                           }`,
-                        }
+                      }
                       : prev
                   )
                 }
@@ -690,9 +665,9 @@ const InstructorForm = ({ initialData }: { initialData?: InstructorData }) => {
                   setCurrentSlot((prev) =>
                     prev
                       ? {
-                          ...prev,
-                          end: `${prev.end.split("T")[0]}T${e.target.value}`,
-                        }
+                        ...prev,
+                        end: `${prev.end.split("T")[0]}T${e.target.value}`,
+                      }
                       : prev
                   )
                 }
@@ -731,6 +706,8 @@ const InstructorForm = ({ initialData }: { initialData?: InstructorData }) => {
                 />
                 <label className="text-sm">Booked</label>
               </div>
+
+
 
               {/* 📌 Botones */}
               <div className="mt-4 flex justify-between">
@@ -787,20 +764,18 @@ const InstructorForm = ({ initialData }: { initialData?: InstructorData }) => {
                         startTime.getMinutes() + copiedSlot.duration
                       );
 
-                      const formattedStart = `${
-                        currentSlot.start.split("T")[0]
-                      }T${startHour.toString().padStart(2, "0")}:${startMinutes
-                        .toString()
-                        .padStart(2, "0")}`;
-                      const formattedEnd = `${
-                        currentSlot.start.split("T")[0]
-                      }T${newEndTime
-                        .getHours()
-                        .toString()
-                        .padStart(2, "0")}:${newEndTime
-                        .getMinutes()
-                        .toString()
-                        .padStart(2, "0")}`;
+                      const formattedStart = `${currentSlot.start.split("T")[0]
+                        }T${startHour.toString().padStart(2, "0")}:${startMinutes
+                          .toString()
+                          .padStart(2, "0")}`;
+                      const formattedEnd = `${currentSlot.start.split("T")[0]
+                        }T${newEndTime
+                          .getHours()
+                          .toString()
+                          .padStart(2, "0")}:${newEndTime
+                            .getMinutes()
+                            .toString()
+                            .padStart(2, "0")}`;
 
                       const newSlot = {
                         start: formattedStart,

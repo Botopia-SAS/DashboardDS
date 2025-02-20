@@ -2,53 +2,47 @@ import { NextRequest, NextResponse } from "next/server";
 import Collection from "@/lib/models/Collection";
 import { connectToDB } from "@/lib/mongoDB";
 
-// ✅ Fetch Collection by ID (Usando POST en lugar de GET)
-export async function POST(req: NextRequest) {
+// ✅ GET Collection by ID
+export async function GET(req: NextRequest) {
   try {
     await connectToDB();
 
-    const { collectionId } = await req.json();
+    // ✅ Extraer `collectionId` desde la URL
+    const collectionId = req.nextUrl.pathname.split("/").pop();
 
-    if (!collectionId || typeof collectionId !== "string") {
-      return NextResponse.json(
-        { error: "Collection ID is required" },
-        { status: 400 }
-      );
+    if (!collectionId) {
+      return NextResponse.json({ error: "Collection ID is required" }, { status: 400 });
     }
 
-    console.log("🔍 Fetching collection:", collectionId);
     const collection = await Collection.findById(collectionId);
 
     if (!collection) {
-      return NextResponse.json(
-        { error: "Collection not found" },
-        { status: 404 }
-      );
+      return NextResponse.json({ error: "Collection not found" }, { status: 404 });
     }
 
     return NextResponse.json(collection, { status: 200 });
   } catch (error) {
-    console.error("[POST Collection Error]:", error);
-    return NextResponse.json(
-      { error: "Internal Server Error" },
-      { status: 500 }
-    );
+    console.error("[GET Collection Error]:", error);
+    return NextResponse.json({ error: "Internal Server Error" }, { status: 500 });
   }
 }
 
-// ✅ UPDATE Collection by ID
+// ✅ PATCH Collection by ID (Extrae `collectionId` de la URL)
 export async function PATCH(req: NextRequest) {
   try {
     await connectToDB();
 
-    const { collectionId, ...updateData } = await req.json();
+    // ✅ Extraer `collectionId` desde la URL en lugar del body
+    const collectionId = req.nextUrl.pathname.split("/").pop();
 
-    if (!collectionId || typeof collectionId !== "string") {
+    if (!collectionId) {
       return NextResponse.json(
         { error: "Collection ID is required" },
         { status: 400 }
       );
     }
+
+    const updateData = await req.json(); // ✅ Body ahora solo contiene los datos a actualizar
 
     const updatedCollection = await Collection.findByIdAndUpdate(
       collectionId,
@@ -78,9 +72,10 @@ export async function DELETE(req: NextRequest) {
   try {
     await connectToDB();
 
-    const { collectionId } = await req.json();
+    // ✅ Extraer `collectionId` desde la URL
+    const collectionId = req.nextUrl.pathname.split("/").pop();
 
-    if (!collectionId || typeof collectionId !== "string") {
+    if (!collectionId) {
       return NextResponse.json(
         { error: "Collection ID is required" },
         { status: 400 }

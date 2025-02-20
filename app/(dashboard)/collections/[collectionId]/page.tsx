@@ -1,6 +1,7 @@
 "use client";
 
 import { useEffect, useState } from "react";
+import { useParams } from "next/navigation"; // ✅ Importamos `useParams`
 import Loader from "@/components/custom ui/Loader";
 import CollectionForm from "@/components/collections/CollectionForm";
 
@@ -19,18 +20,19 @@ type CollectionType = {
   description: string;
   image: string;
   price: number;
-  products: ProductType
+  products: ProductType;
 };
 
-const CollectionDetails = ({ params }: { params: Promise<{ collectionId: string }> }) => {
+const CollectionDetails = () => {
   const [loading, setLoading] = useState(true);
   const [collectionDetails, setCollectionDetails] = useState<CollectionType | null>(null);
+
+  const params = useParams(); // ✅ Usa `useParams()` para obtener los parámetros correctamente
+  const collectionId = params?.collectionId as string; // ✅ Asegurar que collectionId es una string
 
   useEffect(() => {
     const fetchCollectionDetails = async () => {
       try {
-        const { collectionId } = await params; // ✅ Hacer `await` en params
-
         if (!collectionId) {
           console.error("❌ No collectionId provided, skipping fetch.");
           setLoading(false);
@@ -38,7 +40,7 @@ const CollectionDetails = ({ params }: { params: Promise<{ collectionId: string 
         }
 
         console.log("🔍 Fetching collection details for ID:", collectionId);
-        const res = await fetch(`/api/collections/${collectionId}`);
+        const res = await fetch(`/api/collections/${collectionId}`); // ✅ Usa la URL correcta
 
         if (!res.ok) {
           console.error("❌ Failed to fetch collection details. Status:", res.status);
@@ -56,7 +58,7 @@ const CollectionDetails = ({ params }: { params: Promise<{ collectionId: string 
     };
 
     fetchCollectionDetails();
-  }, [params]); // ✅ `params` es la dependencia
+  }, [collectionId]); // ✅ Se ejecuta solo cuando `collectionId` cambia
 
   if (loading) return <Loader />;
   if (!collectionDetails) return <p className="text-center text-red-500">Collection not found</p>;
