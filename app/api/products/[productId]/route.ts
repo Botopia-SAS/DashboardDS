@@ -38,7 +38,6 @@ export const GET = async (req: NextRequest) => {
   }
 };
 
-
 // ✅ POST PRODUCT (Sin cambios)
 export const POST = async (req: NextRequest) => {
   try {

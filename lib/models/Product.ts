@@ -1,6 +1,6 @@
 import mongoose from "mongoose";
 
-const packageSchema = new mongoose.Schema({
+const productSchema = new mongoose.Schema({
   title: { type: String, required: true, unique: true },
   description: { type: String, required: true },
   media: { type: [String], default: [] }, // URLs de imágenes/videos
@@ -12,5 +12,5 @@ const packageSchema = new mongoose.Schema({
   updatedAt: { type: Date, default: Date.now },
 });
 
-const Package = mongoose.models.Package || mongoose.model("Package", packageSchema);
+const Package = mongoose.models.Package || mongoose.model("Product", productSchema);
 export default Package;

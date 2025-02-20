@@ -4,8 +4,6 @@ import Loader from '@/components/custom ui/Loader';
 import ProductForm from '@/components/products/ProductForm';
 import React, { useEffect, useState } from 'react';
 
-// ✅ Definir tipo correctamente
-// ✅ Definir `ProductType` correctamente
 type ProductType = {
   _id: string;
   title: string;
@@ -16,7 +14,6 @@ type ProductType = {
   type: "Book" | "Buy" | "Contact"; // 🔥 Incluir `type`
   buttonLabel: string; // 🔥 Incluir `buttonLabel`
 };
-
 
 const ProductDetails = ({ productId }: { productId: string }) => {
   const [loading, setLoading] = useState(true);
