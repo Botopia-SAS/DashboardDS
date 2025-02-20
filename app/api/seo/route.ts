@@ -1,43 +1,43 @@
 import { NextResponse } from "next/server";
 import { connectToDB } from "@/lib/mongoDB";
-import { SEO } from "@/lib/models/SEO"; // Asegúrate de importar correctamente
+import { SEO } from "@/lib/models/SEO";
 
-// ✅ GET - Obtener configuración de SEO
-export const GET = async () => {
+// ✅ GET: Obtener configuración de SEO
+export async function GET() {
   try {
     await connectToDB();
-    const seoSettings = await SEO.findOne();
+    let seoSettings = await SEO.findOne();
 
+    // 🔹 Si no hay configuraciones, creamos una por defecto
     if (!seoSettings) {
-      return new NextResponse("No SEO settings found", { status: 404 });
+      seoSettings = await SEO.create({
+        metaTitle: "Default Title",
+        metaDescription: "Default Description",
+        robotsTxt: "User-agent: *\nDisallow:",
+        sitemapUrl: "",
+        ogTitle: "",
+        ogImage: "",
+      });
     }
 
-    return NextResponse.json(seoSettings, { status: 200 });
-  } catch (err) {
-    console.error("❌ [SEO_GET]", err);
+    return NextResponse.json(seoSettings);
+  } catch (error) {
+    console.error("❌ API Error in /api/seo:", error);
     return new NextResponse("Internal Server Error", { status: 500 });
   }
-};
+}
 
-// ✅ POST - Guardar o actualizar configuración de SEO
-export const POST = async (req: Request) => {
+// ✅ POST: Guardar configuración de SEO
+export async function POST(req: Request) {
   try {
     await connectToDB();
     const body = await req.json();
 
-    if (!body.metaTitle || !body.metaDescription || !body.sitemapUrl) {
-      return new NextResponse("metaTitle, metaDescription y sitemapUrl son obligatorios", { status: 400 });
-    }
-
-    // 🔹 Encuentra y actualiza (o inserta si no existe)
     const updatedSEO = await SEO.findOneAndUpdate({}, body, { upsert: true, new: true });
 
-    return NextResponse.json(updatedSEO, { status: 200 });
-  } catch (err) {
-    console.error("❌ [SEO_POST]", err);
+    return NextResponse.json(updatedSEO);
+  } catch (error) {
+    console.error("❌ API Error in /api/seo POST:", error);
     return new NextResponse("Internal Server Error", { status: 500 });
   }
-};
-
-// Mantiene el modo dinámico
-export const dynamic = "force-dynamic";
+}

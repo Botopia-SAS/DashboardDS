@@ -53,7 +53,7 @@
     "@types/heatmap.js": "^2.0.41",
     "@types/mongoose": "^5.11.96",
     "@types/node": "^20",
-    "@types/react": "^19",
+    "@types/react": "^19.0.10",
     "@types/react-dom": "^19",
     "eslint": "^9",
     "eslint-config-next": "15.1.2",

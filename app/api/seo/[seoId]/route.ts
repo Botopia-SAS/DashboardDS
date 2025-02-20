@@ -1,6 +1,6 @@
 import { NextResponse } from "next/server";
 import { connectToDB } from "@/lib/mongoDB";
-import { SEO } from "@/lib/models/seo";
+import { SEO } from "@/lib/models/SEO";
 
 // ✅ GET - Obtener un SEO por ID
 export const GET = async (req: Request) => {

@@ -7,28 +7,63 @@ interface SEOSettings {
   ogImage?: string;
 }
 
-export async function saveSEOSettings(settings: SEOSettings) {
+// 🔹 Valores predeterminados para evitar errores si la API falla
+const DEFAULT_SEO_SETTINGS: SEOSettings = {
+  metaTitle: "",
+  metaDescription: "",
+  robotsTxt: "User-agent: *\nDisallow:",
+  sitemapUrl: "",
+  ogTitle: "",
+  ogImage: "",
+};
+
+// ✅ Función para guardar los ajustes de SEO
+export async function saveSEOSettings(settings: SEOSettings): Promise<boolean> {
   if (!settings.metaTitle || !settings.metaDescription) {
-    throw new Error("Title and description are required for SEO.");
+    console.error("❌ Title and description are required for SEO.");
+    return false;
   }
 
-  const res = await fetch("/api/seo/save", {
-    method: "POST",
-    headers: { "Content-Type": "application/json" },
-    body: JSON.stringify(settings),
-  });
+  try {
+    const res = await fetch("/api/seo", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify(settings),
+    });
 
-  if (!res.ok) throw new Error("Failed to save SEO settings.");
-  return res.ok;
+    if (!res.ok) {
+      const errorText = await res.text();
+      console.error("❌ Failed to save SEO settings:", errorText);
+      return false;
+    }
+
+    return true;
+  } catch (error) {
+    console.error("❌ Error saving SEO settings:", error);
+    return false;
+  }
 }
 
-export async function fetchSEOSettings(): Promise<SEOSettings | null> {
+// ✅ Función para obtener los ajustes de SEO
+export async function fetchSEOSettings(): Promise<SEOSettings> {
   try {
-    const res = await fetch("/api/seo/fetch");
-    if (!res.ok) return null;
+    const res = await fetch("/api/seo");
+
+    if (!res.ok) {
+      console.error("❌ Error fetching SEO settings:", res.status, res.statusText);
+      throw new Error(`Failed to fetch SEO settings: ${res.statusText}`);
+    }
+
     return await res.json();
   } catch (error) {
-    console.error("Error fetching SEO settings:", error);
-    return null;
+    console.error("❌ Fetch SEO error:", error);
+    return {
+      metaTitle: "",
+      metaDescription: "",
+      robotsTxt: "User-agent: *\nDisallow:",
+      sitemapUrl: "",
+      ogTitle: "",
+      ogImage: "",
+    };
   }
 }
