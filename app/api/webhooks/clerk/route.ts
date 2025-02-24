@@ -6,7 +6,13 @@ import { Webhook } from "svix";
 import { createUser } from "@/lib/actions/user.action";
 
 type WebhookEvent = {
-  data: any;
+  data: {
+    id: string;
+    email_addresses?: { email_address: string }[];
+    username?: string;
+    first_name?: string;
+    last_name?: string;
+  };
   type: string;
 };
 

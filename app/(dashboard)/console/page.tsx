@@ -17,7 +17,6 @@ import { useRouter } from "next/navigation";
 import { Menu, X } from "lucide-react"; // Íconos de menú
 
 function ConsolePage() {
-  const router = useRouter();
   const [menuOpen, setMenuOpen] = useState(false);
 
   const Heatmap = dynamic(() => import("@/components/Heatmap"), { ssr: false });

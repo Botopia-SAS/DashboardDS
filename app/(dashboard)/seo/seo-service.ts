@@ -7,16 +7,6 @@ interface SEOSettings {
   ogImage?: string;
 }
 
-// 🔹 Valores predeterminados para evitar errores si la API falla
-const DEFAULT_SEO_SETTINGS: SEOSettings = {
-  metaTitle: "",
-  metaDescription: "",
-  robotsTxt: "User-agent: *\nDisallow:",
-  sitemapUrl: "",
-  ogTitle: "",
-  ogImage: "",
-};
-
 // ✅ Función para guardar los ajustes de SEO
 export async function saveSEOSettings(settings: SEOSettings): Promise<boolean> {
   if (!settings.metaTitle || !settings.metaDescription) {
@@ -50,7 +40,11 @@ export async function fetchSEOSettings(): Promise<SEOSettings> {
     const res = await fetch("/api/seo");
 
     if (!res.ok) {
-      console.error("❌ Error fetching SEO settings:", res.status, res.statusText);
+      console.error(
+        "❌ Error fetching SEO settings:",
+        res.status,
+        res.statusText
+      );
       throw new Error(`Failed to fetch SEO settings: ${res.statusText}`);
     }
 
