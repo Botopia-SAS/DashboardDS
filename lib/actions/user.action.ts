@@ -2,8 +2,15 @@
 
 import User from "@/lib/modals/user.modal";
 import { connectToDB } from "@/lib/mongoDB";
+export type UserType = {
+  clerkId: string;
+  email: string;
+  username?: string;
+  firstName?: string;
+  lastName?: string;
+};
 
-export async function createUser(user: any) {
+export async function createUser(user: UserType) {
   try {
     await connectToDB();
     const newUser = await User.create(user);

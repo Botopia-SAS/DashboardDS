@@ -13,7 +13,6 @@ import {
   ResponsiveContainer,
 } from "recharts";
 import Image from "next/image";
-import { useRouter } from "next/navigation";
 import { Menu, X } from "lucide-react"; // Íconos de menú
 
 function ConsolePage() {

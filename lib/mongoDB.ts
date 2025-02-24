@@ -9,7 +9,8 @@ if (!MONGODB_URL) {
 }
 
 let isConnected: boolean = false; // Mantiene el control de conexión existente
-let cached = (global as any).mongoose || { conn: null, promise: null }; // Agrega caché global para conexiones repetidas
+// eslint-disable-next-line @typescript-eslint/no-explicit-any
+let cached = (global as any).mongoose || { conn: null, promise: null };
 
 export const connectToDB = async (): Promise<void> => {
   mongoose.set("strictQuery", true);
@@ -36,7 +37,8 @@ export const connectToDB = async (): Promise<void> => {
       });
 
     cached.conn = await cached.promise;
-    (global as any).mongoose = cached; // Guarda la conexión en la caché global
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    (global as any).mongoose = cached;
 
     isConnected = true;
     console.log("✅ MongoDB is connected correctamente");

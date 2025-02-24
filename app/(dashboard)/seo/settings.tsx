@@ -31,7 +31,7 @@ export default function SEOSettings() {
     loadSEOSettings();
   }, []);
 
-  const [message, setMessage] = useState("");
+  const [, setMessage] = useState("");
 
   const handleSave = async () => {
     const success = await saveSEOSettings({
@@ -42,7 +42,7 @@ export default function SEOSettings() {
       ogTitle,
       ogImage,
     });
-  
+
     if (success) {
       setMessage("✅ SEO settings saved successfully!");
       setTimeout(() => setMessage(""), 3000); // Borra el mensaje en 3 segundos
@@ -50,7 +50,6 @@ export default function SEOSettings() {
       setMessage("❌ Error saving settings. Try again.");
     }
   };
-  
 
   return (
     <div className="p-6">
@@ -83,7 +82,8 @@ export default function SEOSettings() {
               type="text"
               value={sitemapUrl || ""}
               onChange={(e) => {
-                if (e.target.value !== sitemapUrl) setSitemapUrl(e.target.value);
+                if (e.target.value !== sitemapUrl)
+                  setSitemapUrl(e.target.value);
               }}
               placeholder="Enter sitemap URL"
               className="w-full p-2 border rounded"
