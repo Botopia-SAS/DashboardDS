@@ -9,8 +9,8 @@ if (!MONGODB_URL) {
 }
 
 let isConnected: boolean = false; // Mantiene el control de conexión existente
-// eslint-disable-next-line @typescript-eslint/no-explicit-any
-let cached = (global as any).mongoose || { conn: null, promise: null };
+// eslint-disable-next-line prefer-const, @typescript-eslint/no-explicit-any
+const cached = (global as any).mongoose || { conn: null, promise: null };
 
 export const connectToDB = async (): Promise<void> => {
   mongoose.set("strictQuery", true);
