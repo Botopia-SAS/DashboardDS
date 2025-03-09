@@ -22,7 +22,7 @@ import { useEffect, useState } from "react";
 import Select, { MultiValue, ActionMeta } from "react-select";
 
 const formSchema = z.object({
-  title: z.string().min(2).max(50),
+  title: z.string().min(2).max(500),
   alsoKnownAs: z.array(z.string().min(1)).default([]),
   length: z.coerce.number().min(0.1, "Must be at least 0.1 hours"),
   price: z.coerce.number().min(0.1, "Price must be greater than 0"),
