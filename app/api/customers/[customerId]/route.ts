@@ -77,6 +77,7 @@ export async function PATCH(req: NextRequest) {
     }
 
     const data = await req.json();
+    console.log(data)
     await clerk.users.updateUser(customerId as string, {
       firstName: data.firstName,
       lastName: data.lastName,
@@ -85,9 +86,9 @@ export async function PATCH(req: NextRequest) {
         ssnLast4: data.ssnLast4,
         hasLicense: data.hasLicense,
         licenseNumber: data.licenseNumber,
+        birthDate: data.birthDate,
       },
     });
-    console.log(data)
     return NextResponse.json({ message: "Customer updated" }, { status: 200 });
   } catch (error) {
     console.error("Error updating customer:", error);

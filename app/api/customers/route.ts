@@ -39,6 +39,7 @@ export async function POST(req: NextRequest) {
         ssnLast4: data.ssnLast4,
         hasLicense: data.hasLicense,
         licenseNumber: data.licenseNumber,
+        birthDate: data.birthDate,
       },
     });
     return NextResponse.json(user, { status: 201 });

@@ -30,6 +30,7 @@ const formSchema = z.object({
   ssnLast4: z.string().length(4, "Must be exactly 4 digits"),
   hasLicense: z.boolean(),
   licenseNumber: z.string().optional().or(z.literal("")),
+  birthDate: z.string().min(1, "Birth date is required"),
 });
 
 interface CustomersFormProps {
@@ -42,6 +43,7 @@ interface CustomersFormProps {
     ssnLast4: string;
     hasLicense: boolean;
     licenseNumber?: string;
+    birthDate: string;
   } | null;
 }
 
@@ -58,6 +60,7 @@ const CustomersForm = ({ initialData }: CustomersFormProps) => {
       ssnLast4: initialData?.ssnLast4 || "",
       hasLicense: initialData?.hasLicense || false,
       licenseNumber: initialData?.licenseNumber || "",
+      birthDate: initialData?.birthDate || "",
     },
   });
 
@@ -127,6 +130,20 @@ const CustomersForm = ({ initialData }: CustomersFormProps) => {
                 <FormLabel>Last Name</FormLabel>
                 <FormControl>
                   <Input {...field} placeholder="Enter last name" />
+                </FormControl>
+                <FormMessage />
+              </FormItem>
+            )}
+          />
+
+          <FormField
+            control={form.control}
+            name="birthDate"
+            render={({ field }) => (
+              <FormItem>
+                <FormLabel>Birth Date</FormLabel>
+                <FormControl>
+                  <Input {...field} type="date" />
                 </FormControl>
                 <FormMessage />
               </FormItem>
@@ -225,7 +242,7 @@ const CustomersForm = ({ initialData }: CustomersFormProps) => {
 
           <div className="flex gap-4">
             <Button type="submit" className="bg-blue-600 text-white">
-              Register
+              {initialData ? 'Update' : 'Register'}
             </Button>
             <Button
               type="button"

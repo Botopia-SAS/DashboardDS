@@ -14,6 +14,7 @@ export type CustomerFetchType = {
     ssnLast4: string;
     hasLicense: boolean;
     licenseNumber: string;
+    birthDate: string;
   };
   emailAddresses: CustomerEmailAddressesType[];
 };
@@ -26,6 +27,7 @@ type CustomerType = {
   ssnLast4: string;
   hasLicense: boolean;
   licenseNumber?: string;
+  birthDate: string;
 };
 type CustomerEmailAddressesType = {
   emailAddress: string;
@@ -70,6 +72,7 @@ const CustomerDetails = () => {
           ssnLast4: data.publicMetadata.ssnLast4,
           hasLicense: data.publicMetadata.hasLicense,
           licenseNumber: data.publicMetadata.licenseNumber,
+          birthDate: data.publicMetadata.birthDate,
         });
       } catch (err) {
         console.error("[customerId_GET] Error:", err);

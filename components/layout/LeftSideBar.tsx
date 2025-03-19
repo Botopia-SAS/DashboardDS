@@ -11,7 +11,7 @@ const LeftSideBar = () => {
   const pathname = usePathname();
 
   return (
-    <div className="h-screen left-0 top-0 sticky p-6 flex flex-col gap-10 bg-gradient-to-b from-gray-900 to-gray-800 shadow-xl shadow-black max-lg:hidden w-64">
+    <div className="min-h-screen left-0 top-0 sticky p-6 flex flex-col gap-10 bg-gradient-to-b from-gray-900 to-gray-800 shadow-xl shadow-black max-lg:hidden w-64">
       {/* LOGO */}
       <div className="flex justify-center">
         <Image src="/logo.svg" alt="logo" width={80} height={80} />
