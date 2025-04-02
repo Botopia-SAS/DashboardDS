@@ -20,7 +20,7 @@ export default function Page() {
 
   const fetchInfo = useCallback(() => {
     setLoading(true);
-    fetch(`/api/ticket/classes/students/${classId}`)
+    fetch(`/api/ticket/classes/date/students/${classId}`)
       .then((res) => res.json())
       .then((data) => {
         setStudents(data);
@@ -43,9 +43,9 @@ export default function Page() {
 
   const onUpdate = async (data: Partial<Student>[]) => {
     for (const student of data) {
-      const res = await fetch(`/api/ticket/classes/students/${classId}`, {
+      const res = await fetch(`/api/ticket/classes/date/students/${classId}`, {
         method: "PATCH",
-        body: JSON.stringify(student),
+        body: JSON.stringify({...student, classId, status: "completed"}),
       });
       if (!res.ok) {
         const { message } = await res.json();
@@ -63,7 +63,7 @@ export default function Page() {
           <h1 className="text-xl font-semibold">Tickets</h1>
           <div className="flex items-center space-x-2">
             <Link
-              href='/ticket/class-records/new'
+              href="/ticket/class-records/new"
               className="hover:underline flex items-center gap-x-2 bg-blue-500 text-white px-3 py-1 rounded-md"
             >
               <Plus className="size-4" />

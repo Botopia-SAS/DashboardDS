@@ -19,6 +19,18 @@ const TicketClassSchema = new mongoose.Schema({
     ref: "DrivingClass",
     required: true,
   },
+  type: {
+    type: String,
+    enum: ["date", "bdi", "adi"],
+    default: "date",
+    required: true,
+  },
+  duration: {
+    type: String,
+    enum: ["normal", "4h", "8h", "agressive", "12h"],
+    default: "normal",
+    required: true,
+  },
   instructorId: {
     type: mongoose.Schema.Types.ObjectId,
     ref: "Instructor",

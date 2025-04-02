@@ -6,17 +6,20 @@ import { Separator } from "@radix-ui/react-separator";
 import { Plus } from "lucide-react";
 import React, { useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
+import Loader from "@/components/custom ui/Loader";
 
 const CustomersDashboard = () => {
   const [customers, setCustomers] = useState([]);
+  const [loading, setLoading] = useState(false);
   const router = useRouter();
 
   const getCustomers = async () => {
     try {
+      setLoading(true);
       const res = await fetch("/api/customers", { method: "GET" });
       const data = await res.json();
-      console.log(data);
       setCustomers(data);
+      setLoading(false);
     } catch (err) {
       console.error("[customers_GET]", err);
     }
@@ -28,6 +31,8 @@ const CustomersDashboard = () => {
     };
     fetchData();
   }, []);
+
+  if (loading) return <Loader />
 
   return (
     <div className="p-5">

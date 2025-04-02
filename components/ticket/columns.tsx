@@ -10,6 +10,7 @@ export interface Student {
   midl: string;
   payedAmount: number;
   birthDate: string;
+  courseDate: string;
 }
 
 export const columns: ColumnDef<Student>[] = [

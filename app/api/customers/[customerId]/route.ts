@@ -1,3 +1,6 @@
+import User from "@/lib/modals/user.modal";
+import Payment from "@/lib/models/Payments";
+import { connectToDB } from "@/lib/mongoDB";
 import { createClerkClient } from "@clerk/backend";
 import { NextRequest, NextResponse } from "next/server";
 
@@ -7,6 +10,7 @@ const clerk = createClerkClient({ secretKey: process.env.CLERK_SECRET_KEY });
 
 export async function DELETE(req: NextRequest) {
   try {
+    await connectToDB();
     const customerId = req.nextUrl.pathname.split("/").pop();
     if (!customerId) {
       return NextResponse.json(
@@ -14,15 +18,16 @@ export async function DELETE(req: NextRequest) {
         { status: 400 }
       );
     }
-
-    const user = await clerk.users.getUser(customerId as string);
+    const dbUser = await User.findOne({ _id: customerId }).exec();
+    const user = await clerk.users.getUser(dbUser.clerkId);
     if (!user) {
       return NextResponse.json(
         { error: "Customer not found" },
         { status: 404 }
       );
     }
-    await clerk.users.deleteUser(customerId as string);
+    await clerk.users.deleteUser(dbUser.clerkId);
+    await User.deleteOne({ _id: customerId }).exec();
     return NextResponse.json({ message: "Customer deleted" }, { status: 200 });
   } catch (error) {
     console.error("Error deleting customer:", error);
@@ -42,13 +47,20 @@ export async function GET(req: NextRequest) {
       );
     }
 
-    const user = await clerk.users.getUser(customerId as string);
-    if (!user) {
+    const bdUser = await User.findOne({ _id: customerId }).exec();
+
+    if (!bdUser) {
       return NextResponse.json(
         { error: "Customer not found" },
         { status: 404 }
       );
     }
+    const payment = await Payment.findOne({ user_id: bdUser._id }).exec();
+    const user = {
+      ...bdUser._doc,
+      payedAmount: payment.amount || 0,
+      method: payment.method,
+    };
     return NextResponse.json(user, { status: 200 });
   } catch (error) {
     console.error("Error deleting customer:", error);
@@ -77,7 +89,7 @@ export async function PATCH(req: NextRequest) {
     }
 
     const data = await req.json();
-    console.log(data)
+    console.log(data);
     await clerk.users.updateUser(customerId as string, {
       firstName: data.firstName,
       lastName: data.lastName,
@@ -87,6 +99,7 @@ export async function PATCH(req: NextRequest) {
         hasLicense: data.hasLicense,
         licenseNumber: data.licenseNumber,
         birthDate: data.birthDate,
+        middleName: data.middleName,
       },
     });
     return NextResponse.json({ message: "Customer updated" }, { status: 200 });

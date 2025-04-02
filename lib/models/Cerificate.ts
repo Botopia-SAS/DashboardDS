@@ -5,7 +5,6 @@ const CertificateSchema = new mongoose.Schema({
   studentId: { type: String, required: true },
   classId: { type: String, required: true },
   date: { type: Date, default: Date.now },
-  payedAmount: { type: Number, default: 0 },
 });
 
 CertificateSchema.index(

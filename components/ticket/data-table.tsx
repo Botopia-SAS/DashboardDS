@@ -1,5 +1,5 @@
 "use client";
-
+import * as XLSX from "xlsx";
 import {
   ColumnDef,
   flexRender,
@@ -132,13 +132,12 @@ export function DataTable({ columns, data, onUpdate }: DataTableProps) {
   };
 
   const generateCertificatePDF = async (user: Student) => {
-    const { last_name, first_name, birthDate } = user;
-    const certificateDate = new Date().toLocaleDateString();
+    const { last_name, first_name, midl, birthDate, certn, courseDate } = user;
 
     const container = document.createElement("div");
     container.style.width = "740px"; // Reducido para evitar cortes
     container.style.padding = "20px";
-    container.style.marginBottom = "60px";
+    container.style.marginTop = "60px";
     container.style.backgroundColor = "white";
     container.style.textAlign = "center";
     container.style.position = "relative"; // Evita problemas con absolute positioning
@@ -151,8 +150,11 @@ export function DataTable({ columns, data, onUpdate }: DataTableProps) {
             <h1 style="font-size: 24px; font-weight: bold;">AFFORDABLE DRIVING and TRAFFIC SCHOOL, INC.</h1>
             <p style="font-size: 12px;">3167 Forest Hill Blvd. West Palm Beach, Fl 33406 (561) 969-0150 - (561) 330-7007</p>
             <h2 style="margin-top: 20px; font-size: 20px;">This Certifies That:</h2>
-            <h3 style="font-size: 22px; font-weight: bold; color: blue;">${first_name} ${last_name}</h3>
+            <h3 style="font-size: 22px; font-weight: bold; color: #000;">${first_name} ${
+      midl || ""
+    } ${last_name}</h3>
             <p style="margin-top: 20px;">Date of Birth: <strong>${birthDate}</strong></p>
+            <p style="margin-top: 20px;">Certificate N°: <strong>${certn}</strong></p>
             
             <img id="sello1" src="/sello1.png" alt="Sello Izquierdo" style="position: absolute; left: 85px; top: 50%; transform: translateY(-50%); width: 80px;" />
             <img id="sello2" src="/sello2.png" alt="Sello Derecho" style="position: absolute; right: 85px; top: 50%; transform: translateY(-50%); width: 80px;" />
@@ -168,7 +170,7 @@ export function DataTable({ columns, data, onUpdate }: DataTableProps) {
                 <p style="display: inline-block; padding-top: 5px;">Instructor</p>
               </div>
               <div style="text-align: center;">
-                <p style="display: inline-block; padding-top: 5px;">${certificateDate}</p>
+                <p style="display: inline-block; padding-top: 5px;">${courseDate}</p>
                 <p style="font-size: 12px;">Date</p>
               </div>
               <div style="text-align: center;">
@@ -197,7 +199,10 @@ export function DataTable({ columns, data, onUpdate }: DataTableProps) {
     const imgData = canvas.toDataURL("image/png");
     const imgWidth = 280;
     const imgHeight = (canvas.height * imgWidth) / canvas.width;
-    pdf.addImage(imgData, "PNG", 10, 10, imgWidth, imgHeight);
+    const x = 10;
+    const y = (pdf.internal.pageSize.getHeight() - imgHeight - 20) / 8; // Centrar verticalmente
+
+    pdf.addImage(imgData, "PNG", x, y, imgWidth, imgHeight);
 
     return pdf.output("blob");
   };
@@ -225,28 +230,62 @@ export function DataTable({ columns, data, onUpdate }: DataTableProps) {
   };
 
   const downloadSingleCertificate = async (user: Student) => {
-    try {
-      const pdfBlob = await generateCertificatePDF(user);
-      const name = `${user.first_name} ${user.last_name}`;
-      saveAs(pdfBlob, `${name.replace(" ", "_")}.pdf`);
-    } catch (error) {
-      console.error("Error generating certificate:", error);
-      alert("Error al generar el certificado. Por favor, inténtelo de nuevo.");
+    if (user.certn !== 0) {
+      try {
+        const pdfBlob = await generateCertificatePDF(user);
+        const name = `${user.first_name} ${user.last_name}`;
+        saveAs(pdfBlob, `${name.replace(" ", "_")}.pdf`);
+      } catch (error) {
+        console.error("Error generating certificate:", error);
+        alert(
+          "Error al generar el certificado. Por favor, inténtelo de nuevo."
+        );
+      }
+    } else {
+      alert("Student has not paid");
     }
+  };
+
+  const downloadXLSX = () => {
+    const studentsWithCertnZero = data.filter((student) => student.certn === 0);
+
+    if (studentsWithCertnZero.length === 0) {
+      alert("No students with certn equal to 0.");
+      return;
+    }
+
+    const worksheet = XLSX.utils.json_to_sheet(studentsWithCertnZero);
+    const workbook = XLSX.utils.book_new();
+    XLSX.utils.book_append_sheet(workbook, worksheet, "Students");
+
+    const xlsxData = XLSX.write(workbook, { bookType: "xlsx", type: "array" });
+    const blob = new Blob([xlsxData], {
+      type: "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
+    });
+
+    saveAs(blob, "info_to_fetch_cert_numbers.xlsx");
   };
 
   return (
     <div className="rounded-md border">
       {Object.keys(rowSelection).length > 0 && (
         <div className="p-4">
-          <button
+          <Button
             onClick={downloadAllCertificates}
             className="px-4 py-2 bg-green-500 text-white rounded"
           >
             Download certificates (ZIP)
-          </button>
+          </Button>
         </div>
       )}
+      <div className="p-4">
+        <Button
+          onClick={downloadXLSX}
+          className="px-4 py-2 bg-blue-500 text-white rounded"
+        >
+          Download XSLX
+        </Button>
+      </div>
       <div className="rounded-md border">
         <Table>
           <TableHeader>
@@ -277,7 +316,7 @@ export function DataTable({ columns, data, onUpdate }: DataTableProps) {
                       const columnId = cell.column.id as keyof Student;
                       return (
                         <TableCell key={cell.id}>
-                          {isEditing ? (
+                          {isEditing && columnId === "certn" ? (
                             <input
                               type="text"
                               value={rowData[columnId] || ""}

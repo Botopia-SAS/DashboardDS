@@ -14,22 +14,22 @@ export default function Pages() {
       </div>
       <div className="p-6">
         <Tabs className="w-full" defaultValue="date">
-          <TabsList className="grid w-full grid-cols-3">
+          <TabsList className="grid w-full grid-cols-3 gap-x-2">
             <TabsTrigger
               value="date"
-              className="px-4 py-2 rounded-lg hover:bg-gray-300 w-full data-[state=active]:bg-gray-300 data-[state=active]:font-medium"
+              className="px-4 py-2 rounded-lg hover:bg-gray-100 w-full data-[state=active]:bg-gray-300 data-[state=active]:font-medium"
             >
               D.A.T.E.
             </TabsTrigger>
             <TabsTrigger
               value="bdi"
-              className="px-4 py-2 rounded-lg hover:bg-gray-300 w-full data-[state=active]:bg-gray-300 data-[state=active]:font-medium"
+              className="px-4 py-2 rounded-lg hover:bg-gray-100 w-full data-[state=active]:bg-gray-300 data-[state=active]:font-medium"
             >
               B.D.I.
             </TabsTrigger>
             <TabsTrigger
               value="adi"
-              className="px-4 py-2 rounded-lg hover:bg-gray-300 w-full data-[state=active]:bg-gray-300 data-[state=active]:font-medium"
+              className="px-4 py-2 rounded-lg hover:bg-gray-100 w-full data-[state=active]:bg-gray-300 data-[state=active]:font-medium"
             >
               A.D.I.
             </TabsTrigger>
@@ -50,7 +50,7 @@ export default function Pages() {
                     description="View or edit student records"
                   />
                   <Navigation
-                    href="/ticket/day-of-class"
+                    href="/ticket/day-of-class/date"
                     title="Day of Class Preparation"
                     description="Prepare for upcoming classes"
                   />
