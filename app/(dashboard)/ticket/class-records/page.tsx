@@ -20,7 +20,7 @@ export default function Page() {
 
   const fetchInfo = useCallback(() => {
     setLoading(true);
-    fetch(`/api/ticket/classes/students/${classId}`)
+    fetch(`/api/ticket/classes/date/students/${classId}`)
       .then((res) => res.json())
       .then((data) => {
         setStudents(data);

@@ -1,3 +1,4 @@
+import User from "@/lib/modals/user.modal";
 import { createClerkClient } from "@clerk/backend";
 import { NextRequest, NextResponse } from "next/server";
 
@@ -5,7 +6,7 @@ const clerk = createClerkClient({ secretKey: process.env.CLERK_SECRET_KEY });
 
 export async function GET() {
   try {
-    const users = await clerk.users.getUserList();
+    const users = await User;
     const res = users.data
       .filter((user) => user.publicMetadata.role === "user")
       .map((user) => {
