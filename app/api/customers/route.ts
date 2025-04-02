@@ -1,20 +1,26 @@
 import User from "@/lib/modals/user.modal";
 import { createClerkClient } from "@clerk/backend";
 import { NextRequest, NextResponse } from "next/server";
-
+import { auth } from "@clerk/nextjs/server";
+import User from "@/lib/modals/user.modal";
+import Payment from "@/lib/models/Payments";
+import Order from "@/lib/models/Order";
+import { connectToDB } from "@/lib/mongoDB";
+import TicketClass from "@/lib/models/TicketClass";
 const clerk = createClerkClient({ secretKey: process.env.CLERK_SECRET_KEY });
-
 export async function GET() {
   try {
-    const users = await User;
-    const res = users.data
-      .filter((user) => user.publicMetadata.role === "user")
+    await connectToDB();
+    const users = await User.find();
+    const res = users
+      .filter((user) => user.role === "user")
       .map((user) => {
         return {
           id: user.id,
-          email: user.emailAddresses[0].emailAddress,
-          role: user.publicMetadata.role,
-          name: user.fullName,
+          email: user.email,
+          role: "user",
+          name: `${user.firstName} ${user.middleName ?? ""} ${user.lastName}`,
+          midl: user.middleName,
         };
       });
     return NextResponse.json(res);
@@ -29,23 +35,66 @@ export async function GET() {
 
 export async function POST(req: NextRequest) {
   try {
+    const { userId } = await auth();
     const data = await req.json();
-    const user = await clerk.users.createUser({
+    // Check if a user with this email already exists
+    const existingUsers = await clerk.users.getUserList({
+      emailAddress: [data.email],
+    });
+    // If user exists, delete it
+    if (existingUsers.data.length > 0) {
+      await clerk.users.deleteUser(existingUsers.data[0].id);
+    }
+
+    // Create the new user
+    const clerkUser = await clerk.users.createUser({
       emailAddress: [data.email],
       password: data.password,
       firstName: data.firstName,
       lastName: data.lastName,
-      publicMetadata: {
-        role: "user",
-        ssnLast4: data.ssnLast4,
-        hasLicense: data.hasLicense,
-        licenseNumber: data.licenseNumber,
-        birthDate: data.birthDate,
-      },
     });
+    const user = await User.create({
+      clerkId: clerkUser.id,
+      email: data.email,
+      firstName: data.firstName,
+      middleName: data.middleName,
+      lastName: data.lastName,
+      ssnLast4: data.ssnLast4,
+      hasLicense: data.hasLicense,
+      licenseNumber: data.licenseNumber,
+      birthDate: data.birthDate,
+      streetAddress: data.streetAddress,
+      apartmentNumber: data.apartmentNumber,
+      city: data.city,
+      state: data.state,
+      zipCode: data.zipCode,
+      phoneNumber: data.phoneNumber,
+      sex: data.sex,
+      howDidYouHear: data.howDidYouHear,
+      registeredBy: userId,
+      role: "user",
+    });
+    if (data.courseId) {
+      const order = await Order.create({
+        user_id: user._id,
+        course_id: data.courseId,
+        fee: 50,
+        status: "pending",
+      });
+      Payment.create({
+        user_id: user._id,
+        amount: data.payedAmount,
+        method: data.method,
+        order: order._id,
+      });
+      const course = await TicketClass.findOne({ _id: data.courseId });
+      const students = course.students || [];
+      students.push(user._id);
+      await TicketClass.updateOne({ _id: data.courseId }, { students });
+    }
     return NextResponse.json(user, { status: 201 });
   } catch (error) {
     console.log("Error creando usuario:", error);
-    return NextResponse.json(":(", {status: 500});
+    return NextResponse.json("Error", { status: 500 });
   }
 }

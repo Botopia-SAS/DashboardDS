@@ -39,7 +39,7 @@ export default function NewStudentForm() {
       return;
     }
 
-    const res = await fetch(`/api/ticket/classes/students/${classId}`);
+    const res = await fetch(`/api/ticket/classes/date/students/${classId}`);
 
     if (!res.ok) {
       alert("Error adding student");
@@ -60,6 +60,17 @@ export default function NewStudentForm() {
       body: JSON.stringify({
         students,
       }),
+    });
+    fetch("/api/orders", {
+      method: "POST",
+      body: JSON.stringify({
+        user_id: student,
+        classId,
+        status: "pending",
+      }),
+      headers: {
+        "Content-Type": "application/json",
+      },
     });
     if (!res2.ok) {
       alert("Error adding student");

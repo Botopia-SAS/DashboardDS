@@ -15,19 +15,31 @@ export type CustomerFetchType = {
     hasLicense: boolean;
     licenseNumber: string;
     birthDate: string;
+    middleName: string;
   };
   emailAddresses: CustomerEmailAddressesType[];
 };
 type CustomerType = {
   id: string;
   firstName: string;
+  middleName: string;
   lastName: string;
-  email: string;
+  email?: string;
   password?: string;
   ssnLast4: string;
   hasLicense: boolean;
   licenseNumber?: string;
   birthDate: string;
+  streetAddress: string;
+  apartmentNumber: string;
+  city: string;
+  state: string;
+  zipCode: string;
+  phoneNumber: string;
+  sex: string;
+  howDidYouHear: string;
+  payedAmount: number;
+  method: string;
 };
 type CustomerEmailAddressesType = {
   emailAddress: string;
@@ -35,9 +47,6 @@ type CustomerEmailAddressesType = {
 
 const CustomerDetails = () => {
   const [loading, setLoading] = useState(true);
-  const [customerFetch, setCustomerFetch] = useState<CustomerFetchType | null>(
-    null
-  );
   const [customer, setCustomer] = useState<CustomerType | null>(null);
   const params = useParams();
 
@@ -63,17 +72,7 @@ const CustomerDetails = () => {
 
         const data = await res.json();
         console.log("✅ Customer details fetched successfully:", data);
-        setCustomerFetch(data);
-        setCustomer({
-          id: data.id,
-          firstName: data.firstName,
-          lastName: data.lastName,
-          email: data.emailAddresses[0].emailAddress,
-          ssnLast4: data.publicMetadata.ssnLast4,
-          hasLicense: data.publicMetadata.hasLicense,
-          licenseNumber: data.publicMetadata.licenseNumber,
-          birthDate: data.publicMetadata.birthDate,
-        });
+        setCustomer(data);
       } catch (err) {
         console.error("[customerId_GET] Error:", err);
       } finally {
@@ -85,8 +84,8 @@ const CustomerDetails = () => {
   }, [params]);
 
   if (loading) return <Loader />;
-  if (!customerFetch) return <div>Customer not found</div>;
-  return <CustomersForm initialData={customer} />;
+  if (!customer) return <div>Customer not found</div>;
+  if (customer !== null) return <CustomersForm initialData={customer} />;
 };
 
 export default CustomerDetails;
