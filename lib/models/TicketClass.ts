@@ -27,8 +27,8 @@ const TicketClassSchema = new mongoose.Schema({
   },
   duration: {
     type: String,
-    enum: ["normal", "4h", "8h", "agressive", "12h"],
-    default: "normal",
+    enum: ["standard", "4h", "8h", "agressive", "12h"],
+    default: "standard",
     required: true,
   },
   instructorId: {

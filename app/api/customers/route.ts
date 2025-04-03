@@ -1,12 +1,11 @@
 import User from "@/lib/modals/user.modal";
-import { createClerkClient } from "@clerk/backend";
-import { NextRequest, NextResponse } from "next/server";
-import { auth } from "@clerk/nextjs/server";
-import User from "@/lib/modals/user.modal";
-import Payment from "@/lib/models/Payments";
 import Order from "@/lib/models/Order";
-import { connectToDB } from "@/lib/mongoDB";
+import Payment from "@/lib/models/Payments";
 import TicketClass from "@/lib/models/TicketClass";
+import { connectToDB } from "@/lib/mongoDB";
+import { createClerkClient } from "@clerk/backend";
+import { auth } from "@clerk/nextjs/server";
+import { NextRequest, NextResponse } from "next/server";
 const clerk = createClerkClient({ secretKey: process.env.CLERK_SECRET_KEY });
 export async function GET() {
   try {
@@ -41,9 +40,12 @@ export async function POST(req: NextRequest) {
     const existingUsers = await clerk.users.getUserList({
       emailAddress: [data.email],
     });
-    // If user exists, delete it
-    if (existingUsers.data.length > 0) {
-      await clerk.users.deleteUser(existingUsers.data[0].id);
+
+    if (existingUsers.totalCount > 0) {
+      return NextResponse.json(
+        { error: "Email already exists" },
+        { status: 400 }
+      );
     }
 
     // Create the new user
@@ -78,15 +80,17 @@ export async function POST(req: NextRequest) {
       const order = await Order.create({
         user_id: user._id,
         course_id: data.courseId,
-        fee: 50,
-        status: "pending",
+        fee: data.fee || 50,
+        status: data.payedAmount === data.fee ? "paid" : "pending",
       });
-      Payment.create({
-        user_id: user._id,
-        amount: data.payedAmount,
-        method: data.method,
-        order: order._id,
-      });
+      if (data.payedAmount === data.fee) {
+        await Payment.create({
+          user_id: user._id,
+          amount: data.payedAmount,
+          method: data.method,
+          order: order._id,
+        });
+      }
       const course = await TicketClass.findOne({ _id: data.courseId });
       const students = course.students || [];
       students.push(user._id);

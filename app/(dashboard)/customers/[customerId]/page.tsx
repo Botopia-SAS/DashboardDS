@@ -20,7 +20,7 @@ export type CustomerFetchType = {
   emailAddresses: CustomerEmailAddressesType[];
 };
 type CustomerType = {
-  id: string;
+  _id: string;
   firstName: string;
   middleName: string;
   lastName: string;

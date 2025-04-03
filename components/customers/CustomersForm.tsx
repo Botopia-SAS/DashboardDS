@@ -13,57 +13,189 @@ import {
 import { Input } from "@/components/ui/input";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { useRouter } from "next/navigation";
+import { useEffect, useState } from "react";
 import { useForm } from "react-hook-form";
 import toast from "react-hot-toast";
 import { z } from "zod";
 import { Separator } from "../ui/separator";
-import {
-  Select,
-  SelectContent,
-  SelectItem,
-  SelectTrigger,
-  SelectValue,
-} from "../ui/select";
-import { useEffect, useState } from "react";
+import AddressInformation from "./AddressInformation";
+import ContactInfromation from "./ContactInformation";
+import LiscenseInformation from "./LiscenseInformation";
+import PersonalInformation from "./PersonalInformation";
+import RegisterAndPaymentInformation from "./RegisterAndPaymentInformation";
+import SecurityInformation from "./SecurityInformation";
 
-const formSchema = z.object({
-  firstName: z.string().min(2, "First name is required"),
-  lastName: z.string().min(2, "Last name is required"),
-  middleName: z.string().optional().or(z.literal("")),
-  email: z.string().email("Invalid email"),
-  password: z
-    .string()
-    .min(8, "Password must be at least 8 characters")
-    .regex(/[A-Z]/, "Password must contain at least one uppercase letter")
-    .regex(/[a-z]/, "Password must contain at least one lowercase letter")
-    .regex(/[0-9]/, "Password must contain at least one number")
-    .regex(
-      /[^A-Za-z0-9]/,
-      "Password must contain at least one special character"
-    )
-    .optional()
-    .or(z.literal("")), // Permite cadena vacía en edición
-  ssnLast4: z.string().length(4, "Must be exactly 4 digits"),
-  hasLicense: z.boolean(),
-  licenseNumber: z.string().optional().or(z.literal("")),
-  birthDate: z.string().min(1, "Birth date is required"),
-  streetAddress: z.string().min(1, "Street address is required"),
-  apartmentNumber: z.string().min(1, "Apartment number is required"),
-  city: z.string().min(1, "City is required"),
-  state: z.string().min(1, "State is required"),
-  zipCode: z.string().min(1, "Zip code is required"),
-  phoneNumber: z.string().min(1, "Phone number is required"),
-  sex: z.string(),
-  howDidYouHear: z.string(),
-  payedAmount: z.number().min(0, "Amount must be greater than 0"),
-  method: z.string(),
-  registerForCourse: z.boolean().default(false),
-  courseId: z.string().optional(),
-});
+const formSchema = z
+  .object({
+    firstName: z.string().min(2, "First name is required"),
+    lastName: z.string().min(2, "Last name is required"),
+    middleName: z.string().optional().or(z.literal("")),
+    email: z.string().email("Invalid email"),
+    password: z
+      .string()
+      .min(8, "Password must be at least 8 characters")
+      .regex(/[A-Z]/, "Password must contain at least one uppercase letter")
+      .regex(/[a-z]/, "Password must contain at least one lowercase letter")
+      .regex(/[0-9]/, "Password must contain at least one number")
+      .regex(
+        /[^A-Za-z0-9]/,
+        "Password must contain at least one special character"
+      )
+      .optional()
+      .or(z.literal("")),
+    ssnLast4: z.string().length(4, "Must be exactly 4 digits"),
+    hasLicense: z.boolean(),
+    licenseNumber: z.string().optional().or(z.literal("")),
+    birthDate: z.string().min(1, "Birth date is required"),
+    streetAddress: z.string().min(1, "Street address is required"),
+    apartmentNumber: z.string().min(1, "Apartment number is required"),
+    city: z.string().min(1, "City is required"),
+    state: z.string().min(1, "State is required"),
+    zipCode: z.string().min(1, "Zip code is required"),
+    phoneNumber: z.string().min(1, "Phone number is required"),
+    sex: z.string(),
+    howDidYouHear: z.string(),
+    registerForCourse: z.boolean().default(false),
+    payedAmount: z.number().min(0, "Amount must be greater than 0").optional(),
+    method: z.string().optional(),
+    courseId: z.string().optional(),
+    fee: z.number().default(50),
+    courseType: z.enum(["date", "bdi", "adi"]).optional(),
+    country_ticket: z.string().optional(),
+    course_country: z.string().optional(),
+    bdi_subtype: z
+      .enum(["bdi", "4h c.o", "8h c.o", "agressive", "tcac ordered", "other"])
+      .optional(),
+    citation_number: z.string().optional(),
+    case_number: z.string().optional(),
+    adi_reason: z
+      .enum([
+        "3 crashes in 3 years",
+        "ADI for Points",
+        "adi for HTO",
+        "ADI Court Ordered",
+        "ADI Department required",
+      ])
+      .optional(),
+    bdi_reason: z
+      .enum([
+        "BDI Insurance",
+        "BDI Hwy Racing Spectator",
+        "BDI Election",
+        "BDI for TCAC",
+        "BDI Court Ordered",
+        "BDI Reckless Driving",
+        "BDI Red light running",
+        "BDI Passing School Bus",
+        "BDI for Highway Racing",
+      ])
+      .optional(),
+  })
+  .superRefine((data, ctx) => {
+    if (data.registerForCourse) {
+      if (!data.payedAmount) {
+        ctx.addIssue({
+          code: z.ZodIssueCode.custom,
+          message: "Amount Paid is required when registering for a course",
+          path: ["payedAmount"],
+        });
+      }
+      if (!data.method) {
+        ctx.addIssue({
+          code: z.ZodIssueCode.custom,
+          message: "Payment Method is required when registering for a course",
+          path: ["method"],
+        });
+      }
+      if (!data.courseId) {
+        ctx.addIssue({
+          code: z.ZodIssueCode.custom,
+          message: "Course selection is required when registering for a course",
+          path: ["courseId"],
+        });
+      }
+
+      if (data.courseType === "bdi") {
+        if (!data.country_ticket) {
+          ctx.addIssue({
+            code: z.ZodIssueCode.custom,
+            message: "Country Ticket is required for BDI courses",
+            path: ["country_ticket"],
+          });
+        }
+        if (!data.course_country) {
+          ctx.addIssue({
+            code: z.ZodIssueCode.custom,
+            message: "Course Country is required for BDI courses",
+            path: ["course_country"],
+          });
+        }
+        if (!data.bdi_subtype) {
+          ctx.addIssue({
+            code: z.ZodIssueCode.custom,
+            message: "BDI Subtype is required for BDI courses",
+            path: ["bdi_subtype"],
+          });
+        }
+        if (!data.licenseNumber) {
+          ctx.addIssue({
+            code: z.ZodIssueCode.custom,
+            message: "License Number is required for BDI courses",
+            path: ["licenseNumber"],
+          });
+        }
+        if (!data.citation_number) {
+          ctx.addIssue({
+            code: z.ZodIssueCode.custom,
+            message: "Citation Number is required for BDI courses",
+            path: ["citation_number"],
+          });
+        }
+        if (!data.case_number) {
+          ctx.addIssue({
+            code: z.ZodIssueCode.custom,
+            message: "Case Number is required for BDI courses",
+            path: ["case_number"],
+          });
+        }
+        if (!data.bdi_reason) {
+          ctx.addIssue({
+            code: z.ZodIssueCode.custom,
+            message: "Reason is required for BDI courses",
+            path: ["bdi_reason"],
+          });
+        }
+      }
+
+      if (data.courseType === "adi") {
+        if (!data.country_ticket) {
+          ctx.addIssue({
+            code: z.ZodIssueCode.custom,
+            message: "Country Ticket is required for ADI courses",
+            path: ["country_ticket"],
+          });
+        }
+        if (!data.course_country) {
+          ctx.addIssue({
+            code: z.ZodIssueCode.custom,
+            message: "Course Country is required for ADI courses",
+            path: ["course_country"],
+          });
+        }
+        if (!data.adi_reason) {
+          ctx.addIssue({
+            code: z.ZodIssueCode.custom,
+            message: "Reason is required for ADI courses",
+            path: ["adi_reason"],
+          });
+        }
+      }
+    }
+  });
 
 interface CustomersFormProps {
   initialData?: {
-    id: string;
+    _id: string;
     firstName: string;
     middleName: string;
     lastName: string;
@@ -81,8 +213,36 @@ interface CustomersFormProps {
     phoneNumber: string;
     sex: string;
     howDidYouHear: string;
-    payedAmount:  number;
+    payedAmount: number;
     method: string;
+    courseType?: "date" | "bdi" | "adi";
+    country_ticket?: string;
+    course_country?: string;
+    bdi_subtype?:
+      | "bdi"
+      | "4h c.o"
+      | "8h c.o"
+      | "agressive"
+      | "tcac ordered"
+      | "other";
+    citation_number?: string;
+    case_number?: string;
+    adi_reason?:
+      | "3 crashes in 3 years"
+      | "ADI for Points"
+      | "adi for HTO"
+      | "ADI Court Ordered"
+      | "ADI Department required";
+    bdi_reason?:
+      | "BDI Insurance"
+      | "BDI Hwy Racing Spectator"
+      | "BDI Election"
+      | "BDI for TCAC"
+      | "BDI Court Ordered"
+      | "BDI Reckless Driving"
+      | "BDI Red light running"
+      | "BDI Passing School Bus"
+      | "BDI for Highway Racing";
   } | null;
 }
 
@@ -94,6 +254,8 @@ interface Course {
   classId: string;
   instructorId: string;
   students: string[];
+  duration: string;
+  type: string;
   __v: number;
   locationName: string;
 }
@@ -109,7 +271,7 @@ const CustomersForm = ({ initialData }: CustomersFormProps) => {
       middleName: initialData?.middleName || "",
       lastName: initialData?.lastName || "",
       email: initialData?.email || "",
-      password: initialData ? undefined : "", // Solo se requiere en creación
+      password: initialData ? undefined : "",
       ssnLast4: initialData?.ssnLast4 || "",
       hasLicense: initialData?.hasLicense || false,
       licenseNumber: initialData?.licenseNumber || "",
@@ -122,19 +284,30 @@ const CustomersForm = ({ initialData }: CustomersFormProps) => {
       phoneNumber: initialData?.phoneNumber || "",
       sex: initialData?.sex || "",
       howDidYouHear: initialData?.howDidYouHear || "",
-      payedAmount: initialData?.payedAmount || 0,
-      method: initialData?.method || "",
+      payedAmount: 0,
+      method: "",
       registerForCourse: false,
       courseId: "",
+      fee: 50,
+      courseType: initialData?.courseType || "date",
+      country_ticket: initialData?.country_ticket || "",
+      course_country: initialData?.course_country || "",
+      bdi_subtype: initialData?.bdi_subtype || undefined,
+      citation_number: initialData?.citation_number || "",
+      case_number: initialData?.case_number || "",
+      adi_reason: initialData?.adi_reason || undefined,
+      bdi_reason: initialData?.bdi_reason || undefined,
     },
   });
 
   const hasLicense = form.watch("hasLicense");
+  const registerForCourse = form.watch("registerForCourse");
+  const courseType = form.watch("courseType");
 
   const onSubmit = async (values: z.infer<typeof formSchema>) => {
     try {
       const url = initialData
-        ? `/api/customers/${initialData.id}`
+        ? `/api/customers/${initialData._id}`
         : "/api/customers";
       const updatedValues = {
         ...values,
@@ -143,7 +316,6 @@ const CustomersForm = ({ initialData }: CustomersFormProps) => {
       };
       console.log(values);
 
-      // Si está en edición y el password está vacío, lo eliminamos del objeto
       if (initialData && !values.password) {
         delete updatedValues.password;
       }
@@ -183,374 +355,35 @@ const CustomersForm = ({ initialData }: CustomersFormProps) => {
       <Separator className="bg-gray-300 my-6" />
       <Form {...form}>
         <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-8">
-          {/* Personal Information Section */}
           <div className="space-y-6">
             <h2 className="text-xl font-semibold text-gray-700">
               Personal Information
             </h2>
-            <div className="grid lg:grid-cols-3 gap-6 md:grid-cols-2">
-              <FormField
-                control={form.control}
-                name="firstName"
-                render={({ field }) => (
-                  <FormItem>
-                    <FormLabel className="text-gray-700 font-medium">
-                      First Name
-                    </FormLabel>
-                    <FormControl>
-                      <Input
-                        {...field}
-                        placeholder="Enter first name"
-                        className="border-gray-300 focus:ring-blue-500 focus:border-blue-500"
-                      />
-                    </FormControl>
-                    <FormMessage className="text-red-500" />
-                  </FormItem>
-                )}
-              />
-              <FormField
-                control={form.control}
-                name="middleName"
-                render={({ field }) => (
-                  <FormItem>
-                    <FormLabel className="text-gray-700 font-medium">
-                      Middle Name
-                    </FormLabel>
-                    <FormControl>
-                      <Input
-                        {...field}
-                        placeholder="Enter middle name"
-                        className="border-gray-300 focus:ring-blue-500 focus:border-blue-500"
-                      />
-                    </FormControl>
-                    <FormMessage className="text-red-500" />
-                  </FormItem>
-                )}
-              />
-              <FormField
-                control={form.control}
-                name="lastName"
-                render={({ field }) => (
-                  <FormItem className="md:col-span-2 lg:col-auto">
-                    <FormLabel className="text-gray-700 font-medium">
-                      Last Name
-                    </FormLabel>
-                    <FormControl>
-                      <Input
-                        {...field}
-                        placeholder="Enter last name"
-                        className="border-gray-300 focus:ring-blue-500 focus:border-blue-500"
-                      />
-                    </FormControl>
-                    <FormMessage className="text-red-500" />
-                  </FormItem>
-                )}
-              />
-            </div>
-
-            <div className="grid lg:grid-cols-2 gap-6">
-              <FormField
-                control={form.control}
-                name="birthDate"
-                render={({ field }) => (
-                  <FormItem>
-                    <FormLabel className="text-gray-700 font-medium">
-                      Birth Date
-                    </FormLabel>
-                    <FormControl>
-                      <Input
-                        {...field}
-                        type="date"
-                        className="border-gray-300 focus:ring-blue-500 focus:border-blue-500"
-                      />
-                    </FormControl>
-                    <FormMessage className="text-red-500" />
-                  </FormItem>
-                )}
-              />
-              <FormField
-                control={form.control}
-                name="sex"
-                render={({ field }) => (
-                  <FormItem>
-                    <FormLabel className="text-gray-700 font-medium">
-                      Gender
-                    </FormLabel>
-                    <FormControl>
-                      <Select
-                        value={field.value}
-                        onValueChange={(val) =>
-                          field.onChange(val as "M" | "F")
-                        }
-                      >
-                        <SelectTrigger className="border-gray-300 focus:ring-blue-500 focus:border-blue-500">
-                          <SelectValue placeholder="Select the gender" />
-                        </SelectTrigger>
-                        <SelectContent className="bg-white">
-                          <SelectItem value="M">Male</SelectItem>
-                          <SelectItem value="F">Female</SelectItem>
-                        </SelectContent>
-                      </Select>
-                    </FormControl>
-                    <FormMessage className="text-red-500" />
-                  </FormItem>
-                )}
-              />
-            </div>
+            <PersonalInformation form={form} />
           </div>
 
-          {/* Address Section */}
           <div className="space-y-6 pt-4">
             <h2 className="text-xl font-semibold text-gray-700">
               Address Information
             </h2>
-            <div className="grid lg:grid-cols-3 gap-6 md:grid-cols-2">
-              <FormField
-                control={form.control}
-                name="streetAddress"
-                render={({ field }) => (
-                  <FormItem className="col-span-2">
-                    <FormLabel className="text-gray-700 font-medium">
-                      Street Address
-                    </FormLabel>
-                    <FormControl>
-                      <Input
-                        {...field}
-                        placeholder="Enter street address"
-                        className="border-gray-300 focus:ring-blue-500 focus:border-blue-500"
-                      />
-                    </FormControl>
-                    <FormMessage className="text-red-500" />
-                  </FormItem>
-                )}
-              />
-              <FormField
-                control={form.control}
-                name="apartmentNumber"
-                render={({ field }) => (
-                  <FormItem>
-                    <FormLabel className="text-gray-700 font-medium">
-                      Apartment Number
-                    </FormLabel>
-                    <FormControl>
-                      <Input
-                        {...field}
-                        placeholder="Enter apartment number"
-                        className="border-gray-300 focus:ring-blue-500 focus:border-blue-500"
-                      />
-                    </FormControl>
-                    <FormMessage className="text-red-500" />
-                  </FormItem>
-                )}
-              />
-            </div>
-            <div className="grid lg:grid-cols-3 gap-6 md:grid-cols-2">
-              <FormField
-                control={form.control}
-                name="city"
-                render={({ field }) => (
-                  <FormItem>
-                    <FormLabel className="text-gray-700 font-medium">
-                      City
-                    </FormLabel>
-                    <FormControl>
-                      <Input
-                        {...field}
-                        placeholder="Enter city"
-                        className="border-gray-300 focus:ring-blue-500 focus:border-blue-500"
-                      />
-                    </FormControl>
-                    <FormMessage className="text-red-500" />
-                  </FormItem>
-                )}
-              />
-              <FormField
-                control={form.control}
-                name="state"
-                render={({ field }) => (
-                  <FormItem>
-                    <FormLabel className="text-gray-700 font-medium">
-                      State
-                    </FormLabel>
-                    <FormControl>
-                      <Input
-                        {...field}
-                        placeholder="Enter state"
-                        className="border-gray-300 focus:ring-blue-500 focus:border-blue-500"
-                      />
-                    </FormControl>
-                    <FormMessage className="text-red-500" />
-                  </FormItem>
-                )}
-              />
-              <FormField
-                control={form.control}
-                name="zipCode"
-                render={({ field }) => (
-                  <FormItem>
-                    <FormLabel className="text-gray-700 font-medium">
-                      Zip Code
-                    </FormLabel>
-                    <FormControl>
-                      <Input
-                        {...field}
-                        placeholder="Enter zip code"
-                        className="border-gray-300 focus:ring-blue-500 focus:border-blue-500"
-                      />
-                    </FormControl>
-                    <FormMessage className="text-red-500" />
-                  </FormItem>
-                )}
-              />
-            </div>
+            <AddressInformation form={form} />
           </div>
 
-          {/* Contact Information */}
           <div className="space-y-6 pt-4">
             <h2 className="text-xl font-semibold text-gray-700">
               Contact Information
             </h2>
-            <div className="grid lg:grid-cols-2 gap-6">
-              <FormField
-                control={form.control}
-                name="phoneNumber"
-                render={({ field }) => (
-                  <FormItem>
-                    <FormLabel className="text-gray-700 font-medium">
-                      Phone Number
-                    </FormLabel>
-                    <FormControl>
-                      <Input
-                        {...field}
-                        placeholder="Enter phone number"
-                        type="tel"
-                        className="border-gray-300 focus:ring-blue-500 focus:border-blue-500"
-                      />
-                    </FormControl>
-                    <FormMessage className="text-red-500" />
-                  </FormItem>
-                )}
-              />
-              <FormField
-                control={form.control}
-                name="email"
-                render={({ field }) => (
-                  <FormItem>
-                    <FormLabel className="text-gray-700 font-medium">
-                      Email
-                    </FormLabel>
-                    <FormControl>
-                      <Input
-                        {...field}
-                        type="email"
-                        placeholder="Enter email"
-                        readOnly={initialData ? true : false}
-                        className="border-gray-300 focus:ring-blue-500 focus:border-blue-500"
-                      />
-                    </FormControl>
-                    <FormMessage className="text-red-500" />
-                  </FormItem>
-                )}
-              />
-            </div>
+            <ContactInfromation form={form} initialData={initialData} />
           </div>
 
-          {/* Security Information */}
           <div className="space-y-6 pt-4">
             <h2 className="text-xl font-semibold text-gray-700">
               Security Information
             </h2>
-            <div className="grid lg:grid-cols-2 gap-6">
-              <FormField
-                control={form.control}
-                name="password"
-                render={({ field }) => (
-                  <FormItem>
-                    <FormLabel className="text-gray-700 font-medium">
-                      Password
-                    </FormLabel>
-                    <FormControl>
-                      <Input
-                        {...field}
-                        type="password"
-                        placeholder="Enter password"
-                        className="border-gray-300 focus:ring-blue-500 focus:border-blue-500"
-                      />
-                    </FormControl>
-                    <FormMessage className="text-red-500" />
-                  </FormItem>
-                )}
-              />
-              <FormField
-                control={form.control}
-                name="ssnLast4"
-                render={({ field }) => (
-                  <FormItem>
-                    <FormLabel className="text-gray-700 font-medium">
-                      Last 4 Digits of SSN
-                    </FormLabel>
-                    <FormControl>
-                      <Input
-                        {...field}
-                        type="text"
-                        placeholder="Enter last 4 digits"
-                        maxLength={4}
-                        className="border-gray-300 focus:ring-blue-500 focus:border-blue-500"
-                      />
-                    </FormControl>
-                    <FormMessage className="text-red-500" />
-                  </FormItem>
-                )}
-              />
-            </div>
-
-            <div className="space-y-4">
-              <FormField
-                control={form.control}
-                name="hasLicense"
-                render={({ field }) => (
-                  <FormItem>
-                    <div className="flex items-center gap-2 bg-gray-50 p-3 rounded-lg">
-                      <Checkbox
-                        checked={field.value}
-                        onCheckedChange={(checked: boolean) =>
-                          field.onChange(!!checked)
-                        }
-                        className="border-gray-400"
-                      />
-                      <FormLabel className="text-gray-700 font-medium cursor-pointer">
-                        Do you have a driver&apos;s license?
-                      </FormLabel>
-                    </div>
-                  </FormItem>
-                )}
-              />
-
-              {hasLicense && (
-                <FormField
-                  control={form.control}
-                  name="licenseNumber"
-                  render={({ field }) => (
-                    <FormItem>
-                      <FormLabel className="text-gray-700 font-medium">
-                        License Number
-                      </FormLabel>
-                      <FormControl>
-                        <Input
-                          {...field}
-                          placeholder="Enter license number"
-                          className="border-gray-300 focus:ring-blue-500 focus:border-blue-500"
-                        />
-                      </FormControl>
-                      <FormMessage className="text-red-500" />
-                    </FormItem>
-                  )}
-                />
-              )}
-            </div>
+            <SecurityInformation form={form} />
+            <LiscenseInformation form={form} hasLicense={hasLicense} />
           </div>
 
-          {/* Additional Information */}
           <div className="space-y-6 pt-4">
             <h2 className="text-xl font-semibold text-gray-700">
               Additional Information
@@ -574,70 +407,6 @@ const CustomersForm = ({ initialData }: CustomersFormProps) => {
                 </FormItem>
               )}
             />
-          </div>
-
-          {/* Payment Information */}
-          <div className="space-y-6 pt-4">
-            <h2 className="text-xl font-semibold text-gray-700">
-              Payment Information
-            </h2>
-            <div className="grid lg:grid-cols-2 gap-6">
-              <FormField
-                control={form.control}
-                name="payedAmount"
-                render={({ field }) => (
-                  <FormItem>
-                    <FormLabel className="text-gray-700 font-medium">
-                      Amount Paid
-                    </FormLabel>
-                    <FormControl>
-                      <Input
-                        {...field}
-                        onChange={(e) => field.onChange(+e.target.value)}
-                        type="number"
-                        placeholder="Enter amount"
-                        className="border-gray-300 focus:ring-blue-500 focus:border-blue-500"
-                      />
-                    </FormControl>
-                    <FormMessage className="text-red-500" />
-                  </FormItem>
-                )}
-              />
-              <FormField
-                control={form.control}
-                name="method"
-                render={({ field }) => (
-                  <FormItem>
-                    <FormLabel className="text-gray-700 font-medium">
-                      Payment Method
-                    </FormLabel>
-                    <FormControl>
-                      <Select
-                        value={field.value}
-                        onValueChange={(val) => field.onChange(val as string)}
-                      >
-                        <SelectTrigger className="border-gray-300 focus:ring-blue-500 focus:border-blue-500">
-                          <SelectValue placeholder="Select a payment method"></SelectValue>
-                        </SelectTrigger>
-                        <SelectContent className="bg-white">
-                          <SelectItem value="Cash">Cash</SelectItem>
-                          <SelectItem value="Visa">Visa</SelectItem>
-                          <SelectItem value="Master Card">
-                            Master Card
-                          </SelectItem>
-                          <SelectItem value="Money Order">
-                            Money Order
-                          </SelectItem>
-                          <SelectItem value="Check">Check</SelectItem>
-                          <SelectItem value="Other">Other</SelectItem>
-                        </SelectContent>
-                      </Select>
-                    </FormControl>
-                    <FormMessage className="text-red-500" />
-                  </FormItem>
-                )}
-              />
-            </div>
           </div>
 
           <div className="space-y-6 pt-4">
@@ -666,52 +435,11 @@ const CustomersForm = ({ initialData }: CustomersFormProps) => {
               )}
             />
 
-            {form.watch("registerForCourse") && (
-              <FormField
-                control={form.control}
-                name="courseId"
-                render={({ field }) => (
-                  <FormItem>
-                    <FormLabel className="text-gray-700 font-medium">
-                      Select Course
-                    </FormLabel>
-                    <FormControl>
-                      <Select
-                        value={field.value}
-                        onValueChange={(value) => field.onChange(value)}
-                      >
-                        <SelectTrigger>
-                          <SelectValue placeholder="Select a class" />
-                        </SelectTrigger>
-                        <SelectContent className="bg-white">
-                          {courses.map((c) => (
-                            <SelectItem
-                              key={c?._id}
-                              value={c?._id}
-                              className="hover:bg-gray-100 cursor-pointer"
-                            >
-                              {new Date(c?.date).toLocaleString("en-US", {
-                                weekday: "long",
-                                timeZone: "UTC",
-                              })}
-                              , {new Date(c?.date).getUTCDate()}{" "}
-                              {new Date(c?.date).toLocaleString("en-US", {
-                                month: "short",
-                                timeZone: "UTC",
-                              })}{" "}
-                              {new Date(c?.date).getUTCFullYear()}{" "}
-                              {parseInt(c?.hour.split(":")[0]) > 11
-                                ? `${c?.hour} p.m.`
-                                : `${c?.hour} a.m.`}{" "}
-                              | {c?.locationName}
-                            </SelectItem>
-                          ))}
-                        </SelectContent>
-                      </Select>
-                    </FormControl>
-                    <FormMessage className="text-red-500" />
-                  </FormItem>
-                )}
+            {registerForCourse && (
+              <RegisterAndPaymentInformation
+                form={form}
+                courses={courses}
+                courseType={courseType}
               />
             )}
           </div>

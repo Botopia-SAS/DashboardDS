@@ -13,7 +13,7 @@ const ticketClassSchema = Joi.object({
   classId: Joi.string().required(),
   type: Joi.string().valid("date", "bdi", "adi").default("ticket"),
   duration: Joi.string()
-    .valid("normal", "4h", "8h", "agressive", "12h")
+    .valid("standard", "4h", "8h", "agressive", "12h")
     .default("normal"),
   instructorId: Joi.string().required(),
   students: Joi.array().items(Joi.string()).default([]),
