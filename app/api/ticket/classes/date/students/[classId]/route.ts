@@ -42,7 +42,7 @@ export async function GET(req: NextRequest) {
       last_name: user.lastName,
       certn: cert?.number || 0,
       midl: user.middleName,
-      payedAmount: payment.amount || 0,
+      payedAmount: payment?.amount || 0,
       birthDate: new Date(user.birthDate).toLocaleDateString("en-US", {
         timeZone: "UTC",
       }),
