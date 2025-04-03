@@ -8,7 +8,8 @@ import {
     LifeBuoy,
     CalendarDays,
     MapPinCheck,
-    Search // ✅ Importamos el icono de búsqueda
+    Search, // ✅ Importamos el icono de búsqueda
+    Ticket
   } from "lucide-react";
   
   export const navLinks = [
@@ -61,5 +62,10 @@ import {
       url: "/seo",  // ✅ Agregamos la URL para la sección de SEO
       icon: <Search />,  // ✅ Usamos un icono de búsqueda para representar SEO
       label: "SEO",
+    },
+    {
+      url: "/ticket",  // ✅ Agregamos la URL para la sección de Tickets
+      icon: <Ticket />,
+      label: "Tickets",
     }
   ];

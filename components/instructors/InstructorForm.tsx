@@ -790,9 +790,9 @@ const InstructorForm = ({ initialData }: { initialData?: InstructorData }) => {
               </label>
               <Select
                 value={currentSlot?.recurrence || "None"}
-                onChange={(e) =>
+                onValueChange={(val) =>
                   setCurrentSlot((prev) =>
-                    prev ? { ...prev, recurrence: e.target.value } : prev
+                    prev ? { ...prev, recurrence: val } : prev
                   )
                 }
               >
