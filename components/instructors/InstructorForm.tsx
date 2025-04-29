@@ -48,9 +48,10 @@ type CalendarEvent = {
 
 const formSchema = z.object({
   name: z.string().min(2, "Name is required"),
-  username: z.string().min(4, "Username must be at least 4 characters"), // ✅ Nombre de usuario obligatorio
-  email: z.string().email("Invalid email format"), // ✅ Nuevo campo de email
-  password: z.string().min(8, "Password must be at least 8 characters"), // ✅ Contraseña obligatoria
+  dni: z.string().min(1, "DNI is required"), // Nuevo campo DNI
+  username: z.string().min(4, "Username must be at least 4 characters"),
+  email: z.string().email("Invalid email format"),
+  password: z.string().min(8, "Password must be at least 8 characters"),
   photo: z.string().url("Valid photo URL required"),
   certifications: z.string().optional(),
   experience: z.string().optional(),
@@ -63,7 +64,7 @@ const formSchema = z.object({
             .object({
               start: z.string(),
               end: z.string(),
-              booked: z.boolean().optional(), // ✅ Nuevo campo
+              booked: z.boolean().optional(),
             })
             .refine((slot) => slot.start < slot.end, {
               message: "Start time must be before end time.",
@@ -77,6 +78,7 @@ const formSchema = z.object({
 interface InstructorData {
   _id?: string; // Agregar el identificador opcionalmente
   name?: string;
+  dni?: string; // Añadir campo DNI
   username?: string;
   email?: string; // ✅ Nuevo campo de email
   password?: string;
@@ -504,6 +506,7 @@ const InstructorForm = ({ initialData }: { initialData?: InstructorData }) => {
     resolver: zodResolver(formSchema),
     defaultValues: {
       name: initialData?.name || "",
+      dni: initialData?.dni || "", // Añadido valor predeterminado para DNI
       username: initialData?.username || "",
       email: initialData?.email || "",
       password: "",
@@ -662,6 +665,20 @@ const InstructorForm = ({ initialData }: { initialData?: InstructorData }) => {
                   <FormLabel>Username</FormLabel>
                   <FormControl>
                     <Input placeholder="Enter username" {...field} />
+                  </FormControl>
+                  <FormMessage />
+                </FormItem>
+              )}
+            />
+
+            <FormField
+              control={form.control}
+              name="dni"
+              render={({ field }) => (
+                <FormItem>
+                  <FormLabel>DNI</FormLabel>
+                  <FormControl>
+                    <Input placeholder="Enter DNI" {...field} />
                   </FormControl>
                   <FormMessage />
                 </FormItem>

@@ -89,7 +89,7 @@ export async function PATCH(req: NextRequest) {
     const data = await req.json();
     console.log(data);
 
-    const allowedFields = [
+    /* const allowedFields = [
       "firstName",
       "lastName",
       "middleName",
@@ -138,7 +138,7 @@ export async function PATCH(req: NextRequest) {
         { new: true }
       );
       console.log("SE REGISTRA");
-    }
+    } */
     return NextResponse.json({ message: "Customer updated" }, { status: 200 });
   } catch (error) {
     console.error("Error updating customer:", error);

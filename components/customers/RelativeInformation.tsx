@@ -123,66 +123,6 @@ export default function RelativeInformation({
         </>
       )}
 
-      {courseType === "adi" ||
-        (courseType == "bdi" && (
-          <>
-            <FormField
-              control={form.control}
-              name="citation_number"
-              render={({ field }) => (
-                <FormItem>
-                  <FormLabel>Citation Number</FormLabel>
-                  <FormControl>
-                    <Input placeholder="Citation Number" {...field} />
-                  </FormControl>
-                  <FormMessage />
-                </FormItem>
-              )}
-            />
-
-            <FormField
-              control={form.control}
-              name="case_number"
-              render={({ field }) => (
-                <FormItem>
-                  <FormLabel>Case Number</FormLabel>
-                  <FormControl>
-                    <Input placeholder="Case Number" {...field} />
-                  </FormControl>
-                  <FormMessage />
-                </FormItem>
-              )}
-            />
-            <FormField
-              control={form.control}
-              name="country_ticket"
-              render={({ field }) => (
-                <FormItem>
-                  <FormLabel>Country Ticket</FormLabel>
-                  <FormControl>
-                    <Input placeholder="Country Ticket" {...field} />
-                  </FormControl>
-                  <FormMessage />
-                </FormItem>
-              )}
-            />
-
-            <FormField
-              control={form.control}
-              name="course_country"
-              render={({ field }) => (
-                <FormItem>
-                  <FormLabel>Course Country</FormLabel>
-                  <FormControl>
-                    <Input placeholder="Course Country" {...field} />
-                  </FormControl>
-                  <FormMessage />
-                </FormItem>
-              )}
-            />
-          </>
-        ))}
-
       {courseType === "adi" && (
         <FormField
           control={form.control}
@@ -214,6 +154,65 @@ export default function RelativeInformation({
             </FormItem>
           )}
         />
+      )}
+
+      {(courseType === "adi" || courseType === "bdi") && (
+        <>
+          <FormField
+            control={form.control}
+            name="citation_number"
+            render={({ field }) => (
+              <FormItem>
+                <FormLabel>Citation Number</FormLabel>
+                <FormControl>
+                  <Input placeholder="Citation Number" {...field} />
+                </FormControl>
+                <FormMessage />
+              </FormItem>
+            )}
+          />
+
+          <FormField
+            control={form.control}
+            name="case_number"
+            render={({ field }) => (
+              <FormItem>
+                <FormLabel>Case Number</FormLabel>
+                <FormControl>
+                  <Input placeholder="Case Number" {...field} />
+                </FormControl>
+                <FormMessage />
+              </FormItem>
+            )}
+          />
+          <FormField
+            control={form.control}
+            name="country_ticket"
+            render={({ field }) => (
+              <FormItem>
+                <FormLabel>Country Ticket</FormLabel>
+                <FormControl>
+                  <Input placeholder="Country Ticket" {...field} />
+                </FormControl>
+                <FormMessage />
+              </FormItem>
+            )}
+          />
+
+          <FormField
+            control={form.control}
+            name="course_country"
+            render={({ field }) => (
+              <FormItem>
+                <FormLabel>Course Country</FormLabel>
+                <FormControl>
+                  <Input placeholder="Course Country" {...field} />
+                </FormControl>
+                <FormMessage />
+              </FormItem>
+            )}
+          />
+        </>
       )}
     </>
   );

@@ -1,13 +1,18 @@
 "use client";
 
 import useClassStore from "@/app/store/classStore";
-import { SelectContent } from "@radix-ui/react-select";
 import { useCallback, useEffect, useState } from "react";
 import toast from "react-hot-toast";
 import Loader from "../custom ui/Loader";
 import { Button } from "../ui/button";
 import { Label } from "../ui/label";
-import { Select, SelectItem, SelectTrigger, SelectValue } from "../ui/select";
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "../ui/select";
 
 interface Student {
   id: string;
