@@ -11,6 +11,7 @@ export interface Student {
   payedAmount: number;
   birthDate: string;
   courseDate: string;
+  paymentMethod?: string;
 }
 
 export const columns: ColumnDef<Student>[] = [
@@ -52,5 +53,5 @@ export const columns: ColumnDef<Student>[] = [
   {
     accessorKey: "certn",
     header: "Certificate Number",
-  }
+  },
 ];

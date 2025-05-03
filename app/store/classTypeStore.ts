@@ -2,8 +2,8 @@ import { create } from "zustand";
 import { persist } from "zustand/middleware";
 
 interface ClassTypeStoreState {
-  classType: string;
-  setClassType: (classTypeId: string) => void;
+  classType: "date" | "bdi" | "adi";
+  setClassType: (classTypeId: "date" | "bdi" | "adi") => void;
 }
 
 const useClassTypeStore = create<ClassTypeStoreState>()(
@@ -11,8 +11,7 @@ const useClassTypeStore = create<ClassTypeStoreState>()(
     (set) => ({
       classType: "date",
       setClassType: (classType) => {
-        console.log("setClassType", classType);
-        set({ classType: classType })
+        set({ classType: classType });
       },
     }),
     {

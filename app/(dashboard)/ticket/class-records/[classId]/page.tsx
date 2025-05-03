@@ -7,12 +7,13 @@ import { DataTable } from "@/components/ticket/data-table";
 import { Button } from "@/components/ui/button";
 import { ArrowLeftIcon, Plus } from "lucide-react";
 import Link from "next/link";
-import { useRouter } from "next/navigation";
+import { useParams, useRouter } from "next/navigation";
 import { useEffect, useState, useRef, useCallback } from "react";
 import toast from "react-hot-toast";
 
 export default function Page() {
-  const { classId } = useClassStore();
+  const params = useParams();
+  const classId = params.classId as string;
   const [students, setStudents] = useState<Student[]>([]);
   const [loading, setLoading] = useState(false);
   const router = useRouter();
@@ -45,7 +46,10 @@ export default function Page() {
     for (const student of data) {
       const res = await fetch(`/api/ticket/classes/date/students/${classId}`, {
         method: "PATCH",
-        body: JSON.stringify({...student, classId, status: "completed"}),
+        headers: {
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify({ ...student, classId, status: "completed" }),
       });
       if (!res.ok) {
         const { message } = await res.json();
@@ -63,7 +67,7 @@ export default function Page() {
           <h1 className="text-xl font-semibold">Tickets</h1>
           <div className="flex items-center space-x-2">
             <Link
-              href="/ticket/class-records/new"
+              href={`/ticket/class-records/${classId}/new`}
               className="hover:underline flex items-center gap-x-2 bg-blue-500 text-white px-3 py-1 rounded-md"
             >
               <Plus className="size-4" />

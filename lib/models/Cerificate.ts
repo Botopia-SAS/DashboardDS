@@ -7,10 +7,7 @@ const CertificateSchema = new mongoose.Schema({
   date: { type: Date, default: Date.now },
 });
 
-CertificateSchema.index(
-  { studentId: 1, classId: 1, number: 1 },
-  { unique: true }
-);
+CertificateSchema.index({ studentId: 1, classId: 1 }, { unique: true });
 
 const Certificate =
   mongoose.models.Certificate ||

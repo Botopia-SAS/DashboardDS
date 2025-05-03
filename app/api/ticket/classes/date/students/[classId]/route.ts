@@ -31,7 +31,7 @@ export async function GET(req: NextRequest) {
   }
   const instructor = await Instructor.findOne({
     _id: res.instructorId,
-  })
+  });
   const studentsIds = res.students;
   const students = [];
   for (const student of studentsIds) {
@@ -64,12 +64,14 @@ export async function GET(req: NextRequest) {
   return NextResponse.json(students, { status: 200 });
 }
 export async function PATCH(req: NextRequest) {
+  await connectToDB();
   const classId = req.url.split("/").pop();
   const { id, certn, payedAmount, paymentMethod } = await req.json();
   const user = await User.findOne({ _id: id }).exec();
 
-  // If certificate number is provided, check if it's already used by another certificate
+  // Solo procesamos el número de certificado si se proporciona explícitamente
   if (certn) {
+    // If certificate number is provided, check if it's already used by another certificate
     const existingCertWithNumber = await Certificate.findOne({
       number: Number(certn),
       studentId: { $ne: user._id }, // Not by this student
@@ -81,56 +83,73 @@ export async function PATCH(req: NextRequest) {
         { status: 500 }
       );
     }
-  }
-  if (payedAmount) {
-    // Check if the student already has a pending payment for this course
-    const existingCert = await Order.findOne({
+
+    // Find existing certificate for this student and class
+    const cert = await Certificate.findOne({
       studentId: user._id,
-      course_id: classId,
-      status: "complete",
+      classId,
     }).exec();
 
-    if (existingCert) {
+    if (cert) {
+      // Update existing certificate
+      cert.number = Number(certn);
+      await cert.save();
+    } else {
+      // Create new certificate only if a certificate number is provided
+      await Certificate.create({
+        studentId: user.id,
+        classId,
+        number: Number(certn),
+      });
+    }
+  }
+
+  // Procesamos el pago independientemente del certificado
+  if (payedAmount > 0) {
+    // Check if the student already has a pending payment for this course
+    const existingOrder = await Order.findOne({
+      user_id: user._id,
+      course_id: classId,
+      status: "paid",
+    }).exec();
+
+    if (existingOrder) {
       return NextResponse.json(
         {
           success: false,
-          message: "Pending payment already exists for this course",
+          message: "Payment already exists for this course",
         },
         { status: 400 }
       );
     }
 
+    // Create an order for this payment
+    const order = await Order.create({
+      user_id: user._id,
+      course_id: classId,
+      fee: payedAmount,
+      status: "paid",
+    });
+
+    // Check if there's an existing payment record to update
     const payment = await Payment.findOne({ user_id: user._id }).exec();
     if (payment) {
       payment.amount = payedAmount;
+      if (paymentMethod) {
+        payment.method = paymentMethod;
+      }
       await payment.save();
     } else {
+      // If no payment method is provided, use a default
+      const method = paymentMethod || "Other";
+      // Create a new payment record
       await Payment.create({
         user_id: user._id,
         amount: payedAmount,
-        method: paymentMethod,
+        method: method,
+        order: order._id,
       });
     }
-  }
-  // Find existing certificate for this student and class
-  const cert = await Certificate.findOne({
-    studentId: user._id,
-    classId,
-  }).exec();
-
-  if (cert) {
-    // Update existing certificate
-    cert.number = Number(certn);
-    cert.payedAmount = payedAmount;
-    await cert.save();
-  } else {
-    // Create new certificate
-    await Certificate.create({
-      studentId: user.id,
-      classId,
-      number: Number(certn),
-      payedAmount,
-    });
   }
 
   return NextResponse.json({ success: true }, { status: 200 });

@@ -21,8 +21,7 @@ interface Student {
   name: string;
 }
 
-export default function NewStudentForm() {
-  const { classId } = useClassStore();
+export default function NewStudentForm({classId}: { classId: string }) {
   const [students, setStudents] = useState<Student[]>([]);
   const [loading, setLoading] = useState(false);
   const [student, setStudent] = useState<string | null>(null);

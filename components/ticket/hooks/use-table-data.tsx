@@ -60,7 +60,8 @@ export function useTableData({ initialData, onUpdate }: UseTableDataProps) {
         original &&
         edited &&
         edited.payedAmount !== undefined &&
-        edited.payedAmount !== original.payedAmount
+        edited.payedAmount !== original.payedAmount &&
+        edited.payedAmount > 0
       ) {
         setCurrentRowId(rowId);
         setIsPaymentModalOpen(true);

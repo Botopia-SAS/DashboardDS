@@ -118,7 +118,7 @@ export default function Page() {
                 onClick={handleClick}
               />
               <Navigation
-                href="/ticket/class-records"
+                href={`/ticket/class-records/${classId}`}
                 title="View the Class Records"
                 description="View the records of the selected class."
                 onClick={handleClick}
