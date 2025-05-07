@@ -4,12 +4,14 @@ import { ColumnDef } from "@tanstack/react-table";
 import Delete from "../custom ui/Delete";
 import Link from "next/link";
 import { ArrowUpRight } from "lucide-react";
+import { format } from "date-fns";
 
 export type CustomerClassType = {
   id: string;
   email: string;
   role: string;
   name: string;
+  createdAt: string;
 };
 
 export const customersColumns: ColumnDef<CustomerClassType>[] = [
@@ -32,6 +34,21 @@ export const customersColumns: ColumnDef<CustomerClassType>[] = [
     cell: ({ row }) => (
       <p className="font-medium text-gray-700">{row.original.email}</p>
     ),
+  },
+  {
+    accessorKey: "createdAt",
+    header: "Registration Date",
+    cell: ({ row }) => {
+      // Format date in US English format or show "Not available"
+      const date = row.original.createdAt
+        ? new Date(row.original.createdAt)
+        : null;
+      return (
+        <p className="font-medium text-gray-700">
+          {date ? format(date, "MMM d, yyyy h:mm a") : "Not available"}
+        </p>
+      );
+    },
   },
   {
     accessorKey: "id",

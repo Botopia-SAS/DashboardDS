@@ -21,7 +21,7 @@ interface Student {
   name: string;
 }
 
-export default function NewStudentForm({classId}: { classId: string }) {
+export default function NewStudentForm({ classId }: { classId: string }) {
   const [students, setStudents] = useState<Student[]>([]);
   const [loading, setLoading] = useState(false);
   const [student, setStudent] = useState<string | null>(null);
@@ -43,7 +43,7 @@ export default function NewStudentForm({classId}: { classId: string }) {
       return;
     }
 
-    const res = await fetch(`/api/ticket/classes/date/students/${classId}`);
+    const res = await fetch(`/api/ticket/classes/students/${classId}`);
 
     if (!res.ok) {
       alert("Error adding student");

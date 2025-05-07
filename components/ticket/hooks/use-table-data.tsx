@@ -40,7 +40,7 @@ export function useTableData({ initialData, onUpdate }: UseTableDataProps) {
   }, []);
 
   const handleChange = useCallback(
-    (rowId: string, field: keyof Student, value: string) => {
+    (rowId: string, field: keyof Student, value: string | number) => {
       setEditedData((prev) => ({
         ...prev,
         [rowId]: { ...prev[rowId], [field]: value },

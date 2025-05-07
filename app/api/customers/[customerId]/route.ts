@@ -89,7 +89,7 @@ export async function PATCH(req: NextRequest) {
     const data = await req.json();
     console.log(data);
 
-    /* const allowedFields = [
+    const allowedFields = [
       "firstName",
       "lastName",
       "middleName",
@@ -108,11 +108,19 @@ export async function PATCH(req: NextRequest) {
       "howDidYouHear",
     ];
     const userData = _.pick(data, allowedFields);
-    await User.findByIdAndUpdate(
+
+    // Actualizamos el usuario manteniendo su fecha de creación original
+    const updatedUser = await User.findByIdAndUpdate(
       customerId,
-      { $set: userData },
-      { new: true, runValidators: true } // Devuelve el usuario actualizado y aplica validaciones de modelo
+      {
+        $set: {
+          ...userData,
+          updatedAt: new Date(), // Solo actualizamos la fecha de actualización
+        },
+      },
+      { new: true, runValidators: true }
     );
+
     if (data.registerForCourse) {
       const order = await Order.create({
         user_id: user._id,
@@ -138,8 +146,15 @@ export async function PATCH(req: NextRequest) {
         { new: true }
       );
       console.log("SE REGISTRA");
-    } */
-    return NextResponse.json({ message: "Customer updated" }, { status: 200 });
+    }
+
+    return NextResponse.json(
+      {
+        message: "Customer updated",
+        user: updatedUser, // Devolvemos el usuario actualizado que incluye createdAt
+      },
+      { status: 200 }
+    );
   } catch (error) {
     console.error("Error updating customer:", error);
     return NextResponse.json(

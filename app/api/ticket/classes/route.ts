@@ -32,6 +32,17 @@ interface Location {
   _id: string;
 }
 
+interface DrivingClassDoc {
+  _id: string;
+  title: string;
+  duration?: string;
+}
+
+interface InstructorDoc {
+  _id: string;
+  name: string;
+}
+
 export async function POST(req: NextRequest) {
   try {
     await connectToDB();
@@ -55,7 +66,6 @@ export async function POST(req: NextRequest) {
       students,
       locationId,
       classId,
-      type,
       duration,
     } = value;
 
@@ -156,11 +166,11 @@ export async function POST(req: NextRequest) {
 export async function GET(req: NextRequest) {
   try {
     await connectToDB();
-    const type = req.nextUrl.searchParams.get("type");
+    const queryType = req.nextUrl.searchParams.get("type");
     let query = {};
 
-    if (type) {
-      query = { type: type };
+    if (queryType) {
+      query = { type: queryType };
     }
 
     const classes = await TicketClass.find(query).lean();
@@ -175,13 +185,13 @@ export async function GET(req: NextRequest) {
     const classIds = classes.map((cls) => cls.classId);
     const drivingClasses = await DrivingClass.find({
       _id: { $in: classIds },
-    }).lean();
+    }).lean<DrivingClassDoc[]>();
 
     // Fetch instructor names
     const instructorIds = classes.map((cls) => cls.instructorId);
     const instructors = await Instructor.find({
       _id: { $in: instructorIds },
-    }).lean();
+    }).lean<InstructorDoc[]>();
 
     // Create lookup tables for faster access
     const locationMap: { [key: string]: string } = locations.reduce(

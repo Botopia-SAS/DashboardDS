@@ -1,6 +1,5 @@
 "use client";
 
-import useClassStore from "@/app/store/classStore";
 import Loader from "@/components/custom ui/Loader";
 import { columns, Student } from "@/components/ticket/columns";
 import { DataTable } from "@/components/ticket/data-table";
@@ -8,7 +7,7 @@ import { Button } from "@/components/ui/button";
 import { ArrowLeftIcon, Plus } from "lucide-react";
 import Link from "next/link";
 import { useParams, useRouter } from "next/navigation";
-import { useEffect, useState, useRef, useCallback } from "react";
+import { useCallback, useEffect, useRef, useState } from "react";
 import toast from "react-hot-toast";
 
 export default function Page() {
@@ -21,10 +20,15 @@ export default function Page() {
 
   const fetchInfo = useCallback(() => {
     setLoading(true);
-    fetch(`/api/ticket/classes/date/students/${classId}`)
+    fetch(`/api/ticket/classes/students/${classId}`)
       .then((res) => res.json())
       .then((data) => {
-        setStudents(data);
+        // Agregar el tipo de curso 'bdi' a cada estudiante para esta ruta
+        const studentsWithType = data.map((student: Student) => ({
+          ...student,
+          courseType: "bdi",
+        }));
+        setStudents(studentsWithType);
         setLoading(false);
       });
   }, [classId]);
@@ -44,7 +48,7 @@ export default function Page() {
 
   const onUpdate = async (data: Partial<Student>[]) => {
     for (const student of data) {
-      const res = await fetch(`/api/ticket/classes/date/students/${classId}`, {
+      const res = await fetch(`/api/ticket/classes/students/${classId}`, {
         method: "PATCH",
         headers: {
           "Content-Type": "application/json",
@@ -67,7 +71,7 @@ export default function Page() {
           <h1 className="text-xl font-semibold">Tickets</h1>
           <div className="flex items-center space-x-2">
             <Link
-              href={`/ticket/class-records/${classId}/new`}
+              href={`/ticket/bdi/class-records/${classId}/new`}
               className="hover:underline flex items-center gap-x-2 bg-blue-500 text-white px-3 py-1 rounded-md"
             >
               <Plus className="size-4" />

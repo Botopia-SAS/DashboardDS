@@ -125,7 +125,7 @@ export function DataTable({ columns, data, onUpdate }: DataTableProps) {
   const downloadXLSX = useCallback(() => {
     const studentsWithCertnZero = data
       .filter((student) => student.certn === 0)
-      .map(({ id, payedAmount, certn, ...rest }) => rest);
+      .map(({ id, payedAmount, certn, licenseNumber, courseType,  ...rest }) => rest);
 
     if (studentsWithCertnZero.length === 0) {
       toast.error("No students with certn equal to 0.");
@@ -201,7 +201,7 @@ export function DataTable({ columns, data, onUpdate }: DataTableProps) {
                               type="text"
                               value={rowData[columnId] || ""}
                               onChange={(e) =>
-                                handleChange(row.id, columnId, e.target.value)
+                                handleChange(row.id, columnId, +e.target.value)
                               }
                               className="border p-1 w-full"
                             />

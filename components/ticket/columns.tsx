@@ -12,6 +12,8 @@ export interface Student {
   birthDate: string;
   courseDate: string;
   paymentMethod?: string;
+  licenseNumber?: string;
+  courseType?: string; // Tipo de curso: 'bdi' o 'date'
 }
 
 export const columns: ColumnDef<Student>[] = [

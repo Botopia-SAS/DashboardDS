@@ -40,6 +40,7 @@ type CustomerType = {
   howDidYouHear: string;
   payedAmount: number;
   method: string;
+  createdAt?: string; // Añadiendo el campo de fecha de creación
 };
 type CustomerEmailAddressesType = {
   emailAddress: string;

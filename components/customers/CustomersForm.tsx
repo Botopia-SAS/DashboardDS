@@ -236,6 +236,7 @@ interface CustomersFormProps {
       | "BDI Red light running"
       | "BDI Passing School Bus"
       | "BDI for Highway Racing";
+    createdAt?: string; // Añadiendo la fecha de creación
   } | null;
 }
 
@@ -352,8 +353,37 @@ const CustomersForm = ({ initialData }: CustomersFormProps) => {
         {initialData ? "Update" : "Register New"} User
       </h1>
       <Separator className="bg-gray-300 my-6" />
+
+      {/* Displaying registration date for existing users or current date for new users */}
+      <div className="bg-gray-50 p-4 rounded-lg mb-6 border border-gray-200">
+        <p className="text-gray-700 font-medium">
+          <span className="font-semibold">Register date:</span>{" "}
+          {initialData && initialData.createdAt
+            ? new Date(initialData.createdAt).toLocaleString("en-US", {
+                day: "numeric",
+                month: "long",
+                year: "numeric",
+                hour: "numeric",
+                minute: "2-digit",
+                hour12: true,
+              })
+            : new Date().toLocaleString("en-US", {
+                day: "numeric",
+                month: "long",
+                year: "numeric",
+                hour: "numeric",
+                minute: "2-digit",
+                hour12: true,
+              })}
+        </p>
+      </div>
+
       <Form {...form}>
-        <form autoComplete="off" onSubmit={form.handleSubmit(onSubmit)} className="space-y-8">
+        <form
+          autoComplete="off"
+          onSubmit={form.handleSubmit(onSubmit)}
+          className="space-y-8"
+        >
           <div className="space-y-6">
             <h2 className="text-xl font-semibold text-gray-700">
               Personal Information
