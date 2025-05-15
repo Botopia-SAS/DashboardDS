@@ -12,10 +12,11 @@ type InstructorType = {
   experience?: string;
   schedule?: {
     date: string;
-    slots: {
-      start: string;
-      end: string;
-    }[];
+    start: string;
+    end: string;
+    booked?: boolean;
+    studentId?: string | null;
+    status?: string;
   }[];
 };
 
@@ -73,7 +74,25 @@ const InstructorDetails = ({
           console.warn("⚠️ No matching instructor found for ID:", instructorId);
           setInstructorDetails(null);
         } else {
-          setInstructorDetails(selectedInstructor);
+          // Flatten schedule if it's in the old nested format
+          let flatSchedule = selectedInstructor.schedule;
+          if (
+            flatSchedule &&
+            flatSchedule.length > 0 &&
+            (flatSchedule[0] as any).slots
+          ) {
+            flatSchedule = (flatSchedule || []).flatMap((entry: any) =>
+              (entry.slots || []).map((slot: any) => ({
+                date: entry.date,
+                start: slot.start,
+                end: slot.end,
+                booked: slot.booked || false,
+                studentId: slot.studentId || null,
+                status: slot.status || "free",
+              }))
+            );
+          }
+          setInstructorDetails({ ...selectedInstructor, schedule: flatSchedule });
         }
       } catch (err) {
         console.error("[fetchInstructorDetails] Error:", err);

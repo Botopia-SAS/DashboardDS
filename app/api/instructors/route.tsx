@@ -4,24 +4,29 @@ import Instructor from "@/lib/models/Instructor"; // Modelo de MongoDB
 
 export const dynamic = "force-dynamic";
 
+function isValidSlot(slot: any) {
+  return slot && slot.date && slot.start && slot.end;
+}
+
 export async function POST(req: Request) {
     try {
         await connectToDB();
-        const { name, photo, certifications, experience, schedule }: { name: string, photo: string, certifications: string[], experience: string, schedule: { date: string, slots: { start: string, end: string, booked?: boolean }[] }[] } = await req.json();
+        const { name, photo, certifications, experience, schedule }: { name: string, photo: string, certifications: string[], experience: string, schedule: any[] } = await req.json();
+
+        // Log para depuración
+        console.log("SCHEDULE RECIBIDO EN POST:", JSON.stringify(schedule, null, 2));
+
+        // Solo slots válidos
+        const validSchedule = Array.isArray(schedule)
+          ? schedule.filter(isValidSlot)
+          : [];
 
         const newInstructor = new Instructor({
             name,
             photo,
             certifications,
             experience,
-            schedule: schedule.map((day: { date: string, slots: { start: string, end: string, booked?: boolean }[] }) => ({
-                date: day.date,
-                slots: day.slots.map(slot => ({
-                    start: slot.start,
-                    end: slot.end,
-                    booked: slot.booked || false, // ✅ Guardar `booked`
-                }))
-            }))
+            schedule: validSchedule,
         });
 
         await newInstructor.save();
@@ -48,15 +53,27 @@ export const GET = async () => {
 export async function PATCH(req: Request) {
     try {
         await connectToDB();
-        const { instructorId, ...updates } = await req.json();
+        const { instructorId, schedule: newSchedule, ...updates } = await req.json();
 
         if (!instructorId) {
             return NextResponse.json({ message: "Instructor ID is required" }, { status: 400 });
         }
 
+        // Log para depuración
+        console.log("SCHEDULE RECIBIDO EN PATCH:", JSON.stringify(newSchedule, null, 2));
+
+        // Solo slots válidos
+        const validSchedule = Array.isArray(newSchedule)
+          ? newSchedule.filter(isValidSlot)
+          : [];
+
+        // Logs de depuración
+        console.log("UPDATES:", updates);
+
+        // Reemplaza el schedule por el nuevo array plano
         const updatedInstructor = await Instructor.findByIdAndUpdate(
             instructorId,
-            { $set: updates },
+            { $set: { ...updates, schedule: validSchedule } },
             { new: true }
         );
 
