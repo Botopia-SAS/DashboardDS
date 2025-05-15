@@ -1,6 +1,7 @@
 "use client";
 
 import useClassStore from "@/app/store/classStore";
+import useClassTypeStore from "@/app/store/classTypeStore";
 import Loader from "@/components/custom ui/Loader";
 import Navigation from "@/components/ticket/navigation-card";
 import { Button } from "@/components/ui/button";
@@ -13,7 +14,7 @@ import {
   SelectValue,
 } from "@/components/ui/select";
 import { ArrowLeftIcon } from "lucide-react";
-import { useRouter } from "next/navigation";
+import { usePathname, useRouter } from "next/navigation";
 import { useEffect, useState } from "react";
 
 interface Class {
@@ -32,18 +33,20 @@ export default function Page() {
   const [classes, setClasses] = useState<Class[]>([]);
   const [loading, setLoading] = useState(false);
   const { setClassId, classId } = useClassStore();
+  const url = usePathname()
+  const classType = url.split('/').pop()
   const router = useRouter();
   useEffect(() => {
     setLoading(true);
     setClassId("");
-    fetch("/api/ticket/classes?type=date")
+    fetch(`/api/ticket/classes?type=${classType}`)
       .then((res) => res.json())
       .then((data) => {
         setClasses(data);
         setLoading(false);
       })
       .catch((error) => console.error("Error fetching classes:", error));
-  }, [setClassId]);
+  }, [setClassId, classType]);
   if (loading) {
     return <Loader />;
   }
@@ -118,7 +121,7 @@ export default function Page() {
                 onClick={handleClick}
               />
               <Navigation
-                href="/ticket/class-records"
+                href={`/ticket/${classType}/class-records/${classId}`}
                 title="View the Class Records"
                 description="View the records of the selected class."
                 onClick={handleClick}

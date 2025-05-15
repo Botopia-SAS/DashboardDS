@@ -1,13 +1,18 @@
 "use client";
 
 import useClassStore from "@/app/store/classStore";
-import { SelectContent } from "@radix-ui/react-select";
 import { useCallback, useEffect, useState } from "react";
 import toast from "react-hot-toast";
 import Loader from "../custom ui/Loader";
 import { Button } from "../ui/button";
 import { Label } from "../ui/label";
-import { Select, SelectItem, SelectTrigger, SelectValue } from "../ui/select";
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "../ui/select";
 
 interface Student {
   id: string;
@@ -16,8 +21,7 @@ interface Student {
   name: string;
 }
 
-export default function NewStudentForm() {
-  const { classId } = useClassStore();
+export default function NewStudentForm({ classId }: { classId: string }) {
   const [students, setStudents] = useState<Student[]>([]);
   const [loading, setLoading] = useState(false);
   const [student, setStudent] = useState<string | null>(null);
@@ -39,7 +43,7 @@ export default function NewStudentForm() {
       return;
     }
 
-    const res = await fetch(`/api/ticket/classes/date/students/${classId}`);
+    const res = await fetch(`/api/ticket/classes/students/${classId}`);
 
     if (!res.ok) {
       alert("Error adding student");

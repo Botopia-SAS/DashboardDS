@@ -10,6 +10,7 @@ import { ArrowUpRight } from "lucide-react";
 export type InstructorType = {
   _id: string;
   name: string;
+  dni: string; // Añadido campo DNI
   photo: string; // URL de la foto
   certifications?: string; // Certificaciones (opcional)
   experience?: string; // Experiencia (opcional)
@@ -28,6 +29,13 @@ export const columns: ColumnDef<InstructorType>[] = [
         {row.original.name}
         <ArrowUpRight size={16} className="opacity-75" />
       </Link>
+    ),
+  },
+  {
+    accessorKey: "dni",
+    header: "DNI",
+    cell: ({ row }) => (
+      <p className="font-medium text-gray-700">{row.original.dni}</p>
     ),
   },
   {

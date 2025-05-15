@@ -24,11 +24,19 @@ const OrderSchema = new Schema({
     type: String,
     required: true,
   },
+  createdAt: {
+    type: Date,
+    default: Date.now,
+  },
 });
 
 OrderSchema.pre("save", async function (next) {
   if (!this.orderNumber) {
-    const lastOrder = await Order.findOne({}, {}, { sort: { orderNumber: -1 } });
+    const lastOrder = await Order.findOne(
+      {},
+      {},
+      { sort: { orderNumber: -1 } }
+    );
     this.orderNumber = (lastOrder?.orderNumber || 0) + 1;
   }
   next();

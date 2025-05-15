@@ -55,7 +55,7 @@ export default function Pages() {
                     description="View or edit student records"
                   />
                   <Navigation
-                    href="/ticket/day-of-class/date"
+                    href={"/ticket/day-of-class/date"}
                     title="Day of Class Preparation"
                     description="Prepare for upcoming classes"
                   />
@@ -74,7 +74,7 @@ export default function Pages() {
             </Card>
           </TabsContent>
           <TabsContent value="bdi" className="w-full">
-          <Separator className="bg-gray-400 my-4" />
+            <Separator className="bg-gray-400 my-4" />
             <Card>
               <CardContent>
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-4 py-2">
@@ -89,7 +89,7 @@ export default function Pages() {
                     description="View or edit student records"
                   />
                   <Navigation
-                    href="/ticket/day-of-class/date"
+                    href={"/ticket/day-of-class/bdi"}
                     title="Day of Class Preparation"
                     description="Prepare for upcoming classes"
                   />
@@ -109,7 +109,37 @@ export default function Pages() {
           </TabsContent>
           <TabsContent value="adi" className="w-full">
             <Separator className="bg-gray-400 my-4" />
-            ADI PAGE
+            <Card>
+              <CardContent>
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-4 py-2">
+                  <Navigation
+                    href="/ticket/student-record/new"
+                    title="New Student Record"
+                    description="Create a record for a new student"
+                  />
+                  <Navigation
+                    href="/ticket/student-record"
+                    title="Existing Student Record"
+                    description="View or edit student records"
+                  />
+                  <Navigation
+                    href={"/ticket/day-of-class/adi"}
+                    title="Day of Class Preparation"
+                    description="Prepare for upcoming classes"
+                  />
+                  <Navigation
+                    href="/ticket/utilities"
+                    title="Utilities / Records"
+                    description="Access common utilities and records"
+                  />
+                  <Navigation
+                    href="/ticket/monthly-report"
+                    title="Monthly Report"
+                    description="Generate and view monthly reports"
+                  />
+                </div>
+              </CardContent>
+            </Card>
           </TabsContent>
         </Tabs>
       </div>
