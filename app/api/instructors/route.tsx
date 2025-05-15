@@ -13,9 +13,6 @@ export async function POST(req: Request) {
         await connectToDB();
         const { name, photo, certifications, experience, schedule }: { name: string, photo: string, certifications: string[], experience: string, schedule: any[] } = await req.json();
 
-        // Log para depuración
-        console.log("SCHEDULE RECIBIDO EN POST:", JSON.stringify(schedule, null, 2));
-
         // Solo slots válidos
         const validSchedule = Array.isArray(schedule)
           ? schedule.filter(isValidSlot)
@@ -32,7 +29,6 @@ export async function POST(req: Request) {
         await newInstructor.save();
         return NextResponse.json(newInstructor, { status: 201 });
     } catch (error) {
-        console.error(error);
         return NextResponse.json({ message: "Error creating instructor" }, { status: 500 });
     }
 }
@@ -59,16 +55,10 @@ export async function PATCH(req: Request) {
             return NextResponse.json({ message: "Instructor ID is required" }, { status: 400 });
         }
 
-        // Log para depuración
-        console.log("SCHEDULE RECIBIDO EN PATCH:", JSON.stringify(newSchedule, null, 2));
-
         // Solo slots válidos
         const validSchedule = Array.isArray(newSchedule)
           ? newSchedule.filter(isValidSlot)
           : [];
-
-        // Logs de depuración
-        console.log("UPDATES:", updates);
 
         // Reemplaza el schedule por el nuevo array plano
         const updatedInstructor = await Instructor.findByIdAndUpdate(
@@ -83,7 +73,6 @@ export async function PATCH(req: Request) {
 
         return NextResponse.json(updatedInstructor, { status: 200 });
     } catch (error) {
-        console.error("❌ Error al actualizar instructor:", error);
         return NextResponse.json({ message: "Error updating instructor" }, { status: 500 });
     }
 }
