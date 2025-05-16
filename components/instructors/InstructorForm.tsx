@@ -147,11 +147,13 @@ const InstructorForm = ({ initialData }: { initialData?: InstructorData }) => {
     sessionId?: string; // 🆕 ID de la sesión
     slotId?: string; // Add slotId property
     studentId?: string; // Add studentId property
+    status?: string; // <-- Agregado para evitar error de linter
   }>({
     start: "",
     end: "",
     booked: false,
     recurrence: "None",
+    status: undefined, // Valor inicial
     recurrenceEnd: null, // Valor inicial
     isEditing: false, // Inicialmente, asumimos que no estamos editando
   });
@@ -166,6 +168,7 @@ const InstructorForm = ({ initialData }: { initialData?: InstructorData }) => {
   const [allUsers, setAllUsers] = useState<User[]>([]);
   const [users, setUsers] = useState<User[]>([]);
   const [selectedStudent, setSelectedStudent] = useState<string>("");
+  const [slotType, setSlotType] = useState<"free" | "cancelled" | "booked" | "">("");
 
   useEffect(() => {
     if (schedule.length === 0) return; // Evita actualizaciones innecesarias
@@ -295,53 +298,53 @@ const InstructorForm = ({ initialData }: { initialData?: InstructorData }) => {
   };
 
   const handleUpdateSlot = () => {
-    console.log("📝 handleUpdateSlot ejecutado");
-
-    if (
-      !currentSlot ||
-      !currentSlot.originalStart ||
-      !currentSlot.originalEnd
-    ) {
-      console.error("❌ No hay currentSlot definido.");
+    if (!currentSlot || !currentSlot.originalStart || !currentSlot.originalEnd) {
+      toast.error("No slot defined.");
       return;
     }
-
+    if (!slotType) {
+      toast.error("Please select a slot type.");
+      return;
+    }
+    if (slotType === "booked" && !selectedStudent) {
+      toast.error("Please select a student for a booked slot.");
+      return;
+    }
+    let status = slotType;
+    let booked = slotType === "booked" || slotType === "cancelled";
+    let studentId = slotType === "booked" ? selectedStudent : null;
+    if (slotType === "free") booked = false;
     setSchedule((prevSchedule) => {
       return prevSchedule.map((slot) => {
         const slotDate = slot.start.split("T")[0];
         const currentSlotDate = currentSlot.originalStart
           ? currentSlot.originalStart.split("T")[0]
           : "";
-
         if (
-          normalizeTime(slot.start) ===
-            normalizeTime(currentSlot.originalStart || "") &&
-          normalizeTime(slot.end) ===
-            normalizeTime(currentSlot.originalEnd || "") &&
+          normalizeTime(slot.start) === normalizeTime(currentSlot.originalStart || "") &&
+          normalizeTime(slot.end) === normalizeTime(currentSlot.originalEnd || "") &&
           slot.recurrence === currentSlot.recurrence &&
-          (editAll || slotDate === currentSlotDate) // 🔹 Editar solo uno o todos
+          (editAll || slotDate === currentSlotDate)
         ) {
           return {
             ...slot,
-            start:
-              slot.start.split("T")[0] +
-              "T" +
-              currentSlot.start.split("T")[1],
-            end:
-              slot.end.split("T")[0] + "T" + currentSlot.end.split("T")[1],
-            booked: currentSlot.booked,
+            start: slot.start.split("T")[0] + "T" + currentSlot.start.split("T")[1],
+            end: slot.end.split("T")[0] + "T" + currentSlot.end.split("T")[1],
+            booked,
+            studentId,
+            status,
             recurrence: currentSlot.recurrence,
-            slotId: slot.slotId || uuidv4(), // 🔥 Mantener slotId original o generar uno si no existe
+            slotId: slot.slotId || uuidv4(),
           };
         }
         return slot;
       });
     });
-
     setIsModalOpen(false);
     setEditModalOpen(false);
     setCurrentSlot({ start: "", end: "", booked: false, recurrence: "None" });
-
+    setSelectedStudent("");
+    setSlotType("");
     toast.success(editAll ? "All slots updated!" : "Slot updated!");
   };
 
@@ -377,15 +380,30 @@ const InstructorForm = ({ initialData }: { initialData?: InstructorData }) => {
       toast.error("No slot defined.");
       return;
     }
-    if (currentSlot.booked && !selectedStudent) {
+    if (!slotType) {
+      toast.error("Please select a slot type.");
+      return;
+    }
+    if (slotType === "booked" && !selectedStudent) {
       toast.error("Please select a student for a booked slot.");
       return;
     }
-    const isBooked = currentSlot.booked && selectedStudent;
+
+    // Forzar los valores correctos para "booked"
+    let status = slotType;
+    let booked = slotType === "booked" || slotType === "cancelled";
+    let studentId = slotType === "booked" ? selectedStudent : null;
+
+    if (slotType === "booked") {
+      status = "scheduled";
+      booked = true;
+    }
+    if (slotType === "free") booked = false;
+
     const newSlots = splitIntoHalfHourSlots(currentSlot.start, currentSlot.end, {
-      booked: isBooked ? true : false,
-      studentId: isBooked ? selectedStudent : null,
-      status: isBooked ? "scheduled" : "free",
+      booked,
+      studentId,
+      status,
     }).map(slot => ({
       date: slot.date,
       start: slot.start,
@@ -394,6 +412,7 @@ const InstructorForm = ({ initialData }: { initialData?: InstructorData }) => {
       booked: slot.booked,
       studentId: slot.studentId,
     }));
+
     for (const slot of newSlots) {
       if (schedule.some(s => s.date === slot.date && s.start === slot.start && s.end === slot.end)) {
         toast.error("Slot already exists for that time.");
@@ -404,6 +423,7 @@ const InstructorForm = ({ initialData }: { initialData?: InstructorData }) => {
     setIsModalOpen(false);
     setCurrentSlot({ start: "", end: "", booked: false, recurrence: "None" });
     setSelectedStudent("");
+    setSlotType("");
     toast.success("Slots saved!");
   };
 
@@ -513,6 +533,8 @@ const InstructorForm = ({ initialData }: { initialData?: InstructorData }) => {
     title:
       slot.status === "scheduled" && slot.studentId
         ? `Booked: ${getStudentName(slot.studentId)}`
+        : slot.status === "cancelled"
+        ? "Cancelled"
         : slot.status === "free"
         ? "Free"
         : slot.booked
@@ -523,6 +545,8 @@ const InstructorForm = ({ initialData }: { initialData?: InstructorData }) => {
     backgroundColor:
       slot.status === "scheduled"
         ? "blue"
+        : slot.status === "cancelled"
+        ? "red"
         : slot.status === "free"
         ? "gray"
         : slot.booked
@@ -531,6 +555,8 @@ const InstructorForm = ({ initialData }: { initialData?: InstructorData }) => {
     borderColor:
       slot.status === "scheduled"
         ? "darkblue"
+        : slot.status === "cancelled"
+        ? "darkred"
         : slot.status === "free"
         ? "darkgray"
         : slot.booked
@@ -552,11 +578,10 @@ const InstructorForm = ({ initialData }: { initialData?: InstructorData }) => {
   }, [schedule]);
 
   useEffect(() => {
-    if (isModalOpen && currentSlot?.booked) {
+    if (isModalOpen && slotType === "booked") {
       fetch("/api/users")
         .then((res) => res.json())
         .then((data) => {
-          // Usa name si existe, si no combina firstName y lastName
           const filtered = data
             .filter((u: User) => u.role === "user")
             .map((u: User) => ({
@@ -567,7 +592,7 @@ const InstructorForm = ({ initialData }: { initialData?: InstructorData }) => {
           setUsers(filtered);
         });
     }
-  }, [isModalOpen, currentSlot?.booked]);
+  }, [isModalOpen, slotType]);
 
   // Sincroniza selectedStudent con el studentId del slot actual cada vez que se abre el modal
   useEffect(() => {
@@ -585,6 +610,28 @@ const InstructorForm = ({ initialData }: { initialData?: InstructorData }) => {
       setSelectedStudent("");
     }
   }, [isModalOpen, currentSlot, schedule]);
+
+  // Sincroniza slotType con el slot actual al abrir el modal
+  useEffect(() => {
+    if (isModalOpen && currentSlot) {
+      if (currentSlot.status === "free") setSlotType("free");
+      else if (currentSlot.status === "cancelled") setSlotType("cancelled");
+      else if (currentSlot.status === "scheduled") setSlotType("booked");
+      else setSlotType("");
+    }
+  }, [isModalOpen, currentSlot]);
+
+  useEffect(() => {
+    if (isModalOpen && currentSlot?.isEditing && slotType === "booked") {
+      const realSlot = schedule.find(
+        s =>
+          s.date === currentSlot.start.split("T")[0] &&
+          s.start === currentSlot.start.split("T")[1] &&
+          s.end === currentSlot.end.split("T")[1]
+      );
+      if (realSlot?.studentId) setSelectedStudent(realSlot.studentId);
+    }
+  }, [isModalOpen, currentSlot, schedule, slotType]);
 
   return (
     <div className="p-10">
@@ -856,23 +903,47 @@ const InstructorForm = ({ initialData }: { initialData?: InstructorData }) => {
                 </div>
               )}
 
-              {/* ✅ Checkbox para Agendar */}
-              <div className="mt-3 flex items-center">
-                <input
-                  type="checkbox"
-                  checked={currentSlot?.booked || false}
-                  onChange={(e) =>
-                    setCurrentSlot((prev) =>
-                      prev ? { ...prev, booked: e.target.checked } : prev
-                    )
-                  }
-                  className="mr-2"
-                />
-                <label className="text-sm">Booked</label>
+              {/* Opciones exclusivas para el tipo de slot */}
+              <div className="mt-3 flex gap-4">
+                <label className="flex items-center gap-1">
+                  <input
+                    type="radio"
+                    checked={slotType === "free"}
+                    onChange={() => setSlotType("free")}
+                  />
+                  Free
+                </label>
+                <label className="flex items-center gap-1">
+                  <input
+                    type="radio"
+                    checked={slotType === "cancelled"}
+                    onChange={() => setSlotType("cancelled")}
+                  />
+                  Cancelled
+                </label>
+                <label className="flex items-center gap-1">
+                  <input
+                    type="radio"
+                    checked={slotType === "booked"}
+                    onChange={() => {
+                      setSlotType("booked");
+                      if (currentSlot?.isEditing) {
+                        const realSlot = schedule.find(
+                          s =>
+                            s.date === currentSlot.start.split("T")[0] &&
+                            s.start === currentSlot.start.split("T")[1] &&
+                            s.end === currentSlot.end.split("T")[1]
+                        );
+                        if (realSlot?.studentId) setSelectedStudent(realSlot.studentId);
+                      }
+                    }}
+                  />
+                  Booked
+                </label>
               </div>
 
-              {/* ✅ Campo de búsqueda de estudiante si Booked */}
-              {currentSlot?.booked && (
+              {/* Si es Booked, muestra el buscador de estudiante */}
+              {slotType === "booked" && (
                 <div className="mt-3">
                   <label className="block text-sm font-medium">Student</label>
                   <input
