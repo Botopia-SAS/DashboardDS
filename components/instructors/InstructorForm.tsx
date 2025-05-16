@@ -89,22 +89,6 @@ interface InstructorData {
   }[];
 }
 
-// Normaliza el schedule recibido en initialData para que siempre sea un array plano de slots con date, start y end. Así evitamos que se guarde la estructura con slots vacíos.
-function normalizeSchedule(data: any) {
-  if (!Array.isArray(data)) return [];
-  // Si ya es plano, lo dejamos igual
-  if (data.length > 0 && data[0].start && data[0].end) return data;
-  // Si viene como [{date, slots: []}], solo aplanamos los que tengan slots válidos
-  return data.flatMap((day: any) =>
-    Array.isArray(day.slots) && day.slots.length > 0
-      ? day.slots.map((slot: any) => ({
-          ...slot,
-          date: day.date
-        }))
-      : []
-  );
-}
-
 // Añade modelo de usuario para tipado
 interface User {
   _id: string;
@@ -115,21 +99,39 @@ interface User {
   role: string;
 }
 
+// Tipado de slot
+export interface Slot {
+  date: string;
+  start: string;
+  end: string;
+  booked?: boolean;
+  recurrence?: string;
+  slotId?: string;
+  studentId?: string | null;
+  status?: "free" | "cancelled" | "scheduled";
+}
+
+function normalizeSchedule(data: unknown): Slot[] {
+  if (!Array.isArray(data)) return [];
+  // Si ya es plano, lo dejamos igual
+  if (data.length > 0 && (data[0] as Slot).start && (data[0] as Slot).end) return data as Slot[];
+  // Si viene como [{date, slots: []}], solo aplanamos los que tengan slots válidos
+  return (data as { date: string; slots: Slot[] }[]).flatMap((day) =>
+    Array.isArray(day.slots) && day.slots.length > 0
+      ? day.slots.map((slot) => ({
+          ...slot,
+          date: day.date
+        }))
+      : []
+  );
+}
+
 const InstructorForm = ({ initialData }: { initialData?: InstructorData }) => {
   const recurrenceOptions = ["None", "Daily", "Weekly", "Monthly"];
   const [recurrenceEnd, setRecurrenceEnd] = useState<string | null>(null);
   const router = useRouter();
   const [loading, setLoading] = useState(false);
-  const [schedule, setSchedule] = useState<{
-    date: string;
-    start: string;
-    end: string;
-    booked?: boolean;
-    recurrence?: string;
-    slotId?: string;
-    studentId?: string | null;
-    status?: string;
-  }[]>(() => normalizeSchedule(initialData?.schedule || []));
+  const [schedule, setSchedule] = useState<Slot[]>(() => normalizeSchedule(initialData?.schedule || []));
   const [calendarEvents, setCalendarEvents] = useState<CalendarEvent[]>([]);
   const [calendarKey, setCalendarKey] = useState(0); // 🔹 Clave única para forzar re-render
   const [isModalOpen, setIsModalOpen] = useState(false);
@@ -138,24 +140,24 @@ const InstructorForm = ({ initialData }: { initialData?: InstructorData }) => {
     end: string;
     booked: boolean;
     recurrence: string;
-    recurrenceEnd?: string | null; // 🆕 Agregado para manejar la duración de la recurrencia
-    isEditing?: boolean; // 🔹 Agregamos esta propiedad opcional
-    originalStart?: string; // 🔹 Agregado
-    originalEnd?: string; // 🔹 Agregado
-    editAll?: boolean; // 🆕 Agregado para editar todas las instancias
-    sessionType?: string; // 🆕 Tipo de reserva (Clase, Sesión, etc.)
-    sessionId?: string; // 🆕 ID de la sesión
-    slotId?: string; // Add slotId property
-    studentId?: string; // Add studentId property
-    status?: string; // <-- Agregado para evitar error de linter
+    recurrenceEnd?: string | null;
+    isEditing?: boolean;
+    originalStart?: string;
+    originalEnd?: string;
+    editAll?: boolean;
+    sessionType?: string;
+    sessionId?: string;
+    slotId?: string;
+    studentId?: string;
+    status?: "free" | "cancelled" | "scheduled";
   }>({
     start: "",
     end: "",
     booked: false,
     recurrence: "None",
-    status: undefined, // Valor inicial
-    recurrenceEnd: null, // Valor inicial
-    isEditing: false, // Inicialmente, asumimos que no estamos editando
+    status: undefined,
+    recurrenceEnd: null,
+    isEditing: false,
   });
   const [copiedSlot, setCopiedSlot] = useState<{
     duration: number;
@@ -163,7 +165,6 @@ const InstructorForm = ({ initialData }: { initialData?: InstructorData }) => {
     recurrence: string;
   } | null>(null);
   const [editModalOpen, setEditModalOpen] = useState(false);
-  const [deleteModalOpen, setDeleteModalOpen] = useState(false);
   const [editAll, setEditAll] = useState(false);
   const [allUsers, setAllUsers] = useState<User[]>([]);
   const [users, setUsers] = useState<User[]>([]);
@@ -173,7 +174,7 @@ const InstructorForm = ({ initialData }: { initialData?: InstructorData }) => {
   useEffect(() => {
     if (schedule.length === 0) return; // Evita actualizaciones innecesarias
 
-    const newEvents = schedule.map((slot) => ({
+    const newEvents = schedule.map((slot: Slot) => ({
       title: slot.booked ? "Booked" : "Available",
       start: slot.start,
       end: slot.end,
@@ -199,7 +200,7 @@ const InstructorForm = ({ initialData }: { initialData?: InstructorData }) => {
   }, [schedule]);
 
   useEffect(() => {
-    const events = schedule.map((slot) => ({
+    const events = schedule.map((slot: Slot) => ({
       title: slot.booked ? "Booked" : "Available",
       start: slot.start,
       end: slot.end,
@@ -223,7 +224,7 @@ const InstructorForm = ({ initialData }: { initialData?: InstructorData }) => {
 
     console.log("📆 Schedule actualizado, recalculando eventos...");
 
-    const newEvents = schedule.map((slot) => ({
+    const newEvents = schedule.map((slot: Slot) => ({
       title: slot.booked ? "Booked" : "Available",
       start: slot.start,
       end: slot.end,
@@ -280,8 +281,8 @@ const InstructorForm = ({ initialData }: { initialData?: InstructorData }) => {
     const startTime = currentSlot.start.split("T")[1];
     const endTime = currentSlot.end.split("T")[1];
 
-    setSchedule((prevSchedule) =>
-      prevSchedule.filter((slot) => {
+    setSchedule((prevSchedule: Slot[]) =>
+      prevSchedule.filter((slot: Slot) => {
         if (slot.date !== date) return true;
         // Elimina si el slot está dentro del rango seleccionado
         return slot.start < startTime || slot.end > endTime;
@@ -310,12 +311,12 @@ const InstructorForm = ({ initialData }: { initialData?: InstructorData }) => {
       toast.error("Please select a student for a booked slot.");
       return;
     }
-    let status = slotType;
     let booked = slotType === "booked" || slotType === "cancelled";
-    let studentId = slotType === "booked" ? selectedStudent : null;
+    const status = slotType === "booked" ? "scheduled" : slotType;
+    const studentId = slotType === "booked" ? selectedStudent : null;
     if (slotType === "free") booked = false;
-    setSchedule((prevSchedule) => {
-      return prevSchedule.map((slot) => {
+    setSchedule((prevSchedule: Slot[]) => {
+      return prevSchedule.map((slot: Slot) => {
         const slotDate = slot.start.split("T")[0];
         const currentSlotDate = currentSlot.originalStart
           ? currentSlot.originalStart.split("T")[0]
@@ -348,12 +349,8 @@ const InstructorForm = ({ initialData }: { initialData?: InstructorData }) => {
     toast.success(editAll ? "All slots updated!" : "Slot updated!");
   };
 
-  function formatHour(date: Date) {
-    return date.toISOString().substr(11, 5); // "HH:mm"
-  }
-
-  function splitIntoHalfHourSlots(startStr: string, endStr: string, baseSlot: any) {
-    const slots = [];
+  function splitIntoHalfHourSlots(startStr: string, endStr: string, baseSlot: Partial<Slot>): Slot[] {
+    const slots: Slot[] = [];
     let start = new Date(startStr);
     const end = new Date(endStr);
     const date = startStr.split('T')[0];
@@ -367,8 +364,8 @@ const InstructorForm = ({ initialData }: { initialData?: InstructorData }) => {
         end: slotEnd.toTimeString().slice(0, 5), // Solo la hora
         booked: false,
         studentId: null,
-        status: "free",
-        ...baseSlot,
+        ...Object.fromEntries(Object.entries(baseSlot).filter(([key]) => key !== 'status')),
+        status: (baseSlot.status as "free" | "cancelled" | "scheduled") ?? "free",
       });
       start = slotEnd;
     }
@@ -390,14 +387,10 @@ const InstructorForm = ({ initialData }: { initialData?: InstructorData }) => {
     }
 
     // Forzar los valores correctos para "booked"
-    let status = slotType;
     let booked = slotType === "booked" || slotType === "cancelled";
-    let studentId = slotType === "booked" ? selectedStudent : null;
+    const status = slotType === "booked" ? "scheduled" : slotType;
+    const studentId = slotType === "booked" ? selectedStudent : null;
 
-    if (slotType === "booked") {
-      status = "scheduled";
-      booked = true;
-    }
     if (slotType === "free") booked = false;
 
     const newSlots = splitIntoHalfHourSlots(currentSlot.start, currentSlot.end, {
@@ -414,12 +407,12 @@ const InstructorForm = ({ initialData }: { initialData?: InstructorData }) => {
     }));
 
     for (const slot of newSlots) {
-      if (schedule.some(s => s.date === slot.date && s.start === slot.start && s.end === slot.end)) {
+      if (schedule.some((s: Slot) => s.date === slot.date && s.start === slot.start && s.end === slot.end)) {
         toast.error("Slot already exists for that time.");
         return;
       }
     }
-    setSchedule((prevSchedule) => [...prevSchedule, ...newSlots]);
+    setSchedule((prevSchedule: Slot[]) => [...prevSchedule, ...newSlots]);
     setIsModalOpen(false);
     setCurrentSlot({ start: "", end: "", booked: false, recurrence: "None" });
     setSelectedStudent("");
@@ -494,7 +487,7 @@ const InstructorForm = ({ initialData }: { initialData?: InstructorData }) => {
         body: JSON.stringify({
           instructorId: initialData?._id ?? "",
           ...values,
-          schedule: schedule.map((slot) => ({
+          schedule: schedule.map((slot: Slot) => ({
             date: slot.date,
             start: slot.start,
             end: slot.end,
@@ -529,7 +522,7 @@ const InstructorForm = ({ initialData }: { initialData?: InstructorData }) => {
     return user ? `${user.name || ((user.firstName || "") + " " + (user.lastName || ""))} (${user.email})` : "Scheduled";
   };
 
-  const formattedEvents = schedule.map((slot) => ({
+  const formattedEvents = schedule.map((slot: Slot) => ({
     title:
       slot.status === "scheduled" && slot.studentId
         ? `Booked: ${getStudentName(slot.studentId)}`
@@ -598,11 +591,10 @@ const InstructorForm = ({ initialData }: { initialData?: InstructorData }) => {
   useEffect(() => {
     if (isModalOpen && currentSlot && currentSlot.booked) {
       // Busca el slot real en el schedule por fecha, start y end
-      const realSlot = schedule.find(
-        s =>
-          s.date === currentSlot.start.split("T")[0] &&
-          s.start === currentSlot.start.split("T")[1] &&
-          s.end === currentSlot.end.split("T")[1]
+      const realSlot = schedule.find((s: Slot) =>
+        s.date === currentSlot.start.split("T")[0] &&
+        s.start === currentSlot.start.split("T")[1] &&
+        s.end === currentSlot.end.split("T")[1]
       );
       setSelectedStudent(realSlot?.studentId || "");
     }
@@ -623,11 +615,10 @@ const InstructorForm = ({ initialData }: { initialData?: InstructorData }) => {
 
   useEffect(() => {
     if (isModalOpen && currentSlot?.isEditing && slotType === "booked") {
-      const realSlot = schedule.find(
-        s =>
-          s.date === currentSlot.start.split("T")[0] &&
-          s.start === currentSlot.start.split("T")[1] &&
-          s.end === currentSlot.end.split("T")[1]
+      const realSlot = schedule.find((s: Slot) =>
+        s.date === currentSlot.start.split("T")[0] &&
+        s.start === currentSlot.start.split("T")[1] &&
+        s.end === currentSlot.end.split("T")[1]
       );
       if (realSlot?.studentId) setSelectedStudent(realSlot.studentId);
     }
@@ -928,11 +919,10 @@ const InstructorForm = ({ initialData }: { initialData?: InstructorData }) => {
                     onChange={() => {
                       setSlotType("booked");
                       if (currentSlot?.isEditing) {
-                        const realSlot = schedule.find(
-                          s =>
-                            s.date === currentSlot.start.split("T")[0] &&
-                            s.start === currentSlot.start.split("T")[1] &&
-                            s.end === currentSlot.end.split("T")[1]
+                        const realSlot = schedule.find((s: Slot) =>
+                          s.date === currentSlot.start.split("T")[0] &&
+                          s.start === currentSlot.start.split("T")[1] &&
+                          s.end === currentSlot.end.split("T")[1]
                         );
                         if (realSlot?.studentId) setSelectedStudent(realSlot.studentId);
                       }
