@@ -3,6 +3,7 @@
 import { useEffect, useState } from "react";
 import Loader from "@/components/custom ui/Loader";
 import InstructorForm from "@/components/instructors/InstructorForm";
+import type { Slot } from "@/components/instructors/types";
 
 type InstructorType = {
   _id: string;
@@ -10,15 +11,13 @@ type InstructorType = {
   photo: string;
   certifications?: string;
   experience?: string;
-  schedule?: {
-    date: string;
-    start: string;
-    end: string;
-    booked?: boolean;
-    studentId?: string | null;
-    status?: string;
-  }[];
+  schedule?: Slot[];
 };
+
+const VALID_STATUSES = ["free", "cancelled", "scheduled"] as const;
+function normalizeSlotStatus(status: any): "free" | "cancelled" | "scheduled" | undefined {
+  return VALID_STATUSES.includes(status) ? status : undefined;
+}
 
 const InstructorDetails = ({
   params,
@@ -74,7 +73,6 @@ const InstructorDetails = ({
           console.warn("⚠️ No matching instructor found for ID:", instructorId);
           setInstructorDetails(null);
         } else {
-          // Flatten schedule if it's in the old nested format
           let flatSchedule = selectedInstructor.schedule;
           if (
             flatSchedule &&
@@ -88,9 +86,14 @@ const InstructorDetails = ({
                 end: slot.end,
                 booked: slot.booked || false,
                 studentId: slot.studentId || null,
-                status: slot.status || "free",
-              }))
+                status: (normalizeSlotStatus(slot.status) ?? undefined) as "free" | "cancelled" | "scheduled" | undefined,
+              } as Slot))
             );
+          } else if (flatSchedule) {
+            flatSchedule = flatSchedule.map((slot: any) => ({
+              ...slot,
+              status: (normalizeSlotStatus(slot.status) ?? undefined) as "free" | "cancelled" | "scheduled" | undefined,
+            } as Slot));
           }
           setInstructorDetails({ ...selectedInstructor, schedule: flatSchedule });
         }
