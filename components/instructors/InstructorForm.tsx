@@ -41,9 +41,9 @@ import { normalizeSchedule, splitIntoHalfHourSlots, normalizeTime, getStudentNam
 
 const formSchema = z.object({
   name: z.string().min(2, "Name is required"),
-  username: z.string().optional(), // Ahora opcional
+  dni: z.string().min(2, "DNI is required"),
   email: z.string().email("Invalid email format"),
-  password: z.string().optional(), // Ahora opcional
+  password: z.string().optional(), // No requerir aquí, se valida abajo
   photo: z.string().url("Valid photo URL required"),
   certifications: z.string().optional(),
   experience: z.string().optional(),
@@ -59,6 +59,13 @@ const formSchema = z.object({
       })
     )
     .optional(),
+}).refine((data) => {
+  // Solo requerir password si no hay initialData (creación)
+  // El valor de initialData no está aquí, así que la validación real se hace en el submit
+  return true;
+}, {
+  message: "Password is required",
+  path: ["password"],
 });
 
 // Componente principal que maneja el estado global y renderiza los subcomponentes
@@ -387,7 +394,7 @@ const InstructorForm = ({ initialData }: { initialData?: InstructorData }) => {
     resolver: zodResolver(formSchema),
     defaultValues: {
       name: initialData?.name || "",
-      username: initialData?.username || "",
+      dni: initialData?.dni || "",
       email: initialData?.email || "",
       password: "",
       photo: initialData?.photo || "",
@@ -399,28 +406,39 @@ const InstructorForm = ({ initialData }: { initialData?: InstructorData }) => {
 
   // Manejo del submit
   const onSubmit = async (values: InstructorData) => {
-    console.log("✅ Enviando al servidor los siguientes valores:", values);
-    console.log("📅 Schedule antes de enviar:", schedule);
-    console.log("SCHEDULE ENVIADO AL BACKEND:", schedule);
-
+    // Log para depuración
+    console.log("initialData:", initialData, "values.password:", values.password);
+    // Si es creación, password es obligatorio
+    if (!initialData && !values.password) {
+      toast.error("Password is required");
+      return;
+    }
     setLoading(true);
+
+    // LOG DETALLADO DEL BODY
+    const bodyToSend: any = {
+      instructorId: initialData?._id ?? "",
+      ...values,
+      schedule: schedule.map((slot: Slot) => ({
+        date: slot.date,
+        start: slot.start,
+        end: slot.end,
+        status: slot.status,
+        booked: slot.booked,
+        studentId: slot.studentId || null,
+      })),
+    };
+    // Si password está vacío, no lo envíes (solo para edición)
+    if (initialData && !bodyToSend.password) {
+      delete bodyToSend.password;
+    }
+    console.log("BODY QUE SE ENVÍA AL BACKEND:", bodyToSend);
 
     try {
       const res = await fetch(`/api/instructors`, {
         method: initialData ? "PATCH" : "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({
-          instructorId: initialData?._id ?? "",
-          ...values,
-          schedule: schedule.map((slot: Slot) => ({
-            date: slot.date,
-            start: slot.start,
-            end: slot.end,
-            status: slot.status,
-            booked: slot.booked,
-            studentId: slot.studentId || null,
-          })),
-        }),
+        body: JSON.stringify(bodyToSend),
       });
 
       console.log("🛜 Respuesta del servidor:", res);
@@ -482,7 +500,7 @@ const InstructorForm = ({ initialData }: { initialData?: InstructorData }) => {
     },
   }));
 
-  console.log("📆 Eventos de FullCalendar:", formattedEvents);
+
 
   useEffect(() => {
     setCalendarEvents(formattedEvents);

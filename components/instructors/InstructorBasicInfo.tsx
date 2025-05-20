@@ -7,6 +7,8 @@ import { Textarea } from "../ui/textarea";
 import ImageUpload from "../custom ui/ImageUpload";
 import { Button } from "@/components/ui/button";
 import { UseFormReturn } from "react-hook-form";
+import { useState } from "react";
+import { Eye, EyeOff } from "lucide-react";
 
 interface InstructorBasicInfoProps {
   form: UseFormReturn<any>;
@@ -14,6 +16,9 @@ interface InstructorBasicInfoProps {
 }
 
 const InstructorBasicInfo = ({ form, generatePassword }: InstructorBasicInfoProps) => {
+  // Estado para mostrar/ocultar contraseña
+  const [showPassword, setShowPassword] = useState(false);
+
   return (
     <>
       <FormField
@@ -24,6 +29,20 @@ const InstructorBasicInfo = ({ form, generatePassword }: InstructorBasicInfoProp
             <FormLabel>Name</FormLabel>
             <FormControl>
               <Input placeholder="Instructor Name" {...field} />
+            </FormControl>
+            <FormMessage />
+          </FormItem>
+        )}
+      />
+
+      <FormField
+        control={form.control}
+        name="dni"
+        render={({ field }) => (
+          <FormItem>
+            <FormLabel>DNI</FormLabel>
+            <FormControl>
+              <Input placeholder="DNI" {...field} />
             </FormControl>
             <FormMessage />
           </FormItem>
@@ -81,20 +100,6 @@ const InstructorBasicInfo = ({ form, generatePassword }: InstructorBasicInfoProp
       <div className="flex gap-24">
         <FormField
           control={form.control}
-          name="username"
-          render={({ field }) => (
-            <FormItem>
-              <FormLabel>Username</FormLabel>
-              <FormControl>
-                <Input placeholder="Enter username" {...field} />
-              </FormControl>
-              <FormMessage />
-            </FormItem>
-          )}
-        />
-
-        <FormField
-          control={form.control}
           name="email"
           render={({ field }) => (
             <FormItem>
@@ -113,13 +118,34 @@ const InstructorBasicInfo = ({ form, generatePassword }: InstructorBasicInfoProp
           render={({ field }) => (
             <FormItem>
               <FormLabel>Password</FormLabel>
-              <div className="flex gap-2">
+              <div className="flex gap-2 items-center">
                 <FormControl>
-                  <Input type="password" placeholder="Enter password" {...field} />
+                  <Input
+                    type={showPassword ? "text" : "password"}
+                    placeholder="Enter password"
+                    {...field}
+                  />
                 </FormControl>
-                <Button type="button" onClick={generatePassword} className="bg-blue-600 text-white">
+                <Button
+                  type="button"
+                  onClick={generatePassword}
+                  className="bg-blue-600 text-white"
+                >
                   Generate
                 </Button>
+                <button
+                  type="button"
+                  onClick={() => setShowPassword((prev) => !prev)}
+                  style={{ background: "none", border: "none", cursor: "pointer", padding: 0 }}
+                  tabIndex={-1}
+                  aria-label={showPassword ? "Hide password" : "Show password"}
+                >
+                  {showPassword ? (
+                    <EyeOff size={20} />
+                  ) : (
+                    <Eye size={20} />
+                  )}
+                </button>
               </div>
               <FormMessage />
             </FormItem>
