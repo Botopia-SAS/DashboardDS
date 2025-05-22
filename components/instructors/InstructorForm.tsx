@@ -39,9 +39,10 @@ import EditRecurringModal from "./EditRecurringModal";
 import { CalendarEvent, InstructorData as Id, Slot, User, SlotType } from "./types";
 import { normalizeSchedule, splitIntoHalfHourSlots, normalizeTime, getStudentName, generateRecurringSlots } from "./utils";
 
+// Replace the broken schema definition with this corrected version
 const formSchema = z.object({
   name: z.string().min(2, "Name is required"),
-  dni: z.string().min(1, "DNI is required"), // Nuevo campo DNI
+  dni: z.string().min(1, "DNI is required"),
   username: z.string().min(4, "Username must be at least 4 characters"),
   email: z.string().email("Invalid email format"),
   password: z.string().min(8, "Password must be at least 8 characters"),
@@ -53,15 +54,13 @@ const formSchema = z.object({
       z.object({
         date: z.string(),
         slots: z.array(
-          z
-            .object({
-              start: z.string(),
-              end: z.string(),
-              booked: z.boolean().optional(),
-            })
-            .refine((slot) => slot.start < slot.end, {
-              message: "Start time must be before end time.",
-            })
+          z.object({
+            start: z.string(),
+            end: z.string(),
+            booked: z.boolean().optional(),
+          }).refine((slot) => slot.start < slot.end, {
+            message: "Start time must be before end time.",
+          })
         ),
         start: z.string(),
         end: z.string(),
@@ -71,32 +70,8 @@ const formSchema = z.object({
       })
     )
     .optional(),
-});
-
-interface InstructorData {
-  _id?: string; // Agregar el identificador opcionalmente
-  name?: string;
-  dni?: string; // Añadir campo DNI
-  username?: string;
-  email?: string; // ✅ Nuevo campo de email
-  password?: string;
-  photo?: string;
-  certifications?: string;
-  experience?: string;
-  schedule?: {
-    date: string;
-    slots: {
-      start: string;
-      end: string;
-      booked?: boolean; // ✅ Nuevo campo
-    }[];
-    recurrenceEnd?: string | null; // Add this line
-  }[];
-}
-
 }).refine((data) => {
   // Solo requerir password si no hay initialData (creación)
-  // El valor de initialData no está aquí, así que la validación real se hace en el submit
   return true;
 }, {
   message: "Password is required",
@@ -429,8 +404,8 @@ const InstructorForm = ({ initialData }: { initialData?: InstructorData }) => {
     resolver: zodResolver(formSchema),
     defaultValues: {
       name: initialData?.name || "",
-      dni: initialData?.dni || "", // Añadido valor predeterminado para DNI
       dni: initialData?.dni || "",
+      username: initialData?.username || "", // Añade esta línea
       email: initialData?.email || "",
       password: "",
       photo: initialData?.photo || "",
@@ -666,3 +641,23 @@ const InstructorForm = ({ initialData }: { initialData?: InstructorData }) => {
 };
 
 export default InstructorForm;
+
+interface InstructorData {
+  _id?: string;
+  name: string;
+  dni: string;
+  username: string;
+  email: string;
+  password?: string;
+  photo: string;
+  certifications?: string;
+  experience?: string;
+  schedule?: {
+    date: string;
+    start: string;
+    end: string;
+    booked?: boolean;
+    studentId?: string | null;
+    status?: string;
+  }[];
+}

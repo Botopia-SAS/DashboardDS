@@ -76,26 +76,6 @@ export async function POST(req: Request) {
         if (!assignRoleRes.ok) {
             console.error('❌ Error al asignar rol en Auth0');
         }
-  try {
-    await connectToDB();
-    const {
-      name,
-      dni,
-      photo,
-      certifications,
-      experience,
-      schedule,
-    }: {
-      name: string;
-      dni: string;
-      photo: string;
-      certifications: string[];
-      experience: string;
-      schedule: {
-        date: string;
-        slots: { start: string; end: string; booked?: boolean }[];
-      }[];
-    } = await req.json();
 
         const newInstructor = new Instructor({
             name,
@@ -108,7 +88,7 @@ export async function POST(req: Request) {
             dni,
         });
 
-    await newInstructor.save();
+        await newInstructor.save();
 
         // Enviar correo con las credenciales al instructor
         try {
@@ -142,14 +122,14 @@ export async function POST(req: Request) {
             console.error('❌ Error al enviar correo de credenciales al instructor:', err);
         }
 
-    return NextResponse.json(newInstructor, { status: 201 });
-  } catch (error) {
-    console.error("Error en el endpoint POST /api/instructors:", error);
-    return NextResponse.json(
-      { message: "Error creating instructor" },
-      { status: 500 }
-    );
-  }
+        return NextResponse.json(newInstructor, { status: 201 });
+    } catch (error) {
+        console.error("Error en el endpoint POST /api/instructors:", error);
+        return NextResponse.json(
+            { message: "Error creating instructor" },
+            { status: 500 }
+        );
+    }
 }
 
 export const GET = async () => {
