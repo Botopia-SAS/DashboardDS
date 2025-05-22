@@ -9,6 +9,7 @@ import toast from "react-hot-toast";
 import { Dialog } from "@headlessui/react";
 import { DateSelectArg } from "@fullcalendar/core";
 import { EventClickArg } from "@fullcalendar/core";
+import { differenceInDays, differenceInWeeks, differenceInMonths } from "date-fns";
 
 import { Separator } from "../ui/separator";
 import { Button } from "@/components/ui/button";
@@ -31,26 +32,18 @@ import interactionPlugin from "@fullcalendar/interaction";
 import { v4 as uuidv4 } from "uuid";
 //import bcrypt from "bcryptjs"; Si no se usa eliminarlo
 // import { useRef } from "react";  Si no se usa eliminarlo
-
-type CalendarEvent = {
-  id?: string; // Opcional si no se usa en FullCalendar
-  title: string;
-  start: string; // Puede ser Date si FullCalendar lo requiere
-  end?: string; // Opcional porque algunos eventos pueden no tener fin
-  backgroundColor: string;
-  borderColor: string;
-  textColor: string;
-  extendedProps: {
-    recurrence: string;
-    booked: boolean;
-  };
-};
+import InstructorBasicInfo from "./InstructorBasicInfo";
+import InstructorSchedule from "./InstructorSchedule";
+import ScheduleModal from "./ScheduleModal";
+import EditRecurringModal from "./EditRecurringModal";
+import { CalendarEvent, InstructorData, Slot, User, SlotType } from "./types";
+import { normalizeSchedule, splitIntoHalfHourSlots, normalizeTime, getStudentName, generateRecurringSlots } from "./utils";
 
 const formSchema = z.object({
   name: z.string().min(2, "Name is required"),
-  username: z.string().min(4, "Username must be at least 4 characters"), // ✅ Nombre de usuario obligatorio
-  email: z.string().email("Invalid email format"), // ✅ Nuevo campo de email
-  password: z.string().min(8, "Password must be at least 8 characters"), // ✅ Contraseña obligatoria
+  dni: z.string().min(2, "DNI is required"),
+  email: z.string().email("Invalid email format"),
+  password: z.string().optional(), // No requerir aquí, se valida abajo
   photo: z.string().url("Valid photo URL required"),
   certifications: z.string().optional(),
   experience: z.string().optional(),
@@ -58,62 +51,30 @@ const formSchema = z.object({
     .array(
       z.object({
         date: z.string(),
-        slots: z.array(
-          z
-            .object({
-              start: z.string(),
-              end: z.string(),
-              booked: z.boolean().optional(), // ✅ Nuevo campo
-            })
-            .refine((slot) => slot.start < slot.end, {
-              message: "Start time must be before end time.",
-            })
-        ),
+        start: z.string(),
+        end: z.string(),
+        booked: z.boolean().optional(),
+        studentId: z.string().nullable().optional(),
+        status: z.string().optional(),
       })
     )
     .optional(),
+}).refine((data) => {
+  // Solo requerir password si no hay initialData (creación)
+  // El valor de initialData no está aquí, así que la validación real se hace en el submit
+  return true;
+}, {
+  message: "Password is required",
+  path: ["password"],
 });
 
-interface InstructorData {
-  _id?: string; // Agregar el identificador opcionalmente
-  name?: string;
-  username?: string;
-  email?: string; // ✅ Nuevo campo de email
-  password?: string;
-  photo?: string;
-  certifications?: string;
-  experience?: string;
-  schedule?: {
-    date: string;
-    slots: {
-      start: string;
-      end: string;
-      booked?: boolean; // ✅ Nuevo campo
-    }[];
-    recurrenceEnd?: string | null; // Add this line
-  }[];
-}
-
+// Componente principal que maneja el estado global y renderiza los subcomponentes
 const InstructorForm = ({ initialData }: { initialData?: InstructorData }) => {
   const recurrenceOptions = ["None", "Daily", "Weekly", "Monthly"];
   const [recurrenceEnd, setRecurrenceEnd] = useState<string | null>(null);
   const router = useRouter();
   const [loading, setLoading] = useState(false);
-  const [schedule, setSchedule] = useState<
-    {
-      date: string;
-      slots: {
-        start: string;
-        end: string;
-        booked: boolean;
-        recurrence: string;
-        recurrenceEnd?: string | null; // 🆕 Agregar aquí también
-        sessionType?: string;
-        sessionId?: string;
-        slotId?: string; // Add slotId property
-      }[];
-    }[]
-  >([]);
+  const [schedule, setSchedule] = useState<Slot[]>(() => normalizeSchedule(initialData?.schedule || []));
   const [calendarEvents, setCalendarEvents] = useState<CalendarEvent[]>([]);
   const [calendarKey, setCalendarKey] = useState(0); // 🔹 Clave única para forzar re-render
   const [isModalOpen, setIsModalOpen] = useState(false);
@@ -122,21 +83,24 @@ const InstructorForm = ({ initialData }: { initialData?: InstructorData }) => {
     end: string;
     booked: boolean;
     recurrence: string;
-    recurrenceEnd?: string | null; // 🆕 Agregado para manejar la duración de la recurrencia
-    isEditing?: boolean; // 🔹 Agregamos esta propiedad opcional
-    originalStart?: string; // 🔹 Agregado
-    originalEnd?: string; // 🔹 Agregado
-    editAll?: boolean; // 🆕 Agregado para editar todas las instancias
-    sessionType?: string; // 🆕 Tipo de reserva (Clase, Sesión, etc.)
-    sessionId?: string; // 🆕 ID de la sesión
-    slotId?: string; // Add slotId property
+    recurrenceEnd?: string | null;
+    isEditing?: boolean;
+    originalStart?: string;
+    originalEnd?: string;
+    editAll?: boolean;
+    sessionType?: string;
+    sessionId?: string;
+    slotId?: string;
+    studentId?: string;
+    status?: "free" | "cancelled" | "scheduled";
   }>({
     start: "",
     end: "",
     booked: false,
     recurrence: "None",
-    recurrenceEnd: null, // Valor inicial
-    isEditing: false, // Inicialmente, asumimos que no estamos editando
+    status: undefined,
+    recurrenceEnd: null,
+    isEditing: false,
   });
   const [copiedSlot, setCopiedSlot] = useState<{
     duration: number;
@@ -144,25 +108,28 @@ const InstructorForm = ({ initialData }: { initialData?: InstructorData }) => {
     recurrence: string;
   } | null>(null);
   const [editModalOpen, setEditModalOpen] = useState(false);
-  const [deleteModalOpen, setDeleteModalOpen] = useState(false);
   const [editAll, setEditAll] = useState(false);
+  const [allUsers, setAllUsers] = useState<User[]>([]);
+  const [users, setUsers] = useState<User[]>([]);
+  const [selectedStudent, setSelectedStudent] = useState<string>("");
+  const [slotType, setSlotType] = useState<SlotType>("");
 
   useEffect(() => {
     if (schedule.length === 0) return; // Evita actualizaciones innecesarias
 
-    const newEvents = schedule.flatMap((day) =>
-      day.slots.map((slot) => ({
-        title: slot.booked ? "Booked" : "Available",
-        start: slot.start,
-        end: slot.end,
-        backgroundColor: slot.booked ? "blue" : "green",
-        borderColor: slot.booked ? "darkblue" : "darkgreen",
-        textColor: "white",
-        extendedProps: { recurrence: slot.recurrence, booked: slot.booked },
-      }))
-    );
+    const newEvents = schedule.map((slot: Slot) => ({
+      title: slot.booked ? "Booked" : "Available",
+      start: slot.start,
+      end: slot.end,
+      backgroundColor: slot.booked ? "blue" : "green",
+      borderColor: slot.booked ? "darkblue" : "darkgreen",
+      textColor: "white",
+      extendedProps: {
+        recurrence: slot.recurrence || "None",
+        booked: slot.booked ?? false,
+      },
+    }));
 
-    console.log("📆 Actualizando eventos en FullCalendar:", newEvents);
     setCalendarEvents(newEvents);
 
     // 🔹 FORZAMOS el re-render solo cuando `schedule` cambie
@@ -170,47 +137,25 @@ const InstructorForm = ({ initialData }: { initialData?: InstructorData }) => {
   }, [schedule]); // Se ejecuta cada vez que schedule cambia
 
   useEffect(() => {
-    console.log("🔄 Reiniciando FullCalendar");
+    //console.log("🔄 Reiniciando FullCalendar");
     setCalendarKey((prevKey) => prevKey + 1);
   }, [schedule]);
 
   useEffect(() => {
-    const events = schedule.flatMap((day) =>
-      day.slots.map((slot) => ({
-        title: slot.booked ? "Booked" : "Available",
-        start: slot.start,
-        end: slot.end,
-        backgroundColor: slot.booked ? "blue" : "green",
-        borderColor: slot.booked ? "darkblue" : "darkgreen",
-        textColor: "white",
-        extendedProps: { recurrence: slot.recurrence, booked: slot.booked },
-      }))
-    );
+    const events = schedule.map((slot: Slot) => ({
+      title: slot.booked ? "Booked" : "Available",
+      start: slot.start,
+      end: slot.end,
+      backgroundColor: slot.booked ? "blue" : "green",
+      borderColor: slot.booked ? "darkblue" : "darkgreen",
+      textColor: "white",
+      extendedProps: {
+        recurrence: slot.recurrence || "None",
+        booked: slot.booked ?? false,
+      },
+    }));
 
-    console.log(
-      "📆 Eventos de FullCalendar actualizados:",
-      JSON.stringify(events, null, 2)
-    );
-  }, [schedule]);
-
-  useEffect(() => {
-    if (schedule.length === 0) return; // ✅ Evita actualizar si el estado está vacío
-
-    console.log("📆 Schedule actualizado, recalculando eventos...");
-
-    const newEvents = schedule.flatMap((day) =>
-      day.slots.map((slot) => ({
-        title: slot.booked ? "Booked" : "Available",
-        start: slot.start,
-        end: slot.end,
-        backgroundColor: slot.booked ? "blue" : "green",
-        borderColor: slot.booked ? "darkblue" : "darkgreen",
-        textColor: "white",
-        extendedProps: { recurrence: slot.recurrence, booked: slot.booked },
-      }))
-    );
-
-    setCalendarEvents(newEvents);
+    setCalendarEvents(events);
 
     setTimeout(() => {
       setCalendarKey((prevKey) => prevKey + 1);
@@ -236,237 +181,159 @@ const InstructorForm = ({ initialData }: { initialData?: InstructorData }) => {
     const end = selectInfo.endStr;
     const date = start.split("T")[0];
 
-    console.log("📌 handleDateSelect ejecutado con datos:", {
-      start,
-      end,
-      date,
-    });
-
     // 📌 Asignar `currentSlot` antes de abrir el modal
     setCurrentSlot({ start, end, booked: false, recurrence: "None" });
 
     setIsModalOpen(true);
   };
 
-  const handleDeleteSlot = (deleteAll: boolean) => {
-    console.log("❌ handleDeleteSlot ejecutado con deleteAll =", deleteAll);
-    console.log("📌 currentSlot antes de eliminar:", currentSlot);
+  const handleDeleteSlot = () => {
+    if (!currentSlot) return;
+    const date = currentSlot.start.split("T")[0];
+    const startTime = currentSlot.start.split("T")[1];
+    const endTime = currentSlot.end.split("T")[1];
 
-    if (!currentSlot || !currentSlot.slotId) {
-      toast.error("No slot selected for deletion.");
-      return;
-    }
-
-    setSchedule((prevSchedule) => {
-      const updatedSchedule = prevSchedule
-        .map((day) => ({
-          ...day,
-          slots: day.slots.filter((slot) => {
-            const slotDate = new Date(slot.start).toISOString().split("T")[0];
-            const currentSlotDate = new Date(currentSlot.start)
-              .toISOString()
-              .split("T")[0];
-
-            if (deleteAll) {
-              return !(
-                new Date(slotDate) >= new Date(currentSlotDate) &&
-                normalizeTime(slot.start) ===
-                  normalizeTime(currentSlot.start) &&
-                normalizeTime(slot.end) === normalizeTime(currentSlot.end) &&
-                slot.recurrence === currentSlot.recurrence
-              );
-            }
-
-            return !(
-              normalizeTime(slot.start) === normalizeTime(currentSlot.start) &&
-              normalizeTime(slot.end) === normalizeTime(currentSlot.end) &&
-              slotDate === currentSlotDate
-            );
-          }),
-        }))
-        .filter((day) => day.slots.length > 0);
-
-      console.log("✅ Nuevo schedule después de eliminar:", updatedSchedule);
-      return updatedSchedule;
-    });
-
-    setDeleteModalOpen(false);
+    setSchedule((prevSchedule: Slot[]) =>
+      prevSchedule.filter((slot: Slot) => {
+        if (slot.date !== date) return true;
+        // Elimina si el slot está dentro del rango seleccionado
+        return slot.start < startTime || slot.end > endTime;
+      })
+    );
+    setIsModalOpen(false);
     setCurrentSlot({ start: "", end: "", booked: false, recurrence: "None" });
-
-    toast.success(deleteAll ? "All future events deleted!" : "Slot deleted!");
+    setSelectedStudent("");
+    toast.success("Slots deleted!");
   };
 
-  const normalizeTime = (dateString: string) => {
-    return dateString.includes("-") ? dateString.split("-")[0] : dateString;
-  };
+  // Auxiliar para status seguro
+  function getSlotStatus(slotType: SlotType): "free" | "cancelled" | "scheduled" {
+    if (slotType === "booked") return "scheduled";
+    if (slotType === "cancelled") return "cancelled";
+    return "free";
+  }
 
   const handleUpdateSlot = () => {
-    console.log("📝 handleUpdateSlot ejecutado");
-
-    if (
-      !currentSlot ||
-      !currentSlot.originalStart ||
-      !currentSlot.originalEnd
-    ) {
-      console.error("❌ No hay currentSlot definido.");
+    if (!currentSlot) {
+      toast.error("No slot defined.");
       return;
     }
+    const date = currentSlot.start.split("T")[0];
+    const startTime = currentSlot.start.split("T")[1];
+    const endTime = currentSlot.end.split("T")[1];
 
-    setSchedule((prevSchedule) => {
-      return prevSchedule.map((day) => {
-        return {
-          ...day,
-          slots: day.slots.map((slot) => {
-            const slotDate = slot.start.split("T")[0];
-            const currentSlotDate = currentSlot.originalStart
-              ? currentSlot.originalStart.split("T")[0]
-              : "";
-
-            if (
-              normalizeTime(slot.start) ===
-                normalizeTime(currentSlot.originalStart || "") &&
-              normalizeTime(slot.end) ===
-                normalizeTime(currentSlot.originalEnd || "") &&
-              slot.recurrence === currentSlot.recurrence &&
-              (editAll || slotDate === currentSlotDate) // 🔹 Editar solo uno o todos
-            ) {
-              return {
-                ...slot,
-                start:
-                  slot.start.split("T")[0] +
-                  "T" +
-                  currentSlot.start.split("T")[1],
-                end:
-                  slot.end.split("T")[0] + "T" + currentSlot.end.split("T")[1],
-                booked: currentSlot.booked,
-                recurrence: currentSlot.recurrence,
-                slotId: slot.slotId || uuidv4(), // 🔥 Mantener slotId original o generar uno si no existe
-              };
-            }
-            return slot;
-          }),
-        };
-      });
+    // Elimina el slot anterior
+    const filteredSchedule = schedule.filter((slot) => {
+      if (slot.date !== date) return true;
+      return slot.start < startTime || slot.end > endTime;
     });
 
-    setIsModalOpen(false);
-    setEditModalOpen(false);
-    setCurrentSlot({ start: "", end: "", booked: false, recurrence: "None" });
+    // Crea el nuevo slot con la configuración actual del modal
+    const newSlot: Slot = {
+      date,
+      start: startTime,
+      end: endTime,
+      booked: slotType === "booked",
+      studentId: slotType === "booked" ? selectedStudent : null,
+      status: getSlotStatus(slotType),
+      recurrence: currentSlot.recurrence,
+      slotId: currentSlot.slotId, // o usa uuidv4() si quieres uno nuevo
+    };
 
-    toast.success(editAll ? "All slots updated!" : "Slot updated!");
+    setSchedule([...filteredSchedule, newSlot]);
+    setIsModalOpen(false);
+    setCurrentSlot({ start: "", end: "", booked: false, recurrence: "None" });
+    setSelectedStudent("");
+    toast.success("Slot updated! Recuerda presionar 'Save Changes' para guardar en la base de datos.");
   };
 
   const handleSaveSlot = () => {
-    console.log("🚀 handleSaveSlot ejecutado");
-
     if (!currentSlot) {
-      console.error("❌ No hay currentSlot definido.");
+      toast.error("No slot defined.");
+      return;
+    }
+    if (!slotType) {
+      toast.error("Please select a slot type.");
+      return;
+    }
+    if (slotType === "booked" && !selectedStudent) {
+      toast.error("Please select a student for a booked slot.");
       return;
     }
 
-    const slotDate = currentSlot.start.split("T")[0];
+    let booked = slotType === "booked" || slotType === "cancelled";
+    const status = slotType === "booked" ? "scheduled" : slotType;
+    const studentId = slotType === "booked" ? selectedStudent : null;
+    if (slotType === "free") booked = false;
 
-    setSchedule((prevSchedule) => {
-      const existingDayIndex = prevSchedule.findIndex(
-        (day) => day.date === slotDate
-      );
-      let updatedSchedule;
-
-      // 📌 Agregar slotId al nuevo slot
-      const newSlot = {
-        ...currentSlot,
-        slotId:
-          currentSlot.slotId && currentSlot.slotId.trim() !== ""
-            ? currentSlot.slotId
-            : uuidv4(),
-        recurrenceEnd,
-      };
-
-      console.log("📌 Guardando slot con slotId:", newSlot.slotId);
-
-      if (existingDayIndex !== -1) {
-        updatedSchedule = [...prevSchedule];
-        updatedSchedule[existingDayIndex] = {
-          ...updatedSchedule[existingDayIndex],
-          slots: [...updatedSchedule[existingDayIndex].slots, newSlot],
-        };
-      } else {
-        updatedSchedule = [
-          ...prevSchedule,
-          { date: slotDate, slots: [newSlot] },
-        ];
-      }
-
-      // 📌 Agregar eventos recurrentes SOLO hasta la fecha de finalización
-      if (currentSlot.recurrence !== "None") {
-        console.log(
-          `🔁 Generando eventos recurrentes hasta ${recurrenceEnd}...`
-        );
-
-        let newDate = new Date(slotDate);
-        let recurrenceCount = 0;
-        const maxRecurrences = 400;
-
-        while (
-          recurrenceEnd === null ||
-          newDate.toISOString().split("T")[0] <= recurrenceEnd
-        ) {
-          if (recurrenceCount >= maxRecurrences) break; // 🔹 Seguridad para evitar loops infinitos
-
-          newDate = new Date(newDate);
-          if (currentSlot.recurrence === "Daily")
-            newDate.setDate(newDate.getDate() + 1);
-          if (currentSlot.recurrence === "Weekly")
-            newDate.setDate(newDate.getDate() + 7);
-          if (currentSlot.recurrence === "Monthly")
-            newDate.setMonth(newDate.getMonth() + 1);
-
-          const newDateString = newDate.toISOString().split("T")[0];
-
-          if (recurrenceEnd !== null && newDateString > recurrenceEnd) break; // 🔹 Seguridad adicional
-
-          const existingRecurringDayIndex = updatedSchedule.findIndex(
-            (day) => day.date === newDateString
-          );
-
-          // 📌 Clonar el slot con un nuevo ID para cada recurrencia
-          const recurringSlot = {
-            ...currentSlot,
-            start: `${newDateString}T${currentSlot.start.split("T")[1]}`,
-            end: `${newDateString}T${currentSlot.end.split("T")[1]}`,
-            slotId: uuidv4(), // 🔹 Genera un nuevo slotId para cada recurrencia
-          };
-
-          if (existingRecurringDayIndex !== -1) {
-            updatedSchedule[existingRecurringDayIndex].slots.push(
-              recurringSlot
-            );
-          } else {
-            updatedSchedule.push({
-              date: newDateString,
-              slots: [recurringSlot],
-            });
-          }
-
-          recurrenceCount++;
+    let newSlots: Slot[] = [];
+    if (currentSlot.recurrence && currentSlot.recurrence !== "None") {
+      let count = 1;
+      if (recurrenceEnd) {
+        const startDate = new Date(currentSlot.start);
+        const endDate = new Date(recurrenceEnd);
+        if (currentSlot.recurrence === "Daily") {
+          count = differenceInDays(endDate, startDate) + 1;
+        } else if (currentSlot.recurrence === "Weekly") {
+          count = differenceInWeeks(endDate, startDate) + 1;
+        } else if (currentSlot.recurrence === "Monthly") {
+          count = differenceInMonths(endDate, startDate) + 1;
         }
+        if (count < 1) count = 1;
+      } else {
+        count = currentSlot.recurrence === "Daily" ? 7 : currentSlot.recurrence === "Weekly" ? 4 : 3;
       }
+      // Always use currentSlot.start and currentSlot.end as the base for recurrence
+      const generated = generateRecurringSlots(
+        currentSlot.start,
+        currentSlot.end,
+        currentSlot.recurrence as "Daily" | "Weekly" | "Monthly",
+        count,
+        {
+          booked,
+          studentId,
+          status,
+        }
+      );
+      // Only add slots that do not already exist
+      newSlots = generated.filter(slot =>
+        !schedule.some(
+          s => s.date === slot.date && s.start === slot.start && s.end === slot.end
+        )
+      );
+    } else {
+      newSlots = splitIntoHalfHourSlots(currentSlot.start, currentSlot.end, {
+      booked,
+      studentId,
+      status,
+    }).map(slot => ({
+      date: slot.date,
+      start: slot.start,
+      end: slot.end,
+      status: slot.status,
+      booked: slot.booked,
+      studentId: slot.studentId,
+    }));
+    }
 
-      console.log("✅ Nuevo schedule con slotId agregado:", updatedSchedule);
-      return updatedSchedule;
-    });
-
+    for (const slot of newSlots) {
+      if (schedule.some((s: Slot) => s.date === slot.date && s.start === slot.start && s.end === slot.end)) {
+        toast.error("Slot already exists for that time.");
+        return;
+      }
+    }
+    setSchedule((prevSchedule: Slot[]) => [...prevSchedule, ...newSlots]);
     setIsModalOpen(false);
     setCurrentSlot({ start: "", end: "", booked: false, recurrence: "None" });
-    toast.success("Schedule saved!");
+    setSelectedStudent("");
+    setSlotType("");
+    toast.success("Slots saved!");
   };
 
-  const handleEventClick = (eventInfo: EventClickArg) => {
+  const handleEventClick = async (eventInfo: EventClickArg) => {
     const { start, end, extendedProps } = eventInfo.event;
 
-    // Verificar si start o end son null antes de usarlos
     if (!start || !end) {
-      console.error("❌ Evento sin fechas válidas:", eventInfo.event);
       return;
     }
 
@@ -477,34 +344,57 @@ const InstructorForm = ({ initialData }: { initialData?: InstructorData }) => {
     const formattedEnd =
       end.toISOString().split("T")[0] + "T" + end.toTimeString().slice(0, 5);
 
-    console.log("🖊️ Editando slot con recurrencia:", extendedProps?.recurrence);
+    // Busca el slot real en el schedule para obtener el status real
+    const realSlot = schedule.find(
+      (s: Slot) =>
+        s.date === formattedStart.split("T")[0] &&
+        s.start === formattedStart.split("T")[1] &&
+        s.end === formattedEnd.split("T")[1]
+    );
 
     setCurrentSlot({
       start: formattedStart,
       end: formattedEnd,
-      booked: extendedProps?.booked || false,
-      recurrence: extendedProps?.recurrence || "None",
+      booked: realSlot?.booked || false,
+      recurrence: realSlot?.recurrence || "None",
       isEditing: true,
       originalStart: formattedStart,
       originalEnd: formattedEnd,
-      slotId:
-        extendedProps?.slotId && extendedProps?.slotId.trim() !== ""
-          ? extendedProps?.slotId
-          : uuidv4(), // 📌 Asegurar slotId
+      slotId: realSlot?.slotId || uuidv4(),
+      studentId: realSlot?.studentId || "",
+      status: realSlot?.status,
     });
 
-    if (extendedProps?.recurrence !== "None") {
-      setEditModalOpen(true);
+    // Si es booked, consulta la base de datos de users para mostrar el estudiante
+    if (realSlot?.status === "scheduled" && realSlot?.studentId) {
+      try {
+        const res = await fetch("/api/users");
+        const data = await res.json();
+        const filtered = data
+          .filter((u: User) => u.role === "user")
+          .map((u: User) => ({
+            ...u,
+            name: u.name || `${u.firstName || ""} ${u.lastName || ""}`.trim(),
+          }));
+        setAllUsers(filtered);
+        setUsers(filtered);
+        setSelectedStudent(realSlot.studentId);
+      } catch (err) {
+        setSelectedStudent("");
+      }
     } else {
-      setIsModalOpen(true);
+      setSelectedStudent("");
     }
+
+    // Siempre abre el modal de edición directa, sin preguntar por recurrencia
+    setIsModalOpen(true);
   };
 
   const form = useForm({
     resolver: zodResolver(formSchema),
     defaultValues: {
       name: initialData?.name || "",
-      username: initialData?.username || "",
+      dni: initialData?.dni || "",
       email: initialData?.email || "",
       password: "",
       photo: initialData?.photo || "",
@@ -516,31 +406,42 @@ const InstructorForm = ({ initialData }: { initialData?: InstructorData }) => {
 
   // Manejo del submit
   const onSubmit = async (values: InstructorData) => {
-    console.log("✅ Enviando al servidor los siguientes valores:", values);
-    console.log("📅 Schedule antes de enviar:", schedule);
-
+    // Log para depuración
+    //console.log("initialData:", initialData, "values.password:", values.password);
+    // Si es creación, password es obligatorio
+    if (!initialData && !values.password) {
+      toast.error("Password is required");
+      return;
+    }
     setLoading(true);
+
+    // LOG DETALLADO DEL BODY
+    const bodyToSend: any = {
+      instructorId: initialData?._id ?? "",
+      ...values,
+      schedule: schedule.map((slot: Slot) => ({
+        date: slot.date,
+        start: slot.start,
+        end: slot.end,
+        status: slot.status,
+        booked: slot.booked,
+        studentId: slot.studentId || null,
+      })),
+    };
+    // Si password está vacío, no lo envíes (solo para edición)
+    if (initialData && !bodyToSend.password) {
+      delete bodyToSend.password;
+    }
+    //console.log("BODY QUE SE ENVÍA AL BACKEND:", bodyToSend);
 
     try {
       const res = await fetch(`/api/instructors`, {
         method: initialData ? "PATCH" : "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({
-          instructorId: initialData?._id ?? "",
-          ...values,
-          schedule: schedule.map((day) => ({
-            date: day.date,
-            slots: day.slots.map((slot) => ({
-              start: slot.start,
-              end: slot.end,
-              booked: slot.booked || false,
-              recurrence: slot.recurrence,
-            })),
-          })),
-        }),
+        body: JSON.stringify(bodyToSend),
       });
 
-      console.log("🛜 Respuesta del servidor:", res);
+      //console.log("🛜 Respuesta del servidor:", res);
 
       if (res.ok) {
         toast.success("Instructor saved successfully!");
@@ -558,19 +459,107 @@ const InstructorForm = ({ initialData }: { initialData?: InstructorData }) => {
     }
   };
 
-  const formattedEvents = schedule.flatMap((day) =>
-    day.slots.map((slot) => ({
-      title: slot.booked ? "Booked" : "Available",
-      start: slot.start,
-      end: slot.end,
-      backgroundColor: slot.booked ? "blue" : "green",
-      borderColor: slot.booked ? "darkblue" : "darkgreen",
-      textColor: "white",
-      extendedProps: { recurrence: slot.recurrence, booked: slot.booked },
-    }))
-  );
+  const formattedEvents = schedule.map((slot: Slot) => ({
+    title:
+      slot.status === "scheduled" && slot.studentId
+        ? `Booked: ${getStudentName(slot.studentId, allUsers)}`
+        : slot.status === "cancelled"
+        ? "Cancelled"
+        : slot.status === "free"
+        ? "Free"
+        : slot.booked
+        ? "Booked"
+        : "Available",
+    start: `${slot.date}T${slot.start}`,
+    end: `${slot.date}T${slot.end}`,
+    backgroundColor:
+      slot.status === "scheduled"
+        ? "blue"
+        : slot.status === "cancelled"
+        ? "red"
+        : slot.status === "free"
+        ? "gray"
+        : slot.booked
+        ? "blue"
+        : "green",
+    borderColor:
+      slot.status === "scheduled"
+        ? "darkblue"
+        : slot.status === "cancelled"
+        ? "darkred"
+        : slot.status === "free"
+        ? "darkgray"
+        : slot.booked
+        ? "darkblue"
+        : "darkgreen",
+    textColor: "white",
+    extendedProps: {
+      recurrence: slot.recurrence || "None",
+      booked: slot.booked ?? false,
+      studentId: slot.studentId || null,
+    },
+  }));
 
-  console.log("📆 Eventos de FullCalendar:", formattedEvents);
+
+
+  useEffect(() => {
+    setCalendarEvents(formattedEvents);
+    setCalendarKey((prevKey) => prevKey + 1);
+  }, [schedule]);
+
+  useEffect(() => {
+    if (isModalOpen && slotType === "booked") {
+      fetch("/api/users?roles=user,student")
+        .then((res) => res.json())
+        .then((data) => {
+          const filtered = data
+            .map((u: User) => ({
+              ...u,
+              name: u.name || `${u.firstName || ""} ${u.lastName || ""}`.trim(),
+            }));
+          setAllUsers(filtered);
+          setUsers(filtered);
+        });
+    }
+  }, [isModalOpen, slotType]);
+
+  // Sincroniza selectedStudent con el studentId del slot actual cada vez que se abre el modal
+  useEffect(() => {
+    if (isModalOpen && currentSlot && currentSlot.booked) {
+      // Busca el slot real en el schedule por fecha, start y end
+      const realSlot = schedule.find((s: Slot) =>
+        s.date === currentSlot.start.split("T")[0] &&
+        s.start === currentSlot.start.split("T")[1] &&
+        s.end === currentSlot.end.split("T")[1]
+      );
+      setSelectedStudent(realSlot?.studentId || "");
+    }
+    if (isModalOpen && (!currentSlot || !currentSlot.booked)) {
+      setSelectedStudent("");
+    }
+  }, [isModalOpen, currentSlot, schedule]);
+
+  // Solo sincroniza slotType la PRIMERA vez que se abre el modal, no cada vez que cambia currentSlot
+  useEffect(() => {
+    if (isModalOpen && currentSlot) {
+      if (currentSlot.status === "free") setSlotType("free");
+      else if (currentSlot.status === "cancelled") setSlotType("cancelled");
+      else if (currentSlot.status === "scheduled") setSlotType("booked");
+      else setSlotType("");
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [isModalOpen, currentSlot]);
+
+  useEffect(() => {
+    if (isModalOpen && currentSlot?.isEditing && slotType === "booked") {
+      const realSlot = schedule.find((s: Slot) =>
+        s.date === currentSlot.start.split("T")[0] &&
+        s.start === currentSlot.start.split("T")[1] &&
+        s.end === currentSlot.end.split("T")[1]
+      );
+      if (realSlot?.studentId) setSelectedStudent(realSlot.studentId);
+    }
+  }, [isModalOpen, currentSlot, schedule, slotType]);
 
   return (
     <div className="p-10">
@@ -581,435 +570,41 @@ const InstructorForm = ({ initialData }: { initialData?: InstructorData }) => {
 
       <Form {...form}>
         <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-8">
-          <FormField
-            control={form.control}
-            name="name"
-            render={({ field }) => (
-              <FormItem>
-                <FormLabel>Name</FormLabel>
-                <FormControl>
-                  <Input placeholder="Instructor Name" {...field} />
-                </FormControl>
-                <FormMessage />
-              </FormItem>
-            )}
+          <InstructorBasicInfo form={form} generatePassword={generatePassword} />
+
+          <InstructorSchedule
+            calendarKey={calendarKey}
+            calendarEvents={calendarEvents}
+            handleDateSelect={handleDateSelect}
+            handleEventClick={handleEventClick}
           />
 
-          <div className="flex gap-28">
-            <FormField
-              control={form.control}
-              name="experience"
-              render={({ field }) => (
-                <FormItem>
-                  <FormLabel>Experience</FormLabel>
-                  <FormControl>
-                    <Textarea placeholder="Experience (Optional)" {...field} />
-                  </FormControl>
-                  <FormMessage />
-                </FormItem>
-              )}
-            />
-
-            <FormField
-              control={form.control}
-              name="certifications"
-              render={({ field }) => (
-                <FormItem>
-                  <FormLabel>Certifications</FormLabel>
-                  <FormControl>
-                    <Textarea
-                      placeholder="Certifications (Optional)"
-                      {...field}
-                    />
-                  </FormControl>
-                  <FormMessage />
-                </FormItem>
-              )}
-            />
-
-            <FormField
-              control={form.control}
-              name="photo"
-              render={({ field }) => (
-                <FormItem>
-                  <FormLabel>Photo</FormLabel>
-                  <FormControl>
-                    <ImageUpload
-                      value={
-                        Array.isArray(field.value)
-                          ? field.value
-                          : field.value
-                          ? [field.value]
-                          : []
-                      }
-                      onChange={(url) => field.onChange(url)}
-                      onRemove={() => field.onChange("")}
-                    />
-                  </FormControl>
-                  <FormMessage />
-                </FormItem>
-              )}
-            />
-          </div>
-
-          <div className="flex gap-24">
-            {/* Nombre de Usuario */}
-            <FormField
-              control={form.control}
-              name="username"
-              render={({ field }) => (
-                <FormItem>
-                  <FormLabel>Username</FormLabel>
-                  <FormControl>
-                    <Input placeholder="Enter username" {...field} />
-                  </FormControl>
-                  <FormMessage />
-                </FormItem>
-              )}
-            />
-
-            <FormField
-              control={form.control}
-              name="email"
-              render={({ field }) => (
-                <FormItem>
-                  <FormLabel>Email</FormLabel>
-                  <FormControl>
-                    <Input type="email" placeholder="Enter email" {...field} />
-                  </FormControl>
-                  <FormMessage />
-                </FormItem>
-              )}
-            />
-
-            {/* Contraseña con botón de generación */}
-            <FormField
-              control={form.control}
-              name="password"
-              render={({ field }) => (
-                <FormItem>
-                  <FormLabel>Password</FormLabel>
-                  <div className="flex gap-2">
-                    <FormControl>
-                      <Input
-                        type="password"
-                        placeholder="Enter password"
-                        {...field}
-                      />
-                    </FormControl>
-                    <Button
-                      type="button"
-                      onClick={generatePassword}
-                      className="bg-blue-600 text-white"
-                    >
-                      Generate
-                    </Button>
-                  </div>
-                  <FormMessage />
-                </FormItem>
-              )}
-            />
-          </div>
-
-          {/* 📅 **Calendario Interactivo** */}
-          <div className=" h-full overflow-y-auto">
-            <h3 className="text-lg font-semibold">Schedule</h3>
-            {/* 📅 FullCalendar */}
-            <FullCalendar
-              key={calendarKey} // 🔹 Solo se actualiza cuando `schedule` cambia
-              plugins={[timeGridPlugin, interactionPlugin]}
-              initialView="timeGridWeek"
-              selectable
-              editable
-              slotMinTime="08:00:00"
-              slotMaxTime="19:00:00"
-              slotDuration="00:30:00"
-              height="auto"
-              contentHeight="auto"
-              events={calendarEvents} // 🔹 Ahora usa el estado dinámico
-              select={handleDateSelect}
-              eventClick={handleEventClick}
-            />
-          </div>
-
-          {/* 📌 Modal de Configuración */}
-          <Dialog
-            open={isModalOpen}
+          <ScheduleModal
+            isOpen={isModalOpen}
             onClose={() => setIsModalOpen(false)}
-            className="fixed inset-0 flex items-center justify-center z-50"
-          >
-            <div className="bg-white p-6 rounded-lg shadow-lg max-w-lg w-full">
-              <h2 className="text-lg font-bold mb-4">Configure Schedule</h2>
+            currentSlot={currentSlot}
+            setCurrentSlot={setCurrentSlot}
+            handleSaveSlot={handleSaveSlot}
+            handleUpdateSlot={handleUpdateSlot}
+            handleDeleteSlot={handleDeleteSlot}
+            recurrenceOptions={recurrenceOptions}
+            recurrenceEnd={recurrenceEnd}
+            setRecurrenceEnd={setRecurrenceEnd}
+            slotType={slotType}
+            setSlotType={setSlotType}
+            allUsers={allUsers}
+            selectedStudent={selectedStudent}
+            setSelectedStudent={setSelectedStudent}
+            copiedSlot={copiedSlot}
+            setCopiedSlot={setCopiedSlot}
+          />
 
-              {/* ⏰ Horarios */}
-              <label className="block text-sm font-medium">Start Time</label>
-              <Input
-                type="time"
-                value={
-                  currentSlot?.start
-                    ? currentSlot.start.split("T")[1].slice(0, 5)
-                    : ""
-                }
-                onChange={(e) =>
-                  setCurrentSlot((prev) =>
-                    prev
-                      ? {
-                          ...prev,
-                          start: `${prev.start.split("T")[0]}T${
-                            e.target.value
-                          }`,
-                        }
-                      : prev
-                  )
-                }
-              />
-
-              <label className="block text-sm font-medium mt-2">End Time</label>
-              <Input
-                type="time"
-                value={
-                  currentSlot?.end
-                    ? currentSlot.end.split("T")[1].slice(0, 5)
-                    : ""
-                }
-                onChange={(e) =>
-                  setCurrentSlot((prev) =>
-                    prev
-                      ? {
-                          ...prev,
-                          end: `${prev.end.split("T")[0]}T${e.target.value}`,
-                        }
-                      : prev
-                  )
-                }
-              />
-
-              {/* 📌 Opción de Repetición */}
-              <label className="block text-sm font-medium mt-2">
-                Recurrence
-              </label>
-              <Select
-                value={currentSlot?.recurrence || "None"}
-                onValueChange={(val) =>
-                  setCurrentSlot((prev) =>
-                    prev ? { ...prev, recurrence: val } : prev
-                  )
-                }
-              >
-                {recurrenceOptions.map((option) => (
-                  <option key={option} value={option}>
-                    {option}
-                  </option>
-                ))}
-              </Select>
-
-              {/* 📌 Selección de Duración de Recurrencia */}
-              {currentSlot?.recurrence !== "None" && (
-                <div className="mt-3">
-                  <label className="block text-sm font-medium">
-                    Recurrence Duration
-                  </label>
-                  <div className="flex items-center gap-2">
-                    <input
-                      type="checkbox"
-                      checked={recurrenceEnd === null}
-                      onChange={(e) =>
-                        setRecurrenceEnd(
-                          e.target.checked
-                            ? null
-                            : new Date().toISOString().split("T")[0]
-                        )
-                      }
-                    />
-                    <label className="text-sm">Indefinite</label>
-                  </div>
-
-                  {recurrenceEnd !== null && (
-                    <Input
-                      type="date"
-                      value={recurrenceEnd}
-                      onChange={(e) => setRecurrenceEnd(e.target.value)}
-                      className="mt-2"
-                    />
-                  )}
-                </div>
-              )}
-
-              {/* ✅ Checkbox para Agendar */}
-              <div className="mt-3 flex items-center">
-                <input
-                  type="checkbox"
-                  checked={currentSlot?.booked || false}
-                  onChange={(e) =>
-                    setCurrentSlot((prev) =>
-                      prev ? { ...prev, booked: e.target.checked } : prev
-                    )
-                  }
-                  className="mr-2"
-                />
-                <label className="text-sm">Booked</label>
-              </div>
-
-              {/* 📌 Botones */}
-              <div className="mt-4 flex justify-between">
-                <Button onClick={() => setIsModalOpen(false)} variant="outline">
-                  Cancel
-                </Button>
-
-                <Button
-                  onClick={() => {
-                    if (currentSlot) {
-                      const startHour = new Date(currentSlot.start).getHours();
-                      const startMinutes = new Date(
-                        currentSlot.start
-                      ).getMinutes();
-                      const endHour = new Date(currentSlot.end).getHours();
-                      const endMinutes = new Date(currentSlot.end).getMinutes();
-
-                      // Calculamos la duración en minutos
-                      const duration =
-                        endHour * 60 +
-                        endMinutes -
-                        (startHour * 60 + startMinutes);
-
-                      setCopiedSlot({
-                        booked: currentSlot.booked,
-                        recurrence: currentSlot.recurrence,
-                        duration,
-                      });
-                      toast.success("Slot copied!");
-                    }
-                  }}
-                >
-                  Copy
-                </Button>
-
-                <Button
-                  onClick={
-                    currentSlot?.isEditing ? handleUpdateSlot : handleSaveSlot
-                  }
-                >
-                  {currentSlot?.isEditing ? "Update" : "Save"}
-                </Button>
-
-                <Button
-                  onClick={() => {
-                    if (copiedSlot && currentSlot) {
-                      const startTime = new Date(currentSlot.start);
-                      const startHour = startTime.getHours();
-                      const startMinutes = startTime.getMinutes();
-
-                      // Calculamos la nueva hora final
-                      const newEndTime = new Date(startTime);
-                      newEndTime.setMinutes(
-                        startTime.getMinutes() + copiedSlot.duration
-                      );
-
-                      const formattedStart = `${
-                        currentSlot.start.split("T")[0]
-                      }T${startHour.toString().padStart(2, "0")}:${startMinutes
-                        .toString()
-                        .padStart(2, "0")}`;
-                      const formattedEnd = `${
-                        currentSlot.start.split("T")[0]
-                      }T${newEndTime
-                        .getHours()
-                        .toString()
-                        .padStart(2, "0")}:${newEndTime
-                        .getMinutes()
-                        .toString()
-                        .padStart(2, "0")}`;
-
-                      const newSlot = {
-                        start: formattedStart,
-                        end: formattedEnd,
-                        booked: copiedSlot.booked,
-                        recurrence: copiedSlot.recurrence,
-                      };
-
-                      setCurrentSlot(newSlot);
-                      toast.success("Slot pasted!");
-                    } else {
-                      toast.error("No slot copied!");
-                    }
-                  }}
-                >
-                  Paste Last Slot
-                </Button>
-
-                <Button
-                  onClick={() => {
-                    if (!currentSlot) {
-                      toast.error("No slot selected for deletion.");
-                      return;
-                    }
-
-                    setIsModalOpen(false); // Cierra el modal de edición
-                    setDeleteModalOpen(true); // Abre el modal de confirmación de eliminación
-                  }}
-                  variant="destructive"
-                >
-                  Delete
-                </Button>
-              </div>
-            </div>
-          </Dialog>
-
-          {/* 📌 Modal para Confirmar Edición */}
-          <Dialog
-            open={editModalOpen}
+          <EditRecurringModal
+            isOpen={editModalOpen}
             onClose={() => setEditModalOpen(false)}
-            className="fixed inset-0 flex items-center justify-center z-50"
-          >
-            <div className="bg-white p-6 rounded-lg shadow-lg max-w-lg w-full">
-              <h2 className="text-lg font-bold mb-4">Edit Recurring Event</h2>
-              <p>
-                Do you want to edit this event only or all future occurrences?
-              </p>
-              <div className="mt-4 flex justify-between">
-                <Button
-                  onClick={() => {
-                    setEditAll(false);
-                    setIsModalOpen(true);
-                    setEditModalOpen(false);
-                  }}
-                >
-                  This Event Only
-                </Button>
-                <Button
-                  onClick={() => {
-                    setEditAll(true);
-                    setIsModalOpen(true);
-                    setEditModalOpen(false);
-                  }}
-                >
-                  All Future Events
-                </Button>
-              </div>
-            </div>
-          </Dialog>
-
-          {/* 📌 Modal para Confirmar Eliminación */}
-          <Dialog
-            open={deleteModalOpen}
-            onClose={() => setDeleteModalOpen(false)}
-            className="fixed inset-0 flex items-center justify-center z-50"
-          >
-            <div className="bg-white p-6 rounded-lg shadow-lg max-w-lg w-full">
-              <h2 className="text-lg font-bold mb-4">Delete Recurring Event</h2>
-              <p>
-                Do you want to delete this event only or all future occurrences?
-              </p>
-              <div className="mt-4 flex justify-between">
-                <Button onClick={() => handleDeleteSlot(false)}>
-                  This Event Only
-                </Button>
-                <Button onClick={() => handleDeleteSlot(true)}>
-                  All Future Events
-                </Button>
-              </div>
-            </div>
-          </Dialog>
+            setEditAll={setEditAll}
+            setIsModalOpen={setIsModalOpen}
+          />
 
           <div className="flex gap-4">
             <Button
