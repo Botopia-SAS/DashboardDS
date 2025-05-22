@@ -18,6 +18,7 @@ export async function GET() {
           role: "user",
           name: `${user.firstName} ${user.middleName ?? ""} ${user.lastName}`,
           midl: user.middleName,
+          createdAt: user.createdAt, // Asegurando que la fecha de registro se envía en la respuesta
         };
       });
     return NextResponse.json(res);
@@ -107,6 +108,7 @@ export async function POST(req: NextRequest) {
       howDidYouHear: data.howDidYouHear,
       registeredBy: data.registeredBy,
       role: "user",
+      createdAt: new Date(), // Asegurando que la fecha de registro se establece explícitamente
     });
 
     if (data.courseId) {
@@ -139,9 +141,9 @@ export async function POST(req: NextRequest) {
       },
     });
   } catch (error) {
-    console.error("Error creating user:", error);
+    console.log("Error creando usuario:", error);
     return NextResponse.json(
-      { error: "Failed to create user" },
+      { error: "❌ Error creando usuario" },
       { status: 500 }
     );
   }

@@ -36,14 +36,15 @@ import InstructorBasicInfo from "./InstructorBasicInfo";
 import InstructorSchedule from "./InstructorSchedule";
 import ScheduleModal from "./ScheduleModal";
 import EditRecurringModal from "./EditRecurringModal";
-import { CalendarEvent, InstructorData, Slot, User, SlotType } from "./types";
+import { CalendarEvent, InstructorData as Id, Slot, User, SlotType } from "./types";
 import { normalizeSchedule, splitIntoHalfHourSlots, normalizeTime, getStudentName, generateRecurringSlots } from "./utils";
 
 const formSchema = z.object({
   name: z.string().min(2, "Name is required"),
-  dni: z.string().min(2, "DNI is required"),
+  dni: z.string().min(1, "DNI is required"), // Nuevo campo DNI
+  username: z.string().min(4, "Username must be at least 4 characters"),
   email: z.string().email("Invalid email format"),
-  password: z.string().optional(), // No requerir aquí, se valida abajo
+  password: z.string().min(8, "Password must be at least 8 characters"),
   photo: z.string().url("Valid photo URL required"),
   certifications: z.string().optional(),
   experience: z.string().optional(),
@@ -51,6 +52,17 @@ const formSchema = z.object({
     .array(
       z.object({
         date: z.string(),
+        slots: z.array(
+          z
+            .object({
+              start: z.string(),
+              end: z.string(),
+              booked: z.boolean().optional(),
+            })
+            .refine((slot) => slot.start < slot.end, {
+              message: "Start time must be before end time.",
+            })
+        ),
         start: z.string(),
         end: z.string(),
         booked: z.boolean().optional(),
@@ -59,6 +71,29 @@ const formSchema = z.object({
       })
     )
     .optional(),
+});
+
+interface InstructorData {
+  _id?: string; // Agregar el identificador opcionalmente
+  name?: string;
+  dni?: string; // Añadir campo DNI
+  username?: string;
+  email?: string; // ✅ Nuevo campo de email
+  password?: string;
+  photo?: string;
+  certifications?: string;
+  experience?: string;
+  schedule?: {
+    date: string;
+    slots: {
+      start: string;
+      end: string;
+      booked?: boolean; // ✅ Nuevo campo
+    }[];
+    recurrenceEnd?: string | null; // Add this line
+  }[];
+}
+
 }).refine((data) => {
   // Solo requerir password si no hay initialData (creación)
   // El valor de initialData no está aquí, así que la validación real se hace en el submit
@@ -394,6 +429,7 @@ const InstructorForm = ({ initialData }: { initialData?: InstructorData }) => {
     resolver: zodResolver(formSchema),
     defaultValues: {
       name: initialData?.name || "",
+      dni: initialData?.dni || "", // Añadido valor predeterminado para DNI
       dni: initialData?.dni || "",
       email: initialData?.email || "",
       password: "",

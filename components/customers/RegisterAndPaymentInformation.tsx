@@ -111,7 +111,7 @@ export default function RegisterAndPaymentInformation({
               <FormControl>
                 <Input
                   {...field}
-                  onChange={(e) => field.onChange(+e.target.value)}
+                  onChange={(e) => field.onChange(Number(e.target.value))}
                   type="number"
                   placeholder="Enter amount"
                   className="border-gray-300 focus:ring-blue-500 focus:border-blue-500"

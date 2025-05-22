@@ -2,10 +2,12 @@
 import NewStudentForm from "@/components/ticket/newStudentForm";
 import { Button } from "@headlessui/react";
 import { ArrowLeftIcon } from "lucide-react";
-import { useRouter } from "next/navigation";
+import { useParams, useRouter } from "next/navigation";
 
 export default function Page() {
   const router = useRouter();
+  const params = useParams();
+  const classId = params.classId as string;
 
   const navigate = () => {
     router.back();
@@ -22,7 +24,7 @@ export default function Page() {
         </div>
       </div>
       <div className="p-6">
-        <NewStudentForm />
+        <NewStudentForm classId={classId}/>
       </div>
     </>
   );

@@ -1,6 +1,6 @@
 import { connectToDB } from "@/lib/mongoDB";
 import { NextResponse } from "next/server";
-import Instructor from "@/lib/models/Instructor"; // Modelo de MongoDB   
+import Instructor from "@/lib/models/Instructor"; // Modelo de MongoDB
 import bcrypt from "bcryptjs";
 import { sendEmail } from './sendEmail';
 
@@ -76,6 +76,26 @@ export async function POST(req: Request) {
         if (!assignRoleRes.ok) {
             console.error('❌ Error al asignar rol en Auth0');
         }
+  try {
+    await connectToDB();
+    const {
+      name,
+      dni,
+      photo,
+      certifications,
+      experience,
+      schedule,
+    }: {
+      name: string;
+      dni: string;
+      photo: string;
+      certifications: string[];
+      experience: string;
+      schedule: {
+        date: string;
+        slots: { start: string; end: string; booked?: boolean }[];
+      }[];
+    } = await req.json();
 
         const newInstructor = new Instructor({
             name,
@@ -88,7 +108,7 @@ export async function POST(req: Request) {
             dni,
         });
 
-        await newInstructor.save();
+    await newInstructor.save();
 
         // Enviar correo con las credenciales al instructor
         try {
@@ -122,11 +142,14 @@ export async function POST(req: Request) {
             console.error('❌ Error al enviar correo de credenciales al instructor:', err);
         }
 
-        return NextResponse.json(newInstructor, { status: 201 });
-    } catch (error) {
-        console.error("Error en el endpoint POST /api/instructors:", error);
-        return NextResponse.json({ message: "Error creating instructor" }, { status: 500 });
-    }
+    return NextResponse.json(newInstructor, { status: 201 });
+  } catch (error) {
+    console.error("Error en el endpoint POST /api/instructors:", error);
+    return NextResponse.json(
+      { message: "Error creating instructor" },
+      { status: 500 }
+    );
+  }
 }
 
 export const GET = async () => {
@@ -141,9 +164,9 @@ export const GET = async () => {
 };
 
 export async function PATCH(req: Request) {
-    try {
-        await connectToDB();
-        const { instructorId, schedule: newSchedule, password, email, dni, ...updates } = await req.json();
+  try {
+    await connectToDB();
+    const { instructorId, schedule: newSchedule, password, email, dni, ...updates } = await req.json();
 
         if (!instructorId) {
             return NextResponse.json({ message: "Instructor ID is required" }, { status: 400 });
@@ -314,14 +337,23 @@ export async function DELETE(req: Request) {
         }
 
         // Eliminar instructor en MongoDB
-        const deletedInstructor = await Instructor.findByIdAndDelete(instructorId);
-        if (!deletedInstructor) {
-            return NextResponse.json({ message: "Instructor not found" }, { status: 404 });
-        }
-
-        return NextResponse.json({ message: "Instructor deleted successfully" }, { status: 200 });
-    } catch (error) {
-        console.error("❌ Error al eliminar instructor:", error);
-        return NextResponse.json({ message: "Error deleting instructor" }, { status: 500 });
+    const deletedInstructor = await Instructor.findByIdAndDelete(instructorId);
+    if (!deletedInstructor) {
+      return NextResponse.json(
+        { message: "Instructor not found" },
+        { status: 404 }
+      );
     }
+
+    return NextResponse.json(
+      { message: "Instructor deleted successfully" },
+      { status: 200 }
+    );
+  } catch (error) {
+    console.error("❌ Error al eliminar instructor:", error);
+    return NextResponse.json(
+      { message: "Error deleting instructor" },
+      { status: 500 }
+    );
+  }
 }

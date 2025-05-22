@@ -27,8 +27,6 @@ const TicketClassSchema = new mongoose.Schema({
   },
   duration: {
     type: String,
-    enum: ["standard", "4h", "8h", "agressive", "12h"],
-    default: "standard",
     required: true,
   },
   instructorId: {
@@ -38,7 +36,11 @@ const TicketClassSchema = new mongoose.Schema({
   },
   students: [
     {
-      type: String,
+      studentId: { type: String, required: true },
+      reason: { type: String },
+      citation_number: { type: String },
+      country_ticket: { type: String },
+      course_country: { type: String },
     },
   ],
 });
