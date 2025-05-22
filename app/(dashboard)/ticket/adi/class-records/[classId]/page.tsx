@@ -17,13 +17,17 @@ export default function Page() {
   const [loading, setLoading] = useState(false);
   const router = useRouter();
   const isMounted = useRef(false);
-
   const fetchInfo = useCallback(() => {
     setLoading(true);
     fetch(`/api/ticket/classes/students/${classId}`)
       .then((res) => res.json())
       .then((data) => {
-        setStudents(data);
+        // Agregar el tipo de curso 'adi' a cada estudiante para esta ruta
+        const studentsWithType = data.map((student: Student) => ({
+          ...student,
+          type: "adi",
+        }));
+        setStudents(studentsWithType);
         setLoading(false);
       });
   }, [classId]);

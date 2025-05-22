@@ -33,7 +33,7 @@ const formSchema = z.object({
   hour: z.string().min(1, "Hour is required"),
   classId: z.string().min(1, "Class is required"),
   instructorId: z.string().min(1, "Instructor is required"),
-  duration: z.enum(["standard", "4h", "8h", "agressive", "12h"]),
+  duration: z.string(),
   type: z.enum(["date", "bdi", "adi"]).default("date"),
 });
 
@@ -75,11 +75,6 @@ interface Class {
   headquarters?: string[];
   classType?: string;
   duration?: string;
-}
-
-// Custom error type to replace any
-interface ApiError {
-  message: string;
 }
 
 export default function Page() {
@@ -153,7 +148,6 @@ export default function Page() {
       setFilteredInstructors(instructors);
     }
   }, [selectedLocation, locations, instructors]);
-
   const form = useForm<FormValues>({
     resolver: zodResolver(formSchema),
     defaultValues: {
@@ -162,7 +156,7 @@ export default function Page() {
       hour: "",
       classId: "",
       type: classType || "date",
-      duration: "standard",
+      duration: "",
       instructorId: "",
     },
   });
@@ -178,22 +172,38 @@ export default function Page() {
     }
   }, [watchedLocation, form]);
 
-  // Watch for class changes to set duration automatically (but not type)
+  // Watch for class changes to set duration automatically based on length
   const watchedClassId = form.watch("classId");
   useEffect(() => {
     if (watchedClassId) {
       const selectedClass = classes.find((c) => c._id === watchedClassId);
 
-      if (selectedClass && selectedClass.duration) {
-        form.setValue(
-          "duration",
-          selectedClass.duration as
-            | "standard"
-            | "4h"
-            | "8h"
-            | "agressive"
-            | "12h"
-        );
+      if (selectedClass) {
+        // Update class type if it's defined
+        if (selectedClass.classType) {
+          form.setValue(
+            "type",
+            selectedClass.classType as "date" | "bdi" | "adi"
+          );
+        }
+
+        // Set duration based on class length
+        if (selectedClass.length) {
+          // Map length (hours) to duration string format ("2h", "4h", "8h", "12h")
+          let durationValue = "";
+
+          if (selectedClass.length <= 2.5) {
+            durationValue = "2h";
+          } else if (selectedClass.length <= 5) {
+            durationValue = "4h";
+          } else if (selectedClass.length <= 10) {
+            durationValue = "8h";
+          } else {
+            durationValue = "12h";
+          }
+
+          form.setValue("duration", durationValue);
+        }
       }
     }
   }, [watchedClassId, classes, form]);
@@ -331,10 +341,7 @@ export default function Page() {
                       <SelectContent className="bg-white max-h-60 overflow-y-auto">
                         {classes.map((cls) => (
                           <SelectItem key={cls._id} value={cls._id}>
-                            {cls.title}{" "}
-                            {cls.classType
-                              ? `(${cls.classType.toUpperCase()})`
-                              : ""}
+                            {cls.title}
                           </SelectItem>
                         ))}
                       </SelectContent>
@@ -408,28 +415,8 @@ export default function Page() {
                   <FormMessage />
                 </FormItem>
               )}
-            />
-            <FormField
-              control={form.control}
-              name="duration"
-              render={({ field }) => (
-                <FormItem>
-                  <FormLabel>Duration</FormLabel>
-                  <FormControl>
-                    <Input
-                      {...field}
-                      disabled={true}
-                      value={field.value || ""}
-                      className="bg-gray-100 cursor-not-allowed"
-                    />
-                  </FormControl>
-                  <FormMessage />
-                  <p className="text-sm text-gray-500 mt-1">
-                    Duration is automatically set based on the selected class
-                  </p>
-                </FormItem>
-              )}
-            />
+            />{" "}
+            {/* Duration field removed - now automatically set from class length */}
             <Button
               type="submit"
               className="bg-blue-500 text-white w-full"

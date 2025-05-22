@@ -14,9 +14,7 @@ const ticketClassSchema = Joi.object({
     .required(),
   classId: Joi.string().required(),
   type: Joi.string().valid("date", "bdi", "adi").required(),
-  duration: Joi.string()
-    .valid("standard", "4h", "8h", "agressive", "12h")
-    .required(),
+  duration: Joi.string().valid("2h", "4h", "8h", "12h").required(),
   instructorId: Joi.string().required(),
   students: Joi.array().items(Joi.string()).default([]),
 }).unknown(false);
@@ -76,9 +74,7 @@ export async function POST(req: NextRequest) {
         { error: "The location does not exist." },
         { status: 400 }
       );
-    }
-
-    // Verify that the class exists and check if duration matches
+    } // Verify that the class exists
     const existClass = await DrivingClass.findOne({ _id: classId }).exec();
     if (!existClass) {
       return NextResponse.json(
@@ -87,12 +83,28 @@ export async function POST(req: NextRequest) {
       );
     }
 
-    // Verify that the duration matches the selected class
-    if (existClass.duration && existClass.duration !== duration) {
-      return NextResponse.json(
-        { error: "The selected duration does not match the class duration." },
-        { status: 400 }
-      );
+    // Calculate the expected duration format based on the class length
+    let expectedDuration = "";
+    if (existClass.length) {
+      if (existClass.length <= 2.5) {
+        expectedDuration = "2h";
+      } else if (existClass.length <= 5) {
+        expectedDuration = "4h";
+      } else if (existClass.length <= 10) {
+        expectedDuration = "8h";
+      } else {
+        expectedDuration = "12h";
+      }
+
+      // Verify that the duration matches what we expect based on class length
+      if (expectedDuration !== duration) {
+        return NextResponse.json(
+          {
+            error: `The duration does not match the expected value (${expectedDuration}) based on class length.`,
+          },
+          { status: 400 }
+        );
+      }
     }
 
     // We no longer validate the type against the class's classType

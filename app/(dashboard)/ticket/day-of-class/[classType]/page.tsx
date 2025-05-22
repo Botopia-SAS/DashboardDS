@@ -1,7 +1,6 @@
 "use client";
 
 import useClassStore from "@/app/store/classStore";
-import useClassTypeStore from "@/app/store/classTypeStore";
 import Loader from "@/components/custom ui/Loader";
 import Navigation from "@/components/ticket/navigation-card";
 import { Button } from "@/components/ui/button";

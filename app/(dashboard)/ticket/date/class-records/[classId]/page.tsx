@@ -26,7 +26,7 @@ export default function Page() {
         // Agregar el tipo de curso 'date' a cada estudiante para la ruta date/class-records
         const studentsWithType = data.map((student: Student) => ({
           ...student,
-          courseType: "date",
+          type: "date",
         }));
         setStudents(studentsWithType);
         setLoading(false);

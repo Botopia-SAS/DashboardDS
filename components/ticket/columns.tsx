@@ -13,7 +13,17 @@ export interface Student {
   courseDate: string;
   paymentMethod?: string;
   licenseNumber?: string;
-  courseType?: string; // Tipo de curso: 'bdi' o 'date'
+  instructorId?: string;
+  instructorName?: string;
+  type?: string; // Type of the class: 'date', 'bdi', or 'adi'
+  reason?: string; // Combined reason field
+  country_ticket?: string;
+  course_country?: string;
+  citation_number?: string;
+  userAddress?: string;
+  courseAddress?: string;
+  courseTime?: string;
+  address?: string;
 }
 
 export const columns: ColumnDef<Student>[] = [

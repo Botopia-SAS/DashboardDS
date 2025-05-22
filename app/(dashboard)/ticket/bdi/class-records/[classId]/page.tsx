@@ -26,7 +26,7 @@ export default function Page() {
         // Agregar el tipo de curso 'bdi' a cada estudiante para esta ruta
         const studentsWithType = data.map((student: Student) => ({
           ...student,
-          courseType: "bdi",
+          type: "bdi",
         }));
         setStudents(studentsWithType);
         setLoading(false);

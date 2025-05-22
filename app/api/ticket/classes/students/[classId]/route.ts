@@ -7,6 +7,14 @@ import TicketClass from "@/lib/models/TicketClass";
 import { connectToDB } from "@/lib/mongoDB";
 import { NextRequest, NextResponse } from "next/server";
 
+interface Student {
+  studentId: string;
+  reason?: string;
+  citation_number?: string;
+  country_ticket?: string;
+  course_country?: string;
+}
+
 interface Response {
   _id: string;
   locationId: string;
@@ -15,7 +23,7 @@ interface Response {
   classId: string;
   instructorId: string;
   type: string;
-  students: string[];
+  students: Student[];
   __v: number;
 }
 
@@ -31,11 +39,12 @@ export async function GET(req: NextRequest) {
   const instructor = await Instructor.findOne({
     _id: res.instructorId,
   });
-  const studentsIds = res.students;
   const students = [];
-  for (const student of studentsIds) {
-    const user = await User.findOne({ _id: student }).exec();
-    const payment = await Payment.findOne({ user_id: student }).exec();
+  for (const studentEntry of res.students) {
+    const user = await User.findOne({ _id: studentEntry.studentId }).exec();
+    const payment = await Payment.findOne({
+      user_id: studentEntry.studentId,
+    }).exec();
     const cert = await Certificate.findOne({
       studentId: user.id,
       classId,
@@ -46,6 +55,7 @@ export async function GET(req: NextRequest) {
       schoolid: 1453,
       classid: 2181,
       instructorId: instructor.dni,
+      instructorName: instructor.name,
       first_name: user.firstName,
       midl: user.middleName,
       last_name: user.lastName,
@@ -58,6 +68,10 @@ export async function GET(req: NextRequest) {
         timeZone: "UTC",
       }),
       sex: user.sex,
+      reason: studentEntry.reason || "",
+      country_ticket: studentEntry.country_ticket || "",
+      course_country: studentEntry.course_country || "",
+      citation_number: studentEntry.citation_number || "",
       licenseNumber: user.licenseNumber,
     });
   }
@@ -183,16 +197,19 @@ export async function PATCH(req: NextRequest) {
         await cert.save();
       } else {
         // Verificar si existe un pago válido antes de crear un certificado
-        if (!existingOrder && (!payedAmount || payedAmount !== requiredAmount)) {
+        if (
+          !existingOrder &&
+          (!payedAmount || payedAmount !== requiredAmount)
+        ) {
           return NextResponse.json(
-            { 
-              success: false, 
-              message: `Cannot assign certificate without valid payment. Required payment: $${requiredAmount}` 
+            {
+              success: false,
+              message: `Cannot assign certificate without valid payment. Required payment: $${requiredAmount}`,
             },
             { status: 400 }
           );
         }
-        
+
         // Create new certificate
         await Certificate.create({
           studentId: user.id,
@@ -206,7 +223,10 @@ export async function PATCH(req: NextRequest) {
   } catch (error) {
     console.error("Error in PATCH operation:", error);
     return NextResponse.json(
-      { success: false, message: (error as Error).message || "An error occurred" },
+      {
+        success: false,
+        message: (error as Error).message || "An error occurred",
+      },
       { status: 500 }
     );
   }

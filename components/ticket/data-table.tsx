@@ -21,7 +21,7 @@ import {
 } from "@/components/ui/table";
 import { Student } from "./columns";
 import { useTableData } from "./hooks/use-table-data";
-import { useCertificateGenerator } from "./hooks/use-certificate-generator";
+import { useCertificateGenerator } from "./hooks/use-master-certificate-generator";
 import { RowActionButtons } from "./row-action-buttons";
 import { TableActions } from "./table-actions";
 import { PaymentMethodModal } from "./payment-method-modal";
@@ -121,11 +121,13 @@ export function DataTable({ columns, data, onUpdate }: DataTableProps) {
     },
     [generateCertificatePDF]
   );
-
   const downloadXLSX = useCallback(() => {
     const studentsWithCertnZero = data
       .filter((student) => student.certn === 0)
-      .map(({ id, payedAmount, certn, licenseNumber, courseType,  ...rest }) => rest);
+      .map(
+        ({ id, payedAmount, certn, licenseNumber, type, reason, ...rest }) =>
+          rest
+      );
 
     if (studentsWithCertnZero.length === 0) {
       toast.error("No students with certn equal to 0.");

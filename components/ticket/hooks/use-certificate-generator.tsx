@@ -13,7 +13,7 @@ export function useCertificateGenerator() {
       birthDate,
       certn,
       courseDate,
-      courseType,
+      type, // now using type instead of courseType
     } = user;
 
     const pdfDoc = await PDFDocument.create();
@@ -79,10 +79,8 @@ export function useCertificateGenerator() {
         font,
         color: rgb(0, 0, 0),
       }
-    );
-
-    // Texto diferente según el tipo de certificado
-    if (courseType === "bdi") {
+    ); // Texto diferente según el tipo de certificado
+    if (type === "bdi") {
       page.drawText(
         'Highway Safety and Motor Vehicles "Drive Safety & Driver Improvement Course"',
         {
@@ -105,10 +103,8 @@ export function useCertificateGenerator() {
           color: rgb(0, 0, 0),
         }
       );
-    }
-
-    // Citation No - solo para BDI
-    if (courseType === "bdi") {
+    } // Citation No - solo para BDI
+    if (type === "bdi") {
       page.drawText("Citation No: 2337PHQ", {
         // Este campo debería ser dinámico en una implementación real
         x: 100,
@@ -120,7 +116,7 @@ export function useCertificateGenerator() {
     }
 
     // Driver License Number - solo para BDI
-    if (courseType === "bdi") {
+    if (type === "bdi") {
       page.drawText(
         `Driver License Number: ${user.licenseNumber || "D200-815-87-338-0"}`,
         {
@@ -131,10 +127,8 @@ export function useCertificateGenerator() {
           color: rgb(0, 0, 0),
         }
       );
-    }
-
-    // Course Completion Date
-    if (courseType === "bdi") {
+    } // Course Completion Date
+    if (type === "bdi") {
       page.drawText(`Course Completion Date: ${courseDate}`, {
         x: 100,
         y: height - 290,
@@ -154,7 +148,7 @@ export function useCertificateGenerator() {
     }
 
     // Add student name
-    if (courseType === "bdi") {
+    if (type === "bdi") {
       page.drawText("Name:", {
         x: 100,
         y: height - 320,
@@ -187,10 +181,8 @@ export function useCertificateGenerator() {
         font: boldFont,
         color: rgb(0, 0, 0),
       });
-    }
-
-    // Add certificate number
-    if (courseType === "bdi") {
+    } // Add certificate number
+    if (type === "bdi") {
       page.drawText(`Certificate #: ${certn}`, {
         x: 500,
         y: height - 230,
@@ -207,10 +199,8 @@ export function useCertificateGenerator() {
         font: boldFont,
         color: rgb(0, 0, 0),
       });
-    }
-
-    // Address - solo visible en el certificado BDI según la imagen
-    if (courseType === "bdi") {
+    } // Address - solo visible en el certificado BDI según la imagen
+    if (type === "bdi") {
       page.drawText("Address:", {
         x: 100,
         y: height - 350,
@@ -221,7 +211,7 @@ export function useCertificateGenerator() {
     }
 
     // City, State, ZIP - solo visible en el certificado BDI según la imagen
-    if (courseType === "bdi") {
+    if (type === "bdi") {
       page.drawText("City, State, Zip:", {
         x: 100,
         y: height - 380,
@@ -238,10 +228,8 @@ export function useCertificateGenerator() {
         font,
         color: rgb(0, 0, 0),
       });
-    }
-
-    // Contenido específico para certificados DATE
-    if (courseType !== "bdi") {
+    } // Contenido específico para certificados DATE
+    if (type !== "bdi") {
       // Add birth date with better spacing
       page.drawText("Date of Birth:", {
         x: width / 2 - 80,
@@ -304,7 +292,7 @@ export function useCertificateGenerator() {
       );
       const signatureDims = instructorSignature.scale(0.8);
 
-      if (courseType === "bdi") {
+      if (type === "bdi") {
         page.drawImage(instructorSignature, {
           x: 100,
           y: 100,
@@ -322,10 +310,8 @@ export function useCertificateGenerator() {
       }
     } catch (error) {
       console.error("Error loading instructor signature:", error);
-    }
-
-    // Add footer with instructor info
-    if (courseType === "bdi") {
+    } // Add footer with instructor info
+    if (type === "bdi") {
       page.drawText("Instructor's Signature", {
         x: 130,
         y: 60,
@@ -342,10 +328,8 @@ export function useCertificateGenerator() {
         font,
         color: rgb(0, 0, 0),
       });
-    }
-
-    // Course Presented by line - solo para BDI
-    if (courseType === "bdi") {
+    } // Course Presented by line - solo para BDI
+    if (type === "bdi") {
       page.drawText("Course Presented by:", {
         x: 450,
         y: 110,
@@ -400,7 +384,7 @@ export function useCertificateGenerator() {
     // Add seals/logos
     try {
       // Para BDI usamos el sello de la Florida
-      if (courseType === "bdi") {
+      if (type === "bdi") {
         const sealImageBytes = await fetch("/sello2.png").then((res) =>
           res.arrayBuffer()
         );
