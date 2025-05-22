@@ -2,6 +2,7 @@ import { connectToDB } from "@/lib/mongoDB";
 import { NextRequest, NextResponse } from "next/server";
 import Instructor from "@/lib/models/Instructor";
 import mongoose from "mongoose";
+import axios from "axios";
 
 export const dynamic = "force-dynamic";
 
@@ -61,12 +62,28 @@ export async function POST(req: NextRequest) {
   }
 }
 
+// Función para obtener el token de Auth0 Management API dinámicamente
+async function getAuth0ManagementToken() {
+  const response = await axios.post(
+    `https://${process.env.AUTH0_DOMAIN}/oauth/token`,
+    {
+      client_id: process.env.AUTH0_CLIENT_ID,
+      client_secret: process.env.AUTH0_CLIENT_SECRET,
+      audience: `https://${process.env.AUTH0_DOMAIN}/api/v2/`,
+      grant_type: "client_credentials",
+    },
+    {
+      headers: { "content-type": "application/json" },
+    }
+  );
+  return response.data.access_token;
+}
+
 // ✅ DELETE: Eliminar un instructor por ID (Extrae `instructorId` desde la URL)
 export async function DELETE(req: NextRequest) {
   try {
     await connectToDB();
 
-    // ✅ Extraer `instructorId` de la URL en lugar del body
     const instructorId = req.nextUrl.pathname.split("/").pop();
 
     if (!instructorId) {
@@ -77,14 +94,36 @@ export async function DELETE(req: NextRequest) {
       return NextResponse.json({ error: "Invalid Instructor ID" }, { status: 400 });
     }
 
-    console.log("🗑️ Eliminando instructor con ID:", instructorId);
-    const deletedInstructor = await Instructor.findByIdAndDelete(instructorId);
-
-    if (!deletedInstructor) {
+    // 1. Busca el instructor para obtener el listo auth0Id
+    const instructor = await Instructor.findById(instructorId);
+    if (!instructor) {
       return NextResponse.json({ error: "Instructor not found" }, { status: 404 });
     }
 
-    return NextResponse.json({ message: "Instructor deleted successfully" }, { status: 200 });
+    // 2. Elimina el usuario en Auth0 si tiene auth0Id
+    if (instructor.auth0Id) {
+      try {
+        const managementToken = await getAuth0ManagementToken();
+        console.log("Auth0 Header:", `Bearer ${managementToken}`);
+        console.log("Token length:", managementToken?.length);
+        await axios.delete(
+          `https://${process.env.AUTH0_DOMAIN}/api/v2/users/${instructor.auth0Id}`,
+          {
+            headers: {
+              Authorization: `Bearer ${managementToken}`,
+            },
+          }
+        );
+      } catch (err: any) {
+        console.error("Error deleting user in Auth0:", err.response?.data || err.message);
+        // Puedes decidir si abortar aquí o continuar
+      }
+    }
+
+    // 3. Elimina el instructor de la base de datos
+    await Instructor.findByIdAndDelete(instructorId);
+
+    return NextResponse.json({ message: "Instructor and Auth0 user deleted successfully" }, { status: 200 });
   } catch (error) {
     console.error("❌ Error deleting instructor:", error);
     return NextResponse.json({ error: "Error deleting instructor" }, { status: 500 });
