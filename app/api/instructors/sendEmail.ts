@@ -15,9 +15,7 @@ if (missingEnvVars.length > 0) {
 // Crear el transporter con configuración mejorada
 export const transporter = nodemailer.createTransport({
   host: process.env.SMTP_HOST,
-  port: Number(process.env.SMTP_PORT),✅ Resolved Params: {instructorId: '681ede99fda28f8cab1cea77'}
-page.tsx:35 ✅ Resolved Params: {instructorId: '681ede99fda28f8cab1cea77'}
-page.tsx:51 🔍 Fetching instructor details for ID: 681ede99fda28f8cab1cea77
+  port: Number(process.env.SMTP_PORT),
   secure: process.env.SMTP_SECURE === 'true',
   auth: {
     user: process.env.SMTP_USER,
@@ -32,8 +30,6 @@ page.tsx:51 🔍 Fetching instructor details for ID: 681ede99fda28f8cab1cea77
 transporter.verify(function(error: any, success: any) {
   if (error) {
     console.error('❌ Error en la configuración del servicio de correo:', error);
-  } else {
-    console.log('✅ Servicio de correo configurado correctamente');
   }
 });
 
@@ -49,9 +45,7 @@ export const sendEmail = async (options: {
       ...options
     };
     
-    //console.error('📧 Intentando enviar correo a:', options.to);
     const info = await transporter.sendMail(mailOptions);
-    //console.error('✅ Correo enviado exitosamente:', info.messageId);
     return { success: true, messageId: info.messageId };
   } catch (error) {
     console.error('❌ Error al enviar correo:', error);

@@ -137,7 +137,7 @@ const InstructorForm = ({ initialData }: { initialData?: InstructorData }) => {
   }, [schedule]); // Se ejecuta cada vez que schedule cambia
 
   useEffect(() => {
-    console.log("🔄 Reiniciando FullCalendar");
+    //console.log("🔄 Reiniciando FullCalendar");
     setCalendarKey((prevKey) => prevKey + 1);
   }, [schedule]);
 
@@ -407,7 +407,7 @@ const InstructorForm = ({ initialData }: { initialData?: InstructorData }) => {
   // Manejo del submit
   const onSubmit = async (values: InstructorData) => {
     // Log para depuración
-    console.log("initialData:", initialData, "values.password:", values.password);
+    //console.log("initialData:", initialData, "values.password:", values.password);
     // Si es creación, password es obligatorio
     if (!initialData && !values.password) {
       toast.error("Password is required");
@@ -432,7 +432,7 @@ const InstructorForm = ({ initialData }: { initialData?: InstructorData }) => {
     if (initialData && !bodyToSend.password) {
       delete bodyToSend.password;
     }
-    console.log("BODY QUE SE ENVÍA AL BACKEND:", bodyToSend);
+    //console.log("BODY QUE SE ENVÍA AL BACKEND:", bodyToSend);
 
     try {
       const res = await fetch(`/api/instructors`, {
@@ -441,7 +441,7 @@ const InstructorForm = ({ initialData }: { initialData?: InstructorData }) => {
         body: JSON.stringify(bodyToSend),
       });
 
-      console.log("🛜 Respuesta del servidor:", res);
+      //console.log("🛜 Respuesta del servidor:", res);
 
       if (res.ok) {
         toast.success("Instructor saved successfully!");

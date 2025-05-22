@@ -20,7 +20,7 @@ const InstructorSchema = new mongoose.Schema(
     experience: { type: String, default: "" },
     schedule: [SlotSchema], // Flat array of slot objects
     email: { type: String, required: true, unique: true },
-    password: { type: String, required: true },
+    auth0Id: { type: String, required: true, unique: true },
     dni: { type: String, required: true },
   },
   { timestamps: true }

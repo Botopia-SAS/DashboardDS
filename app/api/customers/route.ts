@@ -3,10 +3,8 @@ import Order from "@/lib/models/Order";
 import Payment from "@/lib/models/Payments";
 import TicketClass from "@/lib/models/TicketClass";
 import { connectToDB } from "@/lib/mongoDB";
-import { createClerkClient } from "@clerk/backend";
-import { auth } from "@clerk/nextjs/server";
 import { NextRequest, NextResponse } from "next/server";
-const clerk = createClerkClient({ secretKey: process.env.CLERK_SECRET_KEY });
+
 export async function GET() {
   try {
     await connectToDB();
@@ -34,29 +32,63 @@ export async function GET() {
 
 export async function POST(req: NextRequest) {
   try {
-    const { userId } = await auth();
+    await connectToDB();
     const data = await req.json();
-    // Check if a user with this email already exists
-    const existingUsers = await clerk.users.getUserList({
-      emailAddress: [data.email],
-    });
 
-    if (existingUsers.totalCount > 0) {
+    // Validar datos requeridos
+    if (!data.email || !data.password || !data.firstName || !data.lastName) {
       return NextResponse.json(
-        { error: "Email already exists" },
+        { error: "Missing required fields" },
         { status: 400 }
       );
     }
 
-    // Create the new user
-    const clerkUser = await clerk.users.createUser({
-      emailAddress: [data.email],
-      password: data.password,
-      firstName: data.firstName,
-      lastName: data.lastName,
+    // 1. Obtener un token de acceso de Auth0
+    const tokenRes = await fetch(`https://${process.env.AUTH0_DOMAIN}/oauth/token`, {
+      method: 'POST',
+      headers: { 'content-type': 'application/json' },
+      body: JSON.stringify({
+        client_id: process.env.AUTH0_CLIENT_ID,
+        client_secret: process.env.AUTH0_CLIENT_SECRET,
+        audience: `https://${process.env.AUTH0_DOMAIN}/api/v2/`,
+        grant_type: 'client_credentials',
+      })
     });
+    const tokenData = await tokenRes.json();
+    if (!tokenData.access_token) {
+      return NextResponse.json(
+        { error: "Failed to get Auth0 access token" },
+        { status: 500 }
+      );
+    }
+    const access_token = tokenData.access_token;
+
+    // 2. Crear el usuario en Auth0
+    const userRes = await fetch(`https://${process.env.AUTH0_DOMAIN}/api/v2/users`, {
+      method: 'POST',
+      headers: {
+        'content-type': 'application/json',
+        'authorization': `Bearer ${access_token}`
+      },
+      body: JSON.stringify({
+        email: data.email,
+        password: data.password,
+        connection: 'Username-Password-Authentication',
+        given_name: data.firstName,
+        family_name: data.lastName
+      })
+    });
+    const auth0User = await userRes.json();
+    if (!auth0User.user_id) {
+      return NextResponse.json(
+        { error: auth0User.message || "Failed to create user in Auth0" },
+        { status: 400 }
+      );
+    }
+
+    // 3. Guardar el usuario en MongoDB
     const user = await User.create({
-      clerkId: clerkUser.id,
+      auth0Id: auth0User.user_id,
       email: data.email,
       firstName: data.firstName,
       middleName: data.middleName,
@@ -73,9 +105,10 @@ export async function POST(req: NextRequest) {
       phoneNumber: data.phoneNumber,
       sex: data.sex,
       howDidYouHear: data.howDidYouHear,
-      registeredBy: userId,
+      registeredBy: data.registeredBy,
       role: "user",
     });
+
     if (data.courseId) {
       const order = await Order.create({
         user_id: user._id,
@@ -96,9 +129,20 @@ export async function POST(req: NextRequest) {
       students.push(user._id);
       await TicketClass.updateOne({ _id: data.courseId }, { students });
     }
-    return NextResponse.json(user, { status: 201 });
+
+    return NextResponse.json({
+      message: "User created successfully",
+      user: {
+        id: user.id,
+        email: user.email,
+        name: `${user.firstName} ${user.middleName ?? ""} ${user.lastName}`,
+      },
+    });
   } catch (error) {
-    console.log("Error creando usuario:", error);
-    return NextResponse.json("Error", { status: 500 });
+    console.error("Error creating user:", error);
+    return NextResponse.json(
+      { error: "Failed to create user" },
+      { status: 500 }
+    );
   }
 }
