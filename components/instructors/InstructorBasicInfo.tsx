@@ -9,9 +9,21 @@ import { Button } from "@/components/ui/button";
 import { UseFormReturn } from "react-hook-form";
 import { useState } from "react";
 import { Eye, EyeOff } from "lucide-react";
+import type { Slot } from "./types";
+
+interface InstructorFormData {
+  name: string;
+  dni: string;
+  email: string;
+  password: string;
+  photo: string | string[];
+  certifications?: string;
+  experience?: string;
+  schedule?: Slot[];
+}
 
 interface InstructorBasicInfoProps {
-  form: UseFormReturn<any>;
+  form: UseFormReturn<InstructorFormData>;
   generatePassword: () => void;
 }
 

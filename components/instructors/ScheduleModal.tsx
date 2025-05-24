@@ -4,7 +4,6 @@
 import { Dialog } from "@headlessui/react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
-import { Select } from "@/components/ui/select";
 import { User, SlotType } from "./types";
 import { useState, useEffect } from "react";
 
@@ -22,7 +21,37 @@ interface ScheduleModalProps {
     studentId?: string;
     status?: "free" | "cancelled" | "scheduled";
   };
-  setCurrentSlot: (slot: any) => void;
+  setCurrentSlot: (slot: {
+    start: string;
+    end: string;
+    booked: boolean;
+    recurrence: string;
+    isEditing?: boolean;
+    originalStart?: string;
+    originalEnd?: string;
+    studentId?: string;
+    status?: "free" | "cancelled" | "scheduled";
+  } | ((prev: {
+    start: string;
+    end: string;
+    booked: boolean;
+    recurrence: string;
+    isEditing?: boolean;
+    originalStart?: string;
+    originalEnd?: string;
+    studentId?: string;
+    status?: "free" | "cancelled" | "scheduled";
+  }) => {
+    start: string;
+    end: string;
+    booked: boolean;
+    recurrence: string;
+    isEditing?: boolean;
+    originalStart?: string;
+    originalEnd?: string;
+    studentId?: string;
+    status?: "free" | "cancelled" | "scheduled";
+  })) => void;
   handleSaveSlot: () => void;
   handleUpdateSlot: () => void;
   handleDeleteSlot: () => void;
@@ -34,8 +63,6 @@ interface ScheduleModalProps {
   allUsers: User[];
   selectedStudent: string;
   setSelectedStudent: (id: string) => void;
-  copiedSlot: { duration: number; booked: boolean; recurrence: string } | null;
-  setCopiedSlot: (slot: { duration: number; booked: boolean; recurrence: string } | null) => void;
 }
 
 // Time validation and helpers
@@ -68,8 +95,6 @@ const ScheduleModal = ({
   allUsers,
   selectedStudent,
   setSelectedStudent,
-  copiedSlot,
-  setCopiedSlot,
 }: ScheduleModalProps) => {
   const [users, setUsers] = useState<User[]>(allUsers);
 
@@ -166,10 +191,11 @@ const ScheduleModal = ({
             )
           }
         >
-          <option value="None">None</option>
-          <option value="Daily">Daily</option>
-          <option value="Weekly">Weekly</option>
-          <option value="Monthly">Monthly</option>
+          {recurrenceOptions.map((option) => (
+            <option key={option} value={option}>
+              {option}
+            </option>
+          ))}
         </select>
 
         {recurrenceSummary && (

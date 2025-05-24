@@ -79,6 +79,13 @@ async function getAuth0ManagementToken() {
   return response.data.access_token;
 }
 
+interface Auth0Error {
+  response?: {
+    data?: unknown;
+  };
+  message?: string;
+}
+
 // ✅ DELETE: Eliminar un instructor por ID (Extrae `instructorId` desde la URL)
 export async function DELETE(req: NextRequest) {
   try {
@@ -114,8 +121,9 @@ export async function DELETE(req: NextRequest) {
             },
           }
         );
-      } catch (err: any) {
-        console.error("Error deleting user in Auth0:", err.response?.data || err.message);
+      } catch (err: unknown) {
+        const error = err as Auth0Error;
+        console.error("Error deleting user in Auth0:", error.response?.data || error.message);
         // Puedes decidir si abortar aquí o continuar
       }
     }

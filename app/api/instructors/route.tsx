@@ -1,13 +1,21 @@
 import { connectToDB } from "@/lib/mongoDB";
 import { NextResponse } from "next/server";
-import Instructor from "@/lib/models/Instructor"; // Modelo de MongoDB
-import bcrypt from "bcryptjs";
+import Instructor from "@/lib/models/Instructor"; // Modelo de MongoDB   
 import { sendEmail } from './sendEmail';
 
 export const dynamic = "force-dynamic";
 
-function isValidSlot(slot: any) {
-  return slot && slot.date && slot.start && slot.end;
+interface Slot {
+  date: string;
+  start: string;
+  end: string;
+  booked?: boolean;
+  studentId?: string | null;
+  status?: string;
+}
+
+function isValidSlot(slot: Slot): boolean {
+  return Boolean(slot?.date && slot?.start && slot?.end);
 }
 
 export async function POST(req: Request) {
@@ -72,7 +80,7 @@ export async function POST(req: Request) {
           },
           body: JSON.stringify(assignRoleBody)
         });
-        const assignRoleText = await assignRoleRes.text();
+        
         if (!assignRoleRes.ok) {
             console.error('❌ Error al asignar rol en Auth0');
         }
@@ -125,10 +133,7 @@ export async function POST(req: Request) {
         return NextResponse.json(newInstructor, { status: 201 });
     } catch (error) {
         console.error("Error en el endpoint POST /api/instructors:", error);
-        return NextResponse.json(
-            { message: "Error creating instructor" },
-            { status: 500 }
-        );
+        return NextResponse.json({ message: "Error creating instructor" }, { status: 500 });
     }
 }
 
@@ -144,9 +149,9 @@ export const GET = async () => {
 };
 
 export async function PATCH(req: Request) {
-  try {
-    await connectToDB();
-    const { instructorId, schedule: newSchedule, password, email, dni, ...updates } = await req.json();
+    try {
+        await connectToDB();
+        const { instructorId, schedule: newSchedule, password, email, dni, ...updates } = await req.json();
 
         if (!instructorId) {
             return NextResponse.json({ message: "Instructor ID is required" }, { status: 400 });
@@ -226,8 +231,8 @@ export async function PATCH(req: Request) {
             { $set: updateFields },
             { new: true, runValidators: true }
           );
-        } catch (err: any) {
-          if (err.code === 11000 && err.keyPattern && err.keyPattern.email) {
+        } catch (err: unknown) {
+          if (err instanceof Error && 'code' in err && err.code === 11000 && 'keyPattern' in err && err.keyPattern && typeof err.keyPattern === 'object' && 'email' in err.keyPattern) {
             return NextResponse.json({ message: "Email already exists" }, { status: 409 });
           }
           return NextResponse.json({ message: "Database error", error: err }, { status: 500 });
@@ -317,23 +322,14 @@ export async function DELETE(req: Request) {
         }
 
         // Eliminar instructor en MongoDB
-    const deletedInstructor = await Instructor.findByIdAndDelete(instructorId);
-    if (!deletedInstructor) {
-      return NextResponse.json(
-        { message: "Instructor not found" },
-        { status: 404 }
-      );
-    }
+        const deletedInstructor = await Instructor.findByIdAndDelete(instructorId);
+        if (!deletedInstructor) {
+            return NextResponse.json({ message: "Instructor not found" }, { status: 404 });
+        }
 
-    return NextResponse.json(
-      { message: "Instructor deleted successfully" },
-      { status: 200 }
-    );
-  } catch (error) {
-    console.error("❌ Error al eliminar instructor:", error);
-    return NextResponse.json(
-      { message: "Error deleting instructor" },
-      { status: 500 }
-    );
-  }
+        return NextResponse.json({ message: "Instructor deleted successfully" }, { status: 200 });
+    } catch (error) {
+        console.error("❌ Error al eliminar instructor:", error);
+        return NextResponse.json({ message: "Error deleting instructor" }, { status: 500 });
+    }
 }

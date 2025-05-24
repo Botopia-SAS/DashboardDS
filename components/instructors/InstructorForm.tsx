@@ -6,62 +6,45 @@ import { z } from "zod";
 import { useRouter } from "next/navigation";
 import { useState, useEffect } from "react";
 import toast from "react-hot-toast";
-import { Dialog } from "@headlessui/react";
 import { DateSelectArg } from "@fullcalendar/core";
 import { EventClickArg } from "@fullcalendar/core";
 import { differenceInDays, differenceInWeeks, differenceInMonths } from "date-fns";
 
 import { Separator } from "../ui/separator";
 import { Button } from "@/components/ui/button";
-import { Select } from "@/components/ui/select";
-import {
-  Form,
-  FormControl,
-  FormField,
-  FormItem,
-  FormLabel,
-  FormMessage,
-} from "@/components/ui/form";
-import { Input } from "@/components/ui/input";
-import { Textarea } from "../ui/textarea";
-import ImageUpload from "../custom ui/ImageUpload";
+import { Form } from "@/components/ui/form";
 
-import FullCalendar from "@fullcalendar/react";
-import timeGridPlugin from "@fullcalendar/timegrid";
-import interactionPlugin from "@fullcalendar/interaction";
 import { v4 as uuidv4 } from "uuid";
-//import bcrypt from "bcryptjs"; Si no se usa eliminarlo
-// import { useRef } from "react";  Si no se usa eliminarlo
 import InstructorBasicInfo from "./InstructorBasicInfo";
 import InstructorSchedule from "./InstructorSchedule";
 import ScheduleModal from "./ScheduleModal";
 import EditRecurringModal from "./EditRecurringModal";
-import { CalendarEvent, InstructorData as Id, Slot, User, SlotType } from "./types";
-import { normalizeSchedule, splitIntoHalfHourSlots, normalizeTime, getStudentName, generateRecurringSlots } from "./utils";
+import { CalendarEvent, InstructorData, Slot, User, SlotType } from "./types";
+import { normalizeSchedule, splitIntoHalfHourSlots, getStudentName, generateRecurringSlots } from "./utils";
 
-// Replace the broken schema definition with this corrected version
+interface InstructorFormData {
+  name: string;
+  dni: string;
+  email: string;
+  password: string;
+  photo: string | string[];
+  certifications?: string;
+  experience?: string;
+  schedule?: Slot[];
+}
+
 const formSchema = z.object({
   name: z.string().min(2, "Name is required"),
-  dni: z.string().min(1, "DNI is required"),
-  username: z.string().min(4, "Username must be at least 4 characters"),
+  dni: z.string().min(2, "DNI is required"),
   email: z.string().email("Invalid email format"),
-  password: z.string().min(8, "Password must be at least 8 characters"),
-  photo: z.string().url("Valid photo URL required"),
+  password: z.string().optional(),
+  photo: z.union([z.string().url("Valid photo URL required"), z.array(z.string())]),
   certifications: z.string().optional(),
   experience: z.string().optional(),
   schedule: z
     .array(
       z.object({
         date: z.string(),
-        slots: z.array(
-          z.object({
-            start: z.string(),
-            end: z.string(),
-            booked: z.boolean().optional(),
-          }).refine((slot) => slot.start < slot.end, {
-            message: "Start time must be before end time.",
-          })
-        ),
         start: z.string(),
         end: z.string(),
         booked: z.boolean().optional(),
@@ -70,8 +53,9 @@ const formSchema = z.object({
       })
     )
     .optional(),
-}).refine((data) => {
+}).refine(() => {
   // Solo requerir password si no hay initialData (creación)
+  // El valor de initialData no está aquí, así que la validación real se hace en el submit
   return true;
 }, {
   message: "Password is required",
@@ -112,20 +96,14 @@ const InstructorForm = ({ initialData }: { initialData?: InstructorData }) => {
     recurrenceEnd: null,
     isEditing: false,
   });
-  const [copiedSlot, setCopiedSlot] = useState<{
-    duration: number;
-    booked: boolean;
-    recurrence: string;
-  } | null>(null);
   const [editModalOpen, setEditModalOpen] = useState(false);
   const [editAll, setEditAll] = useState(false);
   const [allUsers, setAllUsers] = useState<User[]>([]);
-  const [users, setUsers] = useState<User[]>([]);
   const [selectedStudent, setSelectedStudent] = useState<string>("");
   const [slotType, setSlotType] = useState<SlotType>("");
 
   useEffect(() => {
-    if (schedule.length === 0) return; // Evita actualizaciones innecesarias
+    if (schedule.length === 0) return;
 
     const newEvents = schedule.map((slot: Slot) => ({
       title: slot.booked ? "Booked" : "Available",
@@ -141,13 +119,10 @@ const InstructorForm = ({ initialData }: { initialData?: InstructorData }) => {
     }));
 
     setCalendarEvents(newEvents);
-
-    // 🔹 FORZAMOS el re-render solo cuando `schedule` cambie
     setCalendarKey((prevKey) => prevKey + 1);
-  }, [schedule]); // Se ejecuta cada vez que schedule cambia
+  }, [schedule]);
 
   useEffect(() => {
-    //console.log("🔄 Reiniciando FullCalendar");
     setCalendarKey((prevKey) => prevKey + 1);
   }, [schedule]);
 
@@ -170,8 +145,6 @@ const InstructorForm = ({ initialData }: { initialData?: InstructorData }) => {
     setTimeout(() => {
       setCalendarKey((prevKey) => prevKey + 1);
     }, 50);
-
-    return undefined; // ✅ Se asegura que no devuelva JSX ni nada inesperado
   }, [schedule]);
 
   // Genera una contraseña aleatoria
@@ -189,11 +162,8 @@ const InstructorForm = ({ initialData }: { initialData?: InstructorData }) => {
   const handleDateSelect = (selectInfo: DateSelectArg) => {
     const start = selectInfo.startStr;
     const end = selectInfo.endStr;
-    const date = start.split("T")[0];
 
-    // 📌 Asignar `currentSlot` antes de abrir el modal
     setCurrentSlot({ start, end, booked: false, recurrence: "None" });
-
     setIsModalOpen(true);
   };
 
@@ -313,17 +283,17 @@ const InstructorForm = ({ initialData }: { initialData?: InstructorData }) => {
       );
     } else {
       newSlots = splitIntoHalfHourSlots(currentSlot.start, currentSlot.end, {
-      booked,
-      studentId,
-      status,
-    }).map(slot => ({
-      date: slot.date,
-      start: slot.start,
-      end: slot.end,
-      status: slot.status,
-      booked: slot.booked,
-      studentId: slot.studentId,
-    }));
+        booked,
+        studentId,
+        status,
+      }).map(slot => ({
+        date: slot.date,
+        start: slot.start,
+        end: slot.end,
+        status: slot.status,
+        booked: slot.booked,
+        studentId: slot.studentId,
+      }));
     }
 
     for (const slot of newSlots) {
@@ -341,7 +311,7 @@ const InstructorForm = ({ initialData }: { initialData?: InstructorData }) => {
   };
 
   const handleEventClick = async (eventInfo: EventClickArg) => {
-    const { start, end, extendedProps } = eventInfo.event;
+    const { start, end } = eventInfo.event;
 
     if (!start || !end) {
       return;
@@ -379,33 +349,29 @@ const InstructorForm = ({ initialData }: { initialData?: InstructorData }) => {
     if (realSlot?.status === "scheduled" && realSlot?.studentId) {
       try {
         const res = await fetch("/api/users");
-        const data = await res.json();
-        const filtered = data
+        const filtered = (await res.json())
           .filter((u: User) => u.role === "user")
           .map((u: User) => ({
             ...u,
             name: u.name || `${u.firstName || ""} ${u.lastName || ""}`.trim(),
           }));
         setAllUsers(filtered);
-        setUsers(filtered);
         setSelectedStudent(realSlot.studentId);
-      } catch (err) {
+      } catch {
         setSelectedStudent("");
       }
     } else {
       setSelectedStudent("");
     }
 
-    // Siempre abre el modal de edición directa, sin preguntar por recurrencia
     setIsModalOpen(true);
   };
 
-  const form = useForm({
+  const form = useForm<InstructorFormData>({
     resolver: zodResolver(formSchema),
     defaultValues: {
       name: initialData?.name || "",
       dni: initialData?.dni || "",
-      username: initialData?.username || "", // Añade esta línea
       email: initialData?.email || "",
       password: "",
       photo: initialData?.photo || "",
@@ -416,20 +382,22 @@ const InstructorForm = ({ initialData }: { initialData?: InstructorData }) => {
   });
 
   // Manejo del submit
-  const onSubmit = async (values: InstructorData) => {
-    // Log para depuración
-    //console.log("initialData:", initialData, "values.password:", values.password);
-    // Si es creación, password es obligatorio
+  const onSubmit = async (values: InstructorFormData) => {
     if (!initialData && !values.password) {
       toast.error("Password is required");
       return;
     }
     setLoading(true);
 
-    // LOG DETALLADO DEL BODY
-    const bodyToSend: any = {
+    // Asegura que photo sea string
+    const photoString = Array.isArray(values.photo)
+      ? values.photo[0] || ""
+      : values.photo || "";
+
+    const bodyToSend: Record<string, unknown> = {
       instructorId: initialData?._id ?? "",
       ...values,
+      photo: photoString,
       schedule: schedule.map((slot: Slot) => ({
         date: slot.date,
         start: slot.start,
@@ -439,11 +407,10 @@ const InstructorForm = ({ initialData }: { initialData?: InstructorData }) => {
         studentId: slot.studentId || null,
       })),
     };
-    // Si password está vacío, no lo envíes (solo para edición)
+
     if (initialData && !bodyToSend.password) {
       delete bodyToSend.password;
     }
-    //console.log("BODY QUE SE ENVÍA AL BACKEND:", bodyToSend);
 
     try {
       const res = await fetch(`/api/instructors`, {
@@ -451,8 +418,6 @@ const InstructorForm = ({ initialData }: { initialData?: InstructorData }) => {
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify(bodyToSend),
       });
-
-      //console.log("🛜 Respuesta del servidor:", res);
 
       if (res.ok) {
         toast.success("Instructor saved successfully!");
@@ -462,8 +427,8 @@ const InstructorForm = ({ initialData }: { initialData?: InstructorData }) => {
         console.error("❌ Error en la respuesta:", errorText);
         toast.error("Error saving instructor.");
       }
-    } catch (err) {
-      console.error("❌ Server error:", err);
+    } catch (error) {
+      console.error("❌ Server error:", error);
       toast.error("Server error.");
     } finally {
       setLoading(false);
@@ -511,66 +476,10 @@ const InstructorForm = ({ initialData }: { initialData?: InstructorData }) => {
     },
   }));
 
-
-
   useEffect(() => {
     setCalendarEvents(formattedEvents);
     setCalendarKey((prevKey) => prevKey + 1);
-  }, [schedule]);
-
-  useEffect(() => {
-    if (isModalOpen && slotType === "booked") {
-      fetch("/api/users?roles=user,student")
-        .then((res) => res.json())
-        .then((data) => {
-          const filtered = data
-            .map((u: User) => ({
-              ...u,
-              name: u.name || `${u.firstName || ""} ${u.lastName || ""}`.trim(),
-            }));
-          setAllUsers(filtered);
-          setUsers(filtered);
-        });
-    }
-  }, [isModalOpen, slotType]);
-
-  // Sincroniza selectedStudent con el studentId del slot actual cada vez que se abre el modal
-  useEffect(() => {
-    if (isModalOpen && currentSlot && currentSlot.booked) {
-      // Busca el slot real en el schedule por fecha, start y end
-      const realSlot = schedule.find((s: Slot) =>
-        s.date === currentSlot.start.split("T")[0] &&
-        s.start === currentSlot.start.split("T")[1] &&
-        s.end === currentSlot.end.split("T")[1]
-      );
-      setSelectedStudent(realSlot?.studentId || "");
-    }
-    if (isModalOpen && (!currentSlot || !currentSlot.booked)) {
-      setSelectedStudent("");
-    }
-  }, [isModalOpen, currentSlot, schedule]);
-
-  // Solo sincroniza slotType la PRIMERA vez que se abre el modal, no cada vez que cambia currentSlot
-  useEffect(() => {
-    if (isModalOpen && currentSlot) {
-      if (currentSlot.status === "free") setSlotType("free");
-      else if (currentSlot.status === "cancelled") setSlotType("cancelled");
-      else if (currentSlot.status === "scheduled") setSlotType("booked");
-      else setSlotType("");
-    }
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [isModalOpen, currentSlot]);
-
-  useEffect(() => {
-    if (isModalOpen && currentSlot?.isEditing && slotType === "booked") {
-      const realSlot = schedule.find((s: Slot) =>
-        s.date === currentSlot.start.split("T")[0] &&
-        s.start === currentSlot.start.split("T")[1] &&
-        s.end === currentSlot.end.split("T")[1]
-      );
-      if (realSlot?.studentId) setSelectedStudent(realSlot.studentId);
-    }
-  }, [isModalOpen, currentSlot, schedule, slotType]);
+  }, [schedule, formattedEvents]);
 
   return (
     <div className="p-10">
@@ -606,15 +515,13 @@ const InstructorForm = ({ initialData }: { initialData?: InstructorData }) => {
             allUsers={allUsers}
             selectedStudent={selectedStudent}
             setSelectedStudent={setSelectedStudent}
-            copiedSlot={copiedSlot}
-            setCopiedSlot={setCopiedSlot}
           />
 
           <EditRecurringModal
             isOpen={editModalOpen}
             onClose={() => setEditModalOpen(false)}
-            setEditAll={setEditAll}
             setIsModalOpen={setIsModalOpen}
+            setEditAll={setEditAll}
           />
 
           <div className="flex gap-4">
@@ -641,23 +548,3 @@ const InstructorForm = ({ initialData }: { initialData?: InstructorData }) => {
 };
 
 export default InstructorForm;
-
-interface InstructorData {
-  _id?: string;
-  name: string;
-  dni: string;
-  username: string;
-  email: string;
-  password?: string;
-  photo: string;
-  certifications?: string;
-  experience?: string;
-  schedule?: {
-    date: string;
-    start: string;
-    end: string;
-    booked?: boolean;
-    studentId?: string | null;
-    status?: string;
-  }[];
-}

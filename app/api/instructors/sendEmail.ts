@@ -27,7 +27,7 @@ export const transporter = nodemailer.createTransport({
 });
 
 // Verificar la conexión al iniciar
-transporter.verify(function(error: any, success: any) {
+transporter.verify(function(error: Error | null) {
   if (error) {
     console.error('❌ Error en la configuración del servicio de correo:', error);
   }
