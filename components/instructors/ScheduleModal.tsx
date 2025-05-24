@@ -1,6 +1,5 @@
 // ScheduleModal.tsx
 // Modal para crear o editar un slot en el calendario del instructor.
-
 import { Dialog } from "@headlessui/react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";

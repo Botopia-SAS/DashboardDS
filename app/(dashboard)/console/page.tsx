@@ -12,8 +12,9 @@ import {
   Tooltip,
   ResponsiveContainer,
 } from "recharts";
-import Image from "next/image";
 import { Menu, X } from "lucide-react"; // Íconos de menú
+import ActiveUsersCard from "@/components/ui/ActiveUsersCard";
+import InactiveUsersCard from "@/components/ui/InactiveUsersCard";
 
 function ConsolePage() {
   const [menuOpen, setMenuOpen] = useState(false);
@@ -35,10 +36,14 @@ function ConsolePage() {
   const [selectedPage, setSelectedPage] = useState("");
 
   const pageImages: Record<string, string> = {
-    "/": "/images/home.png", // La ruta de las imágenes
-    "/Book-Now": "/images/book-now.png",
+    "/": "/images/home.png",
     "/Lessons": "/images/lessons.png",
-    // Agregar más páginas y sus imágenes correspondientes
+    "/OnlineCourses": "/images/OnlineCourses.png",
+    "/Packages": "/images/packages.png",
+    "/Classes": "/images/Classes.png",
+    "/Location": "/images/location.png",
+    "/FAQ": "/images/faqa.png",
+    // Puedes agregar más rutas e imágenes aquí si agregas más páginas
   };
 
   useEffect(() => {
@@ -173,23 +178,23 @@ function ConsolePage() {
           <CardContent>
             <h2 className="text-xl font-bold">Vista Previa con Heatmap</h2>
             {selectedPage ? (
-              <div className="relative w-full h-[700px] border overflow-hidden">
-                {/* Imagen de vista previa */}
-                <Image
+              <div className="relative w-full h-[700px] border overflow-y-auto bg-gray-50">
+                {/* Imagen de vista previa (tamaño real, no fill) */}
+                {/* Usamos <img> en vez de <Image> porque necesitamos scroll y tamaño natural para el heatmap. */}
+                <img
                   src={pageImages[selectedPage] || "/images/default.png"}
                   alt={`Vista previa de ${selectedPage}`}
-                  layout="fill"
-                  objectFit="cover"
-                  className="absolute top-0 left-0 z-0"
+                  className="w-full block"
+                  style={{ position: "relative", zIndex: 0 }}
                 />
-
                 {/* Heatmap sobre la imagen */}
                 {!loading && heatmapData.length > 0 && (
-                  <div className="absolute top-0 left-0 w-full h-full pointer-events-none z-10 bg-transparent">
+                  <div
+                    className="absolute top-0 left-0 w-full h-full pointer-events-none z-10"
+                    style={{}}
+                  >
                     <Heatmap
-                      data={heatmapData.filter(
-                        (d) => d.pathname === selectedPage
-                      )}
+                      data={heatmapData.filter((d) => d.pathname === selectedPage)}
                     />
                   </div>
                 )}
@@ -204,6 +209,8 @@ function ConsolePage() {
 
         {/* Stats Section */}
         <div className="grid gap-4">
+          <ActiveUsersCard />
+          <InactiveUsersCard />
           <Card>
             <CardContent>
               <h2 className="text-lg font-semibold">Usuarios Únicos</h2>
