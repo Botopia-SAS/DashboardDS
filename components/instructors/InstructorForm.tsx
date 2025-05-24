@@ -27,7 +27,7 @@ import EditRecurringModal from "./EditRecurringModal";
 import InstructorBasicInfo from "./InstructorBasicInfo";
 import InstructorSchedule from "./InstructorSchedule";
 import ScheduleModal from "./ScheduleModal";
-import { CalendarEvent, InstructorData, Slot, SlotType, User } from "./types";
+import { CalendarEvent, Slot, SlotType, User } from "./types";
 import {
   generateRecurringSlots,
   getStudentName,
@@ -35,39 +35,44 @@ import {
   splitIntoHalfHourSlots
 } from "./utils";
 
-const formSchema = z
-  .object({
-    name: z.string().min(2, "Name is required"),
-    dni: z.string().min(2, "DNI is required"),
-    email: z.string().email("Invalid email format"),
-    password: z.string().optional(), // No requerir aquí, se valida abajo
-    photo: z.string().url("Valid photo URL required"),
-    certifications: z.string().optional(),
-    experience: z.string().optional(),
-    schedule: z
-      .array(
-        z.object({
-          date: z.string(),
-          start: z.string(),
-          end: z.string(),
-          booked: z.boolean().optional(),
-          studentId: z.string().nullable().optional(),
-          status: z.string().optional(),
-        })
-      )
-      .optional(),
-  })
-  .refine(
-    () => {
-      // Solo requerir password si no hay initialData (creación)
-      // El valor de initialData no está aquí, así que la validación real se hace en el submit
-      return true;
-    },
-    {
-      message: "Password is required",
-      path: ["password"],
-    }
-  );
+// Replace the broken schema definition with this corrected version
+const formSchema = z.object({
+  name: z.string().min(2, "Name is required"),
+  dni: z.string().min(1, "DNI is required"),
+  username: z.string().min(4, "Username must be at least 4 characters"),
+  email: z.string().email("Invalid email format"),
+  password: z.string().min(8, "Password must be at least 8 characters"),
+  photo: z.string().url("Valid photo URL required"),
+  certifications: z.string().optional(),
+  experience: z.string().optional(),
+  schedule: z
+    .array(
+      z.object({
+        date: z.string(),
+        slots: z.array(
+          z.object({
+            start: z.string(),
+            end: z.string(),
+            booked: z.boolean().optional(),
+          }).refine((slot) => slot.start < slot.end, {
+            message: "Start time must be before end time.",
+          })
+        ),
+        start: z.string(),
+        end: z.string(),
+        booked: z.boolean().optional(),
+        studentId: z.string().nullable().optional(),
+        status: z.string().optional(),
+      })
+    )
+    .optional(),
+}).refine((data) => {
+  // Solo requerir password si no hay initialData (creación)
+  return true;
+}, {
+  message: "Password is required",
+  path: ["password"],
+});
 
 // Componente principal que maneja el estado global y renderiza los subcomponentes
 const InstructorForm = ({ initialData }: { initialData?: InstructorData }) => {
@@ -416,6 +421,7 @@ const InstructorForm = ({ initialData }: { initialData?: InstructorData }) => {
     defaultValues: {
       name: initialData?.name || "",
       dni: initialData?.dni || "",
+      username: initialData?.username || "", // Añade esta línea
       email: initialData?.email || "",
       password: "",
       photo: initialData?.photo || "",
@@ -652,3 +658,23 @@ const InstructorForm = ({ initialData }: { initialData?: InstructorData }) => {
 };
 
 export default InstructorForm;
+
+interface InstructorData {
+  _id?: string;
+  name: string;
+  dni: string;
+  username: string;
+  email: string;
+  password?: string;
+  photo: string;
+  certifications?: string;
+  experience?: string;
+  schedule?: {
+    date: string;
+    start: string;
+    end: string;
+    booked?: boolean;
+    studentId?: string | null;
+    status?: string;
+  }[];
+}

@@ -111,7 +111,7 @@ export async function POST(req: Request) {
       dni,
     });
 
-    await newInstructor.save();
+        await newInstructor.save();
 
     // Enviar correo con las credenciales al instructor
     try {
@@ -148,14 +148,14 @@ export async function POST(req: Request) {
       );
     }
 
-    return NextResponse.json(newInstructor, { status: 201 });
-  } catch (error) {
-    console.error("Error en el endpoint POST /api/instructors:", error);
-    return NextResponse.json(
-      { message: "Error creating instructor" },
-      { status: 500 }
-    );
-  }
+        return NextResponse.json(newInstructor, { status: 201 });
+    } catch (error) {
+        console.error("Error en el endpoint POST /api/instructors:", error);
+        return NextResponse.json(
+            { message: "Error creating instructor" },
+            { status: 500 }
+        );
+    }
 }
 
 export const GET = async () => {

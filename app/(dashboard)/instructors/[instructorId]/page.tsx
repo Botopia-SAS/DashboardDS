@@ -4,15 +4,7 @@ import { useEffect, useState } from "react";
 import Loader from "@/components/custom ui/Loader";
 import InstructorForm from "@/components/instructors/InstructorForm";
 import type { Slot } from "@/components/instructors/types";
-
-type InstructorType = {
-  _id: string;
-  name: string;
-  photo: string;
-  certifications?: string;
-  experience?: string;
-  schedule?: Slot[];
-};
+import { InstructorData } from "@/types/instructor";
 
 const VALID_STATUSES = ["free", "cancelled", "scheduled"] as const;
 function normalizeSlotStatus(status: any): "free" | "cancelled" | "scheduled" | undefined {
@@ -26,7 +18,7 @@ const InstructorDetails = ({
 }) => {
   const [loading, setLoading] = useState(true);
   const [instructorDetails, setInstructorDetails] =
-    useState<InstructorType | null>(null);
+    useState<InstructorData | null>(null);
   const [instructorId, setInstructorId] = useState<string | null>(null);
 
   useEffect(() => {
@@ -58,7 +50,7 @@ const InstructorDetails = ({
 
         // 📌 Filtrar el instructor correcto
         const selectedInstructor = data.find(
-          (inst: InstructorType) => inst._id === instructorId
+          (inst: InstructorData) => inst._id === instructorId
         );
 
         if (!selectedInstructor) {
@@ -89,6 +81,7 @@ const InstructorDetails = ({
           setInstructorDetails({ ...selectedInstructor, schedule: flatSchedule });
         }
       } catch (err) {
+        console.error("Error occurred:", err);
       } finally {
         setLoading(false);
       }
