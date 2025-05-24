@@ -1,43 +1,39 @@
+/* eslint-disable @typescript-eslint/no-unused-vars */
 "use client";
 
+import { DateSelectArg, EventClickArg } from "@fullcalendar/core";
 import { zodResolver } from "@hookform/resolvers/zod";
-import { useForm } from "react-hook-form";
-import { z } from "zod";
-import { useRouter } from "next/navigation";
-import { useState, useEffect } from "react";
-import toast from "react-hot-toast";
-import { Dialog } from "@headlessui/react";
-import { DateSelectArg } from "@fullcalendar/core";
-import { EventClickArg } from "@fullcalendar/core";
-import { differenceInDays, differenceInWeeks, differenceInMonths } from "date-fns";
-
-import { Separator } from "../ui/separator";
-import { Button } from "@/components/ui/button";
-import { Select } from "@/components/ui/select";
 import {
-  Form,
-  FormControl,
-  FormField,
-  FormItem,
-  FormLabel,
-  FormMessage,
-} from "@/components/ui/form";
-import { Input } from "@/components/ui/input";
-import { Textarea } from "../ui/textarea";
-import ImageUpload from "../custom ui/ImageUpload";
+  differenceInDays,
+  differenceInMonths,
+  differenceInWeeks,
+} from "date-fns";
+import { useRouter } from "next/navigation";
+import { useEffect, useState } from "react";
+import { useForm } from "react-hook-form";
+import toast from "react-hot-toast";
+import { z } from "zod";
 
-import FullCalendar from "@fullcalendar/react";
-import timeGridPlugin from "@fullcalendar/timegrid";
-import interactionPlugin from "@fullcalendar/interaction";
+import { Button } from "@/components/ui/button";
+import {
+  Form
+} from "@/components/ui/form";
+import { Separator } from "../ui/separator";
+
 import { v4 as uuidv4 } from "uuid";
 //import bcrypt from "bcryptjs"; Si no se usa eliminarlo
 // import { useRef } from "react";  Si no se usa eliminarlo
+import EditRecurringModal from "./EditRecurringModal";
 import InstructorBasicInfo from "./InstructorBasicInfo";
 import InstructorSchedule from "./InstructorSchedule";
 import ScheduleModal from "./ScheduleModal";
-import EditRecurringModal from "./EditRecurringModal";
-import { CalendarEvent, InstructorData as Id, Slot, User, SlotType } from "./types";
-import { normalizeSchedule, splitIntoHalfHourSlots, normalizeTime, getStudentName, generateRecurringSlots } from "./utils";
+import { CalendarEvent, Slot, SlotType, User } from "./types";
+import {
+  generateRecurringSlots,
+  getStudentName,
+  normalizeSchedule,
+  splitIntoHalfHourSlots
+} from "./utils";
 
 // Replace the broken schema definition with this corrected version
 const formSchema = z.object({
@@ -84,7 +80,9 @@ const InstructorForm = ({ initialData }: { initialData?: InstructorData }) => {
   const [recurrenceEnd, setRecurrenceEnd] = useState<string | null>(null);
   const router = useRouter();
   const [loading, setLoading] = useState(false);
-  const [schedule, setSchedule] = useState<Slot[]>(() => normalizeSchedule(initialData?.schedule || []));
+  const [schedule, setSchedule] = useState<Slot[]>(() =>
+    normalizeSchedule(initialData?.schedule || [])
+  );
   const [calendarEvents, setCalendarEvents] = useState<CalendarEvent[]>([]);
   const [calendarKey, setCalendarKey] = useState(0); // 🔹 Clave única para forzar re-render
   const [isModalOpen, setIsModalOpen] = useState(false);
@@ -217,7 +215,9 @@ const InstructorForm = ({ initialData }: { initialData?: InstructorData }) => {
   };
 
   // Auxiliar para status seguro
-  function getSlotStatus(slotType: SlotType): "free" | "cancelled" | "scheduled" {
+  function getSlotStatus(
+    slotType: SlotType
+  ): "free" | "cancelled" | "scheduled" {
     if (slotType === "booked") return "scheduled";
     if (slotType === "cancelled") return "cancelled";
     return "free";
@@ -254,7 +254,9 @@ const InstructorForm = ({ initialData }: { initialData?: InstructorData }) => {
     setIsModalOpen(false);
     setCurrentSlot({ start: "", end: "", booked: false, recurrence: "None" });
     setSelectedStudent("");
-    toast.success("Slot updated! Recuerda presionar 'Save Changes' para guardar en la base de datos.");
+    toast.success(
+      "Slot updated! Recuerda presionar 'Save Changes' para guardar en la base de datos."
+    );
   };
 
   const handleSaveSlot = () => {
@@ -291,7 +293,12 @@ const InstructorForm = ({ initialData }: { initialData?: InstructorData }) => {
         }
         if (count < 1) count = 1;
       } else {
-        count = currentSlot.recurrence === "Daily" ? 7 : currentSlot.recurrence === "Weekly" ? 4 : 3;
+        count =
+          currentSlot.recurrence === "Daily"
+            ? 7
+            : currentSlot.recurrence === "Weekly"
+            ? 4
+            : 3;
       }
       // Always use currentSlot.start and currentSlot.end as the base for recurrence
       const generated = generateRecurringSlots(
@@ -306,28 +313,37 @@ const InstructorForm = ({ initialData }: { initialData?: InstructorData }) => {
         }
       );
       // Only add slots that do not already exist
-      newSlots = generated.filter(slot =>
-        !schedule.some(
-          s => s.date === slot.date && s.start === slot.start && s.end === slot.end
-        )
+      newSlots = generated.filter(
+        (slot) =>
+          !schedule.some(
+            (s) =>
+              s.date === slot.date &&
+              s.start === slot.start &&
+              s.end === slot.end
+          )
       );
     } else {
       newSlots = splitIntoHalfHourSlots(currentSlot.start, currentSlot.end, {
-      booked,
-      studentId,
-      status,
-    }).map(slot => ({
-      date: slot.date,
-      start: slot.start,
-      end: slot.end,
-      status: slot.status,
-      booked: slot.booked,
-      studentId: slot.studentId,
-    }));
+        booked,
+        studentId,
+        status,
+      }).map((slot) => ({
+        date: slot.date,
+        start: slot.start,
+        end: slot.end,
+        status: slot.status,
+        booked: slot.booked,
+        studentId: slot.studentId,
+      }));
     }
 
     for (const slot of newSlots) {
-      if (schedule.some((s: Slot) => s.date === slot.date && s.start === slot.start && s.end === slot.end)) {
+      if (
+        schedule.some(
+          (s: Slot) =>
+            s.date === slot.date && s.start === slot.start && s.end === slot.end
+        )
+      ) {
         toast.error("Slot already exists for that time.");
         return;
       }
@@ -427,7 +443,7 @@ const InstructorForm = ({ initialData }: { initialData?: InstructorData }) => {
     setLoading(true);
 
     // LOG DETALLADO DEL BODY
-    const bodyToSend: any = {
+    const bodyToSend = {
       instructorId: initialData?._id ?? "",
       ...values,
       schedule: schedule.map((slot: Slot) => ({
@@ -511,23 +527,20 @@ const InstructorForm = ({ initialData }: { initialData?: InstructorData }) => {
     },
   }));
 
-
-
   useEffect(() => {
     setCalendarEvents(formattedEvents);
     setCalendarKey((prevKey) => prevKey + 1);
-  }, [schedule]);
+  }, [schedule, formattedEvents]);
 
   useEffect(() => {
     if (isModalOpen && slotType === "booked") {
       fetch("/api/users?roles=user,student")
         .then((res) => res.json())
         .then((data) => {
-          const filtered = data
-            .map((u: User) => ({
-              ...u,
-              name: u.name || `${u.firstName || ""} ${u.lastName || ""}`.trim(),
-            }));
+          const filtered = data.map((u: User) => ({
+            ...u,
+            name: u.name || `${u.firstName || ""} ${u.lastName || ""}`.trim(),
+          }));
           setAllUsers(filtered);
           setUsers(filtered);
         });
@@ -538,10 +551,11 @@ const InstructorForm = ({ initialData }: { initialData?: InstructorData }) => {
   useEffect(() => {
     if (isModalOpen && currentSlot && currentSlot.booked) {
       // Busca el slot real en el schedule por fecha, start y end
-      const realSlot = schedule.find((s: Slot) =>
-        s.date === currentSlot.start.split("T")[0] &&
-        s.start === currentSlot.start.split("T")[1] &&
-        s.end === currentSlot.end.split("T")[1]
+      const realSlot = schedule.find(
+        (s: Slot) =>
+          s.date === currentSlot.start.split("T")[0] &&
+          s.start === currentSlot.start.split("T")[1] &&
+          s.end === currentSlot.end.split("T")[1]
       );
       setSelectedStudent(realSlot?.studentId || "");
     }
@@ -558,15 +572,15 @@ const InstructorForm = ({ initialData }: { initialData?: InstructorData }) => {
       else if (currentSlot.status === "scheduled") setSlotType("booked");
       else setSlotType("");
     }
-    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [isModalOpen, currentSlot]);
 
   useEffect(() => {
     if (isModalOpen && currentSlot?.isEditing && slotType === "booked") {
-      const realSlot = schedule.find((s: Slot) =>
-        s.date === currentSlot.start.split("T")[0] &&
-        s.start === currentSlot.start.split("T")[1] &&
-        s.end === currentSlot.end.split("T")[1]
+      const realSlot = schedule.find(
+        (s: Slot) =>
+          s.date === currentSlot.start.split("T")[0] &&
+          s.start === currentSlot.start.split("T")[1] &&
+          s.end === currentSlot.end.split("T")[1]
       );
       if (realSlot?.studentId) setSelectedStudent(realSlot.studentId);
     }
@@ -581,7 +595,10 @@ const InstructorForm = ({ initialData }: { initialData?: InstructorData }) => {
 
       <Form {...form}>
         <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-8">
-          <InstructorBasicInfo form={form} generatePassword={generatePassword} />
+          <InstructorBasicInfo
+            form={form}
+            generatePassword={generatePassword}
+          />
 
           <InstructorSchedule
             calendarKey={calendarKey}

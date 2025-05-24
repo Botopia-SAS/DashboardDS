@@ -102,24 +102,6 @@ export default function Page() {
           <CardContent>
             <div className="grid grid-cols-1 md:grid-cols-2 gap-4 py-2">
               <Navigation
-                href="/ticket/assign-certificate"
-                title="Assign Certificate Numbers to Paid Students"
-                description="Allocate certificate numbers to students who have completed their payments."
-                onClick={handleClick}
-              />
-              <Navigation
-                href="/ticket/print-attendance-sheet"
-                title="Print Attendance Sheet"
-                description="Print the attendance sheet for the selected class."
-                onClick={handleClick}
-              />
-              <Navigation
-                href="/ticket/print-certificates"
-                title="Print Certificates"
-                description="Print certificates for the selected class."
-                onClick={handleClick}
-              />
-              <Navigation
                 href={`/ticket/${classType}/class-records/${classId}`}
                 title="View the Class Records"
                 description="View the records of the selected class."

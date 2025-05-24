@@ -2,7 +2,7 @@ import { connectToDB } from "@/lib/mongoDB";
 import { NextResponse } from "next/server";
 import Instructor from "@/lib/models/Instructor"; // Modelo de MongoDB
 import bcrypt from "bcryptjs";
-import { sendEmail } from './sendEmail';
+import { sendEmail } from "./sendEmail";
 
 export const dynamic = "force-dynamic";
 
@@ -11,91 +11,114 @@ function isValidSlot(slot: any) {
 }
 
 export async function POST(req: Request) {
-    try {
-        await connectToDB();
-        const body = await req.json();
-        const { name, photo, certifications, experience, schedule, email, password, dni } = body;
+  try {
+    await connectToDB();
+    const body = await req.json();
+    const {
+      name,
+      photo,
+      certifications,
+      experience,
+      schedule,
+      email,
+      password,
+      dni,
+    } = body;
 
-        if (!email || !password) {
-            return NextResponse.json({ message: "Email and password are required" }, { status: 400 });
-        }
+    if (!email || !password) {
+      return NextResponse.json(
+        { message: "Email and password are required" },
+        { status: 400 }
+      );
+    }
 
-        // Solo slots válidos
-        const validSchedule = Array.isArray(schedule)
-          ? schedule.filter(isValidSlot)
-          : [];
+    // Solo slots válidos
+    const validSchedule = Array.isArray(schedule)
+      ? schedule.filter(isValidSlot)
+      : [];
 
-        // 1. Obtener token de Auth0
-        const tokenRes = await fetch(`https://${process.env.AUTH0_DOMAIN}/oauth/token`, {
-          method: 'POST',
-          headers: { 'content-type': 'application/json' },
-          body: JSON.stringify({
-            client_id: process.env.AUTH0_CLIENT_ID,
-            client_secret: process.env.AUTH0_CLIENT_SECRET,
-            audience: `https://${process.env.AUTH0_DOMAIN}/api/v2/`,
-            grant_type: 'client_credentials',
-          })
-        });
-        const tokenData = await tokenRes.json();
-        const access_token = tokenData.access_token;
+    // 1. Obtener token de Auth0
+    const tokenRes = await fetch(
+      `https://${process.env.AUTH0_DOMAIN}/oauth/token`,
+      {
+        method: "POST",
+        headers: { "content-type": "application/json" },
+        body: JSON.stringify({
+          client_id: process.env.AUTH0_CLIENT_ID,
+          client_secret: process.env.AUTH0_CLIENT_SECRET,
+          audience: `https://${process.env.AUTH0_DOMAIN}/api/v2/`,
+          grant_type: "client_credentials",
+        }),
+      }
+    );
+    const tokenData = await tokenRes.json();
+    const access_token = tokenData.access_token;
 
-        // 2. Crear usuario en Auth0
-        const userRes = await fetch(`https://${process.env.AUTH0_DOMAIN}/api/v2/users`, {
-          method: 'POST',
-          headers: {
-            'content-type': 'application/json',
-            'authorization': `Bearer ${access_token}`
-          },
-          body: JSON.stringify({
-            email: email,
-            password: password,
-            connection: 'Username-Password-Authentication',
-            name: name,
-          })
-        });
-        const auth0User = await userRes.json();
-        if (!auth0User.user_id) {
-            return NextResponse.json(
-                { error: auth0User.message || "Failed to create instructor in Auth0" },
-                { status: 400 }
-            );
-        }
+    // 2. Crear usuario en Auth0
+    const userRes = await fetch(
+      `https://${process.env.AUTH0_DOMAIN}/api/v2/users`,
+      {
+        method: "POST",
+        headers: {
+          "content-type": "application/json",
+          authorization: `Bearer ${access_token}`,
+        },
+        body: JSON.stringify({
+          email: email,
+          password: password,
+          connection: "Username-Password-Authentication",
+          name: name,
+        }),
+      }
+    );
+    const auth0User = await userRes.json();
+    if (!auth0User.user_id) {
+      return NextResponse.json(
+        { error: auth0User.message || "Failed to create instructor in Auth0" },
+        { status: 400 }
+      );
+    }
 
-        // Asignar el rol de instructor en Auth0
-        const roleId = "rol_yb0rWbwuhii3gCn"; // Role ID de 'instructors'
-        const assignRoleBody = { roles: [roleId] };
-        const assignRoleRes = await fetch(`https://${process.env.AUTH0_DOMAIN}/api/v2/users/${encodeURIComponent(auth0User.user_id)}/roles`, {
-          method: 'POST',
-          headers: {
-            'Content-Type': 'application/json',
-            'Authorization': `Bearer ${access_token}`
-          },
-          body: JSON.stringify(assignRoleBody)
-        });
-        const assignRoleText = await assignRoleRes.text();
-        if (!assignRoleRes.ok) {
-            console.error('❌ Error al asignar rol en Auth0');
-        }
+    // Asignar el rol de instructor en Auth0
+    const roleId = "rol_yb0rWbwuhii3gCn"; // Role ID de 'instructors'
+    const assignRoleBody = { roles: [roleId] };
+    const assignRoleRes = await fetch(
+      `https://${process.env.AUTH0_DOMAIN}/api/v2/users/${encodeURIComponent(
+        auth0User.user_id
+      )}/roles`,
+      {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+          Authorization: `Bearer ${access_token}`,
+        },
+        body: JSON.stringify(assignRoleBody),
+      }
+    );
+    const assignRoleText = await assignRoleRes.text();
+    if (!assignRoleRes.ok) {
+      console.error("❌ Error al asignar rol en Auth0");
+    }
 
-        const newInstructor = new Instructor({
-            name,
-            photo,
-            certifications,
-            experience,
-            schedule: validSchedule,
-            email,
-            auth0Id: auth0User.user_id,
-            dni,
-        });
+    const newInstructor = new Instructor({
+      name,
+      photo,
+      certifications,
+      experience,
+      schedule: validSchedule,
+      email,
+      auth0Id: auth0User.user_id,
+      dni,
+    });
 
         await newInstructor.save();
 
-        // Enviar correo con las credenciales al instructor
-        try {
-            await sendEmail({
-                to: email,
-                subject: "Your Credentials for Driving School Dashboard",
-                html: `
+    // Enviar correo con las credenciales al instructor
+    try {
+      await sendEmail({
+        to: email,
+        subject: "Your Credentials for Driving School Dashboard",
+        html: `
                     <div style="font-family: Arial, sans-serif; background: #f4f6fa; padding: 32px; color: #222;">
                       <div style="max-width: 480px; margin: 0 auto; background: #fff; border-radius: 12px; box-shadow: 0 2px 8px #0001; overflow: hidden;">
                         <div style="background: #1e40af; color: #fff; padding: 24px 32px 16px 32px; text-align: center;">
@@ -116,11 +139,14 @@ export async function POST(req: Request) {
                         </div>
                       </div>
                     </div>
-                `
-            });
-        } catch (err) {
-            console.error('❌ Error al enviar correo de credenciales al instructor:', err);
-        }
+                `,
+      });
+    } catch (err) {
+      console.error(
+        "❌ Error al enviar correo de credenciales al instructor:",
+        err
+      );
+    }
 
         return NextResponse.json(newInstructor, { status: 201 });
     } catch (error) {
@@ -146,100 +172,132 @@ export const GET = async () => {
 export async function PATCH(req: Request) {
   try {
     await connectToDB();
-    const { instructorId, schedule: newSchedule, password, email, dni, ...updates } = await req.json();
+    const {
+      instructorId,
+      schedule: newSchedule,
+      password,
+      email,
+      dni,
+      ...updates
+    } = await req.json();
 
-        if (!instructorId) {
-            return NextResponse.json({ message: "Instructor ID is required" }, { status: 400 });
-        }
-        if (!email || !dni) {
-            return NextResponse.json({ message: "Email and DNI are required" }, { status: 400 });
-        }
+    if (!instructorId) {
+      return NextResponse.json(
+        { message: "Instructor ID is required" },
+        { status: 400 }
+      );
+    }
+    if (!email || !dni) {
+      return NextResponse.json(
+        { message: "Email and DNI are required" },
+        { status: 400 }
+      );
+    }
 
-        // Solo slots válidos
-        const validSchedule = Array.isArray(newSchedule)
-          ? newSchedule.filter(isValidSlot)
-          : [];
+    // Solo slots válidos
+    const validSchedule = Array.isArray(newSchedule)
+      ? newSchedule.filter(isValidSlot)
+      : [];
 
-        // Buscar el instructor actual
-        const currentInstructor = await Instructor.findById(instructorId);
-        if (!currentInstructor) {
-            return NextResponse.json({ message: "Instructor not found" }, { status: 404 });
-        }
+    // Buscar el instructor actual
+    const currentInstructor = await Instructor.findById(instructorId);
+    if (!currentInstructor) {
+      return NextResponse.json(
+        { message: "Instructor not found" },
+        { status: 404 }
+      );
+    }
 
-        // Construir el objeto de actualización SOLO con los campos que quieres cambiar
-        const updateFields = {
-          ...updates,
-          schedule: validSchedule,
-          email: email ? email.trim() : undefined,
-          name: updates.name,
-          dni,
-        };
-        // Solo actualiza el password en Auth0, no en MongoDB
-        let passwordChanged = false;
-        let emailChanged = false;
-        if (typeof password === "string" && password.trim() !== "") {
-          passwordChanged = true;
-        }
-        if (email && email !== currentInstructor.email) {
-          emailChanged = true;
-        }
+    // Construir el objeto de actualización SOLO con los campos que quieres cambiar
+    const updateFields = {
+      ...updates,
+      schedule: validSchedule,
+      email: email ? email.trim() : undefined,
+      name: updates.name,
+      dni,
+    };
+    // Solo actualiza el password en Auth0, no en MongoDB
+    let passwordChanged = false;
+    let emailChanged = false;
+    if (typeof password === "string" && password.trim() !== "") {
+      passwordChanged = true;
+    }
+    if (email && email !== currentInstructor.email) {
+      emailChanged = true;
+    }
 
-        // Elimina campos vacíos explícitamente
-        Object.keys(updateFields).forEach(
-          (key) => (updateFields[key] === "" || updateFields[key] === undefined) && delete updateFields[key]
+    // Elimina campos vacíos explícitamente
+    Object.keys(updateFields).forEach(
+      (key) =>
+        (updateFields[key] === "" || updateFields[key] === undefined) &&
+        delete updateFields[key]
+    );
+
+    // Actualizar en Auth0 si cambió email o password
+    if ((passwordChanged || emailChanged) && currentInstructor.auth0Id) {
+      // 1. Obtener token de Auth0
+      const tokenRes = await fetch(
+        `https://${process.env.AUTH0_DOMAIN}/oauth/token`,
+        {
+          method: "POST",
+          headers: { "content-type": "application/json" },
+          body: JSON.stringify({
+            client_id: process.env.AUTH0_CLIENT_ID,
+            client_secret: process.env.AUTH0_CLIENT_SECRET,
+            audience: `https://${process.env.AUTH0_DOMAIN}/api/v2/`,
+            grant_type: "client_credentials",
+          }),
+        }
+      );
+      const tokenData = await tokenRes.json();
+      const access_token = tokenData.access_token;
+
+      // 2. Actualizar usuario en Auth0
+      await fetch(
+        `https://${process.env.AUTH0_DOMAIN}/api/v2/users/${encodeURIComponent(
+          currentInstructor.auth0Id
+        )}`,
+        {
+          method: "PATCH",
+          headers: {
+            "content-type": "application/json",
+            authorization: `Bearer ${access_token}`,
+          },
+          body: JSON.stringify({
+            ...(emailChanged ? { email } : {}),
+            ...(passwordChanged ? { password } : {}),
+          }),
+        }
+      );
+    }
+
+    let updatedInstructor;
+    try {
+      updatedInstructor = await Instructor.findByIdAndUpdate(
+        instructorId,
+        { $set: updateFields },
+        { new: true, runValidators: true }
+      );
+    } catch (err: any) {
+      if (err.code === 11000 && err.keyPattern && err.keyPattern.email) {
+        return NextResponse.json(
+          { message: "Email already exists" },
+          { status: 409 }
         );
+      }
+      return NextResponse.json(
+        { message: "Database error", error: err },
+        { status: 500 }
+      );
+    }
 
-        // Actualizar en Auth0 si cambió email o password
-        if ((passwordChanged || emailChanged) && currentInstructor.auth0Id) {
-          // 1. Obtener token de Auth0
-          const tokenRes = await fetch(`https://${process.env.AUTH0_DOMAIN}/oauth/token`, {
-            method: 'POST',
-            headers: { 'content-type': 'application/json' },
-            body: JSON.stringify({
-              client_id: process.env.AUTH0_CLIENT_ID,
-              client_secret: process.env.AUTH0_CLIENT_SECRET,
-              audience: `https://${process.env.AUTH0_DOMAIN}/api/v2/`,
-              grant_type: 'client_credentials',
-            })
-          });
-          const tokenData = await tokenRes.json();
-          const access_token = tokenData.access_token;
-
-          // 2. Actualizar usuario en Auth0
-          await fetch(`https://${process.env.AUTH0_DOMAIN}/api/v2/users/${encodeURIComponent(currentInstructor.auth0Id)}`, {
-            method: 'PATCH',
-            headers: {
-              'content-type': 'application/json',
-              'authorization': `Bearer ${access_token}`
-            },
-            body: JSON.stringify({
-              ...(emailChanged ? { email } : {}),
-              ...(passwordChanged ? { password } : {}),
-            })
-          });
-        }
-
-        let updatedInstructor;
-        try {
-          updatedInstructor = await Instructor.findByIdAndUpdate(
-            instructorId,
-            { $set: updateFields },
-            { new: true, runValidators: true }
-          );
-        } catch (err: any) {
-          if (err.code === 11000 && err.keyPattern && err.keyPattern.email) {
-            return NextResponse.json({ message: "Email already exists" }, { status: 409 });
-          }
-          return NextResponse.json({ message: "Database error", error: err }, { status: 500 });
-        }
-
-        // Enviar correo si la contraseña fue cambiada
-        if (passwordChanged) {
-          try {
-            await sendEmail({
-              to: email,
-              subject: "Your New Password for Driving School Dashboard",
-              html: `
+    // Enviar correo si la contraseña fue cambiada
+    if (passwordChanged) {
+      try {
+        await sendEmail({
+          to: email,
+          subject: "Your New Password for Driving School Dashboard",
+          html: `
                 <div style="font-family: Arial, sans-serif; background: #f4f6fa; padding: 32px; color: #222;">
                   <div style="max-width: 480px; margin: 0 auto; background: #fff; border-radius: 12px; box-shadow: 0 2px 8px #0001; overflow: hidden;">
                     <div style="background: #1e40af; color: #fff; padding: 24px 32px 16px 32px; text-align: center;">
@@ -259,64 +317,84 @@ export async function PATCH(req: Request) {
                     </div>
                   </div>
                 </div>
-              `
-            });
-          } catch (err) {
-            console.error('❌ Error al enviar correo de nueva contraseña:', err);
-          }
-        }
-
-        return NextResponse.json(updatedInstructor, { status: 200 });
-    } catch (error) {
-        return NextResponse.json({ message: "Error updating instructor", error }, { status: 500 });
+              `,
+        });
+      } catch (err) {
+        console.error("❌ Error al enviar correo de nueva contraseña:", err);
+      }
     }
+
+    return NextResponse.json(updatedInstructor, { status: 200 });
+  } catch (error) {
+    return NextResponse.json(
+      { message: "Error updating instructor", error },
+      { status: 500 }
+    );
+  }
 }
 
 export async function DELETE(req: Request) {
-    try {
-        await connectToDB();
-        const { instructorId } = await req.json();
-        if (!instructorId) {
-            return NextResponse.json({ message: "Instructor ID is required" }, { status: 400 });
+  try {
+    await connectToDB();
+    const { instructorId } = await req.json();
+    if (!instructorId) {
+      return NextResponse.json(
+        { message: "Instructor ID is required" },
+        { status: 400 }
+      );
+    }
+
+    // Buscar el instructor para obtener el auth0Id
+    const instructor = await Instructor.findById(instructorId);
+    if (!instructor) {
+      return NextResponse.json(
+        { message: "Instructor not found" },
+        { status: 404 }
+      );
+    }
+
+    // Eliminar usuario en Auth0
+    if (instructor.auth0Id) {
+      // Obtener token de Auth0
+      const tokenRes = await fetch(
+        `https://${process.env.AUTH0_DOMAIN}/oauth/token`,
+        {
+          method: "POST",
+          headers: { "content-type": "application/json" },
+          body: JSON.stringify({
+            client_id: process.env.AUTH0_CLIENT_ID,
+            client_secret: process.env.AUTH0_CLIENT_SECRET,
+            audience: `https://${process.env.AUTH0_DOMAIN}/api/v2/`,
+            grant_type: "client_credentials",
+          }),
         }
+      );
+      const tokenData = await tokenRes.json();
+      const access_token = tokenData.access_token;
 
-        // Buscar el instructor para obtener el auth0Id
-        const instructor = await Instructor.findById(instructorId);
-        if (!instructor) {
-            return NextResponse.json({ message: "Instructor not found" }, { status: 404 });
+      // Eliminar usuario en Auth0
+      const auth0DeleteRes = await fetch(
+        `https://${process.env.AUTH0_DOMAIN}/api/v2/users/${encodeURIComponent(
+          instructor.auth0Id
+        )}`,
+        {
+          method: "DELETE",
+          headers: {
+            authorization: `Bearer ${access_token}`,
+          },
         }
+      );
+      if (!auth0DeleteRes.ok) {
+        const error = await auth0DeleteRes.json();
+        console.error("❌ Error al eliminar usuario en Auth0:", error);
+        return NextResponse.json(
+          { message: "Error deleting user in Auth0", error },
+          { status: 500 }
+        );
+      }
+    }
 
-        // Eliminar usuario en Auth0
-        if (instructor.auth0Id) {
-            // Obtener token de Auth0
-            const tokenRes = await fetch(`https://${process.env.AUTH0_DOMAIN}/oauth/token`, {
-                method: 'POST',
-                headers: { 'content-type': 'application/json' },
-                body: JSON.stringify({
-                    client_id: process.env.AUTH0_CLIENT_ID,
-                    client_secret: process.env.AUTH0_CLIENT_SECRET,
-                    audience: `https://${process.env.AUTH0_DOMAIN}/api/v2/`,
-                    grant_type: 'client_credentials',
-                })
-            });
-            const tokenData = await tokenRes.json();
-            const access_token = tokenData.access_token;
-
-            // Eliminar usuario en Auth0
-            const auth0DeleteRes = await fetch(`https://${process.env.AUTH0_DOMAIN}/api/v2/users/${encodeURIComponent(instructor.auth0Id)}`, {
-                method: 'DELETE',
-                headers: {
-                    'authorization': `Bearer ${access_token}`
-                }
-            });
-            if (!auth0DeleteRes.ok) {
-                const error = await auth0DeleteRes.json();
-                console.error('❌ Error al eliminar usuario en Auth0:', error);
-                return NextResponse.json({ message: "Error deleting user in Auth0", error }, { status: 500 });
-            }
-        }
-
-        // Eliminar instructor en MongoDB
+    // Eliminar instructor en MongoDB
     const deletedInstructor = await Instructor.findByIdAndDelete(instructorId);
     if (!deletedInstructor) {
       return NextResponse.json(
