@@ -44,7 +44,7 @@ function ConsolePage() {
     "/Classes": "/images/Classes.png",
     "/Location": "/images/location.png",
     "/FAQ": "/images/faq.png",
-    // Puedes agregar más rutas e imágenes aquí si agregas más páginas
+    // You can add more routes and images here if you add more pages
   };
 
   useEffect(() => {
@@ -149,40 +149,40 @@ function ConsolePage() {
           </div>
         )}
       </div>
-      {/* Usuarios Activos (fila 1) */}
+      {/* Active Users (row 1) */}
       <div className="p-6">
         <ActiveUsersCard />
       </div>
-      {/* Usuarios Inactivos (fila 2) */}
+      {/* Inactive Users (row 2) */}
       <div className="p-6">
         <InactiveUsersCard />
       </div>
-      {/* Métricas (fila 3, 3 columnas) */}
+      {/* Metrics (row 3, 3 columns) */}
       <div className="p-6 grid grid-cols-1 md:grid-cols-3 gap-6">
         <Card>
           <CardContent>
-            <h2 className="text-lg font-semibold">Usuarios Únicos</h2>
+            <h2 className="text-lg font-semibold">Unique Users</h2>
             <p className="text-3xl font-bold">{stats.users}</p>
           </CardContent>
         </Card>
         <Card>
           <CardContent>
-            <h2 className="text-lg font-semibold">Total de Eventos</h2>
+            <h2 className="text-lg font-semibold">Total Events</h2>
             <p className="text-3xl font-bold">{stats.totalEvents}</p>
           </CardContent>
         </Card>
         <Card>
           <CardContent>
-            <h2 className="text-lg font-semibold">Tiempo Promedio de Sesión</h2>
+            <h2 className="text-lg font-semibold">Average Session Time</h2>
             <p className="text-3xl font-bold">{stats.avgSession} min</p>
           </CardContent>
         </Card>
       </div>
-      {/* Stats Section y gráfica de eventos por tipo */}
+      {/* Stats Section and events by type chart */}
       <div className="p-6 grid grid-cols-1 lg:grid-cols-3 gap-6">
         <Card className="col-span-3">
           <CardContent>
-            <h2 className="text-xl font-bold">Eventos por Tipo</h2>
+            <h2 className="text-xl font-bold">Events by Type</h2>
             <ResponsiveContainer width="100%" height={300}>
               <BarChart data={eventsByType}>
                 <XAxis dataKey="event_type" />
@@ -194,11 +194,11 @@ function ConsolePage() {
           </CardContent>
         </Card>
       </div>
-      {/* Selector de página y vista previa con heatmap debajo de todo */}
+      {/* Page selector and preview with heatmap below everything */}
       <div className="p-6 grid grid-cols-1 lg:grid-cols-3 gap-6">
         <Card className="col-span-3">
           <CardContent>
-            <h2 className="text-xl font-bold">Seleccionar Página</h2>
+            <h2 className="text-xl font-bold">Select Page</h2>
             {heatmapData.length > 0 ? (
               <select
                 className="mt-2 p-2 border rounded w-full"
@@ -208,31 +208,31 @@ function ConsolePage() {
                 {[...new Set(heatmapData.map((d) => d.pathname))].map(
                   (page, index) => (
                     <option key={`${page}-${index}`} value={page}>
-                      {page || "Página sin nombre"}
+                      {page || "Unnamed Page"}
                     </option>
                   )
                 )}
               </select>
             ) : (
-              <p className="text-gray-500">No hay páginas disponibles.</p>
+              <p className="text-gray-500">No pages available.</p>
             )}
           </CardContent>
         </Card>
         <Card className="col-span-3 relative">
           <CardContent>
-            <h2 className="text-xl font-bold">Vista Previa con Heatmap</h2>
+            <h2 className="text-xl font-bold">Preview with Heatmap</h2>
             {selectedPage ? (
               <div className="relative w-full h-[700px] border overflow-y-auto bg-gray-50">
                 <Image
                   src={pageImages[selectedPage] || "/images/default.png"}
-                  alt={`Vista previa de ${selectedPage}`}
+                  alt={`Preview of ${selectedPage}`}
                   className="w-full block"
                   style={{ position: "relative", zIndex: 0 }}
                   fill
                   sizes="100vw"
                   priority
                 />
-                {/* Heatmap sobre la imagen */}
+                {/* Heatmap over the image */}
                 {!loading && heatmapData.length > 0 && (
                   <div
                     className="absolute top-0 left-0 w-full h-full pointer-events-none z-10"
@@ -246,7 +246,7 @@ function ConsolePage() {
               </div>
             ) : (
               <p className="text-gray-500">
-                Selecciona una página para ver la vista previa.
+                Select a page to see the preview.
               </p>
             )}
           </CardContent>
