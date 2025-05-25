@@ -7,8 +7,9 @@ import type { Slot } from "@/components/instructors/types";
 import { InstructorData } from "@/types/instructor";
 
 const VALID_STATUSES = ["free", "cancelled", "scheduled"] as const;
-function normalizeSlotStatus(status: any): "free" | "cancelled" | "scheduled" | undefined {
-  return VALID_STATUSES.includes(status) ? status : undefined;
+function normalizeSlotStatus(status: string | undefined): "free" | "cancelled" | "scheduled" | undefined {
+  if (!status) return undefined;
+  return VALID_STATUSES.includes(status as typeof VALID_STATUSES[number]) ? status as typeof VALID_STATUSES[number] : undefined;
 }
 
 const InstructorDetails = ({
@@ -60,10 +61,10 @@ const InstructorDetails = ({
           if (
             flatSchedule &&
             flatSchedule.length > 0 &&
-            (flatSchedule[0] as any).slots
+            (flatSchedule[0] as { slots?: Array<Slot> }).slots
           ) {
-            flatSchedule = (flatSchedule || []).flatMap((entry: any) =>
-              (entry.slots || []).map((slot: any) => ({
+            flatSchedule = (flatSchedule || []).flatMap((entry: { date: string; slots?: Array<Slot> }) =>
+              (entry.slots || []).map((slot: Slot) => ({
                 date: entry.date,
                 start: slot.start,
                 end: slot.end,
@@ -73,7 +74,7 @@ const InstructorDetails = ({
               } as Slot))
             );
           } else if (flatSchedule) {
-            flatSchedule = flatSchedule.map((slot: any) => ({
+            flatSchedule = flatSchedule.map((slot: Slot) => ({
               ...slot,
               status: (normalizeSlotStatus(slot.status) ?? undefined) as "free" | "cancelled" | "scheduled" | undefined,
             } as Slot));

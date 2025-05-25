@@ -6,8 +6,17 @@ import { sendEmail } from "./sendEmail";
 
 export const dynamic = "force-dynamic";
 
-function isValidSlot(slot: any) {
-  return slot && slot.date && slot.start && slot.end;
+interface Slot {
+  date: string;
+  start: string;
+  end: string;
+  booked?: boolean;
+  studentId?: string | null;
+  status?: string;
+}
+
+function isValidSlot(slot: Slot): boolean {
+  return Boolean(slot?.date && slot?.start && slot?.end);
 }
 
 export async function POST(req: Request) {
@@ -111,7 +120,7 @@ export async function POST(req: Request) {
       dni,
     });
 
-        await newInstructor.save();
+    await newInstructor.save();
 
     // Enviar correo con las credenciales al instructor
     try {
@@ -148,14 +157,11 @@ export async function POST(req: Request) {
       );
     }
 
-        return NextResponse.json(newInstructor, { status: 201 });
-    } catch (error) {
-        console.error("Error en el endpoint POST /api/instructors:", error);
-        return NextResponse.json(
-            { message: "Error creating instructor" },
-            { status: 500 }
-        );
-    }
+    return NextResponse.json(newInstructor, { status: 201 });
+  } catch (error) {
+    console.error("Error en el endpoint POST /api/instructors:", error);
+    return NextResponse.json({ message: "Error creating instructor" }, { status: 500 });
+  }
 }
 
 export const GET = async () => {
@@ -403,15 +409,9 @@ export async function DELETE(req: Request) {
       );
     }
 
-    return NextResponse.json(
-      { message: "Instructor deleted successfully" },
-      { status: 200 }
-    );
+    return NextResponse.json({ message: "Instructor deleted successfully" }, { status: 200 });
   } catch (error) {
     console.error("❌ Error al eliminar instructor:", error);
-    return NextResponse.json(
-      { message: "Error deleting instructor" },
-      { status: 500 }
-    );
+    return NextResponse.json({ message: "Error deleting instructor" }, { status: 500 });
   }
 }

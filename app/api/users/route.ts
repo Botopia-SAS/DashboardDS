@@ -11,7 +11,7 @@ export async function GET(req: NextRequest) {
     const roles = rolesParam ? rolesParam.split(",") : ["user"];
     const users = await User.find({ role: { $in: roles } });
     return NextResponse.json(users, { status: 200 });
-  } catch (error) {
+  } catch {
     return NextResponse.json({ error: "Failed to fetch users" }, { status: 500 });
   }
 }
