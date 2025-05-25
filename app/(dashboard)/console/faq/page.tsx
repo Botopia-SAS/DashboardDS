@@ -36,8 +36,8 @@ function extractFirstLink(html: string): string | null {
 
 // Utilidad para mostrar notificaciones
 function showToast(msg: string) {
-  if (typeof window !== "undefined" && (window as any).toast) {
-    (window as any).toast.success(msg);
+  if (typeof window !== "undefined" && typeof (window as unknown as { toast?: { success: (msg: string) => void } }).toast !== 'undefined') {
+    (window as unknown as { toast: { success: (msg: string) => void } }).toast.success(msg);
   } else {
     alert(msg);
   }

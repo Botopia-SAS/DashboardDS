@@ -10,11 +10,28 @@ interface HeatmapEvent {
   event_type: string;
 }
 
+interface HeatmapRawEvent {
+  x: number;
+  y: number;
+  eventType: string;
+}
+
+interface HeatmapPage {
+  url: string;
+  heatmap?: HeatmapRawEvent[];
+  timestamp?: string;
+}
+
+interface HeatmapSession {
+  userId?: string;
+  pages?: HeatmapPage[];
+}
+
 export async function GET() {
   await connectToDB();
 
   // Obtén todas las sesiones
-  const sessions = await Session.find({});
+  const sessions: HeatmapSession[] = await Session.find({});
 
   // Extrae todos los eventos de heatmap de todas las páginas de todas las sesiones
   const heatmap: HeatmapEvent[] = [];
@@ -23,7 +40,7 @@ export async function GET() {
   const usersSet = new Set<string>();
   const eventsByTypeMap: Record<string, number> = {};
 
-  sessions.forEach((session: any) => {
+  sessions.forEach((session) => {
     if (session.userId) usersSet.add(session.userId);
     if (session.pages && session.pages.length > 0) {
       const sessionStart = session.pages[0].timestamp;
@@ -31,9 +48,9 @@ export async function GET() {
       if (sessionStart && sessionEnd) {
         sessionDurations.push((new Date(sessionEnd).getTime() - new Date(sessionStart).getTime()) / 1000 / 60); // minutos
       }
-      session.pages.forEach((page: any) => {
+      session.pages.forEach((page) => {
         if (page.heatmap && page.heatmap.length > 0) {
-          page.heatmap.forEach((event: any) => {
+          page.heatmap.forEach((event) => {
             heatmap.push({
               x: event.x,
               y: event.y,
