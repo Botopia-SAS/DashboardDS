@@ -68,7 +68,7 @@ export default function InactiveUsersCard() {
             <div className="flex flex-nowrap gap-4 py-2" style={{ minHeight: '180px' }}>
               {inactiveUsers.map((user) => {
                 const start = user.startTimestamp ? new Date(user.startTimestamp).getTime() : 0;
-                // @ts-ignore
+                // @ts-expect-error endTimestamp puede no estar en todos los objetos
                 const end = user.endTimestamp ? new Date(user.endTimestamp).getTime() : 0;
                 const duration = start && end ? formatDuration(end - start) : '-';
                 return (
@@ -134,7 +134,7 @@ export default function InactiveUsersCard() {
                 <tbody>
                   {inactiveUsers.map((user) => {
                     const start = user.startTimestamp ? new Date(user.startTimestamp).getTime() : 0;
-                    // @ts-ignore
+                    // @ts-expect-error endTimestamp puede no estar en todos los objetos
                     const end = user.endTimestamp ? new Date(user.endTimestamp).getTime() : 0;
                     const duration = start && end ? formatDuration(end - start) : '-';
                     return (
