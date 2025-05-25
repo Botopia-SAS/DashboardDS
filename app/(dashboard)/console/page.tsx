@@ -42,7 +42,7 @@ function ConsolePage() {
     "/Packages": "/images/packages.png",
     "/Classes": "/images/Classes.png",
     "/Location": "/images/location.png",
-    "/FAQ": "/images/faqa.png",
+    "/FAQ": "/images/faq.png",
     // Puedes agregar más rutas e imágenes aquí si agregas más páginas
   };
 
@@ -51,7 +51,7 @@ function ConsolePage() {
     fetch("/api/heatmap")
       .then((res) => res.json())
       .then((data) => {
-        console.log("🚀 Datos recibidos de API:", data);
+        //console.log("🚀 Datos recibidos de API:", data);
 
         if (data.success) {
           setHeatmapData(data.heatmap || []);
@@ -67,7 +67,7 @@ function ConsolePage() {
               (data.heatmap as { pathname: string }[]).map((d) => d.pathname)
             ),
           ];
-          console.log("📝 Páginas detectadas:", uniquePages);
+          //console.log("📝 Páginas detectadas:", uniquePages);
 
           if (uniquePages.length > 0 && !selectedPage) {
             setSelectedPage(uniquePages[0]);
