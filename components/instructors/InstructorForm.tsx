@@ -1,37 +1,35 @@
+/* eslint-disable @typescript-eslint/no-unused-vars */
 "use client";
 
+import { DateSelectArg, EventClickArg } from "@fullcalendar/core";
 import { zodResolver } from "@hookform/resolvers/zod";
-import { useForm } from "react-hook-form";
-import { z } from "zod";
+import {
+  differenceInDays,
+  differenceInMonths,
+  differenceInWeeks,
+} from "date-fns";
 import { useRouter } from "next/navigation";
-import { useState, useEffect } from "react";
+import { useEffect, useState } from "react";
+import { useForm } from "react-hook-form";
 import toast from "react-hot-toast";
-import { DateSelectArg } from "@fullcalendar/core";
-import { EventClickArg } from "@fullcalendar/core";
-import { differenceInDays, differenceInWeeks, differenceInMonths } from "date-fns";
+import { z } from "zod";
 
-import { Separator } from "../ui/separator";
 import { Button } from "@/components/ui/button";
 import { Form } from "@/components/ui/form";
+import { Separator } from "../ui/separator";
 
 import { v4 as uuidv4 } from "uuid";
+import EditRecurringModal from "./EditRecurringModal";
 import InstructorBasicInfo from "./InstructorBasicInfo";
 import InstructorSchedule from "./InstructorSchedule";
 import ScheduleModal from "./ScheduleModal";
-import EditRecurringModal from "./EditRecurringModal";
-import { CalendarEvent, InstructorData, Slot, User, SlotType } from "./types";
-import { normalizeSchedule, splitIntoHalfHourSlots, getStudentName, generateRecurringSlots } from "./utils";
-
-interface InstructorFormData {
-  name: string;
-  dni: string;
-  email: string;
-  password: string;
-  photo: string | string[];
-  certifications?: string;
-  experience?: string;
-  schedule?: Slot[];
-}
+import { CalendarEvent, InstructorData, Slot, SlotType, User } from "./types";
+import {
+  generateRecurringSlots,
+  getStudentName,
+  normalizeSchedule,
+  splitIntoHalfHourSlots
+} from "./utils";
 
 const formSchema = z.object({
   name: z.string().min(2, "Name is required"),
@@ -68,7 +66,9 @@ const InstructorForm = ({ initialData }: { initialData?: InstructorData }) => {
   const [recurrenceEnd, setRecurrenceEnd] = useState<string | null>(null);
   const router = useRouter();
   const [loading, setLoading] = useState(false);
-  const [schedule, setSchedule] = useState<Slot[]>(() => normalizeSchedule(initialData?.schedule || []));
+  const [schedule, setSchedule] = useState<Slot[]>(() =>
+    normalizeSchedule(initialData?.schedule || [])
+  );
   const [calendarEvents, setCalendarEvents] = useState<CalendarEvent[]>([]);
   const [calendarKey, setCalendarKey] = useState(0); // 🔹 Clave única para forzar re-render
   const [isModalOpen, setIsModalOpen] = useState(false);
@@ -187,7 +187,9 @@ const InstructorForm = ({ initialData }: { initialData?: InstructorData }) => {
   };
 
   // Auxiliar para status seguro
-  function getSlotStatus(slotType: SlotType): "free" | "cancelled" | "scheduled" {
+  function getSlotStatus(
+    slotType: SlotType
+  ): "free" | "cancelled" | "scheduled" {
     if (slotType === "booked") return "scheduled";
     if (slotType === "cancelled") return "cancelled";
     return "free";
@@ -224,7 +226,9 @@ const InstructorForm = ({ initialData }: { initialData?: InstructorData }) => {
     setIsModalOpen(false);
     setCurrentSlot({ start: "", end: "", booked: false, recurrence: "None" });
     setSelectedStudent("");
-    toast.success("Slot updated! Recuerda presionar 'Save Changes' para guardar en la base de datos.");
+    toast.success(
+      "Slot updated! Recuerda presionar 'Save Changes' para guardar en la base de datos."
+    );
   };
 
   const handleSaveSlot = () => {
@@ -261,7 +265,12 @@ const InstructorForm = ({ initialData }: { initialData?: InstructorData }) => {
         }
         if (count < 1) count = 1;
       } else {
-        count = currentSlot.recurrence === "Daily" ? 7 : currentSlot.recurrence === "Weekly" ? 4 : 3;
+        count =
+          currentSlot.recurrence === "Daily"
+            ? 7
+            : currentSlot.recurrence === "Weekly"
+            ? 4
+            : 3;
       }
       // Always use currentSlot.start and currentSlot.end as the base for recurrence
       const generated = generateRecurringSlots(
@@ -276,10 +285,14 @@ const InstructorForm = ({ initialData }: { initialData?: InstructorData }) => {
         }
       );
       // Only add slots that do not already exist
-      newSlots = generated.filter(slot =>
-        !schedule.some(
-          s => s.date === slot.date && s.start === slot.start && s.end === slot.end
-        )
+      newSlots = generated.filter(
+        (slot) =>
+          !schedule.some(
+            (s) =>
+              s.date === slot.date &&
+              s.start === slot.start &&
+              s.end === slot.end
+          )
       );
     } else {
       newSlots = splitIntoHalfHourSlots(currentSlot.start, currentSlot.end, {
@@ -297,7 +310,12 @@ const InstructorForm = ({ initialData }: { initialData?: InstructorData }) => {
     }
 
     for (const slot of newSlots) {
-      if (schedule.some((s: Slot) => s.date === slot.date && s.start === slot.start && s.end === slot.end)) {
+      if (
+        schedule.some(
+          (s: Slot) =>
+            s.date === slot.date && s.start === slot.start && s.end === slot.end
+        )
+      ) {
         toast.error("Slot already exists for that time.");
         return;
       }
@@ -490,7 +508,10 @@ const InstructorForm = ({ initialData }: { initialData?: InstructorData }) => {
 
       <Form {...form}>
         <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-8">
-          <InstructorBasicInfo form={form} generatePassword={generatePassword} />
+          <InstructorBasicInfo
+            form={form}
+            generatePassword={generatePassword}
+          />
 
           <InstructorSchedule
             calendarKey={calendarKey}
