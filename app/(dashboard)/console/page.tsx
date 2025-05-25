@@ -148,8 +148,53 @@ function ConsolePage() {
           </div>
         )}
       </div>
+      {/* Usuarios Activos (fila 1) */}
+      <div className="p-6">
+        <ActiveUsersCard />
+      </div>
+      {/* Usuarios Inactivos (fila 2) */}
+      <div className="p-6">
+        <InactiveUsersCard />
+      </div>
+      {/* Métricas (fila 3, 3 columnas) */}
+      <div className="p-6 grid grid-cols-1 md:grid-cols-3 gap-6">
+        <Card>
+          <CardContent>
+            <h2 className="text-lg font-semibold">Usuarios Únicos</h2>
+            <p className="text-3xl font-bold">{stats.users}</p>
+          </CardContent>
+        </Card>
+        <Card>
+          <CardContent>
+            <h2 className="text-lg font-semibold">Total de Eventos</h2>
+            <p className="text-3xl font-bold">{stats.totalEvents}</p>
+          </CardContent>
+        </Card>
+        <Card>
+          <CardContent>
+            <h2 className="text-lg font-semibold">Tiempo Promedio de Sesión</h2>
+            <p className="text-3xl font-bold">{stats.avgSession} min</p>
+          </CardContent>
+        </Card>
+      </div>
+      {/* Stats Section y gráfica de eventos por tipo */}
       <div className="p-6 grid grid-cols-1 lg:grid-cols-3 gap-6">
-        {/* Selector de página */}
+        <Card className="col-span-3">
+          <CardContent>
+            <h2 className="text-xl font-bold">Eventos por Tipo</h2>
+            <ResponsiveContainer width="100%" height={300}>
+              <BarChart data={eventsByType}>
+                <XAxis dataKey="event_type" />
+                <YAxis />
+                <Tooltip />
+                <Bar dataKey="count" fill="#8884d8" />
+              </BarChart>
+            </ResponsiveContainer>
+          </CardContent>
+        </Card>
+      </div>
+      {/* Selector de página y vista previa con heatmap debajo de todo */}
+      <div className="p-6 grid grid-cols-1 lg:grid-cols-3 gap-6">
         <Card className="col-span-3">
           <CardContent>
             <h2 className="text-xl font-bold">Seleccionar Página</h2>
@@ -172,15 +217,11 @@ function ConsolePage() {
             )}
           </CardContent>
         </Card>
-
-        {/* Contenedor de Heatmap y Vista Previa */}
         <Card className="col-span-3 relative">
           <CardContent>
             <h2 className="text-xl font-bold">Vista Previa con Heatmap</h2>
             {selectedPage ? (
               <div className="relative w-full h-[700px] border overflow-y-auto bg-gray-50">
-                {/* Imagen de vista previa (tamaño real, no fill) */}
-                {/* Usamos <img> en vez de <Image> porque necesitamos scroll y tamaño natural para el heatmap. */}
                 <img
                   src={pageImages[selectedPage] || "/images/default.png"}
                   alt={`Vista previa de ${selectedPage}`}
@@ -204,47 +245,6 @@ function ConsolePage() {
                 Selecciona una página para ver la vista previa.
               </p>
             )}
-          </CardContent>
-        </Card>
-
-        {/* Stats Section */}
-        <div className="grid gap-4">
-          <ActiveUsersCard />
-          <InactiveUsersCard />
-          <Card>
-            <CardContent>
-              <h2 className="text-lg font-semibold">Usuarios Únicos</h2>
-              <p className="text-3xl font-bold">{stats.users}</p>
-            </CardContent>
-          </Card>
-          <Card>
-            <CardContent>
-              <h2 className="text-lg font-semibold">Total de Eventos</h2>
-              <p className="text-3xl font-bold">{stats.totalEvents}</p>
-            </CardContent>
-          </Card>
-          <Card>
-            <CardContent>
-              <h2 className="text-lg font-semibold">
-                Tiempo Promedio de Sesión
-              </h2>
-              <p className="text-3xl font-bold">{stats.avgSession} min</p>
-            </CardContent>
-          </Card>
-        </div>
-
-        {/* Events Breakdown */}
-        <Card className="col-span-3">
-          <CardContent>
-            <h2 className="text-xl font-bold">Eventos por Tipo</h2>
-            <ResponsiveContainer width="100%" height={300}>
-              <BarChart data={eventsByType}>
-                <XAxis dataKey="event_type" />
-                <YAxis />
-                <Tooltip />
-                <Bar dataKey="count" fill="#8884d8" />
-              </BarChart>
-            </ResponsiveContainer>
           </CardContent>
         </Card>
       </div>
