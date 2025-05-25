@@ -15,6 +15,7 @@ import {
 import { Menu, X } from "lucide-react"; // Íconos de menú
 import ActiveUsersCard from "@/components/ui/ActiveUsersCard";
 import InactiveUsersCard from "@/components/ui/InactiveUsersCard";
+import Image from "next/image";
 
 function ConsolePage() {
   const [menuOpen, setMenuOpen] = useState(false);
@@ -222,11 +223,14 @@ function ConsolePage() {
             <h2 className="text-xl font-bold">Vista Previa con Heatmap</h2>
             {selectedPage ? (
               <div className="relative w-full h-[700px] border overflow-y-auto bg-gray-50">
-                <img
+                <Image
                   src={pageImages[selectedPage] || "/images/default.png"}
                   alt={`Vista previa de ${selectedPage}`}
                   className="w-full block"
                   style={{ position: "relative", zIndex: 0 }}
+                  fill
+                  sizes="100vw"
+                  priority
                 />
                 {/* Heatmap sobre la imagen */}
                 {!loading && heatmapData.length > 0 && (

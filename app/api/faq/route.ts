@@ -22,7 +22,7 @@ export async function PUT(req: Request) {
   const data = await req.json();
 
   // Actualiza el primer documento encontrado, o crea uno si no existe
-  const updated = await Faq.findOneAndUpdate(
+  await Faq.findOneAndUpdate(
     {},
     {
       $set: {
