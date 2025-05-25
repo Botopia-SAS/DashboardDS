@@ -31,6 +31,17 @@ import {
   splitIntoHalfHourSlots
 } from "./utils";
 
+interface InstructorFormData {
+  name: string;
+  dni: string;
+  email: string;
+  password: string;
+  photo: string | string[];
+  certifications?: string;
+  experience?: string;
+  schedule?: Slot[];
+}
+
 const formSchema = z.object({
   name: z.string().min(2, "Name is required"),
   dni: z.string().min(2, "DNI is required"),
