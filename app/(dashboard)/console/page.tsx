@@ -16,9 +16,13 @@ import { Menu, X } from "lucide-react"; // Íconos de menú
 import ActiveUsersCard from "@/components/ui/ActiveUsersCard";
 import InactiveUsersCard from "@/components/ui/InactiveUsersCard";
 import Image from "next/image";
+import { Button } from "@/components/ui/button";
+import { ArrowLeft } from "lucide-react";
+import { usePathname } from "next/navigation";
 
 function ConsolePage() {
   const [menuOpen, setMenuOpen] = useState(false);
+  const pathname = usePathname();
 
   const Heatmap = dynamic(() => import("@/components/Heatmap"), { ssr: false });
   // ✅ Corrección
@@ -84,12 +88,21 @@ function ConsolePage() {
   return (
     <div>
       <div className="p-6">
+        {/* Mostrar Back to Console solo si NO estamos en /console */}
+        {pathname !== "/console" && (
+          <div className="flex items-center mb-4">
+            <Link href="/console">
+              <Button variant="ghost" size="sm" className="flex items-center gap-1">
+                <ArrowLeft className="w-4 h-4" /> Back to Console
+              </Button>
+            </Link>
+            <h1 className="text-xl font-semibold flex-1 text-center">Console Dashboard</h1>
+          </div>
+        )}
         {/* 🔹 MENÚ SUPERIOR */}
         <div className="flex justify-between items-center bg-gray-800 text-white px-5 py-3 rounded-lg shadow-md">
-          <h1 className="text-xl font-semibold">Console Dashboard</h1>
-
-          {/* 🔹 Menú Desktop */}
-          <div className="hidden md:flex gap-6">
+          <h1 className="text-xl font-semibold text-white">Console Dashboard</h1>
+          <div className="flex gap-6 items-center">
             <Link
               href="/console/user"
               className="px-4 py-2 rounded-lg hover:bg-gray-700"
@@ -108,54 +121,22 @@ function ConsolePage() {
             >
               FAQ
             </Link>
-          </div>
-
-          {/* 🔹 Menú Mobile (Hamburguesa) */}
-          <div className="md:hidden">
-            <button onClick={() => setMenuOpen(!menuOpen)}>
-              {menuOpen ? (
-                <X className="w-8 h-8" />
-              ) : (
-                <Menu className="w-8 h-8" />
-              )}
-            </button>
+            <Link
+              href="/console/contact"
+              className="px-4 py-2 rounded-lg hover:bg-gray-700"
+            >
+              Contact
+            </Link>
           </div>
         </div>
-
-        {/* 🔹 Menú Mobile Desplegable */}
-        {menuOpen && (
-          <div className="md:hidden bg-gray-800 text-white p-4 rounded-lg mt-2 shadow-md">
-            <Link
-              href="/dashboard/console/users"
-              className="block w-full text-left px-4 py-2 hover:bg-gray-700 rounded-lg"
-              onClick={() => setMenuOpen(false)}
-            >
-              Users
-            </Link>
-            <Link
-              href="/dashboard/console/analytics"
-              className="block w-full text-left px-4 py-2 hover:bg-gray-700 rounded-lg"
-              onClick={() => setMenuOpen(false)}
-            >
-              Analytics
-            </Link>
-            <Link
-              href="/dashboard/console/faq"
-              className="block w-full text-left px-4 py-2 hover:bg-gray-700 rounded-lg"
-              onClick={() => setMenuOpen(false)}
-            >
-              FAQ
-            </Link>
-          </div>
-        )}
       </div>
       {/* Active Users (row 1) */}
       <div className="p-6">
-        <ActiveUsersCard />
+        <ActiveUsersCard language="en" />
       </div>
       {/* Inactive Users (row 2) */}
       <div className="p-6">
-        <InactiveUsersCard />
+        <InactiveUsersCard language="en" />
       </div>
       {/* Metrics (row 3, 3 columns) */}
       <div className="p-6 grid grid-cols-1 md:grid-cols-3 gap-6">
@@ -222,12 +203,11 @@ function ConsolePage() {
           <CardContent>
             <h2 className="text-xl font-bold">Preview with Heatmap</h2>
             {selectedPage ? (
-              <div className="relative w-full h-[700px] border overflow-y-auto bg-gray-50">
+              <div className="relative w-full h-[1400px] border overflow-y-auto bg-gray-50">
                 <Image
                   src={pageImages[selectedPage] || "/images/default.png"}
                   alt={`Preview of ${selectedPage}`}
                   className="w-full block"
-                  style={{ position: "relative", zIndex: 0 }}
                   fill
                   sizes="100vw"
                   priority
@@ -236,7 +216,7 @@ function ConsolePage() {
                 {!loading && heatmapData.length > 0 && (
                   <div
                     className="absolute top-0 left-0 w-full h-full pointer-events-none z-10"
-                    style={{}}
+                    style={{ height: '1400px' }}
                   >
                     <Heatmap
                       data={heatmapData.filter((d) => d.pathname === selectedPage)}
