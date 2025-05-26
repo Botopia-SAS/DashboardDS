@@ -32,7 +32,7 @@ function formatDuration(ms: number) {
   return `${h > 0 ? h + 'h ' : ''}${m > 0 ? m + 'm ' : ''}${s}s`;
 }
 
-export default function ActiveUsersCard() {
+export default function ActiveUsersCard({ language = "es" }: { language?: "es" | "en" }) {
   const [activeUsers, setActiveUsers] = useState<Session[]>([]);
   const [loading, setLoading] = useState(true);
   const [view, setView] = useState<'cards' | 'table'>('cards');
@@ -56,7 +56,7 @@ export default function ActiveUsersCard() {
       <CardContent>
         <div className="flex items-center justify-between mb-4">
           <h2 className="text-2xl font-bold flex items-center gap-2">
-            <User className="text-blue-600" /> Usuarios Activos
+            <User className="text-blue-600" /> {language === 'en' ? 'Active Users' : 'Usuarios Activos'}
             <span className="ml-2 text-2xl font-bold text-blue-700">
               {loading ? "..." : activeUsers.length}
             </span>
@@ -71,7 +71,7 @@ export default function ActiveUsersCard() {
           </button>
         </div>
         {activeUsers.length === 0 && !loading && (
-          <p className="text-gray-500 text-center">No hay usuarios activos en este momento.</p>
+          <p className="text-gray-500 text-center">{language === 'en' ? 'No active users at this moment.' : 'No hay usuarios activos en este momento.'}</p>
         )}
         {view === 'cards' ? (
           <div className="w-full overflow-x-auto" style={{ maxWidth: '1100px', margin: '0 auto' }}>
@@ -81,7 +81,7 @@ export default function ActiveUsersCard() {
                 const last = user.lastActive ? new Date(user.lastActive).getTime() : 0;
                 const duration = start && last ? formatDuration(last - start) : '-';
                 return (
-                  <div key={user._id} className="bg-white shadow-md rounded-lg p-5 min-w-[260px] max-w-xs flex flex-col items-center border border-gray-200">
+                  <div key={user._id} className="bg-white shadow-md rounded-lg p-5 min-w-[320px] max-w-sm flex flex-col items-center border border-gray-200">
                     <span className="text-lg font-mono font-bold text-blue-900 mb-1">{user.ipAddress || "-"}</span>
                     <div className="flex items-center gap-1 text-gray-600 mb-1">
                       <Globe size={16} />
@@ -92,7 +92,7 @@ export default function ActiveUsersCard() {
                         <Smartphone size={14} /> {getDevice(user.userAgent)}
                       </span>
                       <span className={`rounded-full px-2 py-0.5 text-xs flex items-center gap-1 ${user.vpn ? 'bg-red-100 text-red-800' : 'bg-green-100 text-green-800'}`}>
-                        <ShieldCheck size={14} /> VPN: {user.vpn ? "Sí" : "No"}
+                        <ShieldCheck size={14} /> {language === 'en' ? `VPN: ${user.vpn ? "Yes" : "No"}` : `VPN: ${user.vpn ? "Sí" : "No"}`}
                       </span>
                     </div>
                     <div className="text-xs text-gray-500 mb-1">
@@ -100,13 +100,13 @@ export default function ActiveUsersCard() {
                     </div>
                     <div className="flex flex-col items-center mt-2 w-full">
                       <span className="flex items-center gap-1 text-xs text-gray-700">
-                        <Clock size={13} /> Última act: {user.lastActive ? new Date(user.lastActive).toLocaleTimeString() : "N/A"}
+                        <Clock size={13} /> {language === 'en' ? 'Last activity:' : 'Última act:'} {user.lastActive ? new Date(user.lastActive).toLocaleTimeString() : "N/A"}
                       </span>
-                      <span className="flex items-center gap-1 text-xs text-gray-700 mt-1">
-                        <Monitor size={13} /> Página: {user.pages && user.pages.length > 0 ? user.pages[user.pages.length - 1].url : "-"}
+                      <span className="flex items-center gap-1 text-xs text-gray-700 mt-1 w-full justify-center text-center">
+                        <Monitor size={13} /> {language === 'en' ? 'Page:' : 'Página:'} {user.pages && user.pages.length > 0 ? user.pages[user.pages.length - 1].url : "-"}
                       </span>
                       <span className="flex items-center gap-1 text-xs text-blue-700 mt-1">
-                        <Clock size={13} /> Tiempo de sesión: {duration}
+                        <Clock size={13} /> {language === 'en' ? 'Session time:' : 'Tiempo de sesión:'} {duration}
                       </span>
                     </div>
                   </div>
