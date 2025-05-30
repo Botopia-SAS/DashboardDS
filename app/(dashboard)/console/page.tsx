@@ -12,7 +12,6 @@ import {
   Tooltip,
   ResponsiveContainer,
 } from "recharts";
-import { Menu, X } from "lucide-react"; // Íconos de menú
 import ActiveUsersCard from "@/components/ui/ActiveUsersCard";
 import InactiveUsersCard from "@/components/ui/InactiveUsersCard";
 import Image from "next/image";
@@ -21,7 +20,6 @@ import { ArrowLeft } from "lucide-react";
 import { usePathname } from "next/navigation";
 
 function ConsolePage() {
-  const [menuOpen, setMenuOpen] = useState(false);
   const pathname = usePathname();
 
   const Heatmap = dynamic(() => import("@/components/Heatmap"), { ssr: false });
