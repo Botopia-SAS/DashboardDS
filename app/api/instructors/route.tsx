@@ -1,7 +1,6 @@
 import { connectToDB } from "@/lib/mongoDB";
 import { NextResponse } from "next/server";
 import Instructor from "@/lib/models/Instructor"; // Modelo de MongoDB
-import bcrypt from "bcryptjs";
 import { sendEmail } from "./sendEmail";
 
 export const dynamic = "force-dynamic";
@@ -104,7 +103,6 @@ export async function POST(req: Request) {
         body: JSON.stringify(assignRoleBody),
       }
     );
-    const assignRoleText = await assignRoleRes.text();
     if (!assignRoleRes.ok) {
       console.error("❌ Error al asignar rol en Auth0");
     }
@@ -150,7 +148,7 @@ export async function POST(req: Request) {
                     </div>
                 `,
       });
-    } catch (err) {
+    } catch (err: unknown) {
       console.error(
         "❌ Error al enviar correo de credenciales al instructor:",
         err
@@ -158,7 +156,7 @@ export async function POST(req: Request) {
     }
 
     return NextResponse.json(newInstructor, { status: 201 });
-  } catch (error) {
+  } catch (error: unknown) {
     console.error("Error en el endpoint POST /api/instructors:", error);
     return NextResponse.json({ message: "Error creating instructor" }, { status: 500 });
   }

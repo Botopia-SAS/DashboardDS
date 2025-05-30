@@ -12,13 +12,19 @@ const transporter = nodemailer.createTransport({
   },
 });
 
+interface Recipient {
+  email: string;
+  firstName?: string;
+  name?: string;
+}
+
 export async function POST(req: NextRequest) {
-  const { recipients, subject, body, templateId } = await req.json();
+  const { recipients, subject, body } = await req.json();
   const sent: string[] = [];
   const failed: { email: string; error: string }[] = [];
 
   await Promise.all(
-    recipients.map(async (r: any) => {
+    recipients.map(async (r: Recipient) => {
       const html = getEmailTemplate({ name: r.firstName || r.name || "User", body });
       try {
         await transporter.sendMail({
@@ -28,8 +34,8 @@ export async function POST(req: NextRequest) {
           html,
         });
         sent.push(r.email);
-      } catch (err: any) {
-        failed.push({ email: r.email, error: err.message });
+      } catch (err: unknown) {
+        failed.push({ email: r.email, error: err instanceof Error ? err.message : 'Unknown error' });
       }
     })
   );

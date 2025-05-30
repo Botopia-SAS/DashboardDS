@@ -1,7 +1,7 @@
 "use client";
 
 import Link from "next/link";
-import { useEffect, useState } from "react";
+import { useEffect, useState, useRef, useLayoutEffect } from "react";
 import dynamic from "next/dynamic";
 import { Card, CardContent } from "@/components/ui/card";
 import {
@@ -12,7 +12,6 @@ import {
   Tooltip,
   ResponsiveContainer,
 } from "recharts";
-import { Menu, X } from "lucide-react"; // Íconos de menú
 import ActiveUsersCard from "@/components/ui/ActiveUsersCard";
 import InactiveUsersCard from "@/components/ui/InactiveUsersCard";
 import Image from "next/image";
@@ -21,13 +20,20 @@ import { ArrowLeft } from "lucide-react";
 import { usePathname } from "next/navigation";
 
 function ConsolePage() {
-  const [menuOpen, setMenuOpen] = useState(false);
   const pathname = usePathname();
 
   const Heatmap = dynamic(() => import("@/components/Heatmap"), { ssr: false });
   // ✅ Corrección
   const [heatmapData, setHeatmapData] = useState<
-    { x: number; y: number; value: number; pathname: string }[]
+    {
+      x: number;
+      y: number;
+      value: number;
+      pathname: string;
+      event_type?: string;
+      screenWidth?: number;
+      screenHeight?: number;
+    }[]
   >([]);
   const [eventsByType, setEventsByType] = useState<
     { event_type: string; count: number }[]
@@ -40,6 +46,10 @@ function ConsolePage() {
   const [loading, setLoading] = useState(true);
   const [selectedPage, setSelectedPage] = useState("");
 
+  const containerRef = useRef<HTMLDivElement | null>(null);
+  const [containerSize, setContainerSize] = useState({ width: 1400, height: 788 }); // 16:9 por defecto, ahora 1400px ancho
+  const [imageNatural, setImageNatural] = useState({ width: 1920, height: 1080 });
+
   const pageImages: Record<string, string> = {
     "/": "/images/home.png",
     "/Lessons": "/images/lessons.png",
@@ -50,6 +60,10 @@ function ConsolePage() {
     "/FAQ": "/images/faq.png",
     // You can add more routes and images here if you add more pages
   };
+
+  // El tamaño del canvas y heatmap será el natural de la imagen
+  const baseWidth = imageNatural.width;
+  const baseHeight = imageNatural.height;
 
   useEffect(() => {
     setLoading(true);
@@ -84,6 +98,38 @@ function ConsolePage() {
       .catch((err) => console.error("Error fetching heatmap data:", err))
       .finally(() => setLoading(false));
   }, [selectedPage]);
+
+  useLayoutEffect(() => {
+    if (!containerRef.current) return;
+    const updateSize = () => {
+      const maxWidth = Math.min(containerRef.current!.offsetWidth, 1400);
+      const aspect = imageNatural.height / imageNatural.width;
+      setContainerSize({
+        width: maxWidth,
+        height: Math.round(maxWidth * aspect),
+      });
+    };
+    updateSize();
+    const resizeObserver = new window.ResizeObserver(updateSize);
+    resizeObserver.observe(containerRef.current);
+
+    // Detecta cambios de zoom del navegador
+    let lastDevicePixelRatio = window.devicePixelRatio;
+    const checkZoom = () => {
+      if (window.devicePixelRatio !== lastDevicePixelRatio) {
+        lastDevicePixelRatio = window.devicePixelRatio;
+        updateSize();
+      }
+    };
+    window.addEventListener('resize', updateSize);
+    const zoomInterval = setInterval(checkZoom, 200);
+
+    return () => {
+      resizeObserver.disconnect();
+      window.removeEventListener('resize', updateSize);
+      clearInterval(zoomInterval);
+    };
+  }, [imageNatural, selectedPage]);
 
   return (
     <div>
@@ -203,26 +249,65 @@ function ConsolePage() {
           <CardContent>
             <h2 className="text-xl font-bold">Preview with Heatmap</h2>
             {selectedPage ? (
-              <div className="relative w-full h-[1400px] border overflow-y-auto bg-gray-50">
-                <Image
-                  src={pageImages[selectedPage] || "/images/default.png"}
-                  alt={`Preview of ${selectedPage}`}
-                  className="w-full block"
-                  fill
-                  sizes="100vw"
-                  priority
-                />
-                {/* Heatmap over the image */}
-                {!loading && heatmapData.length > 0 && (
+              <div
+                className="relative w-full border bg-gray-50 overflow-y-auto"
+                style={{ height: 800 }}
+              >
+                <div
+                  className="relative w-full"
+                  style={{ width: '100%' }}
+                >
                   <div
-                    className="absolute top-0 left-0 w-full h-full pointer-events-none z-10"
-                    style={{ height: '1400px' }}
+                    ref={containerRef}
+                    className="relative w-full"
+                    style={{ width: '100%', height: 'auto', aspectRatio: `${baseWidth} / ${baseHeight}` }}
                   >
-                    <Heatmap
-                      data={heatmapData.filter((d) => d.pathname === selectedPage)}
+                    <Image
+                      src={pageImages[selectedPage] || "/images/default.png"}
+                      alt={`Preview of ${selectedPage}`}
+                      className="w-full h-auto object-contain object-top block"
+                      width={baseWidth}
+                      height={baseHeight}
+                      onLoadingComplete={img => setImageNatural({ width: img.naturalWidth, height: img.naturalHeight })}
+                      priority
                     />
+                    {/* Heatmap over the image */}
+                    {!loading && heatmapData.length > 0 && (
+                      <div
+                        className="absolute top-0 left-0 w-full h-full pointer-events-none z-10"
+                        style={{ width: '100%', height: '100%' }}
+                      >
+                        <Heatmap
+                          data={
+                            heatmapData
+                              .filter(
+                                (d) =>
+                                  d.pathname === selectedPage &&
+                                  (d.event_type === 'click' || d.event_type === 'move') &&
+                                  typeof d.x === 'number' &&
+                                  typeof d.y === 'number'
+                              )
+                              .map((d) => {
+                                const screenWidth = d.screenWidth ?? imageNatural.width;
+                                const screenHeight = d.screenHeight ?? imageNatural.height;
+                                const relX = d.x / screenWidth;
+                                const relY = d.y / screenHeight;
+                                // Calcula el tamaño real del contenedor escalado
+                                const container = containerRef.current;
+                                const scaledWidth = container ? container.offsetWidth : baseWidth;
+                                const scaledHeight = container ? container.offsetHeight : baseHeight;
+                                return {
+                                  x: Math.round(relX * scaledWidth),
+                                  y: Math.round(relY * scaledHeight),
+                                  value: d.value || 1,
+                                };
+                              })
+                          }
+                        />
+                      </div>
+                    )}
                   </div>
-                )}
+                </div>
               </div>
             ) : (
               <p className="text-gray-500">

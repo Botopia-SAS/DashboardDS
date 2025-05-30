@@ -124,10 +124,7 @@ export function DataTable({ columns, data, onUpdate }: DataTableProps) {
   const downloadXLSX = useCallback(() => {
     const studentsWithCertnZero = data
       .filter((student) => student.certn === 0)
-      .map(
-        ({ id, payedAmount, certn, licenseNumber, type, reason, ...rest }) =>
-          rest
-      );
+      .map(({ ...rest }) => rest);
 
     if (studentsWithCertnZero.length === 0) {
       toast.error("No students with certn equal to 0.");
