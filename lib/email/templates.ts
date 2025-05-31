@@ -1,4 +1,4 @@
-export function getEmailTemplate({ name, body }: { name: string; body: string }) {
+export function getEmailTemplate({ name, body, greeting = "Hello" }: { name: string; body: string; greeting?: string }) {
   return `
     <div style="font-family: Arial, sans-serif; background: #f4f6fa; padding: 32px; color: #222;">
       <div style="max-width: 480px; margin: 0 auto; background: #fff; border-radius: 12px; box-shadow: 0 2px 8px #0001; overflow: hidden;">
@@ -6,7 +6,7 @@ export function getEmailTemplate({ name, body }: { name: string; body: string })
           <h2 style="margin: 0; font-size: 1.7rem; letter-spacing: 1px;">Driving School Notification</h2>
         </div>
         <div style="padding: 32px 32px 16px 32px;">
-          <p style="font-size: 1.1rem; margin-bottom: 18px;">Hello, <b>${name}</b>!</p>
+          <p style="font-size: 1.1rem; margin-bottom: 18px;">${greeting}, <b>${name}</b>!</p>
           <p style="font-size: 1.1rem; margin-bottom: 18px;">${body}</p>
         </div>
         <div style="background: #0f172a; color: #fff; text-align: center; padding: 16px 32px; font-size: 0.95rem; border-top: 1px solid #cbd5e1;">

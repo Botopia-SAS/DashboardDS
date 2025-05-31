@@ -77,13 +77,19 @@ export default function AnalyticsPage() {
 
   useEffect(() => {
     fetchData();
-    // Obtener clicks por página una sola vez
+    // Obtener y filtrar clicks por página y periodo
     fetch(`/api/heatmap`).then(res => res.json()).then((result: HeatmapResponse) => {
       if (result.success && result.heatmap) {
         const clicks: Record<string, number> = {};
         result.heatmap.forEach((e) => {
-          if (e.event_type === 'click') {
-            clicks[e.pathname] = (clicks[e.pathname] || 0) + 1;
+          if (e.event_type === 'click' && e.timestamp) {
+            const ts = new Date(e.timestamp).getTime();
+            if (!isNaN(ts) && ts >= dateRange.start.getTime() && ts <= dateRange.end.getTime()) {
+              const pageKey = e.pathname;
+              if (pageKey) {
+                clicks[pageKey] = (clicks[pageKey] || 0) + 1;
+              }
+            }
           }
         });
         setClicksByPage(clicks);
@@ -374,7 +380,7 @@ export default function AnalyticsPage() {
         <CardContent>
           <h2 className="text-lg font-semibold mb-2">Top Pages</h2>
           <div className="space-y-4">
-            {data?.pages?.slice(0, 5).map((page: AnalyticsPage, index: number) => (
+            {data?.pages?.map((page: AnalyticsPage, index: number) => (
               <div
                 key={index}
                 className="flex items-center justify-between p-4 bg-gray-50 rounded-lg cursor-default hover:bg-blue-50 transition"

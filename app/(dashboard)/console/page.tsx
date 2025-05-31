@@ -46,7 +46,9 @@ function ConsolePage() {
   const [selectedPage, setSelectedPage] = useState("");
 
   const containerRef = useRef<HTMLDivElement | null>(null);
+  const imgRef = useRef<HTMLImageElement | null>(null);
   const [imageNatural, setImageNatural] = useState({ width: 1920, height: 1080 });
+  const [imageRenderedSize, setImageRenderedSize] = useState({ width: 1920, height: 1080 });
 
   const pageImages: Record<string, string> = {
     "/": "/images/home.png",
@@ -120,10 +122,28 @@ function ConsolePage() {
     window.addEventListener('resize', updateSize);
     const zoomInterval = setInterval(checkZoom, 200);
 
+    // --- NUEVO: Observer para la imagen ---
+    let imgResizeObserver: ResizeObserver | null = null;
+    if (imgRef.current) {
+      imgResizeObserver = new window.ResizeObserver(() => {
+        setImageRenderedSize({
+          width: imgRef.current?.offsetWidth || baseWidth,
+          height: imgRef.current?.offsetHeight || baseHeight,
+        });
+      });
+      imgResizeObserver.observe(imgRef.current);
+      // Inicializa el tamaño
+      setImageRenderedSize({
+        width: imgRef.current.offsetWidth || baseWidth,
+        height: imgRef.current.offsetHeight || baseHeight,
+      });
+    }
+
     return () => {
       resizeObserver.disconnect();
       window.removeEventListener('resize', updateSize);
       clearInterval(zoomInterval);
+      if (imgResizeObserver && imgRef.current) imgResizeObserver.disconnect();
     };
   }, [imageNatural, selectedPage]);
 
@@ -259,6 +279,7 @@ function ConsolePage() {
                     style={{ width: '100%', height: 'auto', aspectRatio: `${baseWidth} / ${baseHeight}` }}
                   >
                     <Image
+                      ref={imgRef}
                       src={pageImages[selectedPage] || "/images/default.png"}
                       alt={`Preview of ${selectedPage}`}
                       className="w-full h-auto object-contain object-top block"
@@ -288,10 +309,9 @@ function ConsolePage() {
                                 const screenHeight = d.screenHeight ?? imageNatural.height;
                                 const relX = d.x / screenWidth;
                                 const relY = d.y / screenHeight;
-                                // Calcula el tamaño real del contenedor escalado
-                                const container = containerRef.current;
-                                const scaledWidth = container ? container.offsetWidth : baseWidth;
-                                const scaledHeight = container ? container.offsetHeight : baseHeight;
+                                // Usa el tamaño real de la imagen renderizada (actualizado con observer)
+                                const scaledWidth = imageRenderedSize.width;
+                                const scaledHeight = imageRenderedSize.height;
                                 return {
                                   x: Math.round(relX * scaledWidth),
                                   y: Math.round(relY * scaledHeight),
