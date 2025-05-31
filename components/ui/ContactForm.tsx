@@ -68,6 +68,9 @@ export default function ContactForm() {
   const [search, setSearch] = useState("");
   const [dbTemplates, setDbTemplates] = useState<DBTemplate[]>([]);
   const [greeting, setGreeting] = useState<string>("Hello");
+  const [showScheduleModal, setShowScheduleModal] = useState(false);
+  const [scheduledDate, setScheduledDate] = useState("");
+  const [scheduleSuccess, setScheduleSuccess] = useState("");
 
   useEffect(() => {
     fetch("/api/users?roles=user")
@@ -187,7 +190,8 @@ export default function ContactForm() {
       });
       if (res.ok) {
         setSuccess("Emails sent successfully!");
-        // Resetear todos los campos a sus valores por defecto (template: CUSTOM_TEMPLATE)
+        window.alert("Email sent successfully!");
+        // Reset all fields to default
         setRecipientType("users");
         setSelectedRecipients([]);
         setAllSelected(true);
@@ -199,6 +203,60 @@ export default function ContactForm() {
       } else setError("Failed to send emails");
     } catch {
       setError("Failed to send emails");
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const handleScheduleSend = async (e: FormEvent<HTMLFormElement>) => {
+    e.preventDefault();
+    setLoading(true);
+    setSuccess("");
+    setError("");
+    let recipients: (User | Instructor)[] = [];
+    const list = recipientType === "users" ? users : instructors;
+    recipients = list.filter((r) => selectedRecipients.includes(r._id));
+    if (recipients.length === 0) {
+      setError("Please select at least one recipient.");
+      setLoading(false);
+      return;
+    }
+    if (!scheduledDate) {
+      setError("Please select a date and time.");
+      setLoading(false);
+      return;
+    }
+    try {
+      const res = await fetch("/api/email/send", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          recipients,
+          subject,
+          body,
+          templateId: template._id,
+          greeting,
+          scheduledDate,
+        }),
+      });
+      if (res.ok) {
+        setScheduleSuccess("Email scheduled successfully!");
+        setTimeout(() => {
+          setShowScheduleModal(false);
+          setScheduleSuccess("");
+          setRecipientType("users");
+          setSelectedRecipients([]);
+          setAllSelected(true);
+          setTemplate(CUSTOM_TEMPLATE);
+          setSubject(CUSTOM_TEMPLATE.subject);
+          setBody(CUSTOM_TEMPLATE.body);
+          setGreeting("Hello");
+          setSearch("");
+          setScheduledDate("");
+        }, 1500);
+      } else setError("Failed to schedule email");
+    } catch {
+      setError("Failed to schedule email");
     } finally {
       setLoading(false);
     }
@@ -350,6 +408,35 @@ export default function ContactForm() {
         </div>
       </div>
       <button type="submit" className="bg-blue-600 text-white px-6 py-2 rounded font-semibold w-full" disabled={loading}>{loading ? "Sending..." : "Send Email"}</button>
+      <button type="button" className="bg-purple-600 text-white px-6 py-2 rounded font-semibold w-full mt-2" onClick={() => setShowScheduleModal(true)}>
+        Schedule Email
+      </button>
+      {showScheduleModal && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black bg-opacity-30">
+          <div className="bg-white rounded-lg shadow-lg p-6 w-full max-w-md">
+            <h3 className="text-lg font-bold mb-4">Schedule Email</h3>
+            <form onSubmit={handleScheduleSend} className="space-y-4">
+              <div>
+                <label className="block font-semibold mb-1">Date & Time</label>
+                <input
+                  type="datetime-local"
+                  className="border rounded p-2 w-full"
+                  value={scheduledDate}
+                  onChange={e => setScheduledDate(e.target.value)}
+                  required
+                />
+              </div>
+              {scheduleSuccess && (
+                <div className="text-green-600 font-semibold text-center">{scheduleSuccess}</div>
+              )}
+              <div className="flex gap-2 justify-end">
+                <button type="button" className="px-4 py-2 rounded border" onClick={() => { setShowScheduleModal(false); setScheduleSuccess(""); }}>Cancel</button>
+                <button type="submit" className="px-4 py-2 rounded bg-purple-600 text-white shadow" disabled={loading || !!scheduleSuccess}>Confirm Schedule</button>
+              </div>
+            </form>
+          </div>
+        </div>
+      )}
       {success && <div className="text-green-600 font-semibold">{success}</div>}
       {error && <div className="text-red-600 font-semibold">{error}</div>}
     </form>

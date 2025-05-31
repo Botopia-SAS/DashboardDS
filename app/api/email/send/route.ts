@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from "next/server";
 import { getEmailTemplate } from "@/lib/email/templates";
 import nodemailer from "nodemailer";
+import ScheduledEmail from '@/models/ScheduledEmail';
 
 const transporter = nodemailer.createTransport({
   host: process.env.SMTP_HOST,
@@ -19,7 +20,19 @@ interface Recipient {
 }
 
 export async function POST(req: NextRequest) {
-  const { recipients, subject, body, greeting } = await req.json();
+  const { recipients, subject, body, greeting, scheduledDate, templateId } = await req.json();
+  if (scheduledDate) {
+    await ScheduledEmail.create({
+      recipients,
+      subject,
+      body,
+      greeting,
+      templateId,
+      scheduledDate,
+      sent: false
+    });
+    return NextResponse.json({ scheduled: true });
+  }
   const sent: string[] = [];
   const failed: { email: string; error: string }[] = [];
 

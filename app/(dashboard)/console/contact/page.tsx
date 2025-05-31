@@ -46,16 +46,6 @@ export default function ContactPage() {
             </div>
           </div>
         </div>
-        {/* Panel programar correos debajo de ambos */}
-        <div className="flex justify-center w-full">
-          <div className="w-full max-w-3xl bg-white rounded-2xl shadow-lg p-12 border border-purple-100 flex flex-col mt-2">
-            <div className="flex items-center gap-2 mb-3">
-              <CalendarClock className="text-purple-500" size={22} />
-              <span className="text-xl font-semibold text-purple-700">Schedule Email</span>
-            </div>
-            <ScheduleEmailPanel />
-          </div>
-        </div>
       </div>
     </div>
   );
