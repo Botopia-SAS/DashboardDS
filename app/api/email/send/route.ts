@@ -19,13 +19,13 @@ interface Recipient {
 }
 
 export async function POST(req: NextRequest) {
-  const { recipients, subject, body } = await req.json();
+  const { recipients, subject, body, greeting } = await req.json();
   const sent: string[] = [];
   const failed: { email: string; error: string }[] = [];
 
   await Promise.all(
     recipients.map(async (r: Recipient) => {
-      const html = getEmailTemplate({ name: r.firstName || r.name || "User", body });
+      const html = getEmailTemplate({ name: r.firstName || r.name || "User", body, greeting });
       try {
         await transporter.sendMail({
           from: process.env.SMTP_USER,
