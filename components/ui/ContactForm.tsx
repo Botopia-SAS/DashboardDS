@@ -82,7 +82,7 @@ export default function ContactForm() {
   }, []);
 
   useEffect(() => {
-    let cleanBody = template.body.replace(/^.*{{name}}.*[\n\r]+/, "");
+    const cleanBody = template.body.replace(/^.*{{name}}.*[\n\r]+/, "");
     setSubject(template.subject);
     setBody(cleanBody);
   }, [template]);
