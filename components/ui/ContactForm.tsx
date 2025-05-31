@@ -1,7 +1,30 @@
 "use client";
-import { useEffect, useState } from "react";
+import { useEffect, useState, FormEvent, ChangeEvent } from "react";
 
-const TEMPLATES = [
+interface User {
+  _id: string;
+  firstName?: string;
+  lastName?: string;
+  name?: string;
+  email: string;
+}
+
+interface Instructor {
+  _id: string;
+  firstName?: string;
+  lastName?: string;
+  name?: string;
+  email: string;
+}
+
+interface Template {
+  id: string;
+  name: string;
+  subject: string;
+  body: string;
+}
+
+const TEMPLATES: Template[] = [
   {
     id: "reminder",
     name: "Class Reminder",
@@ -17,8 +40,8 @@ const TEMPLATES = [
 ];
 
 export default function ContactForm() {
-  const [users, setUsers] = useState([]);
-  const [instructors, setInstructors] = useState([]);
+  const [users, setUsers] = useState<User[]>([]);
+  const [instructors, setInstructors] = useState<Instructor[]>([]);
   const [recipientType, setRecipientType] = useState("users");
   const [recipient, setRecipient] = useState("all");
   const [template, setTemplate] = useState(TEMPLATES[0]);
@@ -42,16 +65,16 @@ export default function ContactForm() {
     setBody(template.body);
   }, [template]);
 
-  const handleSend = async (e: any) => {
+  const handleSend = async (e: FormEvent<HTMLFormElement>) => {
     e.preventDefault();
     setLoading(true);
     setSuccess("");
     setError("");
-    let recipients = [];
+    let recipients: (User | Instructor)[] = [];
     if (recipientType === "users") {
-      recipients = recipient === "all" ? users : users.filter((u: any) => u._id === recipient);
+      recipients = recipient === "all" ? users : users.filter((u) => u._id === recipient);
     } else {
-      recipients = recipient === "all" ? instructors : instructors.filter((i: any) => i._id === recipient);
+      recipients = recipient === "all" ? instructors : instructors.filter((i) => i._id === recipient);
     }
     try {
       const res = await fetch("/api/email/send", {
@@ -77,33 +100,33 @@ export default function ContactForm() {
     <form onSubmit={handleSend} className="space-y-6 bg-white p-6 rounded shadow max-w-2xl mx-auto">
       <div>
         <label className="block font-semibold mb-1">Recipient Type</label>
-        <select value={recipientType} onChange={e => { setRecipientType(e.target.value); setRecipient("all"); }} className="border rounded p-2 w-full">
+        <select value={recipientType} onChange={(e: ChangeEvent<HTMLSelectElement>) => { setRecipientType(e.target.value); setRecipient("all"); }} className="border rounded p-2 w-full">
           <option value="users">Users</option>
           <option value="instructors">Instructors</option>
         </select>
       </div>
       <div>
         <label className="block font-semibold mb-1">Recipient</label>
-        <select value={recipient} onChange={e => setRecipient(e.target.value)} className="border rounded p-2 w-full">
+        <select value={recipient} onChange={(e: ChangeEvent<HTMLSelectElement>) => setRecipient(e.target.value)} className="border rounded p-2 w-full">
           <option value="all">All</option>
-          {(recipientType === "users" ? users : instructors).map((r: any) => (
+          {(recipientType === "users" ? users : instructors).map((r) => (
             <option key={r._id} value={r._id}>{r.firstName ? `${r.firstName} ${r.lastName}` : r.name} ({r.email})</option>
           ))}
         </select>
       </div>
       <div>
         <label className="block font-semibold mb-1">Template</label>
-        <select value={template.id} onChange={e => setTemplate(TEMPLATES.find(t => t.id === e.target.value) || TEMPLATES[0])} className="border rounded p-2 w-full">
+        <select value={template.id} onChange={(e: ChangeEvent<HTMLSelectElement>) => setTemplate(TEMPLATES.find(t => t.id === e.target.value) || TEMPLATES[0])} className="border rounded p-2 w-full">
           {TEMPLATES.map(t => <option key={t.id} value={t.id}>{t.name}</option>)}
         </select>
       </div>
       <div>
         <label className="block font-semibold mb-1">Subject</label>
-        <input value={subject} onChange={e => setSubject(e.target.value)} className="border rounded p-2 w-full" required />
+        <input value={subject} onChange={(e: ChangeEvent<HTMLInputElement>) => setSubject(e.target.value)} className="border rounded p-2 w-full" required />
       </div>
       <div>
         <label className="block font-semibold mb-1">Body</label>
-        <textarea value={body} onChange={e => setBody(e.target.value)} className="border rounded p-2 w-full min-h-[120px]" required />
+        <textarea value={body} onChange={(e: ChangeEvent<HTMLTextAreaElement>) => setBody(e.target.value)} className="border rounded p-2 w-full min-h-[120px]" required />
       </div>
       <button type="submit" className="bg-blue-600 text-white px-6 py-2 rounded font-semibold" disabled={loading}>{loading ? "Sending..." : "Send Email"}</button>
       {success && <div className="text-green-600 font-semibold">{success}</div>}

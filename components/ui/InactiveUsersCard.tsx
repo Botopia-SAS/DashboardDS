@@ -3,6 +3,23 @@ import { Card, CardContent } from "@/components/ui/card";
 import { UserX, Smartphone, Globe, ShieldCheck, Clock, Monitor, Table, LayoutGrid, ArrowLeftCircle, ArrowRightCircle, XCircle } from "lucide-react";
 import type { Session } from "./ActiveUsersCard";
 
+interface Page {
+  url: string;
+  timestamp?: string;
+  duration?: number;
+}
+
+interface GroupedPage {
+  url: string;
+  totalDuration: number;
+  firstTimestamp: number;
+}
+
+interface ExtendedSession extends Session {
+  endTimestamp?: string;
+  pages?: Page[];
+}
+
 function getDevice(userAgent?: string) {
   if (!userAgent) return "Desconocido";
   if (/android/i.test(userAgent)) return "Android";
@@ -22,14 +39,22 @@ function formatDuration(ms: number) {
   return `${h > 0 ? h + 'h ' : ''}${m > 0 ? m + 'm ' : ''}${s}s`;
 }
 
+function getTimestamp(timestamp?: string): number {
+  if (!timestamp) return 0;
+  try {
+    return new Date(timestamp).getTime();
+  } catch {
+    return 0;
+  }
+}
+
 export default function InactiveUsersCard({ language = "es" }: { language?: "es" | "en" }) {
-  const [inactiveUsers, setInactiveUsers] = useState<Session[]>([]);
+  const [inactiveUsers, setInactiveUsers] = useState<ExtendedSession[]>([]);
   const [loading, setLoading] = useState(true);
   const [view, setView] = useState<'cards' | 'table'>('cards');
   const [carouselIndex, setCarouselIndex] = useState(0);
-  const [modalUser, setModalUser] = useState<Session | null>(null);
+  const [modalUser, setModalUser] = useState<ExtendedSession | null>(null);
   const cardsRef = useRef<HTMLDivElement>(null);
-  const [cardsHeight, setCardsHeight] = useState(0);
 
   const USERS_PER_PAGE = 4;
 
@@ -52,11 +77,11 @@ export default function InactiveUsersCard({ language = "es" }: { language?: "es"
     if (carouselIndex > Math.max(0, inactiveUsers.length - USERS_PER_PAGE)) {
       setCarouselIndex(Math.max(0, inactiveUsers.length - USERS_PER_PAGE));
     }
-  }, [inactiveUsers.length]);
+  }, [inactiveUsers.length, carouselIndex]);
 
   useLayoutEffect(() => {
     if (cardsRef.current) {
-      setCardsHeight(cardsRef.current.offsetHeight);
+      // setCardsHeight(cardsRef.current.offsetHeight);
     }
   }, [inactiveUsers, carouselIndex]);
 
@@ -64,32 +89,29 @@ export default function InactiveUsersCard({ language = "es" }: { language?: "es"
   const renderModal = () => {
     if (!modalUser) return null;
     // Find the max duration in pages
-    let maxDuration = -1;
-    let maxIdx = -1;
     const pages = modalUser.pages || [];
-    const endTimestamp = (modalUser as any).endTimestamp ? new Date((modalUser as any).endTimestamp).getTime() : (modalUser.lastActive ? new Date(modalUser.lastActive).getTime() : undefined);
+    const endTimestamp = modalUser.endTimestamp ? getTimestamp(modalUser.endTimestamp) : (modalUser.lastActive ? getTimestamp(modalUser.lastActive) : undefined);
     // Agrupar solo consecutivos con la misma URL
-    type GroupedPage = { url: string, totalDuration: number, firstTimestamp: number };
     const groupedPages: GroupedPage[] = [];
     let i = 0;
     while (i < pages.length) {
       const url = pages[i].url;
       let totalDuration = 0;
-      let firstTimestamp = (pages[i] as any).timestamp ? new Date((pages[i] as any).timestamp).getTime() : 0;
+      const firstTimestamp = getTimestamp(pages[i].timestamp);
       let j = i;
       while (j < pages.length && pages[j].url === url) {
-        let duration = (pages[j] as any).duration;
+        let duration = pages[j].duration;
         // Si duration es 0 o no existe y NO es la última página, calcula usando la siguiente
         if ((duration === undefined || duration === 0)) {
           if (j < pages.length - 1) {
-            const currTs = new Date((pages[j] as any).timestamp).getTime();
-            const nextTs = new Date((pages[j + 1] as any).timestamp).getTime();
+            const currTs = getTimestamp(pages[j].timestamp);
+            const nextTs = getTimestamp(pages[j + 1].timestamp);
             if (nextTs > currTs) {
               duration = nextTs - currTs;
             }
-          } else if (j === pages.length - 1 && endTimestamp && (pages[j] as any).timestamp) {
+          } else if (j === pages.length - 1 && endTimestamp && pages[j].timestamp) {
             // Última página: calcula usando endTimestamp
-            const pageTimestamp = new Date((pages[j] as any).timestamp).getTime();
+            const pageTimestamp = getTimestamp(pages[j].timestamp);
             if (endTimestamp > pageTimestamp) {
               duration = endTimestamp - pageTimestamp;
             }
@@ -197,9 +219,8 @@ export default function InactiveUsersCard({ language = "es" }: { language?: "es"
               {/* Tarjetas de usuario */}
               <div ref={cardsRef} className="flex flex-nowrap gap-4 py-2 flex-1 justify-center px-4 md:px-12 lg:px-20">
                 {inactiveUsers.slice(carouselIndex, carouselIndex + USERS_PER_PAGE).map((user) => {
-                  const start = user.startTimestamp ? new Date(user.startTimestamp).getTime() : 0;
-                  // @ts-expect-error endTimestamp puede no estar en todos los objetos
-                  const end = user.endTimestamp ? new Date(user.endTimestamp).getTime() : 0;
+                  const start = getTimestamp(user.startTimestamp);
+                  const end = getTimestamp(user.endTimestamp);
                   const duration = start && end ? formatDuration(end - start) : '-';
                   return (
                     <div
@@ -259,9 +280,8 @@ export default function InactiveUsersCard({ language = "es" }: { language?: "es"
                 <div className="w-full text-center text-gray-400 py-8">No inactive users.</div>
               )}
               {inactiveUsers.map((user) => {
-                const start = user.startTimestamp ? new Date(user.startTimestamp).getTime() : 0;
-                // @ts-expect-error endTimestamp puede no estar en todos los objetos
-                const end = user.endTimestamp ? new Date(user.endTimestamp).getTime() : 0;
+                const start = getTimestamp(user.startTimestamp);
+                const end = getTimestamp(user.endTimestamp);
                 const duration = start && end ? formatDuration(end - start) : '-';
                 return (
                   <div
@@ -330,9 +350,8 @@ export default function InactiveUsersCard({ language = "es" }: { language?: "es"
                 </thead>
                 <tbody>
                   {inactiveUsers.map((user) => {
-                    const start = user.startTimestamp ? new Date(user.startTimestamp).getTime() : 0;
-                    // @ts-expect-error endTimestamp puede no estar en todos los objetos
-                    const end = user.endTimestamp ? new Date(user.endTimestamp).getTime() : 0;
+                    const start = getTimestamp(user.startTimestamp);
+                    const end = getTimestamp(user.endTimestamp);
                     const duration = start && end ? formatDuration(end - start) : '-';
                     return (
                       <tr key={user._id} className="border-b" style={{ width: '100%' }}>

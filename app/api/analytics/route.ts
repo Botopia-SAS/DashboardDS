@@ -1,5 +1,5 @@
 import { connectToDB } from "@/lib/mongoDB";
-import Session from "@/lib/modals/Session";
+import Session, { ISession } from "@/lib/modals/Session";
 import { NextResponse } from "next/server";
 
 // Función para parsear userAgent
@@ -22,6 +22,22 @@ function parseUserAgent(ua = "") {
   return { device, os, browser };
 }
 
+interface PageVisit {
+  url: string;
+  referrer?: string;
+  timestamp: Date;
+  duration?: number;
+  heatmap?: Array<{
+    eventType: string;
+    x: number;
+    y: number;
+    timestamp: Date;
+    elementId?: string;
+    elementClass?: string;
+    elementTag?: string;
+  }>;
+}
+
 export async function GET(request: Request) {
   await connectToDB();
 
@@ -31,7 +47,7 @@ export async function GET(request: Request) {
   const endDate = searchParams.get('endDate');
 
   // Calcular el rango de fechas basado en el período
-  let dateRange = { start: new Date(), end: new Date() };
+  const dateRange: { start: Date; end: Date } = { start: new Date(), end: new Date() };
   if (period === 'day') {
     dateRange.start.setHours(0, 0, 0, 0);
   } else if (period === 'week') {
@@ -61,7 +77,7 @@ export async function GET(request: Request) {
   const hourlyStats = new Array(24).fill(0);
   const dailyStats = new Array(7).fill(0);
 
-  sessions.forEach(session => {
+  sessions.forEach((session: ISession) => {
     // Estadísticas por hora y día
     const startHour = new Date(session.startTimestamp).getHours();
     const startDay = new Date(session.startTimestamp).getDay();
@@ -84,13 +100,7 @@ export async function GET(request: Request) {
     }
 
     // Estadísticas de páginas
-    const pages = (session.pages as Array<{
-      url: string;
-      referrer?: string;
-      timestamp: Date;
-      duration?: number;
-      heatmap?: any[];
-    }>) || [];
+    const pages = (session.pages as PageVisit[]) || [];
 
     pages.forEach((page, idx) => {
       const url = page.url.replace(/^https?:\/\/[^/]+/, "");

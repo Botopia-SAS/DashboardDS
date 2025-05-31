@@ -28,26 +28,60 @@ import { CalendarIcon, Users, Clock, Globe, Monitor, ArrowLeft } from "lucide-re
 
 const COLORS = ['#0088FE', '#00C49F', '#FFBB28', '#FF8042', '#8884d8'];
 
+// Define tipos para los eventos de heatmap
+interface HeatmapEvent {
+  x: number;
+  y: number;
+  value: number;
+  pathname: string;
+  event_type: string;
+  timestamp?: string;
+}
+
+interface HeatmapResponse {
+  success: boolean;
+  heatmap: HeatmapEvent[];
+}
+
+// Define tipos para los datos de analytics
+interface AnalyticsDevice { device: string; count: number; }
+interface AnalyticsBrowser { browser: string; count: number; }
+interface AnalyticsOS { os: string; count: number; }
+interface AnalyticsPage { url: string; uniqueUsers: number; visits: number; totalTime: number; avgTime?: number; lastVisit?: string; }
+interface AnalyticsCountry { country: string; count: number; }
+interface AnalyticsCity { city: string; count: number; }
+interface AnalyticsData {
+  totalSessions: number;
+  pages: AnalyticsPage[];
+  devices: AnalyticsDevice[];
+  browsers: AnalyticsBrowser[];
+  os: AnalyticsOS[];
+  countries: AnalyticsCountry[];
+  cities: AnalyticsCity[];
+  hourlyDistribution: number[];
+  dailyDistribution: number[];
+}
+
 export default function AnalyticsPage() {
   const [period, setPeriod] = useState("day");
   const [dateRange, setDateRange] = useState({
     start: new Date(),
     end: new Date(),
   });
-  const [data, setData] = useState<any>(null);
+  const [data, setData] = useState<AnalyticsData | null>(null);
   const [loading, setLoading] = useState(true);
   const pathname = usePathname();
-  const [modalPage, setModalPage] = useState<any | null>(null);
-  const [clickEvents, setClickEvents] = useState<any[]>([]);
+  const [modalPage, setModalPage] = useState<string | null>(null);
+  const [clickEvents, setClickEvents] = useState<HeatmapEvent[]>([]);
   const [clicksByPage, setClicksByPage] = useState<Record<string, number>>({});
 
   useEffect(() => {
     fetchData();
     // Obtener clicks por página una sola vez
-    fetch(`/api/heatmap`).then(res => res.json()).then(result => {
+    fetch(`/api/heatmap`).then(res => res.json()).then((result: HeatmapResponse) => {
       if (result.success && result.heatmap) {
         const clicks: Record<string, number> = {};
-        result.heatmap.forEach((e: any) => {
+        result.heatmap.forEach((e) => {
           if (e.event_type === 'click') {
             clicks[e.pathname] = (clicks[e.pathname] || 0) + 1;
           }
@@ -71,8 +105,8 @@ export default function AnalyticsPage() {
       if (result.success) {
         setData(result.data);
       }
-    } catch (error) {
-      console.error("Error fetching analytics:", error);
+    } catch {
+      // Error silenciado
     } finally {
       setLoading(false);
     }
@@ -126,15 +160,15 @@ export default function AnalyticsPage() {
     // Buscar eventos de click para esa página
     try {
       const res = await fetch(`/api/heatmap`);
-      const result = await res.json();
+      const result: HeatmapResponse = await res.json();
       if (result.success && result.heatmap) {
-        const clicks = result.heatmap.filter((e: any) => e.pathname === pageUrl && e.event_type === 'click');
+        const clicks: HeatmapEvent[] = result.heatmap.filter((e: HeatmapEvent) => e.pathname === pageUrl && e.event_type === 'click');
         if (clicks.length > 0) {
           setClickEvents(clicks);
           setModalPage(pageUrl);
         }
       }
-    } catch (e) {
+    } catch {
       // No mostrar modal si hay error
     }
   };
@@ -168,7 +202,7 @@ export default function AnalyticsPage() {
           <SelectTrigger className="w-[180px]">
             <SelectValue placeholder="Select period" />
           </SelectTrigger>
-          <SelectContent>
+          <SelectContent className="bg-white">
             <SelectItem value="day">Today</SelectItem>
             <SelectItem value="week">Last week</SelectItem>
             <SelectItem value="month">Last month</SelectItem>
@@ -229,7 +263,7 @@ export default function AnalyticsPage() {
               <Monitor className="h-4 w-4 text-muted-foreground" />
             </div>
             <div className="text-2xl font-bold">
-              {data?.devices?.reduce((acc: number, curr: any) => acc + curr.count, 0) || 0}
+              {data?.devices?.reduce((acc: number, curr: AnalyticsDevice) => acc + curr.count, 0) || 0}
             </div>
           </CardContent>
         </Card>
@@ -250,7 +284,7 @@ export default function AnalyticsPage() {
           <CardContent>
             <h3 className="text-md font-semibold mb-2">Devices</h3>
             <ul className="text-sm space-y-1">
-              {data?.devices?.map((d: any, i: number) => (
+              {data?.devices?.map((d: AnalyticsDevice, i: number) => (
                 <li key={i} className="flex justify-between"><span>{d.device}</span><span className="font-bold">{d.count}</span></li>
               ))}
             </ul>
@@ -260,7 +294,7 @@ export default function AnalyticsPage() {
           <CardContent>
             <h3 className="text-md font-semibold mb-2">Browsers</h3>
             <ul className="text-sm space-y-1">
-              {data?.browsers?.map((b: any, i: number) => (
+              {data?.browsers?.map((b: AnalyticsBrowser, i: number) => (
                 <li key={i} className="flex justify-between"><span>{b.browser}</span><span className="font-bold">{b.count}</span></li>
               ))}
             </ul>
@@ -270,7 +304,7 @@ export default function AnalyticsPage() {
           <CardContent>
             <h3 className="text-md font-semibold mb-2">Operating Systems</h3>
             <ul className="text-sm space-y-1">
-              {data?.os?.map((o: any, i: number) => (
+              {data?.os?.map((o: AnalyticsOS, i: number) => (
                 <li key={i} className="flex justify-between">
                   <span>{
                     o.os === 'Mac' ? 'Apple (Mac)' :
@@ -323,7 +357,7 @@ export default function AnalyticsPage() {
                     outerRadius={100}
                     label
                   >
-                    {data?.devices?.map((entry: any, index: number) => (
+                    {data?.devices?.map((entry: AnalyticsDevice, index: number) => (
                       <Cell key={`cell-${index}`} fill={COLORS[index % COLORS.length]} />
                     ))}
                   </Pie>
@@ -340,21 +374,17 @@ export default function AnalyticsPage() {
         <CardContent>
           <h2 className="text-lg font-semibold mb-2">Top Pages</h2>
           <div className="space-y-4">
-            {data?.pages?.slice(0, 5).map((page: any, index: number) => (
+            {data?.pages?.slice(0, 5).map((page: AnalyticsPage, index: number) => (
               <div
                 key={index}
-                className="flex items-center justify-between p-4 bg-gray-50 rounded-lg cursor-pointer hover:bg-blue-50 transition"
-                onClick={() => handleShowClicks(page.url)}
+                className="flex items-center justify-between p-4 bg-gray-50 rounded-lg cursor-default hover:bg-blue-50 transition"
               >
                 <div className="space-y-1">
                   <p className="font-medium flex items-center gap-2">
                     {page.url}
                     <span className="text-xs bg-blue-100 text-blue-800 rounded-full px-2 py-0.5 ml-2">
-                      {clicksByPage[page.url] || 0} clicks
+                      {clicksByPage[page.url] ?? 0} clicks
                     </span>
-                  </p>
-                  <p className="text-sm text-gray-500">
-                    {page.uniqueUsers} unique users
                   </p>
                 </div>
                 <div className="text-right">
@@ -369,43 +399,13 @@ export default function AnalyticsPage() {
         </CardContent>
       </Card>
 
-      {/* Modal de eventos de click */}
-      {modalPage && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black bg-opacity-40">
-          <div className="bg-white rounded-2xl shadow-2xl p-8 max-w-lg w-full relative border-2 border-blue-400">
-            <button
-              className="absolute top-3 right-3 text-gray-400 hover:text-red-500 transition-colors text-xl"
-              onClick={() => { setModalPage(null); setClickEvents([]); }}
-              aria-label="Close"
-            >
-              ×
-            </button>
-            <h3 className="text-xl font-bold mb-2 text-blue-700">Click Events for <span className="font-mono">{modalPage}</span></h3>
-            <div className="mb-2 text-gray-600">Total clicks: <span className="font-bold">{clickEvents.length}</span></div>
-            <div className="max-h-60 overflow-y-auto rounded bg-gray-50 p-2 border">
-              {clickEvents.length > 0 ? (
-                <ul className="space-y-1">
-                  {clickEvents.map((ev, idx) => (
-                    <li key={idx} className="text-xs font-mono text-blue-900">
-                      {new Date(ev.timestamp).toLocaleString()}
-                    </li>
-                  ))}
-                </ul>
-              ) : (
-                <p className="text-gray-400 text-center">No click events found.</p>
-              )}
-            </div>
-          </div>
-        </div>
-      )}
-
       {/* Locations */}
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
         <Card>
           <CardContent>
             <h2 className="text-lg font-semibold mb-2">Countries</h2>
             <div className="space-y-4">
-              {data?.countries?.slice(0, 5).map((country: any, index: number) => (
+              {data?.countries?.slice(0, 5).map((country: AnalyticsCountry, index: number) => (
                 <div key={index} className="flex items-center justify-between">
                   <div className="flex items-center gap-2">
                     <span className="text-xl">{getCountryFlag(country.country)}</span>
@@ -422,7 +422,7 @@ export default function AnalyticsPage() {
           <CardContent>
             <h2 className="text-lg font-semibold mb-2">Cities</h2>
             <div className="space-y-4">
-              {data?.cities?.slice(0, 5).map((city: any, index: number) => (
+              {data?.cities?.slice(0, 5).map((city: AnalyticsCity, index: number) => (
                 <div key={index} className="flex items-center justify-between">
                   <span>{city.city}</span>
                   <span className="font-medium">{city.count}</span>

@@ -23,7 +23,6 @@ function ConsolePage() {
   const pathname = usePathname();
 
   const Heatmap = dynamic(() => import("@/components/Heatmap"), { ssr: false });
-  // ✅ Corrección
   const [heatmapData, setHeatmapData] = useState<
     {
       x: number;
@@ -47,7 +46,6 @@ function ConsolePage() {
   const [selectedPage, setSelectedPage] = useState("");
 
   const containerRef = useRef<HTMLDivElement | null>(null);
-  const [containerSize, setContainerSize] = useState({ width: 1400, height: 788 }); // 16:9 por defecto, ahora 1400px ancho
   const [imageNatural, setImageNatural] = useState({ width: 1920, height: 1080 });
 
   const pageImages: Record<string, string> = {
@@ -105,10 +103,7 @@ function ConsolePage() {
     const updateSize = () => {
       const maxWidth = Math.min(containerRef.current!.offsetWidth, 1400);
       const aspect = imageNatural.height / imageNatural.width;
-      setContainerSize({
-        width: maxWidth,
-        height: Math.round(maxWidth * aspect),
-      });
+      // No need to update containerSize since we're not using it anymore
     };
     updateSize();
     const resizeObserver = new window.ResizeObserver(updateSize);
