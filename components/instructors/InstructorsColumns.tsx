@@ -16,7 +16,7 @@ export type InstructorType = {
   experience?: string; // Experiencia (opcional)
 };
 
-// 2. Definir las columnas de la tabla
+// 2. Definir las columnas de la table
 export const columns: ColumnDef<InstructorType>[] = [
   {
     accessorKey: "name",

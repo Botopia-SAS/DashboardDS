@@ -58,6 +58,7 @@ function ConsolePage() {
     "/Classes": "/images/Classes.png",
     "/Location": "/images/location.png",
     "/FAQ": "/images/faq.png",
+    "/Book-Now": "/images/book-now.png",
     // You can add more routes and images here if you add more pages
   };
 
