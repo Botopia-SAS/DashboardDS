@@ -14,7 +14,7 @@ export type OnlineCourseType = {
   image: string; // ✅ Agregar la imagen
 };
 
-// 2. Definir las columnas de la tabla
+// 2. Definir las columnas de la table
 export const columns: ColumnDef<OnlineCourseType>[] = [
   {
     accessorKey: "title",

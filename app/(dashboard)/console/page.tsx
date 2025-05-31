@@ -23,7 +23,6 @@ function ConsolePage() {
   const pathname = usePathname();
 
   const Heatmap = dynamic(() => import("@/components/Heatmap"), { ssr: false });
-  // ✅ Corrección
   const [heatmapData, setHeatmapData] = useState<
     {
       x: number;
@@ -47,7 +46,6 @@ function ConsolePage() {
   const [selectedPage, setSelectedPage] = useState("");
 
   const containerRef = useRef<HTMLDivElement | null>(null);
-  const [containerSize, setContainerSize] = useState({ width: 1400, height: 788 }); // 16:9 por defecto, ahora 1400px ancho
   const [imageNatural, setImageNatural] = useState({ width: 1920, height: 1080 });
 
   const pageImages: Record<string, string> = {
@@ -58,6 +56,7 @@ function ConsolePage() {
     "/Classes": "/images/Classes.png",
     "/Location": "/images/location.png",
     "/FAQ": "/images/faq.png",
+    "/Book-Now": "/images/book-now.png",
     // You can add more routes and images here if you add more pages
   };
 
@@ -104,10 +103,7 @@ function ConsolePage() {
     const updateSize = () => {
       const maxWidth = Math.min(containerRef.current!.offsetWidth, 1400);
       const aspect = imageNatural.height / imageNatural.width;
-      setContainerSize({
-        width: maxWidth,
-        height: Math.round(maxWidth * aspect),
-      });
+      // No need to update containerSize since we're not using it anymore
     };
     updateSize();
     const resizeObserver = new window.ResizeObserver(updateSize);
@@ -156,7 +152,7 @@ function ConsolePage() {
               Users
             </Link>
             <Link
-              href="/console"
+              href="/console/analytics"
               className="px-4 py-2 rounded-lg hover:bg-gray-700"
             >
               Analytics

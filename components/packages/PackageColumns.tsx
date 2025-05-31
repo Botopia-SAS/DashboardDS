@@ -14,7 +14,7 @@ export type PackageType = {
   media: string[]; // URLs de imágenes/videos
 };
 
-// ✅ Definir las columnas para la tabla
+// ✅ Definir las columnas para la table
 export const columns: ColumnDef<PackageType>[] = [
   {
     accessorKey: "title",

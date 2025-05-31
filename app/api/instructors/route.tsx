@@ -14,6 +14,11 @@ interface Slot {
   status?: string;
 }
 
+interface Auth0Error {
+  message: string;
+  [key: string]: unknown;
+}
+
 function isValidSlot(slot: Slot): boolean {
   return Boolean(slot?.date && slot?.start && slot?.end);
 }
@@ -167,7 +172,7 @@ export const GET = async () => {
     await connectToDB();
     const instructors = await Instructor.find().sort({ createdAt: "desc" });
     return NextResponse.json(instructors, { status: 200 });
-  } catch (err) {
+  } catch (err: unknown) {
     console.error("[INSTRUCTORS_GET]", err);
     return new NextResponse("Internal Server Error", { status: 500 });
   }

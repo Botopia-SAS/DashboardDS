@@ -15,7 +15,7 @@ export type DrivingClassType = {
   image: string; // URL de la imagen
 };
 
-// 2. Definir las columnas de la tabla
+// 2. Definir las columnas de la table
 export const columns: ColumnDef<DrivingClassType>[] = [
   {
     accessorKey: "title",

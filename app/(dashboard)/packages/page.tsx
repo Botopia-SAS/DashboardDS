@@ -3,7 +3,7 @@
 import { useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
 import { Plus } from "lucide-react";
-import { columns } from "@/components/packages/PackageColumns"; // 📌 Definir columnas de la tabla
+import { columns } from "@/components/packages/PackageColumns"; // 📌 Definir columnas de la table
 import { DataTable } from "@/components/custom ui/DataTable";
 import { Button } from "@/components/ui/button";
 import { Separator } from "@/components/ui/separator";
