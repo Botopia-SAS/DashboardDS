@@ -79,11 +79,20 @@ export default function InactiveUsersCard({ language = "es" }: { language?: "es"
       let j = i;
       while (j < pages.length && pages[j].url === url) {
         let duration = (pages[j] as any).duration;
-        // Para la última página, si no hay duration, calcula usando endTimestamp
-        if (j === pages.length - 1 && (duration === undefined || duration === 0) && endTimestamp && (pages[j] as any).timestamp) {
-          const pageTimestamp = new Date((pages[j] as any).timestamp).getTime();
-          if (endTimestamp > pageTimestamp) {
-            duration = endTimestamp - pageTimestamp;
+        // Si duration es 0 o no existe y NO es la última página, calcula usando la siguiente
+        if ((duration === undefined || duration === 0)) {
+          if (j < pages.length - 1) {
+            const currTs = new Date((pages[j] as any).timestamp).getTime();
+            const nextTs = new Date((pages[j + 1] as any).timestamp).getTime();
+            if (nextTs > currTs) {
+              duration = nextTs - currTs;
+            }
+          } else if (j === pages.length - 1 && endTimestamp && (pages[j] as any).timestamp) {
+            // Última página: calcula usando endTimestamp
+            const pageTimestamp = new Date((pages[j] as any).timestamp).getTime();
+            if (endTimestamp > pageTimestamp) {
+              duration = endTimestamp - pageTimestamp;
+            }
           }
         }
         totalDuration += typeof duration === 'number' ? duration : 0;

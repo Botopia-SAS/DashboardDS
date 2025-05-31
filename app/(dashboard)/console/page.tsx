@@ -157,7 +157,7 @@ function ConsolePage() {
               Users
             </Link>
             <Link
-              href="/console"
+              href="/console/analytics"
               className="px-4 py-2 rounded-lg hover:bg-gray-700"
             >
               Analytics
