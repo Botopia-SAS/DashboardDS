@@ -339,13 +339,13 @@ export default function InactiveUsersCard({ language = "es" }: { language?: "es"
                 <thead className="bg-gray-100 sticky top-0">
                   <tr>
                     <th className="p-2 whitespace-nowrap">IP</th>
-                    <th className="p-2 whitespace-nowrap">Ubicación</th>
-                    <th className="p-2 whitespace-nowrap">Dispositivo</th>
+                    <th className="p-2 whitespace-nowrap">{language === 'en' ? 'Location' : 'Ubicación'}</th>
+                    <th className="p-2 whitespace-nowrap">{language === 'en' ? 'Device' : 'Dispositivo'}</th>
                     <th className="p-2 whitespace-nowrap">VPN</th>
                     <th className="p-2 whitespace-nowrap">Lat/Lon</th>
-                    <th className="p-2 whitespace-nowrap">Última actividad</th>
-                    <th className="p-2 whitespace-nowrap">Página</th>
-                    <th className="p-2 whitespace-nowrap">Tiempo de sesión</th>
+                    <th className="p-2 whitespace-nowrap">{language === 'en' ? 'Last activity' : 'Última actividad'}</th>
+                    <th className="p-2 whitespace-nowrap">{language === 'en' ? 'Page' : 'Página'}</th>
+                    <th className="p-2 whitespace-nowrap">{language === 'en' ? 'Session time' : 'Tiempo de sesión'}</th>
                   </tr>
                 </thead>
                 <tbody>
