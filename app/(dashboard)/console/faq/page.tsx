@@ -49,6 +49,10 @@ export default function FaqAdminPage() {
   const [editItem, setEditItem] = useState<FaqItem>({ question: "", answer: "" });
   const [addSection, setAddSection] = useState<string | null>(null);
   const [addItem, setAddItem] = useState<FaqItem>({ question: "", answer: "" });
+  const [addLinkText, setAddLinkText] = useState("");
+  const [addLinkUrl, setAddLinkUrl] = useState("");
+  const [editLinkText, setEditLinkText] = useState("");
+  const [editLinkUrl, setEditLinkUrl] = useState("");
   const [loading, setLoading] = useState(false);
 
   useEffect(() => {
@@ -61,12 +65,22 @@ export default function FaqAdminPage() {
   const handleEdit = (section: string, idx: number) => {
     setEditIndex({ section, idx });
     setEditItem(faq![section as keyof FaqData][idx]);
+    const match = faq![section as keyof FaqData][idx].answer.match(/<a [^>]*href=["']([^"']+)["'][^>]*>([^<]+)<\/a>/);
+    setEditLinkUrl(match ? match[1] : "");
+    setEditLinkText(match ? match[2] : "");
   };
 
   const handleEditSave = async () => {
     if (!faq || !editIndex) return;
+    let answer = editItem.answer;
+    if (!editLinkText && !editLinkUrl) {
+      answer = answer.replace(/<a [^>]*href=["']([^"']+)["'][^>]*>([^<]+)<\/a>/, "");
+    } else if (editLinkText && editLinkUrl) {
+      answer = answer.replace(/<a [^>]*href=["']([^"']+)["'][^>]*>([^<]+)<\/a>/, "");
+      answer = answer.trim() + ` <a href=\"${editLinkUrl}\" class=\"text-blue-600 font-semibold\" rel=\"noopener noreferrer\">${editLinkText}</a>`;
+    }
     const updated = { ...faq };
-    updated[editIndex.section as keyof FaqData][editIndex.idx] = editItem;
+    updated[editIndex.section as keyof FaqData][editIndex.idx] = { ...editItem, answer };
     setLoading(true);
     await updateFaq(updated);
     const fresh = await fetchFaq();
@@ -90,14 +104,23 @@ export default function FaqAdminPage() {
 
   const handleAdd = async () => {
     if (!faq || !addSection) return;
+    let answer = addItem.answer;
+    if (addLinkText && addLinkUrl) {
+      answer = answer.trim() + ` <a href=\"${addLinkUrl}\" class=\"text-blue-600 font-semibold\" rel=\"noopener noreferrer\">${addLinkText}</a>`;
+    }
     const updated = { ...faq };
-    updated[addSection as keyof FaqData] = [addItem, ...updated[addSection as keyof FaqData]];
+    updated[addSection as keyof FaqData] = [
+      { ...addItem, answer },
+      ...updated[addSection as keyof FaqData],
+    ];
     setLoading(true);
     await updateFaq(updated);
     const fresh = await fetchFaq();
     setFaq(fresh);
     setAddSection(null);
     setAddItem({ question: "", answer: "" });
+    setAddLinkText("");
+    setAddLinkUrl("");
     setLoading(false);
     showToast("Question added to database!");
   };
@@ -117,14 +140,16 @@ export default function FaqAdminPage() {
 
   return (
     <div className="p-8 w-full max-w-full mx-auto">
-      <div className="flex items-center mb-4">
-        <Link href="/console">
-          <Button variant="ghost" size="sm" className="flex items-center gap-1">
-            <ArrowLeft className="w-4 h-4" /> Back to Console
-          </Button>
-        </Link>
-        <h1 className="text-3xl font-bold flex-1 text-center">FAQ Admin</h1>
+      <div className="grid grid-cols-1 md:grid-cols-3 items-center mb-2">
+        <div className="flex justify-start">
+          <Link href="/console">
+            <Button variant="ghost" size="sm" className="flex items-center gap-1">
+              <ArrowLeft className="w-4 h-4" /> Back to Console
+            </Button>
+          </Link>
+        </div>
       </div>
+      <h1 className="text-3xl font-bold text-left md:text-center mb-4">FAQ Admin</h1>
       {faq ? (
         <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
           {sections.map((section) => (
@@ -162,11 +187,25 @@ export default function FaqAdminPage() {
                       value={addItem.answer}
                       onChange={(e) => setAddItem({ ...addItem, answer: e.target.value })}
                     />
+                    <div className="flex flex-col md:flex-row gap-2 mb-2">
+                      <input
+                        className="flex-1 p-2 border rounded"
+                        placeholder="Link text (optional)"
+                        value={addLinkText}
+                        onChange={e => setAddLinkText(e.target.value)}
+                      />
+                      <input
+                        className="flex-1 p-2 border rounded"
+                        placeholder="Link URL (optional)"
+                        value={addLinkUrl}
+                        onChange={e => setAddLinkUrl(e.target.value)}
+                      />
+                    </div>
                     <div className="flex gap-2 justify-end">
                       <Button size="sm" onClick={handleAdd} disabled={loading || !addItem.question || !addItem.answer}>
                         <Save className="w-4 h-4 mr-1" /> Save
                       </Button>
-                      <Button size="sm" variant="outline" onClick={() => setAddSection(null)}>
+                      <Button size="sm" variant="outline" onClick={() => { setAddSection(null); setAddLinkText(""); setAddLinkUrl(""); }}>
                         <X className="w-4 h-4 mr-1" /> Cancel
                       </Button>
                     </div>
@@ -180,7 +219,23 @@ export default function FaqAdminPage() {
                     faq[section.key as keyof FaqData].map((item, idx) => {
                       const link = extractFirstLink(item.answer);
                       return (
-                        <div key={idx} className="border rounded-lg p-5 bg-gray-50 shadow-sm relative flex flex-col gap-2">
+                        <div key={idx} className="border rounded-lg p-2 bg-gray-50 shadow-sm relative flex flex-col gap-0">
+                          {/* Fila de iconos arriba */}
+                          <div className="flex justify-end gap-2 mb-0">
+                            <Button size="icon" variant="ghost" onClick={() => handleEdit(section.key, idx)} title="Edit">
+                              <Pencil className="w-4 h-4" />
+                            </Button>
+                            <Button size="icon" variant="ghost" onClick={() => handleDelete(section.key, idx)} title="Delete">
+                              <Trash2 className="w-4 h-4 text-red-500" />
+                            </Button>
+                            {link && (
+                              <a href={link} rel="noopener noreferrer" title="Go to link">
+                                <Button size="icon" variant="outline">
+                                  <LinkIcon className="w-4 h-4 text-blue-600" />
+                                </Button>
+                              </a>
+                            )}
+                          </div>
                           {editIndex && editIndex.section === section.key && editIndex.idx === idx ? (
                             <>
                               <input
@@ -196,6 +251,20 @@ export default function FaqAdminPage() {
                                 onChange={(e) => setEditItem({ ...editItem, answer: e.target.value })}
                                 placeholder="Answer (HTML allowed)"
                               />
+                              <div className="flex flex-col md:flex-row gap-2 mb-2">
+                                <input
+                                  className="flex-1 p-2 border rounded"
+                                  placeholder="Link text (optional)"
+                                  value={editLinkText}
+                                  onChange={e => setEditLinkText(e.target.value)}
+                                />
+                                <input
+                                  className="flex-1 p-2 border rounded"
+                                  placeholder="Link URL (optional)"
+                                  value={editLinkUrl}
+                                  onChange={e => setEditLinkUrl(e.target.value)}
+                                />
+                              </div>
                               <div className="flex gap-2 justify-end">
                                 <Button size="sm" onClick={handleEditSave} disabled={loading || !editItem.question || !editItem.answer}>
                                   <Save className="w-4 h-4 mr-1" /> Save
@@ -212,21 +281,6 @@ export default function FaqAdminPage() {
                                 className="prose prose-sm text-gray-700"
                                 dangerouslySetInnerHTML={{ __html: item.answer }}
                               />
-                              <div className="absolute top-2 right-2 flex gap-2">
-                                <Button size="icon" variant="ghost" onClick={() => handleEdit(section.key, idx)} title="Edit">
-                                  <Pencil className="w-4 h-4" />
-                                </Button>
-                                <Button size="icon" variant="ghost" onClick={() => handleDelete(section.key, idx)} title="Delete">
-                                  <Trash2 className="w-4 h-4 text-red-500" />
-                                </Button>
-                                {link && (
-                                  <a href={link} target="_blank" rel="noopener noreferrer" title="Go to link">
-                                    <Button size="icon" variant="outline">
-                                      <LinkIcon className="w-4 h-4 text-blue-600" />
-                                    </Button>
-                                  </a>
-                                )}
-                              </div>
                             </>
                           )}
                         </div>
