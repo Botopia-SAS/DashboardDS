@@ -57,7 +57,7 @@ export default function FaqAdminPage() {
 
   useEffect(() => {
     fetchFaq().then(data => {
-      console.log('FAQ DATA:', data); // DEBUG: Ver qué llega realmente
+      //console.log('FAQ DATA:', data); // DEBUG: Ver qué llega realmente
       setFaq(data);
     });
   }, []);
