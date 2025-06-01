@@ -1,7 +1,7 @@
 import { NextRequest, NextResponse } from "next/server";
 import { getEmailTemplate } from "@/lib/email/templates";
 import nodemailer from "nodemailer";
-import ScheduledEmail from '@/models/ScheduledEmail';
+import ScheduledEmail from '@/lib/models/ScheduledEmail';
 
 const transporter = nodemailer.createTransport({
   host: process.env.SMTP_HOST,
@@ -21,23 +21,37 @@ interface Recipient {
 
 export async function POST(req: NextRequest) {
   const { recipients, subject, body, greeting, scheduledDate, templateId } = await req.json();
+
+  // Permitir recipients como string[] o Recipient[] para compatibilidad
+  let recipientsList: Recipient[] = [];
+  if (Array.isArray(recipients) && recipients.length > 0) {
+    if (typeof recipients[0] === 'string') {
+      recipientsList = recipients.map((email: string) => ({ email }));
+    } else {
+      recipientsList = recipients;
+    }
+  }
+
+  if (!recipientsList.length || !subject || !body || (scheduledDate && !Date.parse(scheduledDate))) {
+    return NextResponse.json({ message: 'Missing required fields' }, { status: 400 });
+  }
+
   if (scheduledDate) {
     await ScheduledEmail.create({
-      recipients,
+      recipients: recipientsList.map(r => r.email),
       subject,
       body,
-      greeting,
-      templateId,
       scheduledDate,
-      sent: false
+      sent: false,
     });
-    return NextResponse.json({ scheduled: true });
+    return NextResponse.json({ scheduled: true }, { status: 201 });
   }
+
   const sent: string[] = [];
   const failed: { email: string; error: string }[] = [];
 
   await Promise.all(
-    recipients.map(async (r: Recipient) => {
+    recipientsList.map(async (r: Recipient) => {
       const html = getEmailTemplate({ name: r.firstName || r.name || "User", body, greeting });
       try {
         await transporter.sendMail({
