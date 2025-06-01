@@ -5,7 +5,7 @@ import Link from "next/link";
 import { Button } from "@/components/ui/button";
 import { ArrowLeft, Mail, Layers, CalendarClock } from "lucide-react";
 import TemplatesPanel from '@/components/ui/TemplatesPanel';
-import ScheduleEmailPanel from '@/components/ui/ScheduleEmailPanel';
+
 
 export default function ContactPage() {
   return (

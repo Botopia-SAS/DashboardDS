@@ -1,6 +1,8 @@
 "use client";
 import { useEffect, useState, FormEvent, ChangeEvent, useRef } from "react";
 import React from "react";
+import Calendar from "./calendar";
+import { enUS } from "date-fns/locale";
 
 interface User {
   _id: string;
@@ -71,6 +73,10 @@ export default function ContactForm() {
   const [showScheduleModal, setShowScheduleModal] = useState(false);
   const [scheduledDate, setScheduledDate] = useState("");
   const [scheduleSuccess, setScheduleSuccess] = useState("");
+  const [showCalendar, setShowCalendar] = useState(false);
+  const [tempDate, setTempDate] = useState<Date | null>(null);
+  const [tempHour, setTempHour] = useState<string>("00");
+  const [tempMinute, setTempMinute] = useState<string>("00");
 
   useEffect(() => {
     fetch("/api/users?roles=user")
@@ -208,8 +214,10 @@ export default function ContactForm() {
     }
   };
 
-  const handleScheduleSend = async (e: FormEvent<HTMLFormElement>) => {
-    e.preventDefault();
+  const handleScheduleSend = async (
+    e?: FormEvent<HTMLFormElement> | React.MouseEvent<HTMLButtonElement>
+  ) => {
+    e?.preventDefault?.();
     setLoading(true);
     setSuccess("");
     setError("");
@@ -227,15 +235,15 @@ export default function ContactForm() {
       return;
     }
     try {
+      // Solo enviar los emails
+      const emails = recipients.map(r => r.email);
       const res = await fetch("/api/email/send", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
-          recipients,
+          recipients: emails,
           subject,
           body,
-          templateId: template._id,
-          greeting,
           scheduledDate,
         }),
       });
@@ -415,25 +423,73 @@ export default function ContactForm() {
         <div className="fixed inset-0 z-50 flex items-center justify-center bg-black bg-opacity-30">
           <div className="bg-white rounded-lg shadow-lg p-6 w-full max-w-md">
             <h3 className="text-lg font-bold mb-4">Schedule Email</h3>
-            <form onSubmit={handleScheduleSend} className="space-y-4">
+            <div className="space-y-4">
               <div>
                 <label className="block font-semibold mb-1">Date & Time</label>
+                <div className="flex flex-col gap-2">
                 <input
-                  type="datetime-local"
+                    type="text"
                   className="border rounded p-2 w-full"
-                  value={scheduledDate}
-                  onChange={e => setScheduledDate(e.target.value)}
-                  required
-                />
+                    value={scheduledDate ? new Date(scheduledDate).toLocaleString("en-US", { hour12: false }) : "Select date and time..."}
+                    readOnly
+                    onClick={() => setShowCalendar(true)}
+                  />
+                  {showCalendar && (
+                    <div className="z-50 bg-white rounded shadow p-4">
+                      <Calendar
+                        onSelect={date => setTempDate(date)}
+                        locale={enUS}
+                      />
+                      <div className="flex gap-2 mt-2">
+                        <select value={tempHour} onChange={e => setTempHour(e.target.value)} className="border rounded p-2">
+                          {[...Array(24).keys()].map(h => (
+                            <option key={h} value={h.toString().padStart(2, '0')}>{h.toString().padStart(2, '0')}</option>
+                          ))}
+                        </select>
+                        <span className="self-center">:</span>
+                        <select value={tempMinute} onChange={e => setTempMinute(e.target.value)} className="border rounded p-2">
+                          {[...Array(60).keys()].map(m => (
+                            <option key={m} value={m.toString().padStart(2, '0')}>{m.toString().padStart(2, '0')}</option>
+                          ))}
+                        </select>
+                      </div>
+                      <div className="flex justify-end mt-2">
+                        <button
+                          type="button"
+                          className="bg-blue-600 text-white px-4 py-2 rounded"
+                          onClick={() => {
+                            if (tempDate) {
+                              const year = tempDate.getFullYear();
+                              const month = (tempDate.getMonth() + 1).toString().padStart(2, '0');
+                              const day = tempDate.getDate().toString().padStart(2, '0');
+                              const isoString = `${year}-${month}-${day}T${tempHour}:${tempMinute}`;
+                              setScheduledDate(isoString);
+                            }
+                            setShowCalendar(false);
+                          }}
+                        >
+                          Confirm
+                        </button>
+                      </div>
+                    </div>
+                  )}
+                </div>
               </div>
               {scheduleSuccess && (
                 <div className="text-green-600 font-semibold text-center">{scheduleSuccess}</div>
               )}
               <div className="flex gap-2 justify-end">
                 <button type="button" className="px-4 py-2 rounded border" onClick={() => { setShowScheduleModal(false); setScheduleSuccess(""); }}>Cancel</button>
-                <button type="submit" className="px-4 py-2 rounded bg-purple-600 text-white shadow" disabled={loading || !!scheduleSuccess}>Confirm Schedule</button>
+                <button
+                  type="button"
+                  className="px-4 py-2 rounded bg-purple-600 text-white shadow"
+                  disabled={loading || !!scheduleSuccess}
+                  onClick={handleScheduleSend}
+                >
+                  Confirm Schedule
+                </button>
               </div>
-            </form>
+            </div>
           </div>
         </div>
       )}

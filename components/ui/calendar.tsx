@@ -6,9 +6,10 @@ import "react-day-picker/dist/style.css";
 
 interface CalendarProps {
   onSelect: (date: Date) => void;
+  locale?: any;
 }
 
-const Calendar = ({ onSelect }: CalendarProps) => {
+const Calendar = ({ onSelect, locale }: CalendarProps) => {
   const [selectedDate, setSelectedDate] = useState<Date | undefined>();
 
   const handleDateSelect = (date?: Date) => {
@@ -24,6 +25,7 @@ const Calendar = ({ onSelect }: CalendarProps) => {
         mode="single"
         selected={selectedDate}
         onSelect={handleDateSelect}
+        locale={locale}
       />
     </div>
   );
