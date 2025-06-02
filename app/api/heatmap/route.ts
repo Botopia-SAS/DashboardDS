@@ -8,12 +8,14 @@ interface HeatmapEvent {
   value: number;
   pathname: string;
   event_type: string;
+  timestamp?: string | null;
 }
 
 interface HeatmapRawEvent {
   x: number;
   y: number;
   eventType: string;
+  timestamp?: string;
 }
 
 interface HeatmapPage {
@@ -25,15 +27,23 @@ interface HeatmapPage {
 interface HeatmapSession {
   userId?: string;
   pages?: HeatmapPage[];
+  startTimestamp?: string;
+  endTimestamp?: string;
+  ipAddress?: string;
 }
 
-export async function GET() {
+export async function GET(req: Request) {
   await connectToDB();
 
-  // Obtén todas las sesiones
+  // Obtén los parámetros de fecha del query string
+  const { searchParams } = new URL(req.url);
+  const start = searchParams.get('start');
+  const end = searchParams.get('end');
+  const startDate = start ? new Date(start) : null;
+  const endDate = end ? new Date(end) : null;
+
   const sessions: HeatmapSession[] = await Session.find({});
 
-  // Extrae todos los eventos de heatmap de todas las páginas de todas las sesiones
   const heatmap: HeatmapEvent[] = [];
   const totalEvents = { value: 0 };
   const sessionDurations: number[] = [];
@@ -41,26 +51,38 @@ export async function GET() {
   const eventsByTypeMap: Record<string, number> = {};
 
   sessions.forEach((session) => {
-    if (session.userId) usersSet.add(session.userId);
-    if (session.pages && session.pages.length > 0) {
-      const sessionStart = session.pages[0].timestamp;
-      const sessionEnd = session.pages[session.pages.length - 1].timestamp;
-      if (sessionStart && sessionEnd) {
-        sessionDurations.push((new Date(sessionEnd).getTime() - new Date(sessionStart).getTime()) / 1000 / 60); // minutos
+    if (session.ipAddress) usersSet.add(session.ipAddress);
+    if (session.startTimestamp && session.endTimestamp) {
+      const start = new Date(session.startTimestamp).getTime();
+      const end = new Date(session.endTimestamp).getTime();
+      if (end > start) {
+        sessionDurations.push((end - start) / 1000 / 60); // minutos
       }
+    }
+    if (session.pages && session.pages.length > 0) {
       session.pages.forEach((page) => {
         if (page.heatmap && page.heatmap.length > 0) {
           page.heatmap.forEach((event) => {
-            heatmap.push({
-              x: event.x,
-              y: event.y,
-              value: 1,
-              pathname: page.url.replace(/^https?:\/\/[^/]+/, ""),
-              event_type: event.eventType,
-            });
-            totalEvents.value++;
-            if (!eventsByTypeMap[event.eventType]) eventsByTypeMap[event.eventType] = 0;
-            eventsByTypeMap[event.eventType]++;
+            const eventTimestamp = event.timestamp || page.timestamp || null;
+            if (eventTimestamp) {
+              const ts = new Date(eventTimestamp).getTime();
+              if (
+                (!startDate || ts >= startDate.getTime()) &&
+                (!endDate || ts <= endDate.getTime())
+              ) {
+                heatmap.push({
+                  x: event.x,
+                  y: event.y,
+                  value: 1,
+                  pathname: page.url.replace(/^https?:\/\/[^/]+/, ""),
+                  event_type: event.eventType,
+                  timestamp: eventTimestamp,
+                });
+                totalEvents.value++;
+                if (!eventsByTypeMap[event.eventType]) eventsByTypeMap[event.eventType] = 0;
+                eventsByTypeMap[event.eventType]++;
+              }
+            }
           });
         }
       });

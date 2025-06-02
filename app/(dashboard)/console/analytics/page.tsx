@@ -64,9 +64,13 @@ interface AnalyticsData {
 
 export default function AnalyticsPage() {
   const [period, setPeriod] = useState("day");
+  const now = new Date();
+  const todayStart = new Date(now);
+  todayStart.setHours(0, 0, 0, 0);
+
   const [dateRange, setDateRange] = useState({
-    start: new Date(),
-    end: new Date(),
+    start: todayStart,
+    end: now,
   });
   const [data, setData] = useState<AnalyticsData | null>(null);
   const [loading, setLoading] = useState(true);
@@ -78,23 +82,33 @@ export default function AnalyticsPage() {
   useEffect(() => {
     fetchData();
     // Obtener y filtrar clicks por página y periodo
-    fetch(`/api/heatmap`).then(res => res.json()).then((result: HeatmapResponse) => {
-      if (result.success && result.heatmap) {
-        const clicks: Record<string, number> = {};
-        result.heatmap.forEach((e) => {
-          if (e.event_type === 'click' && e.timestamp) {
-            const ts = new Date(e.timestamp).getTime();
-            if (!isNaN(ts) && ts >= dateRange.start.getTime() && ts <= dateRange.end.getTime()) {
-              const pageKey = e.pathname;
-              if (pageKey) {
-                clicks[pageKey] = (clicks[pageKey] || 0) + 1;
+    const start = dateRange.start.toISOString();
+    const end = dateRange.end.toISOString();
+    fetch(`/api/heatmap?start=${start}&end=${end}`)
+      .then(res => res.json())
+      .then((result: HeatmapResponse) => {
+        if (result.success && result.heatmap) {
+          const clicks: Record<string, number> = {};
+          // Convertir el rango de fechas a UTC y cubrir todo el día
+          const startUTC = new Date(dateRange.start);
+          startUTC.setUTCHours(0, 0, 0, 0);
+          const endUTC = new Date(dateRange.end);
+          endUTC.setUTCHours(23, 59, 59, 999);
+
+          result.heatmap.forEach((e) => {
+            if (e.event_type === 'click' && e.timestamp) {
+              const ts = new Date(e.timestamp).getTime();
+              if (!isNaN(ts) && ts >= startUTC.getTime() && ts <= endUTC.getTime()) {
+                const pageKey = e.pathname;
+                if (pageKey) {
+                  clicks[pageKey] = (clicks[pageKey] || 0) + 1;
+                }
               }
             }
-          }
-        });
-        setClicksByPage(clicks);
-      }
-    });
+          });
+          setClicksByPage(clicks);
+        }
+      });
     // eslint-disable-next-line
   }, [period, dateRange]);
 
