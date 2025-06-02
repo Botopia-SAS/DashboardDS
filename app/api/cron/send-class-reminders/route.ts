@@ -46,7 +46,7 @@ export async function POST(req: NextRequest) {
   }
   const now = new Date();
   let sentCount = 0;
-  let reminders: string[] = [];
+  const reminders: string[] = [];
 
   const instructors = await Instructor.find({});
   for (const instructor of instructors) {
