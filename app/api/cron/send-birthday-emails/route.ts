@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from "next/server";
 import dbConnect from "@/lib/dbConnect";
 import User from "@/lib/models/users";  
 import sendEmail from "@/lib/sendEmail";
+import Settings from "@/lib/models/Settings";
 
 function getBirthdayTemplate(name: string, age: number) {
   return `
@@ -38,6 +39,12 @@ export async function POST(req: NextRequest) {
   }
 
   await dbConnect();
+  // Consultar settings
+  const settings = await Settings.findOne();
+  if (settings && settings.sendBirthdayEmails === false) {
+    return NextResponse.json({ sent: 0, disabled: true });
+  }
+
   const today = new Date();
   const month = today.getMonth() + 1;
   const day = today.getDate();

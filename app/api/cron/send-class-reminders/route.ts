@@ -3,6 +3,7 @@ import dbConnect from "@/lib/dbConnect";
 import Instructor from "@/lib/models/Instructor";
 import User from "@/lib/models/users";
 import sendEmail from "@/lib/sendEmail";
+import Settings from "@/lib/models/Settings";
 
 function getReminderTemplate(studentName: string, instructorName: string, date: string, start: string) {
   return `
@@ -38,6 +39,11 @@ export async function POST(req: NextRequest) {
   }
 
   await dbConnect();
+  // Consultar settings
+  const settings = await Settings.findOne();
+  if (settings && settings.sendClassReminders === false) {
+    return NextResponse.json({ sent: 0, disabled: true });
+  }
   const now = new Date();
   let sentCount = 0;
   let reminders: string[] = [];
