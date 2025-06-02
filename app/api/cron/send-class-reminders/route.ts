@@ -30,15 +30,20 @@ function getReminderTemplate(studentName: string, instructorName: string, date: 
   `;
 }
 
+// Log de consulta recibida
+function logWithColor(message: string, color: string = "\x1b[36m") {
+  // cyan por defecto
+  console.log(`${color}%s\x1b[0m`, message);
+}
+
 export async function POST(req: NextRequest) {
+  await dbConnect();
   // Protección con secret
   const { searchParams } = new URL(req.url);
   const secret = searchParams.get("secret");
   if (secret !== process.env.CRON_SECRET) {
     return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
   }
-
-  await dbConnect();
   // Consultar settings
   const settings = await Settings.findOne();
   if (settings && settings.sendClassReminders === false) {
@@ -49,18 +54,27 @@ export async function POST(req: NextRequest) {
   const reminders: string[] = [];
 
   const instructors = await Instructor.find({});
+
+  // Log de consulta recibida
+  logWithColor(`[CLASS REMINDER] Consulta recibida (${req.method}) - ${new Date().toISOString()}`, "\x1b[35m");
+
   for (const instructor of instructors) {
     for (const slot of instructor.schedule) {
       if (slot.booked && slot.studentId) {
-        // Convertir la hora local de la clase a UTC
-        // slot.date: YYYY-MM-DD, slot.start: HH:mm (asumimos hora local)
+        // Obtener la hora actual en UTC y en Miami
+        const now = new Date();
+        const utc = now.getTime() + now.getTimezoneOffset() * 60000;
+        const miamiOffset = -4; // UTC-4 (ajusta a -5 si es invierno)
+        const nowMiami = new Date(utc + miamiOffset * 60 * 60 * 1000);
+
+        // Crear la fecha de la clase en Miami
         const [year, month, day] = slot.date.split('-').map(Number);
         const [hour, minute] = slot.start.split(':').map(Number);
-        // Crear fecha en zona local y obtener su equivalente en UTC
-        const localDate = new Date(year, month - 1, day, hour, minute);
-        const classDateTimeUTC = new Date(localDate.getTime() - localDate.getTimezoneOffset() * 60000);
-        const nowUTC = new Date(new Date().getTime() - new Date().getTimezoneOffset() * 60000);
-        const diffMinutes = (classDateTimeUTC.getTime() - nowUTC.getTime()) / 60000;
+        const classDateMiami = new Date(year, month - 1, day, hour, minute);
+
+        // Diferencia en minutos en la zona de Miami
+        const diffMinutes = (classDateMiami.getTime() - nowMiami.getTime()) / 60000;
+        logWithColor(`[CLASS REMINDER] Clase: ${slot.date} ${slot.start} (Miami) | classDateMiami: ${classDateMiami.toISOString()} | nowMiami: ${nowMiami.toISOString()} | diff: ${diffMinutes.toFixed(2)} min`, "\x1b[33m");
         if (diffMinutes > 0 && diffMinutes <= 30) {
           // Buscar estudiante
           const student = await User.findById(slot.studentId);
