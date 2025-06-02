@@ -2,7 +2,7 @@
 import React, { useEffect, useState, FormEvent, ChangeEvent, useRef } from "react";
 import Calendar from "./calendar";
 import { enUS } from "date-fns/locale";
-import { toZonedTime, format, zonedTimeToUtc } from "date-fns-tz";
+import { toZonedTime, format } from "date-fns-tz";
 
 interface User {
   _id: string;
