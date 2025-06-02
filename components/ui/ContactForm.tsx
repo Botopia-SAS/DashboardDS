@@ -1,8 +1,8 @@
 "use client";
-import { useEffect, useState, FormEvent, ChangeEvent, useRef } from "react";
-import React from "react";
+import React, { useEffect, useState, FormEvent, ChangeEvent, useRef } from "react";
 import Calendar from "./calendar";
 import { enUS } from "date-fns/locale";
+import { toZonedTime, format, zonedTimeToUtc } from "date-fns-tz";
 
 interface User {
   _id: string;
@@ -53,6 +53,31 @@ const CUSTOM_TEMPLATE: DBTemplate = {
   body: "",
 };
 
+// Función auxiliar para convertir hora local de Miami a UTC
+function miamiLocalToUTC(date: Date, hour: string, minute: string) {
+  const year = date.getFullYear();
+  const month = (date.getMonth() + 1).toString().padStart(2, '0');
+  const day = date.getDate().toString().padStart(2, '0');
+  const miamiString = `${year}-${month}-${day}T${hour}:${minute}:00`;
+  // Creamos la fecha como si fuera local de Miami
+  // Obtenemos el offset real de Miami para esa fecha
+  // Usamos Intl.DateTimeFormat para obtener la hora UTC equivalente
+  const parts = new Intl.DateTimeFormat('en-US', {
+    timeZone: 'America/New_York',
+    hour12: false,
+    year: 'numeric', month: '2-digit', day: '2-digit',
+    hour: '2-digit', minute: '2-digit', second: '2-digit'
+  }).formatToParts(new Date(miamiString));
+  const y = parts.find(p => p.type === 'year')?.value;
+  const m = parts.find(p => p.type === 'month')?.value;
+  const d = parts.find(p => p.type === 'day')?.value;
+  const h = parts.find(p => p.type === 'hour')?.value;
+  const min = parts.find(p => p.type === 'minute')?.value;
+  const s = parts.find(p => p.type === 'second')?.value;
+  // Construimos la fecha UTC
+  return new Date(`${y}-${m}-${d}T${h}:${min}:${s}Z`);
+}
+
 export default function ContactForm() {
   const [users, setUsers] = useState<User[]>([]);
   const [instructors, setInstructors] = useState<Instructor[]>([]);
@@ -77,6 +102,7 @@ export default function ContactForm() {
   const [tempDate, setTempDate] = useState<Date | null>(null);
   const [tempHour, setTempHour] = useState<string>("00");
   const [tempMinute, setTempMinute] = useState<string>("00");
+  const [miamiNow, setMiamiNow] = useState(toZonedTime(new Date(), "America/New_York"));
 
   useEffect(() => {
     fetch("/api/users?roles=user")
@@ -144,6 +170,26 @@ export default function ContactForm() {
     window.addEventListener("select-template", handleSelectTemplate);
     return () => window.removeEventListener("select-template", handleSelectTemplate);
   }, [template]);
+
+  useEffect(() => {
+    if (showScheduleModal) {
+      // Al abrir el modal, setear la hora de Miami como default
+      const nowMiami = toZonedTime(new Date(), "America/New_York");
+      setMiamiNow(nowMiami);
+      setTempDate(nowMiami);
+      setTempHour(format(nowMiami, "HH"));
+      setTempMinute(format(nowMiami, "mm"));
+      setScheduledDate("");
+    }
+  }, [showScheduleModal]);
+
+  // Actualizar la hora de Miami cada minuto
+  useEffect(() => {
+    const interval = setInterval(() => {
+      setMiamiNow(toZonedTime(new Date(), "America/New_York"));
+    }, 60000);
+    return () => clearInterval(interval);
+  }, []);
 
   const handleRecipientChange = (id: string) => {
     if (selectedRecipients.includes(id)) {
@@ -312,6 +358,19 @@ export default function ContactForm() {
     }
   }
 
+  // Mostrar la hora seleccionada en Miami y UTC aunque no se haya confirmado aún
+  function getSelectedMiamiAndUTC(date: Date | null, hour: string, minute: string) {
+    if (!date) return { selectedMiami: null, selectedUTC: null };
+    const year = date.getFullYear();
+    const month = (date.getMonth() + 1).toString().padStart(2, '0');
+    const day = date.getDate().toString().padStart(2, '0');
+    const miamiString = `${year}-${month}-${day}T${hour}:${minute}:00`;
+    // Convierte la hora local de Miami a UTC correctamente
+    const utcDate = miamiLocalToUTC(date, hour, minute);
+    return { selectedMiami: miamiString, selectedUTC: utcDate };
+  }
+  const { selectedMiami, selectedUTC } = getSelectedMiamiAndUTC(tempDate, tempHour, tempMinute);
+
   return (
     <form onSubmit={handleSend} className="space-y-6 w-full">
       <div>
@@ -426,11 +485,19 @@ export default function ContactForm() {
             <div className="space-y-4">
               <div>
                 <label className="block font-semibold mb-1">Date & Time</label>
+                <div className="mb-2 text-xs text-blue-700">
+                  <b>Current Miami time:</b> {format(miamiNow, "yyyy-MM-dd HH:mm")} (America/New_York)
+                </div>
+                {selectedMiami && (
+                  <div className="mb-2 text-xs text-green-700">
+                    <b>Scheduled Miami time:</b> {selectedMiami.replace('T', ' ').slice(0, 16)}
+                  </div>
+                )}
                 <div className="flex flex-col gap-2">
-                <input
+                  <input
                     type="text"
-                  className="border rounded p-2 w-full"
-                    value={scheduledDate ? new Date(scheduledDate).toLocaleString("en-US", { hour12: false }) : "Select date and time..."}
+                    className="border rounded p-2 w-full"
+                    value={scheduledDate ? format(toZonedTime(new Date(scheduledDate), "America/New_York"), "yyyy-MM-dd HH:mm") : "Select date and time..."}
                     readOnly
                     onClick={() => setShowCalendar(true)}
                   />
@@ -459,11 +526,14 @@ export default function ContactForm() {
                           className="bg-blue-600 text-white px-4 py-2 rounded"
                           onClick={() => {
                             if (tempDate) {
+                              // Construir fecha en zona de Miami y convertir a UTC ISO
                               const year = tempDate.getFullYear();
                               const month = (tempDate.getMonth() + 1).toString().padStart(2, '0');
                               const day = tempDate.getDate().toString().padStart(2, '0');
-                              const isoString = `${year}-${month}-${day}T${tempHour}:${tempMinute}`;
-                              setScheduledDate(isoString);
+                              const miamiString = `${year}-${month}-${day}T${tempHour}:${tempMinute}:00-04:00`;
+                              // Guardar como UTC ISO
+                              const utcDate = new Date(miamiString);
+                              setScheduledDate(utcDate.toISOString().slice(0,16));
                             }
                             setShowCalendar(false);
                           }}
