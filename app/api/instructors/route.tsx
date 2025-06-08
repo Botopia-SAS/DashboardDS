@@ -2,6 +2,7 @@ import { connectToDB } from "@/lib/mongoDB";
 import { NextResponse } from "next/server";
 import Instructor from "@/lib/models/Instructor"; // Modelo de MongoDB
 import { sendEmail } from "./sendEmail";
+import bcrypt from "bcryptjs";
 
 export const dynamic = "force-dynamic";
 
@@ -50,67 +51,8 @@ export async function POST(req: Request) {
       ? schedule.filter(isValidSlot)
       : [];
 
-    // 1. Obtener token de Auth0
-    const tokenRes = await fetch(
-      `https://${process.env.AUTH0_DOMAIN}/oauth/token`,
-      {
-        method: "POST",
-        headers: { "content-type": "application/json" },
-        body: JSON.stringify({
-          client_id: process.env.AUTH0_CLIENT_ID,
-          client_secret: process.env.AUTH0_CLIENT_SECRET,
-          audience: `https://${process.env.AUTH0_DOMAIN}/api/v2/`,
-          grant_type: "client_credentials",
-        }),
-      }
-    );
-    const tokenData = await tokenRes.json();
-    const access_token = tokenData.access_token;
-
-    // 2. Crear usuario en Auth0
-    const userRes = await fetch(
-      `https://${process.env.AUTH0_DOMAIN}/api/v2/users`,
-      {
-        method: "POST",
-        headers: {
-          "content-type": "application/json",
-          authorization: `Bearer ${access_token}`,
-        },
-        body: JSON.stringify({
-          email: email,
-          password: password,
-          connection: "Username-Password-Authentication",
-          name: name,
-        }),
-      }
-    );
-    const auth0User = await userRes.json();
-    if (!auth0User.user_id) {
-      return NextResponse.json(
-        { error: auth0User.message || "Failed to create instructor in Auth0" },
-        { status: 400 }
-      );
-    }
-
-    // Asignar el rol de instructor en Auth0
-    const roleId = "rol_yb0rWbwuhii3gCn"; // Role ID de 'instructors'
-    const assignRoleBody = { roles: [roleId] };
-    const assignRoleRes = await fetch(
-      `https://${process.env.AUTH0_DOMAIN}/api/v2/users/${encodeURIComponent(
-        auth0User.user_id
-      )}/roles`,
-      {
-        method: "POST",
-        headers: {
-          "Content-Type": "application/json",
-          Authorization: `Bearer ${access_token}`,
-        },
-        body: JSON.stringify(assignRoleBody),
-      }
-    );
-    if (!assignRoleRes.ok) {
-      console.error("❌ Error al asignar rol en Auth0");
-    }
+    // Encriptar la contraseña antes de guardar
+    const hashedPassword = await bcrypt.hash(password, 10);
 
     const newInstructor = new Instructor({
       name,
@@ -119,7 +61,7 @@ export async function POST(req: Request) {
       experience,
       schedule: validSchedule,
       email,
-      auth0Id: auth0User.user_id,
+      password: hashedPassword,
       dni,
     });
 

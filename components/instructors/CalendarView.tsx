@@ -9,20 +9,17 @@ import { DateSelectArg, EventClickArg } from "@fullcalendar/core";
 import { CalendarEvent } from "./types";
 
 interface CalendarViewProps {
-  calendarKey: number;
   calendarEvents: CalendarEvent[];
   handleDateSelect: (selectInfo: DateSelectArg) => void;
   handleEventClick: (eventInfo: EventClickArg) => void;
 }
 
 const CalendarView = ({
-  calendarKey,
   calendarEvents,
   handleDateSelect,
   handleEventClick,
 }: CalendarViewProps) => (
   <FullCalendar
-    key={calendarKey}
     plugins={[timeGridPlugin, interactionPlugin]}
     initialView="timeGridWeek"
     selectable

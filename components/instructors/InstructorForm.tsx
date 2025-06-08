@@ -80,8 +80,6 @@ const InstructorForm = ({ initialData }: { initialData?: InstructorData }) => {
   const [schedule, setSchedule] = useState<Slot[]>(() =>
     normalizeSchedule(initialData?.schedule || [])
   );
-  const [calendarEvents, setCalendarEvents] = useState<CalendarEvent[]>([]);
-  const [calendarKey, setCalendarKey] = useState(0); // 🔹 Clave única para forzar re-render
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [currentSlot, setCurrentSlot] = useState<{
     start: string;
@@ -113,50 +111,47 @@ const InstructorForm = ({ initialData }: { initialData?: InstructorData }) => {
   const [selectedStudent, setSelectedStudent] = useState<string>("");
   const [slotType, setSlotType] = useState<SlotType>("");
 
-  useEffect(() => {
-    if (schedule.length === 0) return;
-
-    const newEvents = schedule.map((slot: Slot) => ({
-      title: slot.booked ? "Booked" : "Available",
-      start: slot.start,
-      end: slot.end,
-      backgroundColor: slot.booked ? "blue" : "green",
-      borderColor: slot.booked ? "darkblue" : "darkgreen",
-      textColor: "white",
-      extendedProps: {
-        recurrence: slot.recurrence || "None",
-        booked: slot.booked ?? false,
-      },
-    }));
-
-    setCalendarEvents(newEvents);
-    setCalendarKey((prevKey) => prevKey + 1);
-  }, [schedule]);
-
-  useEffect(() => {
-    setCalendarKey((prevKey) => prevKey + 1);
-  }, [schedule]);
-
-  useEffect(() => {
-    const events = schedule.map((slot: Slot) => ({
-      title: slot.booked ? "Booked" : "Available",
-      start: slot.start,
-      end: slot.end,
-      backgroundColor: slot.booked ? "blue" : "green",
-      borderColor: slot.booked ? "darkblue" : "darkgreen",
-      textColor: "white",
-      extendedProps: {
-        recurrence: slot.recurrence || "None",
-        booked: slot.booked ?? false,
-      },
-    }));
-
-    setCalendarEvents(events);
-
-    setTimeout(() => {
-      setCalendarKey((prevKey) => prevKey + 1);
-    }, 50);
-  }, [schedule]);
+  // Derivo calendarEvents directamente de schedule
+  const calendarEvents = schedule.map((slot: Slot) => ({
+    title:
+      slot.status === "scheduled" && slot.studentId
+        ? `Booked: ${getStudentName(slot.studentId, allUsers)}`
+        : slot.status === "cancelled"
+        ? "Cancelled"
+        : slot.status === "free"
+        ? "Free"
+        : slot.booked
+        ? "Booked"
+        : "Available",
+    start: `${slot.date}T${slot.start}`,
+    end: `${slot.date}T${slot.end}`,
+    backgroundColor:
+      slot.status === "scheduled"
+        ? "blue"
+        : slot.status === "cancelled"
+        ? "red"
+        : slot.status === "free"
+        ? "gray"
+        : slot.booked
+        ? "blue"
+        : "green",
+    borderColor:
+      slot.status === "scheduled"
+        ? "darkblue"
+        : slot.status === "cancelled"
+        ? "darkred"
+        : slot.status === "free"
+        ? "darkgray"
+        : slot.booked
+        ? "darkblue"
+        : "darkgreen",
+    textColor: "white",
+    extendedProps: {
+      recurrence: slot.recurrence || "None",
+      booked: slot.booked ?? false,
+      studentId: slot.studentId || null,
+    },
+  }));
 
   // Genera una contraseña aleatoria
   const generatePassword = () => {
@@ -295,8 +290,30 @@ const InstructorForm = ({ initialData }: { initialData?: InstructorData }) => {
           status,
         }
       );
+      console.log("Slots generados por recurrencia:", generated);
+      // Divide cada slot generado en bloques de 30 minutos
+      newSlots = generated.flatMap(slot => {
+        const blocks = splitIntoHalfHourSlots(
+          `${slot.date}T${slot.start}`,
+          `${slot.date}T${slot.end}`,
+          {
+            booked,
+            studentId,
+            status,
+          }
+        );
+        console.log("Bloques de 30 min para", slot, "=>", blocks);
+        return blocks.map(s => ({
+          date: slot.date, // Usa la fecha del slot recurrente original
+          start: s.start,
+          end: s.end,
+          status: s.status,
+          booked: s.booked,
+          studentId: s.studentId,
+        }));
+      });
       // Only add slots that do not already exist
-      newSlots = generated.filter(
+      newSlots = newSlots.filter(
         (slot) =>
           !schedule.some(
             (s) =>
@@ -378,8 +395,10 @@ const InstructorForm = ({ initialData }: { initialData?: InstructorData }) => {
     if (realSlot?.status === "scheduled" && realSlot?.studentId) {
       try {
         const res = await fetch("/api/users");
-        const filtered = (await res.json())
-          .filter((u: User) => u.role === "user")
+        const users = await res.json();
+        console.log("Usuarios traídos de la API:", users);
+        const filtered = users
+          .filter((u: User) => u.role?.toLowerCase() === "user")
           .map((u: User) => ({
             ...u,
             name: u.name || `${u.firstName || ""} ${u.lastName || ""}`.trim(),
@@ -448,13 +467,14 @@ const InstructorForm = ({ initialData }: { initialData?: InstructorData }) => {
         body: JSON.stringify(bodyToSend),
       });
 
+      const data = await res.json();
+      console.log("Respuesta del backend:", res.status, data);
+
       if (res.ok) {
         toast.success("Instructor saved successfully!");
-        router.push("/instructors");
+        window.location.href = "/instructors";
       } else {
-        const errorText = await res.text();
-        console.error("❌ Error en la respuesta:", errorText);
-        toast.error("Error saving instructor.");
+        toast.error(data.message || "Error saving instructor.");
       }
     } catch (error) {
       console.error("❌ Server error:", error);
@@ -463,52 +483,6 @@ const InstructorForm = ({ initialData }: { initialData?: InstructorData }) => {
       setLoading(false);
     }
   };
-
-  const formattedEvents = schedule.map((slot: Slot) => ({
-    title:
-      slot.status === "scheduled" && slot.studentId
-        ? `Booked: ${getStudentName(slot.studentId, allUsers)}`
-        : slot.status === "cancelled"
-        ? "Cancelled"
-        : slot.status === "free"
-        ? "Free"
-        : slot.booked
-        ? "Booked"
-        : "Available",
-    start: `${slot.date}T${slot.start}`,
-    end: `${slot.date}T${slot.end}`,
-    backgroundColor:
-      slot.status === "scheduled"
-        ? "blue"
-        : slot.status === "cancelled"
-        ? "red"
-        : slot.status === "free"
-        ? "gray"
-        : slot.booked
-        ? "blue"
-        : "green",
-    borderColor:
-      slot.status === "scheduled"
-        ? "darkblue"
-        : slot.status === "cancelled"
-        ? "darkred"
-        : slot.status === "free"
-        ? "darkgray"
-        : slot.booked
-        ? "darkblue"
-        : "darkgreen",
-    textColor: "white",
-    extendedProps: {
-      recurrence: slot.recurrence || "None",
-      booked: slot.booked ?? false,
-      studentId: slot.studentId || null,
-    },
-  }));
-
-  useEffect(() => {
-    setCalendarEvents(formattedEvents);
-    setCalendarKey((prevKey) => prevKey + 1);
-  }, [schedule, formattedEvents]);
 
   return (
     <div className="p-10">
@@ -525,7 +499,6 @@ const InstructorForm = ({ initialData }: { initialData?: InstructorData }) => {
           />
 
           <InstructorSchedule
-            calendarKey={calendarKey}
             calendarEvents={calendarEvents}
             handleDateSelect={handleDateSelect}
             handleEventClick={handleEventClick}
