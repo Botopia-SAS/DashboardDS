@@ -54,7 +54,6 @@ const formSchema = z
     zipCode: z.string().min(1, "Zip code is required"),
     phoneNumber: z.string().min(1, "Phone number is required"),
     sex: z.string(),
-    howDidYouHear: z.string(),
     registerForCourse: z.boolean().default(false),
     payedAmount: z.number().min(0, "Amount must be greater than 0").optional(),
     method: z.string().optional(),
@@ -277,7 +276,6 @@ const CustomersForm = ({ initialData }: CustomersFormProps) => {
       zipCode: initialData?.zipCode || "",
       phoneNumber: initialData?.phoneNumber || "",
       sex: initialData?.sex || "",
-      howDidYouHear: initialData?.howDidYouHear || "",
       payedAmount: 0,
       method: "",
       registerForCourse: false,
@@ -411,31 +409,6 @@ const CustomersForm = ({ initialData }: CustomersFormProps) => {
             </h2>
             <SecurityInformation form={form} />
             <LiscenseInformation form={form} hasLicense={hasLicense} />
-          </div>
-
-          <div className="space-y-6 pt-4">
-            <h2 className="text-xl font-semibold text-gray-700">
-              Additional Information
-            </h2>
-            <FormField
-              control={form.control}
-              name="howDidYouHear"
-              render={({ field }) => (
-                <FormItem>
-                  <FormLabel className="text-gray-700 font-medium">
-                    How did you hear about us?
-                  </FormLabel>
-                  <FormControl>
-                    <Input
-                      {...field}
-                      placeholder="Enter source"
-                      className="border-gray-300 focus:ring-blue-500 focus:border-blue-500"
-                    />
-                  </FormControl>
-                  <FormMessage className="text-red-500" />
-                </FormItem>
-              )}
-            />
           </div>
 
           <div className="space-y-6 pt-4">

@@ -1,11 +1,11 @@
 import { Schema, model, models } from "mongoose";
 
 const UserSchema = new Schema({
-  clerkId: {
-    type: String,
-    required: true,
-    unique: true,
-  },
+  // clerkId: {
+  //   type: String,
+  //   required: true,
+  //   unique: true,
+  // },
   email: {
     type: String,
     required: true,
@@ -65,18 +65,22 @@ const UserSchema = new Schema({
     type: String,
     required: true,
   },
-  howDidYouHear: {
+  password: {
     type: String,
     required: true,
   },
+  // howDidYouHear: {
+  //   type: String,
+  //   required: true,
+  // },
   role: {
     type: String,
     default: "user",
   },
-  registeredBy: {
-    type: String,
-    required: true,
-  },
+  // registeredBy: {
+  //   type: String,
+  //   required: true,
+  // },
   createdAt: {
     type: Date,
     default: Date.now,
