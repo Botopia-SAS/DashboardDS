@@ -290,7 +290,7 @@ const InstructorForm = ({ initialData }: { initialData?: InstructorData }) => {
           status,
         }
       );
-      console.log("Slots generados por recurrencia:", generated);
+      //console.log("Slots generados por recurrencia:", generated);
       // Divide cada slot generado en bloques de 30 minutos
       newSlots = generated.flatMap(slot => {
         const blocks = splitIntoHalfHourSlots(
@@ -302,7 +302,7 @@ const InstructorForm = ({ initialData }: { initialData?: InstructorData }) => {
             status,
           }
         );
-        console.log("Bloques de 30 min para", slot, "=>", blocks);
+        //console.log("Bloques de 30 min para", slot, "=>", blocks);
         return blocks.map(s => ({
           date: slot.date, // Usa la fecha del slot recurrente original
           start: s.start,
@@ -396,7 +396,7 @@ const InstructorForm = ({ initialData }: { initialData?: InstructorData }) => {
       try {
         const res = await fetch("/api/users");
         const users = await res.json();
-        console.log("Usuarios traídos de la API:", users);
+        //console.log("Usuarios traídos de la API:", users);
         const filtered = users
           .filter((u: User) => u.role?.toLowerCase() === "user")
           .map((u: User) => ({
@@ -468,7 +468,7 @@ const InstructorForm = ({ initialData }: { initialData?: InstructorData }) => {
       });
 
       const data = await res.json();
-      console.log("Respuesta del backend:", res.status, data);
+      //console.log("Respuesta del backend:", res.status, data);
 
       if (res.ok) {
         toast.success("Instructor saved successfully!");
