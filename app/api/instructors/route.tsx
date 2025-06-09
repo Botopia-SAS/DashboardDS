@@ -115,7 +115,7 @@ export const GET = async () => {
     const instructors = await Instructor.find().sort({ createdAt: "desc" });
     return NextResponse.json(instructors, { status: 200 });
   } catch (err: unknown) {
-    console.error("[INSTRUCTORS_GET]", err);
+    //console.error("[INSTRUCTORS_GET]", err);
     return new NextResponse("Internal Server Error", { status: 500 });
   }
 };
