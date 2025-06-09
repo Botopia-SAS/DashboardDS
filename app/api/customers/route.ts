@@ -4,6 +4,8 @@ import Payment from "@/lib/models/Payments";
 import TicketClass from "@/lib/models/TicketClass";
 import { connectToDB } from "@/lib/mongoDB";
 import { NextRequest, NextResponse } from "next/server";
+import bcrypt from "bcryptjs";
+import sendEmail from "@/lib/sendEmail";
 
 export async function GET() {
   try {
@@ -44,52 +46,11 @@ export async function POST(req: NextRequest) {
       );
     }
 
-    // 1. Obtener un token de acceso de Auth0
-    const tokenRes = await fetch(`https://${process.env.AUTH0_DOMAIN}/oauth/token`, {
-      method: 'POST',
-      headers: { 'content-type': 'application/json' },
-      body: JSON.stringify({
-        client_id: process.env.AUTH0_CLIENT_ID,
-        client_secret: process.env.AUTH0_CLIENT_SECRET,
-        audience: `https://${process.env.AUTH0_DOMAIN}/api/v2/`,
-        grant_type: 'client_credentials',
-      })
-    });
-    const tokenData = await tokenRes.json();
-    if (!tokenData.access_token) {
-      return NextResponse.json(
-        { error: "Failed to get Auth0 access token" },
-        { status: 500 }
-      );
-    }
-    const access_token = tokenData.access_token;
+    // Hashear la contraseña antes de guardar
+    const hashedPassword = await bcrypt.hash(data.password, 10);
 
-    // 2. Crear el usuario en Auth0
-    const userRes = await fetch(`https://${process.env.AUTH0_DOMAIN}/api/v2/users`, {
-      method: 'POST',
-      headers: {
-        'content-type': 'application/json',
-        'authorization': `Bearer ${access_token}`
-      },
-      body: JSON.stringify({
-        email: data.email,
-        password: data.password,
-        connection: 'Username-Password-Authentication',
-        given_name: data.firstName,
-        family_name: data.lastName
-      })
-    });
-    const auth0User = await userRes.json();
-    if (!auth0User.user_id) {
-      return NextResponse.json(
-        { error: auth0User.message || "Failed to create user in Auth0" },
-        { status: 400 }
-      );
-    }
-
-    // 3. Guardar el usuario en MongoDB
+    // Guardar el usuario en MongoDB
     const user = await User.create({
-      auth0Id: auth0User.user_id,
       email: data.email,
       firstName: data.firstName,
       middleName: data.middleName,
@@ -105,11 +66,37 @@ export async function POST(req: NextRequest) {
       zipCode: data.zipCode,
       phoneNumber: data.phoneNumber,
       sex: data.sex,
-      howDidYouHear: data.howDidYouHear,
-      registeredBy: data.registeredBy,
+      password: hashedPassword,
       role: "user",
-      createdAt: new Date(), // Asegurando que la fecha de registro se establece explícitamente
+      createdAt: new Date(),
     });
+
+    // Send credentials email to the user (in English)
+    await sendEmail(
+      [data.email],
+      "Your credentials for Driving School Dashboard",
+      `Hello, your account has been created.\nEmail: ${data.email}\nPassword: ${data.password}`,
+      `<div style=\"font-family: Arial, sans-serif; background: #f4f6fa; padding: 32px; color: #222;\">
+        <div style=\"max-width: 480px; margin: 0 auto; background: #fff; border-radius: 12px; box-shadow: 0 2px 8px #0001; overflow: hidden;\">
+          <div style=\"background: #1e40af; color: #fff; padding: 24px 32px 16px 32px; text-align: center;\">
+            <h2 style=\"margin: 0; font-size: 1.7rem; letter-spacing: 1px;\">Driving School Dashboard</h2>
+          </div>
+          <div style=\"padding: 32px 32px 16px 32px;\">
+            <p style=\"font-size: 1.1rem; margin-bottom: 18px;\">Hello,</p>
+            <p style=\"font-size: 1.1rem; margin-bottom: 18px;\">Your credentials to access the student panel are:</p>
+            <div style=\"background: #f1f5f9; border-radius: 8px; padding: 16px; text-align: center; margin: 18px 0;\">
+              <span style=\"font-size: 1.1rem; font-weight: bold; color: #1e40af; letter-spacing: 1px;\">Email: ${data.email}</span><br/>
+              <span style=\"font-size: 1.1rem; font-weight: bold; color: #1e40af; letter-spacing: 1px;\">Password: ${data.password}</span>
+            </div>
+            <p style=\"font-size: 1rem; color: #555;\">For security, please change your password after logging in.</p>
+          </div>
+          <div style=\"background: #e5e7eb; color: #1e293b; text-align: center; padding: 16px 32px; font-size: 0.95rem; border-top: 1px solid #cbd5e1;\">
+            <p style=\"margin: 0;\">If you have any questions, please contact your administrator.</p>
+            <p style=\"margin: 0; font-size: 0.93rem; color: #64748b;\">&copy; ${new Date().getFullYear()} Driving School Dashboard</p>
+          </div>
+        </div>
+      </div>`
+    );
 
     if (data.courseId) {
       const order = await Order.create({
