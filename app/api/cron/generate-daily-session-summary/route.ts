@@ -2,7 +2,7 @@ import { NextRequest, NextResponse } from 'next/server';
 import dbConnect from '../../../../lib/dbConnect';
 import Session from '../../../../lib/modals/Session';
 import ResumenSeccion from '../../../../lib/models/ResumenSeccion';
-import { utcToZonedTime, format as formatTz } from 'date-fns-tz';
+import { toZonedTime, format as formatTz } from 'date-fns-tz';
 
 const MIAMI_TZ = 'America/New_York';
 
@@ -44,7 +44,7 @@ export async function GET(req: NextRequest) {
   // Agrupar sesiones por día local de Miami
   const sessionsByMiamiDate: Record<string, typeof sessions> = {};
   sessions.forEach((session: any) => {
-    const miamiDate = formatTz(utcToZonedTime(new Date(session.startTimestamp), MIAMI_TZ), 'yyyy-MM-dd', { timeZone: MIAMI_TZ });
+    const miamiDate = formatTz(toZonedTime(new Date(session.startTimestamp), MIAMI_TZ), 'yyyy-MM-dd', { timeZone: MIAMI_TZ });
     if (!sessionsByMiamiDate[miamiDate]) sessionsByMiamiDate[miamiDate] = [];
     sessionsByMiamiDate[miamiDate].push(session);
   });
@@ -74,7 +74,7 @@ export async function GET(req: NextRequest) {
         cities[session.geolocation.city] = (cities[session.geolocation.city] || 0) + 1;
       }
       // Hora local de Miami
-      const hour = getHour(utcToZonedTime(new Date(session.startTimestamp), MIAMI_TZ));
+      const hour = getHour(toZonedTime(new Date(session.startTimestamp), MIAMI_TZ));
       sessionsByHour[hour] = (sessionsByHour[hour] || 0) + 1;
       const sessionStart = new Date(session.startTimestamp);
       const sessionEnd = session.endTimestamp ? new Date(session.endTimestamp) : new Date(session.lastActive || session.startTimestamp);
