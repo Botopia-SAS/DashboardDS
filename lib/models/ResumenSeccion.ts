@@ -37,6 +37,7 @@ export interface IResumenSeccion extends Document {
   uniqueUsers: number;
   devices: Record<string, number>;
   browsers: Record<string, number>;
+  os: Record<string, number>;
   countries: Record<string, number>;
   cities: Record<string, number>;
   sessionsByHour: Record<string, number>;
@@ -84,6 +85,7 @@ const ResumenSeccionSchema = new Schema<IResumenSeccion>({
   uniqueUsers: { type: Number, required: true },
   devices: { type: Object, required: true },
   browsers: { type: Object, required: true },
+  os: { type: Object, required: false },
   countries: { type: Object, required: true },
   cities: { type: Object, required: true },
   sessionsByHour: { type: Object, required: true },
