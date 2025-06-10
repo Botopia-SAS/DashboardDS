@@ -403,7 +403,7 @@ export default function AnalyticsPage() {
                   <p className="font-medium flex items-center gap-2">
                     {page.url}
                     <span className="text-xs bg-blue-100 text-blue-800 rounded-full px-2 py-0.5 ml-2">
-                      {clicksByPage[page.url] ?? 0} clicks
+                      {(typeof page.clicks === 'number' ? page.clicks : 0)} clicks
                     </span>
                   </p>
                 </div>
