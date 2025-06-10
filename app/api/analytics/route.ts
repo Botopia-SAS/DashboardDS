@@ -181,6 +181,7 @@ export async function GET(request: Request) {
   const pageStats = new Map();
   const deviceStats = new Map();
   const browserStats = new Map();
+  const osStats = new Map();
   const countryStats = new Map();
   const cityStats = new Map();
   const hourlyStats = new Array(24).fill(0);
@@ -195,6 +196,10 @@ export async function GET(request: Request) {
     // Browsers
     Object.entries(resumen.browsers || {}).forEach(([browser, count]) => {
       browserStats.set(browser, (browserStats.get(browser) || 0) + (count as number));
+    });
+    // Sistemas operativos
+    Object.entries(resumen.os || {}).forEach(([os, count]) => {
+      osStats.set(os, (osStats.get(os) || 0) + (count as number));
     });
     // Países
     Object.entries(resumen.countries || {}).forEach(([country, count]) => {
@@ -261,7 +266,7 @@ export async function GET(request: Request) {
       pages: pagesData || [],
       devices: Array.from(deviceStats.entries()).map(([device, count]) => ({ device, count })) || [],
       browsers: Array.from(browserStats.entries()).map(([browser, count]) => ({ browser, count })) || [],
-      os: [],
+      os: Array.from(osStats.entries()).map(([os, count]) => ({ os, count })) || [],
       countries: Array.from(countryStats.entries()).map(([country, count]) => ({ country, count })) || [],
       cities: Array.from(cityStats.entries()).map(([city, count]) => ({ city, count })) || [],
       hourlyDistribution: hourlyStats || [],

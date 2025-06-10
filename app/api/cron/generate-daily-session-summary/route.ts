@@ -23,6 +23,16 @@ function getDevice(userAgent: string): string {
   return 'Desktop';
 }
 
+function getOS(userAgent: string): string {
+  if (!userAgent) return 'Unknown';
+  if (/windows/i.test(userAgent)) return 'Windows';
+  if (/macintosh|mac os x/i.test(userAgent)) return 'Mac';
+  if (/linux/i.test(userAgent)) return 'Linux';
+  if (/android/i.test(userAgent)) return 'Android';
+  if (/iphone|ipad|ipod/i.test(userAgent)) return 'iOS';
+  return 'Other';
+}
+
 function getHour(date: Date): string {
   return date.getHours().toString().padStart(2, '0');
 }
@@ -56,6 +66,7 @@ export async function GET(req: NextRequest) {
     const uniqueUsers = new Set();
     const devices: Record<string, number> = {};
     const browsers: Record<string, number> = {};
+    const os: Record<string, number> = {};
     const countries: Record<string, number> = {};
     const cities: Record<string, number> = {};
     const sessionsByHour: Record<string, number> = {};
@@ -67,8 +78,10 @@ export async function GET(req: NextRequest) {
       uniqueUsers.add(session.userId);
       const browser = getBrowser(session.userAgent);
       const device = getDevice(session.userAgent);
+      const osName = getOS(session.userAgent);
       devices[device] = (devices[device] || 0) + 1;
       browsers[browser] = (browsers[browser] || 0) + 1;
+      os[osName] = (os[osName] || 0) + 1;
       if (session.geolocation) {
         countries[session.geolocation.country] = (countries[session.geolocation.country] || 0) + 1;
         cities[session.geolocation.city] = (cities[session.geolocation.city] || 0) + 1;
@@ -119,6 +132,7 @@ export async function GET(req: NextRequest) {
         ip: session.ipAddress,
         browser,
         device,
+        os: osName,
         country: session.geolocation?.country || 'Unknown',
         city: session.geolocation?.city || 'Unknown',
         vpn: session.geolocation?.vpn || false,
@@ -138,6 +152,7 @@ export async function GET(req: NextRequest) {
       uniqueUsers: uniqueUsers.size,
       devices,
       browsers,
+      os,
       countries,
       cities,
       sessionsByHour,
