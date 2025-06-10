@@ -47,7 +47,7 @@ interface HeatmapResponse {
 interface AnalyticsDevice { device: string; count: number; }
 interface AnalyticsBrowser { browser: string; count: number; }
 interface AnalyticsOS { os: string; count: number; }
-interface AnalyticsPage { url: string; uniqueUsers: number; visits: number; totalTime: number; avgTime?: number; lastVisit?: string; }
+interface AnalyticsPage { url: string; uniqueUsers: number; visits: number; totalTime: number; avgTime?: number; lastVisit?: string; clicks?: number; }
 interface AnalyticsCountry { country: string; count: number; }
 interface AnalyticsCity { city: string; count: number; }
 interface AnalyticsData {
