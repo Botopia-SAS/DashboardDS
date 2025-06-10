@@ -306,7 +306,7 @@ const CustomersForm = ({ initialData }: CustomersFormProps) => {
         hasLicense: !!values.hasLicense,
         licenseNumber: values.hasLicense ? values.licenseNumber : "",
       };
-      console.log(values);
+      //console.log(values);
 
       if (initialData && !values.password) {
         delete updatedValues.password;
