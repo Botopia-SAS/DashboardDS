@@ -162,7 +162,7 @@ export async function PATCH(req: NextRequest) {
       //console.log("PATCH payedAmount:", data.payedAmount);
       //console.log("PATCH order.fee:", order.fee);
       if (data.payedAmount === order.fee) {
-        console.log("PATCH: Payment condition met");
+        //console.log("PATCH: Payment condition met");
         await Payment.create({
           user_id: user._id,
           amount: data.payedAmount,
@@ -176,7 +176,7 @@ export async function PATCH(req: NextRequest) {
         { $addToSet: { students: user._id } }, // Evita duplicados
         { new: true }
       );
-      console.log("PATCH: Course registration done");
+      //console.log("PATCH: Course registration done");
     }
 
     return NextResponse.json(
