@@ -105,15 +105,27 @@ export async function GET(request: Request) {
             }
           }
         }
-        // Si duration sigue siendo 0, lo dejamos en 0
+        // Sumar clicks, scrolls y moves de los eventos de la página
+        let clicks = 0, scrolls = 0, moves = 0;
+        (page.heatmap || []).forEach((ev: any) => {
+          if (ev.eventType === 'click') clicks++;
+          if (ev.eventType === 'scroll') scrolls++;
+          if (ev.eventType === 'move') moves++;
+        });
         const stats = pageStats.get(url) || {
           visits: 0,
           totalTime: 0,
           uniqueUsers: new Set(),
-          lastVisit: null
+          lastVisit: null,
+          clicks: 0,
+          scrolls: 0,
+          moves: 0
         };
         stats.visits++;
         stats.totalTime += duration;
+        stats.clicks += clicks;
+        stats.scrolls += scrolls;
+        stats.moves += moves;
         if (session.userId) stats.uniqueUsers.add(session.userId);
         if (!stats.lastVisit || new Date(page.timestamp) > new Date(stats.lastVisit)) {
           stats.lastVisit = page.timestamp;
@@ -129,7 +141,10 @@ export async function GET(request: Request) {
       totalTime: stats.totalTime,
       avgTime: stats.visits > 0 ? stats.totalTime / stats.visits : 0,
       uniqueUsers: stats.uniqueUsers.size,
-      lastVisit: stats.lastVisit
+      lastVisit: stats.lastVisit,
+      clicks: stats.clicks,
+      scrolls: stats.scrolls,
+      moves: stats.moves
     })).sort((a, b) => b.visits - a.visits);
 
     return NextResponse.json({
