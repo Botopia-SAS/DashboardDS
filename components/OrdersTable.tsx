@@ -1,7 +1,7 @@
 'use client'
 import React, { useState } from 'react'
 import useSWR from 'swr'
-import { Table, TableHeader, TableBody, TableHead, TableRow, TableCell } from '@/components/ui/table'
+import { Table, TableHeader, TableBody, TableHead, TableRow, TableCell } from './ui/table'
 
 function filterOrders(orders: any[], query: string, status: string) {
   if (!query && !status) return orders
