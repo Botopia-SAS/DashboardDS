@@ -1,7 +1,7 @@
 import React from 'react'
 import Order from '@/lib/models/Order'
 import dbConnect from '@/lib/dbConnect'
-import OrdersTable from './OrdersTable'
+import OrdersTable from '@/components/OrdersTable'
 import User from '@/lib/models/users'
 
 interface SerializedOrderItem {
