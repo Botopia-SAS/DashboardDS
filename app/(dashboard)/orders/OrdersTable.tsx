@@ -1,5 +1,6 @@
 'use client'
 import React, { useState } from 'react'
+import useSWR from 'swr'
 import { Table, TableHeader, TableBody, TableHead, TableRow, TableCell } from '@/components/ui/table'
 
 function filterOrders(orders: any[], query: string, status: string) {
@@ -21,11 +22,14 @@ function filterOrders(orders: any[], query: string, status: string) {
   })
 }
 
-export default function OrdersTable({ orders }: { orders: any[] }) {
+const fetcher = (url: string) => fetch(url).then(res => res.json())
+
+export default function OrdersTable({ orders: initialOrders }: { orders: any[] }) {
+  const { data: orders = initialOrders } = useSWR('/api/orders', fetcher, { refreshInterval: 5000, fallbackData: initialOrders })
   const [query, setQuery] = useState('')
   const [status, setStatus] = useState('')
   const filtered = filterOrders(orders, query, status)
-  const uniqueStatuses = Array.from(new Set(orders.map(o => o.estado || o.status)))
+  const uniqueStatuses = Array.from(new Set(orders.map((o: any) => o.estado || o.status)))
 
   return (
     <div>
@@ -44,7 +48,7 @@ export default function OrdersTable({ orders }: { orders: any[] }) {
         >
           <option value="">All Status</option>
           {uniqueStatuses.map(s => (
-            <option key={s} value={s}>{s}</option>
+            <option key={String(s)} value={String(s)}>{String(s)}</option>
           ))}
         </select>
       </div>
