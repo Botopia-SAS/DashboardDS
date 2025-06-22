@@ -111,6 +111,29 @@ const InstructorForm = ({ initialData }: { initialData?: InstructorData }) => {
   const [selectedStudent, setSelectedStudent] = useState<string>("");
   const [slotType, setSlotType] = useState<SlotType>("");
 
+  useEffect(() => {
+    const fetchUsers = async () => {
+      try {
+        const res = await fetch("/api/users");
+        const users = await res.json();
+        const filtered = users
+          .filter((u: User) => u.role?.toLowerCase() === "user")
+          .map((u: User) => ({
+            ...u,
+            name: u.name || `${u.firstName || ""} ${u.lastName || ""}`.trim(),
+          }));
+        setAllUsers(filtered);
+      } catch (error) {
+        console.error("Error fetching users:", error);
+        toast.error("Could not load students.");
+      }
+    };
+
+    if (isModalOpen) {
+      fetchUsers();
+    }
+  }, [isModalOpen]);
+
   // Derivo calendarEvents directamente de schedule
   const calendarEvents = schedule.map((slot: Slot) => ({
     title:
@@ -393,21 +416,7 @@ const InstructorForm = ({ initialData }: { initialData?: InstructorData }) => {
 
     // Si es booked, consulta la base de datos de users para mostrar el estudiante
     if (realSlot?.status === "scheduled" && realSlot?.studentId) {
-      try {
-        const res = await fetch("/api/users");
-        const users = await res.json();
-        //console.log("Usuarios traídos de la API:", users);
-        const filtered = users
-          .filter((u: User) => u.role?.toLowerCase() === "user")
-          .map((u: User) => ({
-            ...u,
-            name: u.name || `${u.firstName || ""} ${u.lastName || ""}`.trim(),
-          }));
-        setAllUsers(filtered);
-        setSelectedStudent(realSlot.studentId);
-      } catch {
-        setSelectedStudent("");
-      }
+      setSelectedStudent(realSlot.studentId);
     } else {
       setSelectedStudent("");
     }

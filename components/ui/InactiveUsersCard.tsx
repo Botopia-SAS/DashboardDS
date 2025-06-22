@@ -21,13 +21,10 @@ interface ExtendedSession extends Session {
 }
 
 function getDevice(userAgent?: string) {
-  if (!userAgent) return "Desconocido";
-  if (/android/i.test(userAgent)) return "Android";
-  if (/iphone|ipad|ipod/i.test(userAgent)) return "iOS";
-  if (/windows/i.test(userAgent)) return "Windows";
-  if (/macintosh|mac os x/i.test(userAgent)) return "Mac";
-  if (/linux/i.test(userAgent)) return "Linux";
-  return userAgent.split(" ")[0];
+  if (!userAgent) return "Unknown";
+  if (userAgent.includes("Mobile")) return "Mobile";
+  if (userAgent.includes("Tablet")) return "Tablet";
+  return "Desktop";
 }
 
 function formatDuration(ms: number) {
@@ -40,12 +37,7 @@ function formatDuration(ms: number) {
 }
 
 function getTimestamp(timestamp?: string): number {
-  if (!timestamp) return 0;
-  try {
-    return new Date(timestamp).getTime();
-  } catch {
-    return 0;
-  }
+  return timestamp ? new Date(timestamp).getTime() : 0;
 }
 
 export default function InactiveUsersCard({ language = "es" }: { language?: "es" | "en" }) {
@@ -55,21 +47,45 @@ export default function InactiveUsersCard({ language = "es" }: { language?: "es"
   const [carouselIndex, setCarouselIndex] = useState(0);
   const [modalUser, setModalUser] = useState<ExtendedSession | null>(null);
   const cardsRef = useRef<HTMLDivElement>(null);
+  const eventSourceRef = useRef<EventSource | null>(null);
 
   const USERS_PER_PAGE = 4;
 
   useEffect(() => {
-    const fetchInactiveUsers = () => {
-      fetch("/api/sessions-inactive")
-        .then((res) => res.json())
-        .then((data) => setInactiveUsers(data.inactiveSessions || []))
-        .finally(() => setLoading(false));
+    // Create SSE connection
+    const eventSource = new EventSource('/api/sessions-inactive?sse=true');
+    eventSourceRef.current = eventSource;
+
+    eventSource.onmessage = (event) => {
+      try {
+        const data = JSON.parse(event.data);
+        if (data.inactiveSessions) {
+          setInactiveUsers(data.inactiveSessions);
+          setLoading(false);
+        }
+      } catch (error) {
+        console.error('Error parsing SSE data:', error);
+      }
     };
 
-    fetchInactiveUsers();
-    const interval = setInterval(fetchInactiveUsers, 20000); // cada 20 segundos
+    eventSource.onerror = (error) => {
+      console.error('SSE connection error:', error);
+      setLoading(false);
+      // Attempt to reconnect after 5 seconds
+      setTimeout(() => {
+        if (eventSourceRef.current) {
+          eventSourceRef.current.close();
+          eventSourceRef.current = new EventSource('/api/sessions-inactive?sse=true');
+        }
+      }, 5000);
+    };
 
-    return () => clearInterval(interval);
+    // Cleanup on unmount
+    return () => {
+      if (eventSourceRef.current) {
+        eventSourceRef.current.close();
+      }
+    };
   }, []);
 
   // Ajustar el índice si cambia la cantidad de usuarios
