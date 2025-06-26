@@ -28,7 +28,7 @@ import {
   generateRecurringSlots,
   getStudentName,
   normalizeSchedule,
-  splitIntoHalfHourSlots
+  splitIntoTwoHourSlots
 } from "./utils";
 
 interface InstructorFormData {
@@ -71,6 +71,12 @@ const formSchema = z.object({
   path: ["password"],
 });
 
+// Utilidad para asegurar que el valor de classType es válido
+const validClassTypes = ["driving test", "D.A.T.E", "B.D.I", "A.D.I"];
+function toValidClassType(val: any): Slot["classType"] {
+  return validClassTypes.includes(val) ? val : undefined;
+}
+
 // Componente principal que maneja el estado global y renderiza los subcomponentes
 const InstructorForm = ({ initialData }: { initialData?: InstructorData }) => {
   const recurrenceOptions = ["None", "Daily", "Weekly", "Monthly"];
@@ -95,7 +101,12 @@ const InstructorForm = ({ initialData }: { initialData?: InstructorData }) => {
     sessionId?: string;
     slotId?: string;
     studentId?: string;
-    status?: "free" | "cancelled" | "scheduled";
+    status?: "available" | "cancelled" | "scheduled";
+    classType?: string;
+    amount?: number;
+    paid?: boolean;
+    pickupLocation?: string;
+    dropoffLocation?: string;
   }>({
     start: "",
     end: "",
@@ -137,15 +148,16 @@ const InstructorForm = ({ initialData }: { initialData?: InstructorData }) => {
   // Derivo calendarEvents directamente de schedule
   const calendarEvents = schedule.map((slot: Slot) => ({
     title:
-      slot.status === "scheduled" && slot.studentId
-        ? `Booked: ${getStudentName(slot.studentId, allUsers)}`
+      (slot.status === "scheduled"
+        ? "Booked"
         : slot.status === "cancelled"
         ? "Cancelled"
-        : slot.status === "free"
-        ? "Free"
+        : slot.status === "available"
+        ? "Available"
         : slot.booked
         ? "Booked"
-        : "Available",
+        : "Available") +
+      (slot.classType ? ` - ${slot.classType}` : ""),
     start: `${slot.date}T${slot.start}`,
     end: `${slot.date}T${slot.end}`,
     backgroundColor:
@@ -153,7 +165,7 @@ const InstructorForm = ({ initialData }: { initialData?: InstructorData }) => {
         ? "blue"
         : slot.status === "cancelled"
         ? "red"
-        : slot.status === "free"
+        : slot.status === "available"
         ? "gray"
         : slot.booked
         ? "blue"
@@ -163,7 +175,7 @@ const InstructorForm = ({ initialData }: { initialData?: InstructorData }) => {
         ? "darkblue"
         : slot.status === "cancelled"
         ? "darkred"
-        : slot.status === "free"
+        : slot.status === "available"
         ? "darkgray"
         : slot.booked
         ? "darkblue"
@@ -218,10 +230,10 @@ const InstructorForm = ({ initialData }: { initialData?: InstructorData }) => {
   // Auxiliar para status seguro
   function getSlotStatus(
     slotType: SlotType
-  ): "free" | "cancelled" | "scheduled" {
+  ): "available" | "cancelled" | "scheduled" {
     if (slotType === "booked") return "scheduled";
     if (slotType === "cancelled") return "cancelled";
-    return "free";
+    return "available";
   }
 
   const handleUpdateSlot = () => {
@@ -249,6 +261,11 @@ const InstructorForm = ({ initialData }: { initialData?: InstructorData }) => {
       status: getSlotStatus(slotType),
       recurrence: currentSlot.recurrence,
       slotId: currentSlot.slotId, // o usa uuidv4() si quieres uno nuevo
+      classType: toValidClassType(currentSlot.classType),
+      amount: currentSlot.amount,
+      paid: currentSlot.paid,
+      pickupLocation: currentSlot.pickupLocation,
+      dropoffLocation: currentSlot.dropoffLocation,
     };
 
     setSchedule([...filteredSchedule, newSlot]);
@@ -277,7 +294,7 @@ const InstructorForm = ({ initialData }: { initialData?: InstructorData }) => {
     let booked = slotType === "booked" || slotType === "cancelled";
     const status = slotType === "booked" ? "scheduled" : slotType;
     const studentId = slotType === "booked" ? selectedStudent : null;
-    if (slotType === "free") booked = false;
+    if (slotType === "available") booked = false;
 
     let newSlots: Slot[] = [];
     if (currentSlot.recurrence && currentSlot.recurrence !== "None") {
@@ -314,9 +331,9 @@ const InstructorForm = ({ initialData }: { initialData?: InstructorData }) => {
         }
       );
       //console.log("Slots generados por recurrencia:", generated);
-      // Divide cada slot generado en bloques de 30 minutos
+      // Divide cada slot generado en bloques de 2 horas
       newSlots = generated.flatMap(slot => {
-        const blocks = splitIntoHalfHourSlots(
+        const blocks = splitIntoTwoHourSlots(
           `${slot.date}T${slot.start}`,
           `${slot.date}T${slot.end}`,
           {
@@ -325,7 +342,7 @@ const InstructorForm = ({ initialData }: { initialData?: InstructorData }) => {
             status,
           }
         );
-        //console.log("Bloques de 30 min para", slot, "=>", blocks);
+        //console.log("Bloques de 2 horas para", slot, "=>", blocks);
         return blocks.map(s => ({
           date: slot.date, // Usa la fecha del slot recurrente original
           start: s.start,
@@ -333,6 +350,11 @@ const InstructorForm = ({ initialData }: { initialData?: InstructorData }) => {
           status: s.status,
           booked: s.booked,
           studentId: s.studentId,
+          classType: toValidClassType(currentSlot.classType),
+          amount: currentSlot.amount,
+          paid: currentSlot.paid,
+          pickupLocation: currentSlot.pickupLocation,
+          dropoffLocation: currentSlot.dropoffLocation,
         }));
       });
       // Only add slots that do not already exist
@@ -346,7 +368,7 @@ const InstructorForm = ({ initialData }: { initialData?: InstructorData }) => {
           )
       );
     } else {
-      newSlots = splitIntoHalfHourSlots(currentSlot.start, currentSlot.end, {
+      newSlots = splitIntoTwoHourSlots(currentSlot.start, currentSlot.end, {
         booked,
         studentId,
         status,
@@ -357,6 +379,11 @@ const InstructorForm = ({ initialData }: { initialData?: InstructorData }) => {
         status: slot.status,
         booked: slot.booked,
         studentId: slot.studentId,
+        classType: toValidClassType(currentSlot.classType),
+        amount: currentSlot.amount,
+        paid: currentSlot.paid,
+        pickupLocation: currentSlot.pickupLocation,
+        dropoffLocation: currentSlot.dropoffLocation,
       }));
     }
 
@@ -412,7 +439,17 @@ const InstructorForm = ({ initialData }: { initialData?: InstructorData }) => {
       slotId: realSlot?.slotId || uuidv4(),
       studentId: realSlot?.studentId || "",
       status: realSlot?.status,
+      classType: toValidClassType(realSlot?.classType),
+      amount: realSlot?.amount,
+      paid: realSlot?.paid,
+      pickupLocation: realSlot?.pickupLocation,
+      dropoffLocation: realSlot?.dropoffLocation,
     });
+
+    // Sincroniza slotType con el status del slot
+    if (realSlot?.status === "scheduled") setSlotType("booked");
+    else if (realSlot?.status === "cancelled") setSlotType("cancelled");
+    else setSlotType("available");
 
     // Si es booked, consulta la base de datos de users para mostrar el estudiante
     if (realSlot?.status === "scheduled" && realSlot?.studentId) {
@@ -462,6 +499,11 @@ const InstructorForm = ({ initialData }: { initialData?: InstructorData }) => {
         status: slot.status,
         booked: slot.booked,
         studentId: slot.studentId || null,
+        classType: toValidClassType(slot.classType),
+        amount: slot.amount,
+        paid: slot.paid,
+        pickupLocation: slot.pickupLocation,
+        dropoffLocation: slot.dropoffLocation,
       })),
     };
 

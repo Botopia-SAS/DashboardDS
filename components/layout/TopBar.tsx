@@ -1,7 +1,6 @@
 "use client";
 
 import { useState, useEffect } from "react";
-import { UserButton } from "@clerk/nextjs";
 import Image from "next/image";
 import Link from "next/link";
 import { usePathname } from "next/navigation";
@@ -74,9 +73,6 @@ const TopBar = () => {
             ))}
           </motion.div>
         )}
-
-        {/* ✅ Renderizar `UserButton` solo en el cliente */}
-        {isClient && <UserButton />}
       </div>
     </div>
   );

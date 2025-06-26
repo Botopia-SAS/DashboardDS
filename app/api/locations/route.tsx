@@ -1,20 +1,12 @@
 import { connectToDB } from "@/lib/mongoDB";
 import { NextRequest, NextResponse } from "next/server";
 import Location from "@/lib/models/Locations";
-import { auth } from "@clerk/nextjs/server";
 
 // Forzamos dynamic para evitar problemas de caché en estas rutas:
 export const dynamic = "force-dynamic";
 
 export const POST = async (req: NextRequest) => {
   try {
-    // OBTENER userId USANDO AWAIT
-    const { userId } = await auth();
-
-    if (!userId) {
-      return new NextResponse("Unauthorized", { status: 403 });
-    }
-
     await connectToDB();
 
     const requestData = await req.json();

@@ -21,16 +21,16 @@ export function normalizeSchedule(data: unknown): Slot[] {
 }
 
 /**
- * Divide un rango horario en slots de media hora.
+ * Divide un rango horario en slots de 2 horas.
  */
-export function splitIntoHalfHourSlots(startStr: string, endStr: string, baseSlot: Partial<Slot>): Slot[] {
+export function splitIntoTwoHourSlots(startStr: string, endStr: string, baseSlot: Partial<Slot>): Slot[] {
   const slots: Slot[] = [];
   let start = new Date(startStr);
   const end = new Date(endStr);
   const date = startStr.split('T')[0];
 
   while (start < end) {
-    let slotEnd = new Date(start.getTime() + 30 * 60000);
+    let slotEnd = new Date(start.getTime() + 2 * 60 * 60000); // 2 horas
     if (slotEnd > end) slotEnd = end;
     slots.push({
       date,
@@ -39,7 +39,7 @@ export function splitIntoHalfHourSlots(startStr: string, endStr: string, baseSlo
       booked: false,
       studentId: null,
       ...Object.fromEntries(Object.entries(baseSlot).filter(([key]) => key !== 'status')),
-      status: (baseSlot.status as "free" | "cancelled" | "scheduled") ?? "free",
+      status: (baseSlot.status as "available" | "cancelled" | "scheduled") ?? "available",
     });
     start = slotEnd;
   }

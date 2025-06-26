@@ -1,9 +1,7 @@
-import { SignUp } from '@clerk/nextjs'
-
 export default function Page() {
     return (
         <div className='h-screen flex justify-center items-center'>
-            <SignUp />
+            {/* Elimina cualquier import y uso de Clerk */}
         </div>
     );
 }

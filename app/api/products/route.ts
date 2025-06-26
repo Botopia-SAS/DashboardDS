@@ -1,4 +1,3 @@
-import { getAuth } from "@clerk/nextjs/server";
 import { NextRequest, NextResponse } from "next/server";
 
 import { connectToDB } from "@/lib/mongoDB";
@@ -6,12 +5,12 @@ import Product from "@/lib/models/Product";
 
 export const POST = async (req: NextRequest) => {
   try {
-    const { userId } = getAuth(req);
-    console.log("🔍 userId recibido:", userId); // Debugging
-
-    if (!userId) {
-      return new NextResponse("Unauthorized", { status: 401 });
-    }
+    // Clerk getAuth removed
+    // const { userId } = getAuth(req);
+    // console.log("🔍 userId recibido:", userId); // Debugging
+    // if (!userId) {
+    //   return new NextResponse("Unauthorized", { status: 401 });
+    // }
     await connectToDB();
 
     const {
