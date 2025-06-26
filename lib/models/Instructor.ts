@@ -8,6 +8,11 @@ const SlotSchema = new mongoose.Schema(
     booked: { type: Boolean, default: false },
     studentId: { type: mongoose.Schema.Types.ObjectId, ref: "User", default: null },
     status: { type: String, default: "free" },
+    classType: { type: String, enum: ["D.A.T.E", "B.D.I", "A.D.I", "driving test"], required: false },
+    amount: { type: Number, default: null },
+    paid: { type: Boolean, default: false },
+    pickupLocation: { type: String, default: "" },
+    dropoffLocation: { type: String, default: "" },
   },
   { _id: false }
 );

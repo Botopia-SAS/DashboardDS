@@ -3,15 +3,12 @@ import Order from "@/lib/models/Order";
 import Payment from "@/lib/models/Payments";
 import TicketClass from "@/lib/models/TicketClass";
 import { connectToDB } from "@/lib/mongoDB";
-import { createClerkClient } from "@clerk/backend";
 import { NextRequest, NextResponse } from "next/server";
 import _ from "lodash";
 import bcrypt from "bcryptjs";
 import sendEmail from "@/lib/sendEmail";
 
 export const dynamic = "force-dynamic";
-
-const clerk = createClerkClient({ secretKey: process.env.CLERK_SECRET_KEY });
 
 export async function DELETE(req: NextRequest) {
   try {

@@ -1,6 +1,5 @@
 "use client";
 
-import { UserButton } from "@clerk/nextjs";
 import Image from "next/image";
 import Link from "next/link";
 import { usePathname } from "next/navigation";
@@ -38,7 +37,6 @@ const LeftSideBar = () => {
 
       {/* PERFIL */}
       <div className="mt-auto flex gap-4 items-center px-5 py-3 rounded-lg bg-gray-700 text-white hover:bg-gray-600 hover:scale-105 transition-all w-full">
-        <UserButton />
         <p className="text-lg font-medium">Edit Profile</p>
       </div>
     </div>

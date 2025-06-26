@@ -6,10 +6,10 @@ import InstructorForm from "@/components/instructors/InstructorForm";
 import type { Slot } from "@/components/instructors/types";
 import { InstructorData } from "@/types/instructor";
 
-const VALID_STATUSES = ["free", "cancelled", "scheduled"] as const;
-function normalizeSlotStatus(status: string | undefined): "free" | "cancelled" | "scheduled" | undefined {
-  if (!status) return undefined;
-  return VALID_STATUSES.includes(status as typeof VALID_STATUSES[number]) ? status as typeof VALID_STATUSES[number] : undefined;
+const VALID_STATUSES = ["available", "cancelled", "scheduled"] as const;
+function normalizeSlotStatus(status: string | undefined): "available" | "cancelled" | "scheduled" | undefined {
+  if (status === "available" || status === "cancelled" || status === "scheduled") return status as any;
+  return undefined;
 }
 
 const InstructorDetails = ({
@@ -70,13 +70,13 @@ const InstructorDetails = ({
                 end: slot.end,
                 booked: slot.booked || false,
                 studentId: slot.studentId || null,
-                status: (normalizeSlotStatus(slot.status) ?? undefined) as "free" | "cancelled" | "scheduled" | undefined,
+                status: (normalizeSlotStatus(slot.status) ?? undefined) as "available" | "cancelled" | "scheduled" | undefined,
               } as Slot))
             );
           } else if (flatSchedule) {
             flatSchedule = flatSchedule.map((slot: Slot) => ({
               ...slot,
-              status: (normalizeSlotStatus(slot.status) ?? undefined) as "free" | "cancelled" | "scheduled" | undefined,
+              status: (normalizeSlotStatus(slot.status) ?? undefined) as "available" | "cancelled" | "scheduled" | undefined,
             } as Slot));
           }
           setInstructorDetails({ ...selectedInstructor, schedule: flatSchedule });

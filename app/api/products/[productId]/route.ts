@@ -1,6 +1,5 @@
 import Product from "@/lib/models/Product";
 import { connectToDB } from "@/lib/mongoDB";
-import { auth } from "@clerk/nextjs/server";
 import { NextRequest, NextResponse } from "next/server";
 
 // ✅ GET SINGLE PRODUCT (Extrae `productId` desde la URL manualmente)
@@ -86,11 +85,6 @@ export const DELETE = async (req: NextRequest) => {
 
     if (!productId) {
       return new NextResponse("Product ID is required", { status: 400 });
-    }
-
-    const { userId } = await auth();
-    if (!userId) {
-      return new NextResponse("Unauthorized", { status: 401 });
     }
 
     await connectToDB();

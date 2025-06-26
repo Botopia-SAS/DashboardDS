@@ -24,7 +24,12 @@ export interface Slot {
   recurrence?: string;
   slotId?: string;
   studentId?: string | null;
-  status?: "free" | "cancelled" | "scheduled";
+  status?: "available" | "cancelled" | "scheduled";
+  classType?: "D.A.T.E" | "B.D.I" | "A.D.I" | "driving test";
+  amount?: number;
+  paid?: boolean;
+  pickupLocation?: string;
+  dropoffLocation?: string;
 }
 
 export interface User {
@@ -49,4 +54,4 @@ export interface InstructorData {
   schedule?: Slot[];
 }
 
-export type SlotType = "" | "free" | "cancelled" | "booked"; 
+export type SlotType = "" | "available" | "cancelled" | "booked"; 
