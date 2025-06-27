@@ -12,6 +12,9 @@ const ticketClassSchema = Joi.object({
   hour: Joi.string()
     .pattern(/^([01]\d|2[0-3]):([0-5]\d)$/)
     .required(),
+  endHour: Joi.string()
+    .pattern(/^([01]\d|2[0-3]):([0-5]\d)$/)
+    .optional(),
   classId: Joi.string().required(),
   type: Joi.string().valid("date", "bdi", "adi").required(),
   duration: Joi.string().valid("2h", "4h", "8h", "12h").required(),
@@ -45,9 +48,11 @@ export async function POST(req: NextRequest) {
   try {
     await connectToDB();
     const requestData = await req.json();
+    console.log("[API] ticket/classes POST - requestData:", requestData);
     const { error, value } = ticketClassSchema.validate(requestData);
 
     if (error) {
+      console.error("[API] ticket/classes POST - Joi validation error:", error.details);
       return NextResponse.json(
         {
           error: "Invalid data",
@@ -164,6 +169,19 @@ export async function POST(req: NextRequest) {
     // Create the new class
     const newClass = await TicketClass.create(value);
     await newClass.save();
+
+    // Add slot to instructor's schedule (professional way: only ticketClassId and status)
+    await Instructor.findByIdAndUpdate(
+      instructorId,
+      {
+        $push: {
+          schedule: {
+            ticketClassId: newClass._id,
+            status: "available"
+          }
+        }
+      }
+    );
 
     return NextResponse.json(newClass, { status: 201 });
   } catch (error) {

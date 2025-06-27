@@ -10,20 +10,10 @@ import { UseFormReturn } from "react-hook-form";
 import { useState } from "react";
 import { Eye, EyeOff } from "lucide-react";
 import type { Slot } from "./types";
-
-interface InstructorFormData {
-  name: string;
-  dni: string;
-  email: string;
-  password: string;
-  photo: string | string[];
-  certifications?: string;
-  experience?: string;
-  schedule?: Slot[];
-}
+import type { FieldValues } from "react-hook-form";
 
 interface InstructorBasicInfoProps {
-  form: UseFormReturn<InstructorFormData>;
+  form: UseFormReturn<FieldValues>;
   generatePassword: () => void;
 }
 
@@ -166,6 +156,6 @@ const InstructorBasicInfo = ({ form, generatePassword }: InstructorBasicInfoProp
       </div>
     </>
   );
-};
+}
 
 export default InstructorBasicInfo; 

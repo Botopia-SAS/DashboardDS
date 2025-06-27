@@ -24,6 +24,9 @@ interface ScheduleModalProps {
     paid?: boolean;
     pickupLocation?: string;
     dropoffLocation?: string;
+    classId?: string;
+    duration?: string;
+    locationId?: string;
   };
   setCurrentSlot: (slot: {
     start: string;
@@ -40,6 +43,9 @@ interface ScheduleModalProps {
     paid?: boolean;
     pickupLocation?: string;
     dropoffLocation?: string;
+    classId?: string;
+    duration?: string;
+    locationId?: string;
   } | ((prev: {
     start: string;
     end: string;
@@ -55,6 +61,9 @@ interface ScheduleModalProps {
     paid?: boolean;
     pickupLocation?: string;
     dropoffLocation?: string;
+    classId?: string;
+    duration?: string;
+    locationId?: string;
   }) => {
     start: string;
     end: string;
@@ -70,6 +79,9 @@ interface ScheduleModalProps {
     paid?: boolean;
     pickupLocation?: string;
     dropoffLocation?: string;
+    classId?: string;
+    duration?: string;
+    locationId?: string;
   })) => void;
   handleSaveSlot: () => void;
   handleUpdateSlot: () => void;
@@ -80,8 +92,9 @@ interface ScheduleModalProps {
   slotType: SlotType;
   setSlotType: (type: SlotType) => void;
   allUsers: User[];
-  selectedStudent: string;
-  setSelectedStudent: (id: string) => void;
+  selectedStudent: string | string[];
+  setSelectedStudent: (id: string | string[]) => void;
+  locations: { _id: string; title: string }[];
 }
 
 // Time validation and helpers
@@ -115,6 +128,9 @@ type CurrentSlotType = {
   paid?: boolean;
   pickupLocation?: string;
   dropoffLocation?: string;
+  classId?: string;
+  duration?: string;
+  locationId?: string;
 };
 
 const ScheduleModal = ({
@@ -133,10 +149,13 @@ const ScheduleModal = ({
   allUsers,
   selectedStudent,
   setSelectedStudent,
+  locations,
 }: ScheduleModalProps) => {
   const [users, setUsers] = useState<User[]>(allUsers);
   const [classTypeError, setClassTypeError] = useState<string>("");
   const [timeRangeError, setTimeRangeError] = useState<string>("");
+  const [drivingClasses, setDrivingClasses] = useState<any[]>([]);
+  const [locationError, setLocationError] = useState<string>("");
 
   const recurrenceLabel = currentSlot?.recurrence === "Daily"
     ? "every day"
@@ -164,6 +183,14 @@ const ScheduleModal = ({
       }
     }
   }, [slotType, allUsers, currentSlot, setSelectedStudent]);
+
+  useEffect(() => {
+    if (isOpen && currentSlot.classType && currentSlot.classType !== 'driving test') {
+      fetch('/api/classes')
+        .then(res => res.json())
+        .then(data => setDrivingClasses(data));
+    }
+  }, [isOpen, currentSlot.classType]);
 
   // Ajusta automáticamente el End Time al abrir el modal si es menor a 2 horas después del Start Time
   useEffect(() => {
@@ -197,6 +224,11 @@ const ScheduleModal = ({
 
   // Sobrescribe el botón de guardar para validar classType
   const handleSaveWithClassType = () => {
+    if (["D.A.T.E", "B.D.I", "A.D.I"].includes(currentSlot.classType || "") && !currentSlot.locationId) {
+      setLocationError("Location is required");
+      return;
+    }
+    setLocationError("");
     if (!currentSlot.classType) {
       setClassTypeError("Class type is required");
       return;
@@ -205,6 +237,11 @@ const ScheduleModal = ({
     handleSaveSlot();
   };
   const handleUpdateWithClassType = () => {
+    if (["D.A.T.E", "B.D.I", "A.D.I"].includes(currentSlot.classType || "") && !currentSlot.locationId) {
+      setLocationError("Location is required");
+      return;
+    }
+    setLocationError("");
     if (!currentSlot.classType) {
       setClassTypeError("Class type is required");
       return;
@@ -244,6 +281,52 @@ const ScheduleModal = ({
           </select>
           {classTypeError && <div className="text-red-500 text-xs mt-1">{classTypeError}</div>}
         </div>
+
+        {currentSlot.classType && currentSlot.classType !== 'driving test' && (
+          <div className="mt-3">
+            <label className="block text-sm font-medium">Driving Class</label>
+            <select
+              className="w-full border rounded px-2 py-1"
+              value={currentSlot.classId || ''}
+              onChange={e => {
+                const selected = drivingClasses.find((c: any) => c._id === e.target.value);
+                setCurrentSlot((prev: any) => prev ? {
+                  ...prev,
+                  classId: e.target.value,
+                  amount: selected && typeof selected.price === 'number' ? selected.price : undefined,
+                  duration: selected && typeof selected.length === 'number' ? `${selected.length}h` : '',
+                } : prev);
+              }}
+              required
+            >
+              <option value="">Select a class</option>
+              {drivingClasses.map((c: any) => (
+                <option key={c._id} value={c._id}>{c.title}</option>
+              ))}
+            </select>
+          </div>
+        )}
+
+        {["D.A.T.E", "B.D.I", "A.D.I"].includes(currentSlot.classType || "") && (
+          <div className="mt-3">
+            <label className="block text-sm font-medium">Location <span className="text-red-500">*</span></label>
+            <select
+              className="w-full border rounded px-2 py-1"
+              value={currentSlot.locationId || ""}
+              onChange={e => {
+                setCurrentSlot((prev: any) => prev ? { ...prev, locationId: e.target.value } : prev);
+                setLocationError("");
+              }}
+              required
+            >
+              <option value="">Select a location</option>
+              {locations.map(loc => (
+                <option key={loc._id} value={loc._id}>{loc.title}</option>
+              ))}
+            </select>
+            {locationError && <div className="text-red-500 text-xs mt-1">{locationError}</div>}
+          </div>
+        )}
 
         <label className="block text-sm font-medium mt-2">Start Time</label>
         <Input
@@ -349,51 +432,42 @@ const ScheduleModal = ({
           </label>
         </div>
 
-        {slotType === "booked" && (
+        {slotType === "booked" && currentSlot.classType && currentSlot.classType !== 'driving test' && (
+          <div className="mt-3">
+            <label className="block text-sm font-medium">Students</label>
+            <select
+              multiple
+              className="w-full border rounded px-2 py-1"
+              value={Array.isArray(selectedStudent) ? selectedStudent : [selectedStudent]}
+              onChange={e => {
+                const options = Array.from(e.target.selectedOptions, option => option.value);
+                setSelectedStudent(options);
+              }}
+            >
+              {allUsers.map((user) => (
+                <option key={user._id} value={user._id}>
+                  {(user.name || `${user.firstName || ''} ${user.lastName || ''}`.trim())} ({user.email})
+                </option>
+              ))}
+            </select>
+          </div>
+        )}
+
+        {slotType === "booked" && currentSlot.classType === "driving test" && (
           <div className="mt-3">
             <label className="block text-sm font-medium">Student</label>
-            <input
-              type="text"
-              placeholder="Search student by name, email or ID..."
-              onChange={(e) => {
-                const value = e.target.value.toLowerCase();
-                if (!value) {
-                  setUsers(allUsers); // Muestra todos si el campo está vacío
-                  return;
-                }
-                setUsers(
-                  allUsers.filter(
-                    (u) =>
-                      ((u.name ||
-                        `${u.firstName || ""} ${u.lastName || ""}`.trim()).toLowerCase().includes(value)
-                      ) ||
-                      (u.email && u.email.toLowerCase().includes(value)) ||
-                      (u._id && u._id.toLowerCase().includes(value))
-                  )
-                );
-              }}
-              className="mb-2 w-full"
-            />
-            {users.length > 0 ? (
-              <select
-                value={selectedStudent}
-                onChange={(e) => setSelectedStudent(e.target.value)}
-                className="w-full"
-              >
-                <option value="">Select a student</option>
-                {users.map((user) => (
-                  <option key={user._id} value={user._id}>
-                    {(user.name ||
-                      `${user.firstName || ""} ${user.lastName || ""}`.trim())} {" "}
-                    ({user.email})
-                  </option>
-                ))}
-              </select>
-            ) : (
-              <div className="text-sm text-gray-500 w-full text-center">
-                No students found
-              </div>
-            )}
+            <select
+              className="w-full border rounded px-2 py-1"
+              value={selectedStudent}
+              onChange={e => setSelectedStudent(e.target.value)}
+            >
+              <option value="">Select a student</option>
+              {allUsers.map((user) => (
+                <option key={user._id} value={user._id}>
+                  {(user.name || `${user.firstName || ''} ${user.lastName || ''}`.trim())} ({user.email})
+                </option>
+              ))}
+            </select>
           </div>
         )}
 

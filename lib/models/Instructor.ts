@@ -13,6 +13,7 @@ const SlotSchema = new mongoose.Schema(
     paid: { type: Boolean, default: false },
     pickupLocation: { type: String, default: "" },
     dropoffLocation: { type: String, default: "" },
+    ticketClassId: { type: mongoose.Schema.Types.ObjectId, ref: "TicketClass", required: false },
   },
   { _id: false }
 );
