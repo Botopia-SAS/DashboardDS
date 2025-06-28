@@ -38,7 +38,7 @@ interface Student {
   license_number: string 
 }
 
-export async function PATCH(req: NextRequest, { params }: { params: { classId: string } }) {
+export async function PATCH(req: NextRequest, { params }: { params: Promise<{ classId: string }> }) {
   const resolvedParams = await params;
   const classId = resolvedParams.classId;
 
@@ -105,7 +105,7 @@ export async function PATCH(req: NextRequest, { params }: { params: { classId: s
   }
 }
 
-export async function GET(req: NextRequest, { params }: { params: { classId: string } }) {
+export async function GET(req: NextRequest, { params }: { params: Promise<{ classId: string }> }) {
   const resolvedParams = await params;
   const classId = resolvedParams.classId;
   console.log(classId);
@@ -122,7 +122,7 @@ export async function GET(req: NextRequest, { params }: { params: { classId: str
   return NextResponse.json(ticketClass);
 }
 
-export async function DELETE(req: NextRequest, { params }: { params: { classId: string } }) {
+export async function DELETE(req: NextRequest, { params }: { params: Promise<{ classId: string }> }) {
   await connectToDB();
   const resolvedParams = await params;
   const classId = resolvedParams.classId || req.url.split("/").pop();

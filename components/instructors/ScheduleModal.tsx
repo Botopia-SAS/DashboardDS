@@ -181,7 +181,12 @@ const ScheduleModal = ({
 }: ScheduleModalProps) => {
   const [classTypeError, setClassTypeError] = useState<string>("");
   const [timeRangeError, setTimeRangeError] = useState<string>("");
-  const [drivingClasses, setDrivingClasses] = useState<Array<{_id: string, title: string}>>([]);
+  const [drivingClasses, setDrivingClasses] = useState<Array<{
+    _id: string;
+    title: string;
+    price?: number;
+    length?: number;
+  }>>([]);
   const [locationError, setLocationError] = useState<string>("");
 
   const recurrenceLabel = currentSlot?.recurrence === "Daily"
@@ -204,12 +209,11 @@ const ScheduleModal = ({
 
   useEffect(() => {
     if (slotType === "booked") {
-      setUsers(allUsers);
       if (currentSlot && currentSlot.studentId) {
         setSelectedStudent(currentSlot.studentId);
       }
     }
-  }, [slotType, allUsers, currentSlot, setSelectedStudent]);
+  }, [slotType, currentSlot, setSelectedStudent]);
 
   useEffect(() => {
     if (isOpen && currentSlot.classType && currentSlot.classType !== 'driving test') {
