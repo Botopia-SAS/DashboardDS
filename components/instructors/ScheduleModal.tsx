@@ -98,6 +98,34 @@ interface ScheduleModalProps {
 }
 
 // Time validation and helpers
+function convertTo24HourFormat(time: string): string {
+  // Si ya está en formato 24 horas (HH:MM), retornarlo tal como está
+  if (/^([01]?[0-9]|2[0-3]):[0-5][0-9]$/.test(time)) {
+    return time;
+  }
+  
+  // Si tiene AM/PM, convertir a 24 horas
+  const timePattern = /^(\d{1,2}):(\d{2})\s*(AM|PM)$/i;
+  const match = time.match(timePattern);
+  
+  if (match) {
+    let hours = parseInt(match[1]);
+    const minutes = match[2];
+    const period = match[3].toUpperCase();
+    
+    if (period === 'AM' && hours === 12) {
+      hours = 0;
+    } else if (period === 'PM' && hours !== 12) {
+      hours += 12;
+    }
+    
+    return `${hours.toString().padStart(2, '0')}:${minutes}`;
+  }
+  
+  // Si no coincide con ningún patrón, retornar tal como está
+  return time;
+}
+
 function roundToNearest30(time: string, direction: 'up' | 'down' = 'down') {
   const [h, m] = time.split(":").map(Number);
   let minutes = h * 60 + m;
@@ -151,10 +179,9 @@ const ScheduleModal = ({
   setSelectedStudent,
   locations,
 }: ScheduleModalProps) => {
-  const [users, setUsers] = useState<User[]>(allUsers);
   const [classTypeError, setClassTypeError] = useState<string>("");
   const [timeRangeError, setTimeRangeError] = useState<string>("");
-  const [drivingClasses, setDrivingClasses] = useState<any[]>([]);
+  const [drivingClasses, setDrivingClasses] = useState<Array<{_id: string, title: string}>>([]);
   const [locationError, setLocationError] = useState<string>("");
 
   const recurrenceLabel = currentSlot?.recurrence === "Daily"
@@ -289,8 +316,8 @@ const ScheduleModal = ({
               className="w-full border rounded px-2 py-1"
               value={currentSlot.classId || ''}
               onChange={e => {
-                const selected = drivingClasses.find((c: any) => c._id === e.target.value);
-                setCurrentSlot((prev: any) => prev ? {
+                const selected = drivingClasses.find((c) => c._id === e.target.value);
+                setCurrentSlot((prev) => prev ? {
                   ...prev,
                   classId: e.target.value,
                   amount: selected && typeof selected.price === 'number' ? selected.price : undefined,
@@ -300,7 +327,7 @@ const ScheduleModal = ({
               required
             >
               <option value="">Select a class</option>
-              {drivingClasses.map((c: any) => (
+              {drivingClasses.map((c) => (
                 <option key={c._id} value={c._id}>{c.title}</option>
               ))}
             </select>
@@ -314,7 +341,7 @@ const ScheduleModal = ({
               className="w-full border rounded px-2 py-1"
               value={currentSlot.locationId || ""}
               onChange={e => {
-                setCurrentSlot((prev: any) => prev ? { ...prev, locationId: e.target.value } : prev);
+                setCurrentSlot((prev) => prev ? { ...prev, locationId: e.target.value } : prev);
                 setLocationError("");
               }}
               required
@@ -334,7 +361,8 @@ const ScheduleModal = ({
           value={startTime}
           step="1800"
           onChange={e => {
-            const rounded = roundToNearest30(e.target.value, 'down');
+            const timeValue = convertTo24HourFormat(e.target.value);
+            const rounded = roundToNearest30(timeValue, 'down');
             // Calcula el end time sumando 2 horas
             const [h, m] = rounded.split(":").map(Number);
             let endHour = h + 2;
@@ -362,7 +390,8 @@ const ScheduleModal = ({
             return `${minHour.toString().padStart(2, "0")}:${minMinute.toString().padStart(2, "0")}`;
           })()}
           onChange={e => {
-            const rounded = roundToNearest30(e.target.value, 'up');
+            const timeValue = convertTo24HourFormat(e.target.value);
+            const rounded = roundToNearest30(timeValue, 'up');
             setCurrentSlot((prev: CurrentSlotType) => prev
               ? { ...prev, end: `${prev.end.split("T")[0]}T${rounded}` }
               : prev
@@ -532,4 +561,4 @@ const ScheduleModal = ({
   );
 };
 
-export default ScheduleModal; 
+export default ScheduleModal;

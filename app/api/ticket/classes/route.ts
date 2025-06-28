@@ -8,7 +8,10 @@ import Instructor from "@/lib/models/Instructor";
 
 const ticketClassSchema = Joi.object({
   locationId: Joi.string().required(),
-  date: Joi.date().iso().required(),
+  date: Joi.alternatives().try(
+    Joi.date().iso(),
+    Joi.string().pattern(/^\d{4}-\d{2}-\d{2}$/)
+  ).required(),
   hour: Joi.string()
     .pattern(/^([01]\d|2[0-3]):([0-5]\d)$/)
     .required(),
@@ -53,6 +56,7 @@ export async function POST(req: NextRequest) {
 
     if (error) {
       console.error("[API] ticket/classes POST - Joi validation error:", error.details);
+      console.error("[API] ticket/classes POST - Failed data:", requestData);
       return NextResponse.json(
         {
           error: "Invalid data",
@@ -65,6 +69,7 @@ export async function POST(req: NextRequest) {
     const {
       date,
       hour,
+      endHour,
       instructorId,
       students,
       locationId,
@@ -141,7 +146,15 @@ export async function POST(req: NextRequest) {
       instructorId,
     });
 
+    console.log("[API] Checking for existing class:", {
+      date,
+      hour,
+      instructorId,
+      existingClass: existingInstructorClass ? existingInstructorClass._id : null
+    });
+
     if (existingInstructorClass) {
+      console.error("[API] Conflict found:", existingInstructorClass);
       return NextResponse.json(
         { error: "The instructor already has a class scheduled at this time." },
         { status: 400 }
@@ -170,18 +183,41 @@ export async function POST(req: NextRequest) {
     const newClass = await TicketClass.create(value);
     await newClass.save();
 
-    // Add slot to instructor's schedule (professional way: only ticketClassId and status)
-    await Instructor.findByIdAndUpdate(
-      instructorId,
+    // Update existing slot in instructor's schedule with the ticketClassId
+    // Find slot that matches date, start time (hour), and end time (endHour)
+    const updateResult = await Instructor.updateOne(
+      { 
+        _id: instructorId,
+        'schedule.date': date,
+        'schedule.start': hour,
+        'schedule.end': endHour
+      },
       {
-        $push: {
-          schedule: {
-            ticketClassId: newClass._id,
-            status: "available"
-          }
+        $set: {
+          'schedule.$.ticketClassId': newClass._id
         }
       }
     );
+
+    console.log('[API] Updated instructor slot with ticketClassId:', {
+      instructorId,
+      date,
+      hour,
+      endHour,
+      ticketClassId: newClass._id,
+      updateResult
+    });
+
+    // If no existing slot was updated, it means the slot doesn't exist in the instructor's schedule
+    // In this case, we should not create a new incomplete slot
+    if (updateResult.modifiedCount === 0) {
+      console.warn('[API] No matching slot found in instructor schedule for:', {
+        instructorId,
+        date,
+        hour,
+        endHour
+      });
+    }
 
     return NextResponse.json(newClass, { status: 201 });
   } catch (error) {
@@ -197,10 +233,15 @@ export async function GET(req: NextRequest) {
   try {
     await connectToDB();
     const queryType = req.nextUrl.searchParams.get("type");
+    const instructorId = req.nextUrl.searchParams.get("instructorId");
     let query = {};
 
     if (queryType) {
       query = { type: queryType };
+    }
+    
+    if (instructorId) {
+      query = { ...query, instructorId };
     }
 
     const classes = await TicketClass.find(query).lean();
@@ -267,3 +308,5 @@ export async function GET(req: NextRequest) {
     );
   }
 }
+
+

@@ -8,15 +8,41 @@ import { formSchema } from "./instructorFormSchema";
 import {
   toValidClassType,
   mapClassTypeForBackend,
-  normalizeDuration,
 } from "./instructorFormUtils";
 import { InstructorData, Slot, SlotType, User } from "./types";
 import {
-  generateRecurringSlots,
-  getStudentName,
   normalizeSchedule,
   splitIntoTwoHourSlots,
 } from "./utils";
+
+// Función para convertir horas a formato 24 horas
+function convertTo24HourFormat(time: string): string {
+  // Si ya está en formato 24 horas (HH:MM), retornarlo tal como está
+  if (/^([01]?[0-9]|2[0-3]):[0-5][0-9]$/.test(time)) {
+    return time;
+  }
+  
+  // Si tiene AM/PM, convertir a 24 horas
+  const timePattern = /^(\d{1,2}):(\d{2})\s*(AM|PM)$/i;
+  const match = time.match(timePattern);
+  
+  if (match) {
+    let hours = parseInt(match[1]);
+    const minutes = match[2];
+    const period = match[3].toUpperCase();
+    
+    if (period === 'AM' && hours === 12) {
+      hours = 0;
+    } else if (period === 'PM' && hours !== 12) {
+      hours += 12;
+    }
+    
+    return `${hours.toString().padStart(2, '0')}:${minutes}`;
+  }
+  
+  // Si no coincide con ningún patrón, retornar tal como está
+  return time;
+}
 
 export function useInstructorForm(initialData?: InstructorData) {
   const recurrenceOptions = ["None", "Daily", "Weekly", "Monthly"];
@@ -37,7 +63,6 @@ export function useInstructorForm(initialData?: InstructorData) {
     isEditing: false,
   });
   const [editModalOpen, setEditModalOpen] = useState(false);
-  const [editAll, setEditAll] = useState(false);
   const [allUsers, setAllUsers] = useState<User[]>([]);
   const [selectedStudent, setSelectedStudent] = useState<string | string[]>("");
   const [slotType, setSlotType] = useState<SlotType>("");
@@ -57,7 +82,7 @@ export function useInstructorForm(initialData?: InstructorData) {
   useEffect(() => {
     async function loadSchedule() {
       setLoadingSchedule(true);
-      let baseSchedule = normalizeSchedule(initialData?.schedule || []);
+      const baseSchedule = normalizeSchedule(initialData?.schedule || []);
       let classesMap: Record<string, string> = {};
       let locationsMap: Record<string, string> = {};
       try {
@@ -66,16 +91,67 @@ export function useInstructorForm(initialData?: InstructorData) {
           const classesArr = await classesRes.json();
           classesMap = Object.fromEntries((classesArr as { _id: string, title: string }[]).map((c) => [c._id, c.title]));
         }
-      } catch (e) { }
+      } catch {
+        // Ignore error
+      }
       try {
         const locationsRes = await fetch('/api/locations');
         if (locationsRes.ok) {
           const locationsArr = await locationsRes.json();
           locationsMap = Object.fromEntries((locationsArr as { _id: string, title: string }[]).map((l) => [l._id, l.title]));
         }
-      } catch (e) { }
+      } catch {
+        // Ignore error
+      }
+      
+      // Step 1: Get all ticketclasses for this instructor to populate missing ticketClassIds
+      let instructorTicketClasses: Array<{_id: string, date: string, hour: string, endHour: string}> = [];
+      if (initialData?._id) {
+        try {
+          const ticketClassesRes = await fetch(`/api/ticket/classes?instructorId=${initialData._id}`);
+          if (ticketClassesRes.ok) {
+            const allTicketClasses = await ticketClassesRes.json();
+            instructorTicketClasses = Array.isArray(allTicketClasses) ? allTicketClasses : [];
+            console.log('[LOAD] Found ticketclasses for instructor:', instructorTicketClasses.length);
+          }
+        } catch {
+          console.warn('[LOAD] Failed to fetch instructor ticketclasses');
+        }
+      }
+      
+      // Step 2: Process schedule and populate ticketClassIds for slots that don't have them
+      const slotsWithPopulatedTicketClassIds = baseSchedule.map(slot => {
+        // If slot already has ticketClassId, keep it
+        if (slot.ticketClassId && slot.ticketClassId !== "") {
+          return slot;
+        }
+        
+        // Find matching ticketclass for this slot
+        const matchingTicketClass = instructorTicketClasses.find(tc => 
+          tc.date?.slice(0, 10) === slot.date &&
+          tc.hour === slot.start &&
+          tc.endHour === slot.end
+        );
+        
+        if (matchingTicketClass) {
+          console.log('[LOAD] Found matching ticketclass for slot:', {
+            date: slot.date,
+            start: slot.start,
+            end: slot.end,
+            ticketClassId: matchingTicketClass._id
+          });
+          return {
+            ...slot,
+            ticketClassId: matchingTicketClass._id
+          };
+        }
+        
+        return slot;
+      });
+      
+      // Step 3: Fetch full ticketclass data for slots with ticketClassIds
       const slotsWithTicketClass = await Promise.all(
-        baseSchedule.map(async (slot) => {
+        slotsWithPopulatedTicketClassIds.map(async (slot) => {
           if (slot.ticketClassId && slot.ticketClassId !== "") {
             try {
               const res = await fetch(`/api/ticket/classes/${slot.ticketClassId}`);
@@ -95,12 +171,13 @@ export function useInstructorForm(initialData?: InstructorData) {
                   booked: slot.booked ?? false,
                   studentId: slot.studentId ?? null,
                   ticketClassId: slot.ticketClassId,
-                  slotId: slot.slotId || slot.ticketClassId,
+                  // slotId solo debe ser el del slot, nunca el ticketClassId
+                  slotId: slot.slotId || (slot as any)._id,
                 };
               } else {
                 return slot;
               }
-            } catch (e) {
+            } catch {
               return slot;
             }
           }
@@ -111,7 +188,6 @@ export function useInstructorForm(initialData?: InstructorData) {
       setLoadingSchedule(false);
     }
     loadSchedule();
-    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [initialData]);
 
   useEffect(() => {
@@ -126,6 +202,29 @@ export function useInstructorForm(initialData?: InstructorData) {
     }
   };
 
+  // Función para descartar todos los cambios y restablecer al estado original
+  const discardAllChanges = () => {
+    // Restablecer el schedule a los valores originales
+    const originalSchedule = normalizeSchedule(initialData?.schedule || []);
+    setSchedule(originalSchedule);
+    
+    // Limpiar todos los arrays de eliminación
+    setTicketClassIdsToDelete([]);
+    setDrivingTestSlotsToDelete([]);
+    
+    // Limpiar localStorage
+    clearScheduleDraft();
+    
+    // Restablecer estado del modal
+    setIsModalOpen(false);
+    setCurrentSlot({ start: "", end: "", booked: false, recurrence: "None" });
+    setSelectedStudent("");
+    setSlotType("");
+    setRecurrenceEnd(null);
+    
+    console.log('[DISCARD] All changes have been discarded, state restored to original');
+  };
+
   useEffect(() => {
     const fetchUsers = async () => {
       try {
@@ -138,7 +237,7 @@ export function useInstructorForm(initialData?: InstructorData) {
             name: u.name || `${u.firstName || ""} ${u.lastName || ""}`.trim(),
           }));
         setAllUsers(filtered);
-      } catch (error) {
+      } catch {
         toast.error("Could not load students.");
       }
     };
@@ -153,7 +252,7 @@ export function useInstructorForm(initialData?: InstructorData) {
         const res = await fetch("/api/locations");
         const data = await res.json();
         setLocations(data);
-      } catch (e) {
+      } catch {
         toast.error("Could not load locations");
       }
     };
@@ -215,44 +314,52 @@ export function useInstructorForm(initialData?: InstructorData) {
     form.setValue("password", password);
   };
 
-  const handleDateSelect = (selectInfo: any) => {
+  const handleDateSelect = (selectInfo: { startStr: string; endStr: string }) => {
     const start = selectInfo.startStr;
-    const end = selectInfo.endStr;
+    let end = selectInfo.endStr;
+    
+    // Si no hay un end específico o es muy corto, establecer 2 horas por defecto
+    const startDate = new Date(start);
+    const endDate = new Date(end);
+    const durationMinutes = (endDate.getTime() - startDate.getTime()) / (1000 * 60);
+    
+    // Si la duración es menor a 30 minutos (click rápido), establecer 2 horas por defecto
+    if (durationMinutes < 30) {
+      const defaultEndDate = new Date(startDate.getTime() + 2 * 60 * 60 * 1000); // +2 horas
+      end = defaultEndDate.toISOString();
+    }
+    
     setCurrentSlot({ start, end, booked: false, recurrence: "None" });
     setIsModalOpen(true);
   };
 
   const originalTicketClassIds: string[] = Array.isArray(initialData?.schedule)
     ? initialData.schedule
-        .filter((s: any) => !!s.ticketClassId)
-        .map((s: any) => s.ticketClassId)
+        .filter((s: Slot) => !!s.ticketClassId)
+        .map((s: Slot) => s.ticketClassId as string)
     : [];
 
   const handleDeleteSlot = async () => {
     if (!currentSlot) return;
-    // Si es ticketclass (D.A.T.E, B.D.I, A.D.I), primero elimina el ticket en la base de datos
+    
+    // Si es ticketclass (D.A.T.E, B.D.I, A.D.I), solo marcar para eliminación
+    // NO hacer eliminación inmediata - solo visual hasta "Save Changes"
     if (
       typeof currentSlot.ticketClassId === 'string' &&
       currentSlot.ticketClassId &&
       ["D.A.T.E", "B.D.I", "A.D.I"].includes(currentSlot.classType)
     ) {
-      try {
-        console.log('[DeleteTicketClass] Deleting ticket class:', currentSlot.ticketClassId);
-        const res = await fetch(`/api/ticket/classes/${currentSlot.ticketClassId}`, { method: 'DELETE' });
-        const text = await res.text();
-        if (!res.ok) {
-          console.error('[DeleteTicketClass] Error:', text);
-          toast.error("Error deleting ticket class in DB: " + text);
-          return;
-        } else {
-          console.log('[DeleteTicketClass] Deleted OK:', text);
+      // Agregar a la lista para eliminación al guardar
+      setTicketClassIdsToDelete((prev) => {
+        // Evitar duplicados
+        if (prev.includes(currentSlot.ticketClassId)) {
+          return prev;
         }
-      } catch (e) {
-        console.error('[DeleteTicketClass] Exception:', e);
-        toast.error("Error deleting ticket class in DB");
-        return;
-      }
+        console.log('[DeleteTicketClass] Marked for deletion on save:', currentSlot.ticketClassId);
+        return [...prev, currentSlot.ticketClassId];
+      });
     }
+    
     // Si es Driving Test, guardar el slotId para eliminarlo en el backend al guardar
     if (currentSlot.classType === 'driving test' && currentSlot.slotId) {
       setDrivingTestSlotsToDelete((prev) => [...prev, currentSlot.slotId]);
@@ -286,46 +393,72 @@ export function useInstructorForm(initialData?: InstructorData) {
     return "available";
   }
 
-  const handleUpdateSlot = () => {
+  const handleUpdateSlot = async () => {
     if (!currentSlot) {
       toast.error("No slot defined.");
       return;
     }
+    
     const date = currentSlot.start.split("T")[0];
     const startTime = currentSlot.start.split("T")[1];
     const endTime = currentSlot.end.split("T")[1];
-    setSchedule((prevSchedule: Slot[]) => {
-      const oldSlot = prevSchedule.find(slot => slot.slotId === currentSlot.originalSlotId);
-      let newTicketClassIdsToDelete = [...ticketClassIdsToDelete];
-      if (oldSlot && oldSlot.ticketClassId) {
-        newTicketClassIdsToDelete.push(oldSlot.ticketClassId);
+    
+    // Encontrar el slot original para saber qué eliminar
+    const oldSlot = schedule.find(slot => slot.slotId === currentSlot.originalSlotId);
+    
+    if (oldSlot) {
+      // PASO 1: DELETE - Marcar el slot/ticketclass original para eliminación
+      // NO hacer eliminación inmediata - solo visual hasta "Save Changes"
+      
+      // Si es ticketclass (D.A.T.E, B.D.I, A.D.I), marcarlo para eliminación al guardar
+      if (oldSlot.ticketClassId && ["D.A.T.E", "B.D.I", "A.D.I"].includes(oldSlot.classType || "")) {
+        setTicketClassIdsToDelete((prev) => {
+          if (prev.includes(oldSlot.ticketClassId!)) {
+            return prev;
+          }
+          console.log('[UPDATE] Marked old ticketclass for deletion on save:', oldSlot.ticketClassId);
+          return [...prev, oldSlot.ticketClassId!];
+        });
       }
-      setTicketClassIdsToDelete(newTicketClassIdsToDelete);
+      
+      // Si es driving test, marcarlo para eliminación en el backend
+      if (oldSlot.classType === 'driving test' && oldSlot.slotId) {
+        setDrivingTestSlotsToDelete((prev) => [...prev, oldSlot.slotId!]);
+      }
+    }
+    
+    // PASO 2: CREATE - Crear el nuevo slot (la lógica existente para crear)
+    setSchedule((prevSchedule: Slot[]) => {
+      // Remover el slot original
       const filtered = prevSchedule.filter(slot => slot.slotId !== currentSlot.originalSlotId);
       const newSlotId = uuidv4();
-      return [
-        ...filtered,
-        {
-          ...currentSlot,
-          date,
-          start: startTime,
-          end: endTime,
-          booked: slotType === "booked",
-          studentId: slotType === "booked" ? selectedStudent : null,
-          status: getSlotStatus(slotType),
-          recurrence: currentSlot.recurrence,
-          slotId: newSlotId,
-          classType: toValidClassType(currentSlot.classType),
-          amount: currentSlot.amount,
-          paid: currentSlot.paid,
-          pickupLocation: currentSlot.pickupLocation,
-          dropoffLocation: currentSlot.dropoffLocation,
-          locationId: currentSlot.locationId,
-          duration: currentSlot.duration,
-          classId: currentSlot.classId,
-        }
-      ];
+      
+      // Crear el nuevo slot
+      const newSlot = {
+        ...currentSlot,
+        date,
+        start: startTime,
+        end: endTime,
+        booked: slotType === "booked",
+        studentId: slotType === "booked" ? selectedStudent : null,
+        status: getSlotStatus(slotType),
+        recurrence: currentSlot.recurrence,
+        slotId: newSlotId,
+        classType: toValidClassType(currentSlot.classType),
+        amount: currentSlot.amount,
+        paid: currentSlot.paid,
+        pickupLocation: currentSlot.pickupLocation,
+        dropoffLocation: currentSlot.dropoffLocation,
+        locationId: currentSlot.locationId,
+        duration: currentSlot.duration,
+        classId: currentSlot.classId,
+        // NO heredar ticketClassId del slot original - se creará uno nuevo al guardar
+        ticketClassId: undefined,
+      };
+      
+      return [...filtered, newSlot];
     });
+    
     setIsModalOpen(false);
     setCurrentSlot({ start: "", end: "", booked: false, recurrence: "None" });
     setSelectedStudent("");
@@ -334,11 +467,46 @@ export function useInstructorForm(initialData?: InstructorData) {
     );
   };
 
+  // Función para generar fechas de recurrencia
+  const generateRecurringDates = (startDate: string, recurrence: string, endDate: string | null): string[] => {
+    const dates: string[] = [];
+    const start = new Date(startDate);
+    const end = endDate ? new Date(endDate) : null;
+    
+    // Siempre incluir la fecha inicial
+    dates.push(startDate);
+    
+    if (recurrence === "None" || !end) {
+      return dates;
+    }
+    
+    const current = new Date(start);
+    
+    while (current <= end) {
+      if (recurrence === "Daily") {
+        current.setDate(current.getDate() + 1);
+      } else if (recurrence === "Weekly") {
+        current.setDate(current.getDate() + 7);
+      } else if (recurrence === "Monthly") {
+        current.setMonth(current.getMonth() + 1);
+      }
+      
+      if (current <= end) {
+        dates.push(current.toISOString().split('T')[0]);
+      }
+    }
+    
+    return dates;
+  };
+
   const handleSaveSlot = () => {
     if (!currentSlot) {
       toast.error("No slot defined.");
       return;
     }
+    
+    console.log('[SAVE_SLOT] currentSlot:', currentSlot);
+    
     if (!slotType) {
       toast.error("Please select a slot type.");
       return;
@@ -352,6 +520,13 @@ export function useInstructorForm(initialData?: InstructorData) {
       toast.error("You must assign the instructor to this location before adding a class here.");
       return;
     }
+    
+    // Validar recurrencia
+    if (currentSlot.recurrence !== "None" && !recurrenceEnd) {
+      toast.error("Please select an end date for the recurring slot.");
+      return;
+    }
+    
     // --- Ensure locationId is always a string (the _id) ---
     let locationId = currentSlot.locationId;
     if (locationId && typeof locationId === 'object' && '_id' in locationId) {
@@ -361,81 +536,134 @@ export function useInstructorForm(initialData?: InstructorData) {
       locationId = String(locationId);
     }
     // ---
+    
+    // Generar las fechas de recurrencia
+    const startDate = currentSlot.start.split("T")[0];
+    const recurringDates = generateRecurringDates(startDate, currentSlot.recurrence, recurrenceEnd);
+    
+    console.log("Generating recurring slots:", { 
+      startDate, 
+      recurrence: currentSlot.recurrence, 
+      endDate: recurrenceEnd, 
+      dates: recurringDates 
+    });
+    
     if (currentSlot.classType === "driving test") {
-      let newSlots: Slot[] = splitIntoTwoHourSlots(currentSlot.start, currentSlot.end, {
-        booked: slotType === "booked",
-        studentId: slotType === "booked" ? selectedStudent : null,
-        status: slotType === "booked" ? "scheduled" : slotType,
-        classType: currentSlot.classType,
-        amount: currentSlot.amount,
-        paid: currentSlot.paid,
-        pickupLocation: currentSlot.pickupLocation,
-        dropoffLocation: currentSlot.dropoffLocation,
-        slotId: currentSlot.slotId || uuidv4(),
-        locationId,
-      });
-      for (const slot of newSlots) {
+      // Para driving test, generar slots de 2 horas para cada fecha
+      const allNewSlots: Slot[] = [];
+      
+      for (const date of recurringDates) {
+        const rawStartTime = currentSlot.start.split("T")[1];
+        const rawEndTime = currentSlot.end.split("T")[1];
+        
+        // Convertir a formato 24 horas
+        const startTime = convertTo24HourFormat(rawStartTime);
+        const endTime = convertTo24HourFormat(rawEndTime);
+        
+        const dateTimeStart = `${date}T${startTime}`;
+        const dateTimeEnd = `${date}T${endTime}`;
+        
+        console.log('[SAVE_SLOT] Driving test time conversion:', { 
+          date, rawStartTime, rawEndTime, startTime, endTime 
+        });
+        
+        const newSlots: Slot[] = splitIntoTwoHourSlots(dateTimeStart, dateTimeEnd, {
+          booked: slotType === "booked",
+          studentId: slotType === "booked" ? selectedStudent : null,
+          status: slotType === "booked" ? "scheduled" : slotType,
+          classType: currentSlot.classType,
+          amount: currentSlot.amount,
+          paid: currentSlot.paid,
+          pickupLocation: currentSlot.pickupLocation,
+          dropoffLocation: currentSlot.dropoffLocation,
+          slotId: uuidv4(), // Nuevo ID para cada slot
+          locationId,
+        });
+        
+        allNewSlots.push(...newSlots);
+      }
+      
+      // Verificar overlaps
+      for (const slot of allNewSlots) {
         if (
           schedule.some(
             (s: Slot) =>
               s.date === slot.date && s.start === slot.start && s.end === slot.end
           )
         ) {
-          toast.error("Slot already exists for that time.");
+          toast.error(`Slot already exists for ${slot.date} at ${slot.start}-${slot.end}.`);
           return;
         }
       }
-      setSchedule((prevSchedule: Slot[]) => [...prevSchedule, ...newSlots]);
+      
+      setSchedule((prevSchedule: Slot[]) => [...prevSchedule, ...allNewSlots]);
       setIsModalOpen(false);
       setCurrentSlot({ start: "", end: "", booked: false, recurrence: "None" });
       setSelectedStudent("");
       setSlotType("");
-      toast.success("Slot saved!");
+      setRecurrenceEnd(null);
+      toast.success(`${allNewSlots.length} slots saved for ${recurringDates.length} dates!`);
       return;
     }
-    const newDate = currentSlot.start.split("T")[0];
-    const newStart = currentSlot.start.split("T")[1].slice(0, 5);
-    const newEnd = currentSlot.end.split("T")[1].slice(0, 5);
-    const overlapLocal = schedule.some(slot => {
-      if (!slot.date || !slot.start || !slot.end) return false;
-      if (slot.date !== newDate) return false;
-      return (
-        (newStart < slot.end && newEnd > slot.start)
-      );
-    });
-    if (overlapLocal) {
-      toast.error("There is already a class scheduled that overlaps with this time (local schedule)." );
-      return;
-    }
-    setSchedule((prevSchedule: Slot[]) => [
-      ...prevSchedule,
-      {
+    
+    // Para otros tipos de clase (incluidos ticketclass)
+    const allNewSlots: Slot[] = [];
+    const rawStart = currentSlot.start.split("T")[1].slice(0, 5);
+    const rawEnd = currentSlot.end.split("T")[1].slice(0, 5);
+    
+    // Convertir a formato 24 horas para asegurar compatibilidad
+    const newStart = convertTo24HourFormat(rawStart);
+    const newEnd = convertTo24HourFormat(rawEnd);
+    
+    console.log('[SAVE_SLOT] Time conversion:', { rawStart, rawEnd, newStart, newEnd });
+    
+    for (const date of recurringDates) {
+      // Verificar overlap para esta fecha específica
+      const overlapLocal = schedule.some(slot => {
+        if (!slot.date || !slot.start || !slot.end) return false;
+        if (slot.date !== date) return false;
+        return (
+          (newStart < slot.end && newEnd > slot.start)
+        );
+      });
+      
+      if (overlapLocal) {
+        toast.error(`There is already a class scheduled that overlaps with this time on ${date}.`);
+        return;
+      }
+      
+      const newSlot: Slot = {
         status: "available",
         cupos: 30,
-        date: newDate,
+        date: date,
         start: newStart,
         end: newEnd,
         classType: toValidClassType(currentSlot.classType),
         classId: (currentSlot as any).classId,
         duration: (currentSlot as any).duration,
-        locationId, // always string
+        locationId: locationId, // always string
         amount: (currentSlot as any).amount,
         paid: (currentSlot as any).paid,
         pickupLocation: (currentSlot as any).pickupLocation,
         dropoffLocation: (currentSlot as any).dropoffLocation,
         booked: slotType === "booked",
         studentId: slotType === "booked" ? selectedStudent : null,
-        slotId: currentSlot.slotId || uuidv4(),
-      },
-    ]);
+        slotId: uuidv4(), // Nuevo ID para cada slot
+      };
+      
+      allNewSlots.push(newSlot);
+    }
+    
+    setSchedule((prevSchedule: Slot[]) => [...prevSchedule, ...allNewSlots]);
     setIsModalOpen(false);
     setCurrentSlot({ start: "", end: "", booked: false, recurrence: "None" });
     setSelectedStudent("");
     setSlotType("");
-    toast.success("Slot saved!");
+    setRecurrenceEnd(null);
+    toast.success(`${allNewSlots.length} slots saved for ${recurringDates.length} dates!`);
   };
 
-  const handleEventClick = async (eventInfo: any) => {
+  const handleEventClick = async (eventInfo: { event: { id: string } }) => {
     const { start, end, extendedProps } = eventInfo.event;
     if (!start || !end) {
       return;
@@ -487,7 +715,9 @@ export function useInstructorForm(initialData?: InstructorData) {
           setIsModalOpen(true);
           return;
         }
-      } catch (e) {}
+      } catch {
+        // Ignore error
+      }
     }
     setCurrentSlot({
       start: realSlot?.start ? `${realSlot.date}T${realSlot.start}` : "",
@@ -561,93 +791,134 @@ export function useInstructorForm(initialData?: InstructorData) {
         throw new Error(`No se pudo asignar el instructor a la ubicación: ${errorText}`);
       }
       return true;
-    } catch (err: any) {
-      toast.error(err.message || "Error asignando instructor a la ubicación");
+    } catch (err: unknown) {
+      const errorMessage = err instanceof Error ? err.message : "Error asignando instructor a la ubicación";
+      toast.error(errorMessage);
       throw err;
     }
   }
 
   const createMissingTicketClasses = async (schedule: Slot[]) => {
     const updatedSchedule: Slot[] = [];
-    for (const slot of schedule) {
+    console.log('[CREATE_MISSING] Processing ONLY NEW slots needing ticketclass creation:', schedule.length);
+    
+    // DOUBLE-CHECK: filtrar una vez más para evitar cualquier slot con ticketClassId
+    const trulyNewSlots = schedule.filter(slot => {
       if (slot.ticketClassId) {
-        if (["D.A.T.E", "B.D.I", "A.D.I"].includes(slot.classType || "")) {
-          updatedSchedule.push({
-            ticketClassId: slot.ticketClassId,
-            status: slot.status,
-            cupos: slot.cupos ?? 30,
-            date: slot.date,
-            start: slot.start,
-            end: slot.end,
-          } as Slot);
-        } else {
-          updatedSchedule.push(slot);
-        }
-        continue;
-      }
-      if (["D.A.T.E", "B.D.I", "A.D.I"].includes(slot.classType || "")) {
-        // Ensure instructor is assigned to location before creating ticket class
-        if (slot.locationId && initialData?._id) {
-          try {
-            await ensureInstructorAssignedToLocation(slot.locationId, initialData._id);
-          } catch (err) {
-            // Error already handled by toast, skip this slot
-            continue;
-          }
-        }
-        // Ensure date is ISO string and duration is a string like '2h', '4h', '8h', '12h' for payload
-        let isoDate = slot.date;
-        if (slot.date && !slot.date.includes("T")) {
-          isoDate = new Date(slot.date).toISOString();
-        }
-        let durationForPayload: string = "4h";
-        if (typeof slot.duration === "string" && ["2h","4h","8h","12h"].includes(slot.duration)) {
-          durationForPayload = slot.duration;
-        } else if (typeof slot.duration === "number") {
-          if ([2,4,8,12].includes(slot.duration)) {
-            durationForPayload = `${slot.duration}h`;
-          }
-        } else if (typeof slot.duration === "string") {
-          const match = slot.duration.match(/(2|4|8|12)/);
-          durationForPayload = match ? `${match[1]}h` : "4h";
-        }
-        const ticketPayload = {
-          locationId: slot.locationId,
-          date: isoDate,
-          hour: slot.start,
-          endHour: slot.end,
-          classId: slot.classId,
-          type: mapClassTypeForBackend(slot.classType),
-          duration: durationForPayload,
-          instructorId: initialData?._id,
-          students: [],
-        };
-        console.log("[TicketClass] Creating with payload:", ticketPayload);
-        const res = await fetch("/api/ticket/classes", {
-          method: "POST",
-          headers: { "Content-Type": "application/json" },
-          body: JSON.stringify(ticketPayload),
+        console.error('[CREATE_MISSING] CRITICAL ERROR: Slot with ticketClassId detected in creation queue!', {
+          date: slot.date,
+          start: slot.start,
+          end: slot.end,
+          ticketClassId: slot.ticketClassId
         });
-        if (res.ok) {
-          const ticket = await res.json();
-          updatedSchedule.push({
-            ticketClassId: ticket._id,
-            status: "available",
-            cupos: slot.cupos ?? 30,
-            date: slot.date,
-            start: slot.start,
-            end: slot.end,
-          } as Slot);
-        } else {
-          const errorText = await res.text();
-          console.error("[TicketClass] Backend error:", errorText);
-          toast.error(`Failed to create ticket class: ${errorText}`);
-          throw new Error(`Failed to create ticket class: ${errorText}`);
+        return false; // NEVER process slots with existing ticketClassId
+      }
+      if (!["D.A.T.E", "B.D.I", "A.D.I"].includes(slot.classType || "")) {
+        console.error('[CREATE_MISSING] ERROR: Non-ticketclass slot should not be here!', slot.classType);
+        return false;
+      }
+      return true;
+    });
+    
+    console.log('[CREATE_MISSING] After final filter:', {
+      original: schedule.length,
+      filtered: trulyNewSlots.length,
+      filtered_slots: trulyNewSlots.map(s => ({
+        date: s.date,
+        start: s.start,
+        end: s.end,
+        classType: s.classType,
+        slotId: s.slotId
+      }))
+    });
+    
+    for (const slot of trulyNewSlots) {
+      console.log('[CREATE_MISSING] Processing NEW slot for ticketclass creation:', {
+        date: slot.date,
+        start: slot.start,
+        end: slot.end,
+        classType: slot.classType,
+        hasTicketClassId: !!slot.ticketClassId
+      });
+      
+      console.log('[CREATE_MISSING] Creating ticketclass for slot:', {
+        classType: slot.classType,
+        date: slot.date,
+        start: slot.start,
+        end: slot.end
+      });
+      
+      // Ensure instructor is assigned to location before creating ticket class
+      if (slot.locationId && initialData?._id) {
+        try {
+          await ensureInstructorAssignedToLocation(slot.locationId, initialData._id);
+        } catch (err) {
+          // Error already handled by toast, skip this slot
+          continue;
         }
+      }
+      
+      // Ensure date is in YYYY-MM-DD format and duration is a string like '2h', '4h', '8h', '12h' for payload
+      let dateForPayload = slot.date;
+      if (slot.date && slot.date.includes("T")) {
+        dateForPayload = slot.date.split("T")[0];
+      }
+      let durationForPayload: string = "4h";
+      if (typeof slot.duration === "string" && ["2h","4h","8h","12h"].includes(slot.duration)) {
+        durationForPayload = slot.duration;
+      } else if (typeof slot.duration === "number") {
+        if ([2,4,8,12].includes(slot.duration)) {
+          durationForPayload = `${slot.duration}h`;
+        }
+      } else if (typeof slot.duration === "string") {
+        const match = slot.duration.match(/(2|4|8|12)/);
+        durationForPayload = match ? `${match[1]}h` : "4h";
+      }
+      
+      const ticketPayload = {
+        locationId: slot.locationId,
+        date: dateForPayload,
+        hour: slot.start,
+        endHour: slot.end,
+        classId: slot.classId,
+        type: mapClassTypeForBackend(slot.classType),
+        duration: durationForPayload,
+        instructorId: initialData?._id,
+        students: [],
+      };
+      
+      console.log("[TicketClass] Creating with payload:", ticketPayload);
+      const res = await fetch("/api/ticket/classes", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify(ticketPayload),
+      });
+      
+      if (res.ok) {
+        const ticket = await res.json();
+        console.log("[TicketClass] Successfully created:", ticket._id, "for date:", dateForPayload);
+        updatedSchedule.push({
+          ticketClassId: ticket._id,
+          status: "available",
+          cupos: slot.cupos ?? 30,
+          date: slot.date,
+          start: slot.start,
+          end: slot.end,
+        } as Slot);
       } else {
-        updatedSchedule.push(slot);
+        const errorText = await res.text();
+        console.error("[TicketClass] Backend error for slot:", {
+          date: dateForPayload,
+          hour: slot.start,
+          classType: slot.classType,
+          error: errorText
+        });
+        toast.error(`Failed to create ticket class: ${errorText}`);
+        throw new Error(`Failed to create ticket class: ${errorText}`);
       }
     }
+    
+    console.log('[CREATE_MISSING] Created', updatedSchedule.length, 'new ticketclass slots');
     return updatedSchedule;
   };
 
@@ -657,13 +928,63 @@ export function useInstructorForm(initialData?: InstructorData) {
       return;
     }
     setLoading(true);
+    
+    console.log('[SUBMIT] Starting submit with schedule:', schedule.map(s => ({
+      date: s.date,
+      start: s.start,
+      end: s.end,
+      classType: s.classType,
+      ticketClassId: s.ticketClassId,
+      slotId: s.slotId
+    })));
+    
     const photoString = Array.isArray(values.photo)
       ? values.photo[0] || ""
       : values.photo || "";
-    for (const id of ticketClassIdsToDelete) {
-      await fetch(`/api/ticket/classes/${id}`, { method: 'DELETE' });
+    
+    // Guardar una copia de ticketClassIdsToDelete para usar en todo el proceso
+    const idsToDelete = [...ticketClassIdsToDelete];
+    console.log('[SUBMIT] TicketClass IDs to delete:', idsToDelete);
+    
+    // NUEVO: Identificar TODOS los ticketclasses que deben eliminarse
+    // Comparar schedule original vs actual para encontrar ticketclasses eliminados
+    const originalTicketClasses = (initialData?.schedule || [])
+      .filter((slot: Slot) => slot.ticketClassId)
+      .map((slot: Slot) => slot.ticketClassId as string);
+    
+    const currentTicketClasses = schedule
+      .filter(slot => slot.ticketClassId)
+      .map(slot => slot.ticketClassId);
+    
+    // Añadir ticketclasses que estaban en el original pero ya no están en el actual
+    const missingTicketClasses = originalTicketClasses.filter(
+      (id: string) => !currentTicketClasses.includes(id)
+    );
+    
+    // Combinar ambas listas y eliminar duplicados
+    const allIdsToDelete = [...new Set([...idsToDelete, ...missingTicketClasses])];
+    console.log('[SUBMIT] ALL TicketClass IDs to delete (including missing):', allIdsToDelete);
+    
+    // Eliminar TODOS los ticketclasses marcados para eliminación
+    // Esto asegura que se eliminen tanto de la colección ticketclasses como del schedule del instructor
+    for (const id of allIdsToDelete) {
+      try {
+        console.log(`[SUBMIT] Attempting to delete ticketclass ${id}`);
+        const response = await fetch(`/api/ticket/classes/${id}`, { method: 'DELETE' });
+        if (!response.ok) {
+          const errorText = await response.text();
+          console.error(`[SUBMIT] Failed to delete ticketclass ${id}:`, errorText);
+          toast.error(`Failed to delete ticketclass ${id}: ${errorText}`);
+        } else {
+          const result = await response.text();
+          console.log(`[SUBMIT] Successfully deleted ticketclass ${id}:`, result);
+        }
+      } catch {
+        console.error(`[SUBMIT] Error deleting ticketclass ${id}`);
+        toast.error(`Error deleting ticketclass ${id}`);
+      }
     }
-    setTicketClassIdsToDelete([]);
+    
     // Eliminar los Driving Test del schedule del instructor en el backend
     if (initialData?._id && drivingTestSlotsToDelete.length > 0) {
       for (const slotId of drivingTestSlotsToDelete) {
@@ -675,12 +996,24 @@ export function useInstructorForm(initialData?: InstructorData) {
       }
       setDrivingTestSlotsToDelete([]);
     }
-    let filteredSchedule = schedule.filter(
-      slot => !slot.ticketClassId || !ticketClassIdsToDelete.includes(slot.ticketClassId)
+    
+    // Filtrar el schedule para remover los slots eliminados
+    const filteredSchedule = schedule.filter(
+      slot => !slot.ticketClassId || !allIdsToDelete.includes(slot.ticketClassId)
     );
+    
+    console.log('[SUBMIT] Filtered schedule before createMissingTicketClasses:', {
+      original: schedule.length,
+      filtered: filteredSchedule.length,
+      slotsWithTicketClassId: filteredSchedule.filter(s => s.ticketClassId).length,
+      slotsWithoutTicketClassId: filteredSchedule.filter(s => !s.ticketClassId).length
+    });
+    
+    // Solo resetear el array después de haber completado todas las operaciones
+    setTicketClassIdsToDelete([]);
     for (const slot of filteredSchedule) {
       if (slot.ticketClassId && originalTicketClassIds.includes(slot.ticketClassId)) {
-        const originalSlot = (initialData?.schedule || []).find((s: any) => s.ticketClassId === slot.ticketClassId);
+        const originalSlot = (initialData?.schedule || []).find((s: Slot) => s.ticketClassId === slot.ticketClassId);
         if (originalSlot) {
           const changedKeyFields = (
             slot.classId !== originalSlot.classId ||
@@ -735,12 +1068,90 @@ export function useInstructorForm(initialData?: InstructorData) {
       }
     }
     let finalSchedule: Slot[] = [];
-    try {
-      finalSchedule = await createMissingTicketClasses(filteredSchedule);
-    } catch (err) {
-      setLoading(false);
-      return;
+    
+    // SEPARAR: slots que ya tienen ticketClassId vs slots que necesitan creación
+    const slotsWithExistingTicketClass = filteredSchedule.filter(slot => {
+      if (slot.ticketClassId) {
+        console.log('[SUBMIT] Slot with existing ticketClassId, will keep as-is:', {
+          date: slot.date,
+          start: slot.start, 
+          end: slot.end,
+          ticketClassId: slot.ticketClassId
+        });
+        return true;
+      }
+      return false;
+    });
+
+    const slotsNeedingTicketClassCreation = filteredSchedule.filter(slot => {
+      if (!slot.ticketClassId && ["D.A.T.E", "B.D.I", "A.D.I"].includes(slot.classType || "")) {
+        console.log('[SUBMIT] Slot without ticketClassId needing creation:', {
+          date: slot.date,
+          start: slot.start,
+          end: slot.end,
+          classType: slot.classType,
+          slotId: slot.slotId,
+          ticketClassId: slot.ticketClassId
+        });
+        return true;
+      } else if (slot.ticketClassId && ["D.A.T.E", "B.D.I", "A.D.I"].includes(slot.classType || "")) {
+        console.log('[SUBMIT] Slot WITH ticketClassId (EXCLUDED from creation):', {
+          date: slot.date,
+          start: slot.start,
+          end: slot.end,
+          classType: slot.classType,
+          slotId: slot.slotId,
+          ticketClassId: slot.ticketClassId
+        });
+      }
+      return false;
+    });
+
+    const slotsNotNeedingTicketClass = filteredSchedule.filter(slot => {
+      if (!slot.ticketClassId && !["D.A.T.E", "B.D.I", "A.D.I"].includes(slot.classType || "")) {
+        console.log('[SUBMIT] Slot not needing ticketclass (driving test, etc):', {
+          date: slot.date,
+          start: slot.start,
+          end: slot.end,
+          classType: slot.classType
+        });
+        return true;
+      }
+      return false;
+    });
+    
+    console.log('[SUBMIT] About to call createMissingTicketClasses with:', {
+      slotsWithExistingTicketClass: slotsWithExistingTicketClass.length,
+      slotsNeedingTicketClassCreation: slotsNeedingTicketClassCreation.length,
+      slotsNotNeedingTicketClass: slotsNotNeedingTicketClass.length,
+      totalSlots: filteredSchedule.length
+    });
+    
+    // Solo crear ticketclasses para slots que realmente lo necesitan
+    let createdTicketClassSlots: Slot[] = [];
+    if (slotsNeedingTicketClassCreation.length > 0) {
+      try {
+        createdTicketClassSlots = await createMissingTicketClasses(slotsNeedingTicketClassCreation);
+      } catch (err) {
+        console.error('[SUBMIT] Error creating ticketclasses:', err);
+        toast.error("Error creating ticketclasses");
+        setLoading(false);
+        return;
+      }
     }
+    
+    // Combinar todos los slots para el schedule final
+    finalSchedule = [
+      ...slotsWithExistingTicketClass,
+      ...createdTicketClassSlots,
+      ...slotsNotNeedingTicketClass
+    ];
+    
+    console.log('[SUBMIT] Final schedule composition:', {
+      total: finalSchedule.length,
+      withTicketClassId: finalSchedule.filter(s => s.ticketClassId).length,
+      withoutTicketClassId: finalSchedule.filter(s => !s.ticketClassId).length
+    });
     const bodyToSend: Record<string, unknown> = {
       instructorId: initialData?._id ?? "",
       ...values,
@@ -765,7 +1176,7 @@ export function useInstructorForm(initialData?: InstructorData) {
       } else {
         toast.error(data.message || "Error saving instructor.");
       }
-    } catch (error) {
+    } catch {
       toast.error("Server error.");
     } finally {
       setLoading(false);
@@ -803,6 +1214,7 @@ export function useInstructorForm(initialData?: InstructorData) {
     generatePassword,
     onSubmit,
     clearScheduleDraft,
+    discardAllChanges,
     initialData,
     router,
   };

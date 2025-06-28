@@ -9,13 +9,19 @@ import { addDays, addWeeks, addMonths, format } from "date-fns";
  */
 export function normalizeSchedule(data: unknown): Slot[] {
   if (!Array.isArray(data)) return [];
-  if (data.length > 0 && (data[0] as Slot).start && (data[0] as Slot).end) return data as Slot[];
+  if (data.length > 0 && (data[0] as Slot).start && (data[0] as Slot).end) {
+    // Si el slot tiene _id, lo asignamos a slotId
+    return (data as any[]).map(slot => {
+      const slotId = (slot as any)._id ? (slot as any)._id.toString() : slot.slotId;
+      return { ...slot, slotId };
+    });
+  }
   return (data as { date: string; slots: Slot[] }[]).flatMap((day) =>
     Array.isArray(day.slots) && day.slots.length > 0
-      ? day.slots.map((slot) => ({
-          ...slot,
-          date: day.date
-        }))
+      ? day.slots.map((slot) => {
+          const slotId = (slot as any)._id ? (slot as any)._id.toString() : slot.slotId;
+          return { ...slot, date: day.date, slotId };
+        })
       : []
   );
 }
@@ -101,4 +107,4 @@ export function generateRecurringSlots(
     }
   }
   return slots;
-} 
+}

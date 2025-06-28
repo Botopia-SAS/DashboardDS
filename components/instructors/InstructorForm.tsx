@@ -41,6 +41,7 @@ const InstructorForm = ({ initialData }: { initialData?: InstructorData }) => {
     generatePassword,
     onSubmit,
     clearScheduleDraft,
+    discardAllChanges,
     router,
   } = useInstructorForm(initialData);
 
@@ -104,7 +105,7 @@ const InstructorForm = ({ initialData }: { initialData?: InstructorData }) => {
               type="button"
               variant="outline"
               onClick={() => {
-                clearScheduleDraft();
+                discardAllChanges();
                 router.push("/instructors");
               }}
             >

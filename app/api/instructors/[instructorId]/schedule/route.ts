@@ -5,7 +5,7 @@ import mongoose from "mongoose";
 
 export async function DELETE(req: NextRequest, { params }: { params: { instructorId: string } }) {
   await connectToDB();
-  const instructorId = params.instructorId;
+  const { instructorId } = await params;
   const { slotId } = await req.json(); // slotId es el _id del slot dentro de schedule
 
   if (!instructorId || !slotId) {
@@ -17,10 +17,10 @@ export async function DELETE(req: NextRequest, { params }: { params: { instructo
   }
 
   try {
-    // Elimina el slot del schedule usando el _id del slot
+    // Elimina el slot del schedule usando el slotId del slot (UUID)
     const updateResult = await Instructor.updateOne(
       { _id: instructorId },
-      { $pull: { schedule: { _id: slotId } } }
+      { $pull: { schedule: { slotId: slotId } } }
     );
     if (updateResult.modifiedCount === 0) {
       return NextResponse.json({ error: "Slot not found or not deleted" }, { status: 404 });
