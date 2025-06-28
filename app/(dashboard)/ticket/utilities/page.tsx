@@ -36,6 +36,7 @@ const formSchema = z.object({
   instructorId: z.string().min(1, "Instructor is required"),
   duration: z.string(),
   type: z.enum(["date", "bdi", "adi"]).default("date"),
+  cupos: z.number().min(1, "Cupos must be at least 1").default(30),
 });
 
 // Define the type for form values
@@ -161,6 +162,7 @@ export default function Page() {
       type: classType || "date",
       duration: "",
       instructorId: "",
+      cupos: 30,
     },
   });
 
@@ -438,6 +440,27 @@ export default function Page() {
                         <SelectItem value="adi">ADI</SelectItem>
                       </SelectContent>
                     </Select>
+                  </FormControl>
+                  <FormMessage />
+                </FormItem>
+              )}
+            />
+            <FormField
+              control={form.control}
+              name="cupos"
+              render={({ field }) => (
+                <FormItem>
+                  <FormLabel>Available Spots (Cupos)</FormLabel>
+                  <FormControl>
+                    <Input
+                      type="number"
+                      min="1"
+                      max="100"
+                      placeholder="Enter number of available spots"
+                      {...field}
+                      onChange={(e) => field.onChange(parseInt(e.target.value) || 30)}
+                      value={field.value || 30}
+                    />
                   </FormControl>
                   <FormMessage />
                 </FormItem>

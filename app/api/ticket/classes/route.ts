@@ -77,7 +77,24 @@ export async function POST(req: NextRequest) {
       locationId,
       classId,
       duration,
+      type,
+      cupos,
     } = value;
+
+    // Normalize date to ensure it's in YYYY-MM-DD format (remove timezone info)
+    let normalizedDate = date;
+    if (typeof date === 'string') {
+      if (date.includes('T')) {
+        normalizedDate = date.split('T')[0];
+      }
+    } else if (date instanceof Date) {
+      normalizedDate = date.toISOString().split('T')[0];
+    }
+
+    console.log('[API] Date normalization:', {
+      originalDate: date,
+      normalizedDate: normalizedDate
+    });
 
     // Verify that the location exists
     const existLocation = await Location.findOne({ _id: locationId }).exec();
@@ -141,57 +158,107 @@ export async function POST(req: NextRequest) {
       );
     }
 
-    // Check that the instructor doesn't have another class at the same location, date and time
-    const existingInstructorClass = await TicketClass.findOne({
-      date,
-      hour,
+    // Calculate end time if not provided
+    let calculatedEndHour = endHour;
+    if (!calculatedEndHour) {
+      const startTime = new Date(`2000-01-01T${hour}:00`);
+      const durationHours = parseInt(duration.replace('h', ''));
+      const endTime = new Date(startTime.getTime() + durationHours * 60 * 60 * 1000);
+      calculatedEndHour = endTime.toTimeString().slice(0, 5);
+    }
+
+    console.log('[API] Time validation:', {
+      date: normalizedDate,
+      startTime: hour,
+      endTime: calculatedEndHour,
+      duration,
+      instructorId
+    });
+
+    // Function to check if two time ranges overlap
+    const timeRangesOverlap = (start1: string, end1: string, start2: string, end2: string) => {
+      const s1 = new Date(`2000-01-01T${start1}:00`);
+      const e1 = new Date(`2000-01-01T${end1}:00`);
+      const s2 = new Date(`2000-01-01T${start2}:00`);
+      const e2 = new Date(`2000-01-01T${end2}:00`);
+      return s1 < e2 && s2 < e1;
+    };
+
+    // Check for conflicts in TicketClass collection
+    const existingTicketClasses = await TicketClass.find({
+      date: normalizedDate,
       instructorId,
     });
 
-    console.log("[API] Checking for existing class:", {
-      date,
-      hour,
-      instructorId,
-      existingClass: existingInstructorClass ? {
-        _id: existingInstructorClass._id,
-        date: existingInstructorClass.date,
-        hour: existingInstructorClass.hour,
-        type: existingInstructorClass.type
-      } : null
-    });
+    for (const existingClass of existingTicketClasses) {
+      const existingEndHour = existingClass.endHour || 
+        (() => {
+          const startTime = new Date(`2000-01-01T${existingClass.hour}:00`);
+          const durationHours = parseInt(existingClass.duration.replace('h', ''));
+          const endTime = new Date(startTime.getTime() + durationHours * 60 * 60 * 1000);
+          return endTime.toTimeString().slice(0, 5);
+        })();
 
-    if (existingInstructorClass) {
-      console.error("[API] Conflict found:", {
-        existing: {
-          _id: existingInstructorClass._id,
-          date: existingInstructorClass.date,
-          hour: existingInstructorClass.hour,
-          type: existingInstructorClass.type
-        },
-        attempted: {
-          date,
-          hour,
-          type: value.type
-        }
-      });
-      return NextResponse.json(
-        { 
-          error: "The instructor already has a class scheduled at this time.",
-          details: {
-            existingClassId: existingInstructorClass._id,
-            existingDate: existingInstructorClass.date,
-            existingHour: existingInstructorClass.hour,
-            existingType: existingInstructorClass.type
+      if (timeRangesOverlap(hour, calculatedEndHour, existingClass.hour, existingEndHour)) {
+        return NextResponse.json(
+          { 
+            error: "The instructor already has a class scheduled that overlaps with this time.",
+            details: {
+              existingClass: {
+                _id: existingClass._id,
+                date: existingClass.date,
+                startTime: existingClass.hour,
+                endTime: existingEndHour,
+                type: existingClass.type
+              },
+              attemptedClass: {
+                date: normalizedDate,
+                startTime: hour,
+                endTime: calculatedEndHour,
+                type
+              }
+            }
+          },
+          { status: 400 }
+        );
+      }
+    }
+
+    // Check for conflicts in instructor's schedule
+    const instructor = await Instructor.findById(instructorId);
+    if (instructor && instructor.schedule) {
+      for (const slot of instructor.schedule) {
+        if (slot.date === normalizedDate && slot.start && slot.end) {
+          if (timeRangesOverlap(hour, calculatedEndHour, slot.start, slot.end)) {
+            return NextResponse.json(
+              { 
+                error: "The instructor already has a schedule slot that overlaps with this time.",
+                details: {
+                  existingSlot: {
+                    date: slot.date,
+                    startTime: slot.start,
+                    endTime: slot.end,
+                    classType: slot.classType
+                  },
+                  attemptedClass: {
+                    date: normalizedDate,
+                    startTime: hour,
+                    endTime: calculatedEndHour,
+                    type
+                  }
+                }
+              },
+              { status: 400 }
+            );
           }
-        },
-        { status: 400 }
-      );
+        }
+      }
     }
 
     // Check that students don't have another class at the same date and time
     if (students && students.length > 0) {
       const studentConflict = await TicketClass.findOne({
-        date,
+        date: normalizedDate,
         hour,
         students: { $in: students },
       });
@@ -206,45 +273,75 @@ export async function POST(req: NextRequest) {
       }
     }
 
-    // Create the new class
-    console.log('[API] Creating TicketClass with data:', JSON.stringify(value, null, 2));
-    const newClass = await TicketClass.create(value);
+    // Create the new class with cupos
+    const classData = {
+      ...value,
+      date: normalizedDate, // Use normalized date
+      endHour: calculatedEndHour,
+      cupos: cupos || 30,
+      students: students || []
+    };
+    
+    console.log('[API] Creating TicketClass with data:', JSON.stringify(classData, null, 2));
+    const newClass = await TicketClass.create(classData);
     await newClass.save();
 
-    // Update existing slot in instructor's schedule with the ticketClassId
-    // Find slot that matches date, start time (hour), and end time (endHour)
+    // Map class type for schedule
+    const scheduleClassType = type === 'date' ? 'D.A.T.E' : 
+                             type === 'bdi' ? 'B.D.I' : 
+                             type === 'adi' ? 'A.D.I' : type;
+
+    // Try to update existing slot in instructor's schedule with the ticketClassId
     const updateResult = await Instructor.updateOne(
       { 
         _id: instructorId,
-        'schedule.date': date,
+        'schedule.date': normalizedDate,
         'schedule.start': hour,
-        'schedule.end': endHour
+        'schedule.end': calculatedEndHour
       },
       {
         $set: {
-          'schedule.$.ticketClassId': newClass._id
+          'schedule.$.ticketClassId': newClass._id,
+          'schedule.$.classType': scheduleClassType,
+          'schedule.$.status': 'available'
         }
       }
     );
 
     console.log('[API] Updated instructor slot with ticketClassId:', {
       instructorId,
-      date,
+      date: normalizedDate,
       hour,
-      endHour,
+      endHour: calculatedEndHour,
       ticketClassId: newClass._id,
       updateResult
     });
 
-    // If no existing slot was updated, it means the slot doesn't exist in the instructor's schedule
-    // In this case, we should not create a new incomplete slot
+    // If no existing slot was updated, create a new slot in the instructor's schedule
     if (updateResult.modifiedCount === 0) {
-      console.warn('[API] No matching slot found in instructor schedule for:', {
-        instructorId,
-        date,
-        hour,
-        endHour
-      });
+      console.log('[API] No matching slot found, creating new slot in instructor schedule');
+      
+      await Instructor.updateOne(
+        { _id: instructorId },
+        {
+          $push: {
+            schedule: {
+              date: normalizedDate,
+              start: hour,
+              end: calculatedEndHour,
+              classType: scheduleClassType,
+              ticketClassId: newClass._id,
+              status: 'available',
+              locationId: locationId,
+              classId: classId,
+              duration: duration,
+              slotId: `slot_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`
+            }
+          }
+        }
+      );
+      
+      console.log('[API] Created new slot in instructor schedule');
     }
 
     return NextResponse.json(newClass, { status: 201 });
