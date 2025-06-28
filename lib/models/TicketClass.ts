@@ -14,6 +14,10 @@ const TicketClassSchema = new mongoose.Schema({
     type: String,
     required: true,
   },
+  endHour: {
+    type: String,
+    required: false,
+  },
   classId: {
     type: mongoose.Schema.Types.ObjectId,
     ref: "DrivingClass",

@@ -13,8 +13,9 @@ const SlotSchema = new mongoose.Schema(
     paid: { type: Boolean, default: false },
     pickupLocation: { type: String, default: "" },
     dropoffLocation: { type: String, default: "" },
+    ticketClassId: { type: mongoose.Schema.Types.ObjectId, ref: "TicketClass", required: false },
   },
-  { _id: false }
+  { _id: true } // Cambiado: ahora cada slot tendrá un _id único
 );
 
 const InstructorSchema = new mongoose.Schema(

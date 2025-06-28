@@ -26,6 +26,7 @@ import { useForm } from "react-hook-form";
 import { z } from "zod";
 import toast from "react-hot-toast";
 import Loader from "@/components/custom ui/Loader";
+import { format, addHours } from "date-fns";
 
 const formSchema = z.object({
   locationId: z.string().min(1, "Location is required"),
@@ -88,6 +89,8 @@ export default function Page() {
   const [filteredInstructors, setFilteredInstructors] = useState<Instructor[]>(
     []
   );
+  const [endHour, setEndHour] = useState("");
+  const [manualEndHour, setManualEndHour] = useState("");
 
   const router = useRouter();
   const navigate = () => {
@@ -208,15 +211,30 @@ export default function Page() {
     }
   }, [watchedClassId, classes, form]);
 
+  // Watch for hour changes to calculate and show end hour
+  const watchedHour = form.watch("hour");
+  useEffect(() => {
+    if (watchedHour && !manualEndHour) {
+      const [h, m] = watchedHour.split(":");
+      const startDate = new Date(2000, 0, 1, Number(h), Number(m));
+      const endDate = addHours(startDate, 2);
+      setEndHour(format(endDate, "HH:mm"));
+    } else if (!watchedHour) {
+      setEndHour("");
+    }
+  }, [watchedHour, manualEndHour]);
+
   const onSubmit = async (values: FormValues) => {
     setSubmitting(true);
     try {
+      const endHourStr = manualEndHour || endHour;
+      const payload = { ...values, endHour: endHourStr };
       const response = await fetch("/api/ticket/classes", {
         method: "POST",
         headers: {
           "Content-Type": "application/json",
         },
-        body: JSON.stringify(values),
+        body: JSON.stringify(payload),
       });
 
       if (!response.ok) {
@@ -299,6 +317,15 @@ export default function Page() {
                       className="border-gray-300 focus:ring-blue-500 focus:border-blue-500"
                     />
                   </FormControl>
+                  <div className="flex items-center gap-2 mt-1">
+                    <span className="text-xs text-gray-600">End hour:</span>
+                    <Input
+                      type="time"
+                      value={manualEndHour || endHour}
+                      onChange={e => setManualEndHour(e.target.value)}
+                      className="w-28 text-xs"
+                    />
+                  </div>
                   <FormMessage />
                 </FormItem>
               )}

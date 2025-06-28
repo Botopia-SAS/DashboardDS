@@ -23,13 +23,18 @@ export interface Slot {
   booked?: boolean;
   recurrence?: string;
   slotId?: string;
-  studentId?: string | null;
+  studentId?: string | string[] | null;
   status?: "available" | "cancelled" | "scheduled";
   classType?: "D.A.T.E" | "B.D.I" | "A.D.I" | "driving test";
   amount?: number;
   paid?: boolean;
   pickupLocation?: string;
   dropoffLocation?: string;
+  classId?: string;
+  duration?: string;
+  ticketClassId?: string;
+  locationId?: string;
+  cupos?: number;
 }
 
 export interface User {
@@ -41,6 +46,7 @@ export interface User {
   role: string;
 }
 
+// Add locationIds to InstructorData type for location assignment logic
 export interface InstructorData {
   _id?: string;
   name?: string;
@@ -52,6 +58,7 @@ export interface InstructorData {
   certifications?: string;
   experience?: string;
   schedule?: Slot[];
+  locationIds?: string[];
 }
 
-export type SlotType = "" | "available" | "cancelled" | "booked"; 
+export type SlotType = "" | "available" | "cancelled" | "booked";
