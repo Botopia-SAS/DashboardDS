@@ -18,7 +18,7 @@ interface ScheduleModalProps {
     originalStart?: string;
     originalEnd?: string;
     studentId?: string;
-    status?: "available" | "cancelled" | "scheduled";
+    status?: "available" | "cancelled" | "scheduled" | "full";
     classType?: string;
     amount?: number;
     paid?: boolean;
@@ -27,6 +27,8 @@ interface ScheduleModalProps {
     classId?: string;
     duration?: string;
     locationId?: string;
+    cupos?: number;
+    students?: string[];
   };
   setCurrentSlot: (slot: {
     start: string;
@@ -37,7 +39,7 @@ interface ScheduleModalProps {
     originalStart?: string;
     originalEnd?: string;
     studentId?: string;
-    status?: "available" | "cancelled" | "scheduled";
+    status?: "available" | "cancelled" | "scheduled" | "full";
     classType?: string;
     amount?: number;
     paid?: boolean;
@@ -46,6 +48,8 @@ interface ScheduleModalProps {
     classId?: string;
     duration?: string;
     locationId?: string;
+    cupos?: number;
+    students?: string[];
   } | ((prev: {
     start: string;
     end: string;
@@ -55,7 +59,7 @@ interface ScheduleModalProps {
     originalStart?: string;
     originalEnd?: string;
     studentId?: string;
-    status?: "available" | "cancelled" | "scheduled";
+    status?: "available" | "cancelled" | "scheduled" | "full";
     classType?: string;
     amount?: number;
     paid?: boolean;
@@ -64,6 +68,8 @@ interface ScheduleModalProps {
     classId?: string;
     duration?: string;
     locationId?: string;
+    cupos?: number;
+    students?: string[];
   }) => {
     start: string;
     end: string;
@@ -73,7 +79,7 @@ interface ScheduleModalProps {
     originalStart?: string;
     originalEnd?: string;
     studentId?: string;
-    status?: "available" | "cancelled" | "scheduled";
+    status?: "available" | "cancelled" | "scheduled" | "full";
     classType?: string;
     amount?: number;
     paid?: boolean;
@@ -82,6 +88,8 @@ interface ScheduleModalProps {
     classId?: string;
     duration?: string;
     locationId?: string;
+    cupos?: number;
+    students?: string[];
   })) => void;
   handleSaveSlot: () => void;
   handleUpdateSlot: () => void;
@@ -94,6 +102,10 @@ interface ScheduleModalProps {
   allUsers: User[];
   selectedStudent: string | string[];
   setSelectedStudent: (id: string | string[]) => void;
+  selectedStudents: string[];
+  setSelectedStudents: (ids: string[]) => void;
+  availableSpots: number;
+  setAvailableSpots: (spots: number) => void;
   locations: { _id: string; title: string }[];
 }
 
@@ -150,7 +162,7 @@ type CurrentSlotType = {
   originalStart?: string;
   originalEnd?: string;
   studentId?: string;
-  status?: "available" | "cancelled" | "scheduled";
+  status?: "available" | "cancelled" | "scheduled" | "full";
   classType?: string;
   amount?: number;
   paid?: boolean;
@@ -159,6 +171,8 @@ type CurrentSlotType = {
   classId?: string;
   duration?: string;
   locationId?: string;
+  cupos?: number;
+  students?: string[];
 };
 
 const ScheduleModal = ({
@@ -177,6 +191,10 @@ const ScheduleModal = ({
   allUsers,
   selectedStudent,
   setSelectedStudent,
+  selectedStudents,
+  setSelectedStudents,
+  availableSpots,
+  setAvailableSpots,
   locations,
 }: ScheduleModalProps) => {
   const [classTypeError, setClassTypeError] = useState<string>("");
@@ -217,11 +235,26 @@ const ScheduleModal = ({
 
   useEffect(() => {
     if (isOpen && currentSlot.classType && currentSlot.classType !== 'driving test') {
+      console.log("Loading driving classes for class type:", currentSlot.classType);
       fetch('/api/classes')
         .then(res => res.json())
-        .then(data => setDrivingClasses(data));
+        .then(data => {
+          console.log("Loaded driving classes:", data);
+          setDrivingClasses(data);
+        })
+        .catch(error => console.error("Error loading driving classes:", error));
     }
   }, [isOpen, currentSlot.classType]);
+
+  // Log para debuggear qué datos tiene currentSlot cuando se abre para editar
+  useEffect(() => {
+    if (isOpen && currentSlot.isEditing) {
+      console.log("Modal opened for editing with currentSlot:", currentSlot);
+      console.log("Selected students:", selectedStudents);
+      console.log("Available spots:", availableSpots);
+      console.log("Slot type:", slotType);
+    }
+  }, [isOpen, currentSlot.isEditing]);
 
   // Ajusta automáticamente el End Time al abrir el modal si es menor a 2 horas después del Start Time
   useEffect(() => {
@@ -283,7 +316,7 @@ const ScheduleModal = ({
 
   return (
     <Dialog open={isOpen} onClose={onClose} className="fixed inset-0 flex items-center justify-center z-50">
-      <div className="bg-white p-6 rounded-lg shadow-lg max-w-lg w-full mt-32">
+      <div className="bg-white p-6 rounded-lg shadow-lg max-w-2xl w-full mt-8">
         <h2 className="text-lg font-bold mb-4">
           Configure Schedule
           {currentSlot?.start && (
@@ -299,7 +332,21 @@ const ScheduleModal = ({
             className="w-full border rounded px-2 py-1"
             value={currentSlot.classType || ""}
             onChange={e => {
-              setCurrentSlot((prev: CurrentSlotType) => prev ? { ...prev, classType: e.target.value } : prev);
+              const newClassType = e.target.value;
+              const previousClassType = currentSlot.classType;
+              
+              // Check if switching between ticket classes and driving test
+              const isTicketClass = (type: string) => ["D.A.T.E", "B.D.I", "A.D.I"].includes(type);
+              const wasTicketClass = isTicketClass(previousClassType || "");
+              const isNowTicketClass = isTicketClass(newClassType);
+              
+              // Clear students if switching between different category types
+              if (wasTicketClass !== isNowTicketClass) {
+                setSelectedStudents([]);
+                setSelectedStudent("");
+              }
+              
+              setCurrentSlot((prev: CurrentSlotType) => prev ? { ...prev, classType: newClassType } : prev);
               setClassTypeError("");
             }}
             required
@@ -455,15 +502,117 @@ const ScheduleModal = ({
             />
             Cancelled
           </label>
-          <label className="flex items-center gap-1">
-            <input
-              type="radio"
-              checked={slotType === "booked"}
-              onChange={() => { setSlotType("booked"); }}
-            />
-            Booked
-          </label>
+          {/* Only show Booked option for driving test classes */}
+          {currentSlot.classType === "driving test" && (
+            <label className="flex items-center gap-1">
+              <input
+                type="radio"
+                checked={slotType === "booked"}
+                onChange={() => { setSlotType("booked"); }}
+              />
+              Booked
+            </label>
+          )}
+          {["D.A.T.E", "B.D.I", "A.D.I"].includes(currentSlot.classType || "") && (
+            <label className="flex items-center gap-1">
+              <input
+                type="radio"
+                checked={slotType === "full"}
+                onChange={() => { setSlotType("full"); }}
+              />
+              Full
+            </label>
+          )}
         </div>
+
+        {/* Campos específicos para ADI, BDI, DATE */}
+        {["D.A.T.E", "B.D.I", "A.D.I"].includes(currentSlot.classType || "") && (
+          <div className="mt-4 space-y-3">
+            <div>
+              <label className="block text-sm font-medium">Available Spots</label>
+              <Input
+                type="number"
+                min="1"
+                max="50"
+                value={availableSpots}
+                onChange={e => setAvailableSpots(Number(e.target.value))}
+                placeholder="Number of available spots"
+              />
+            </div>
+
+            {(slotType === "available" || slotType === "full") && (
+              <div>
+                <label className="block text-sm font-medium mb-2">
+                  Select Students ({selectedStudents.length}/{availableSpots})
+                </label>
+                <div className="border rounded p-3 bg-gray-50 h-24 overflow-y-auto">
+                  {allUsers.length > 0 ? (
+                    <div className="space-y-1">
+                      {allUsers.map((user) => {
+                        const isSelected = selectedStudents.includes(user._id);
+                        const isDisabled = !isSelected && selectedStudents.length >= availableSpots;
+                        
+                        return (
+                          <label 
+                            key={user._id} 
+                            className={`flex items-center gap-2 p-1.5 rounded hover:bg-white cursor-pointer transition-colors text-sm ${
+                              isDisabled ? 'opacity-50 cursor-not-allowed' : ''
+                            }`}
+                          >
+                            <input
+                              type="checkbox"
+                              checked={isSelected}
+                              disabled={isDisabled}
+                              onChange={(e) => {
+                                let updated;
+                                if (e.target.checked) {
+                                  if (selectedStudents.length < availableSpots) {
+                                    updated = [...selectedStudents, user._id];
+                                  } else {
+                                    return; // Prevent adding more than available spots
+                                  }
+                                } else {
+                                  updated = selectedStudents.filter(id => id !== user._id);
+                                }
+                                
+                                setSelectedStudents(updated);
+                                
+                                // Auto-set status based on capacity
+                                if (updated.length >= availableSpots) {
+                                  setSlotType("full");
+                                } else if (slotType === "full" && updated.length < availableSpots) {
+                                  setSlotType("available");
+                                }
+                              }}
+                              className="w-3 h-3 text-blue-600 rounded focus:ring-1 focus:ring-blue-500 flex-shrink-0"
+                            />
+                            <div className="flex-1 min-w-0">
+                              <div className="text-xs font-medium text-gray-900 truncate">
+                                {user.name || `${user.firstName || ''} ${user.lastName || ''}`.trim()}
+                              </div>
+                              <div className="text-xs text-gray-500 truncate">
+                                {user.email}
+                              </div>
+                            </div>
+                          </label>
+                        );
+                      })}
+                    </div>
+                  ) : (
+                    <div className="text-sm text-gray-500 text-center py-4">
+                      No students available
+                    </div>
+                  )}
+                </div>
+                {selectedStudents.length >= availableSpots && (
+                  <div className="text-xs text-blue-600 mt-1">
+                    All spots are filled. Uncheck students to add others.
+                  </div>
+                )}
+              </div>
+            )}
+          </div>
+        )}
 
         {slotType === "booked" && currentSlot.classType && currentSlot.classType !== 'driving test' && (
           <div className="mt-3">

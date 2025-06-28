@@ -38,15 +38,13 @@ const TicketClassSchema = new mongoose.Schema({
     ref: "Instructor",
     required: true,
   },
-  students: [
-    {
-      studentId: { type: String, required: true },
-      reason: { type: String },
-      citation_number: { type: String },
-      country_ticket: { type: String },
-      course_country: { type: String },
-    },
-  ],
+  students: [String],
+  cupos: {
+    type: Number,
+    required: false,
+    default: 30,
+    min: 1,
+  },
 });
 
 TicketClassSchema.index(
@@ -56,7 +54,10 @@ TicketClassSchema.index(
 
 TicketClassSchema.index({ date: 1, hour: 1, students: 1 }, { unique: true });
 
-const TicketClass =
-  mongoose.models.TicketClass ||
-  mongoose.model("TicketClass", TicketClassSchema);
+// Force refresh the model to use new schema
+if (mongoose.models.TicketClass) {
+  delete mongoose.models.TicketClass;
+}
+
+const TicketClass = mongoose.model("TicketClass", TicketClassSchema);
 export default TicketClass;

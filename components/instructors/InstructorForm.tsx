@@ -34,6 +34,10 @@ const InstructorForm = ({ initialData }: { initialData?: InstructorData }) => {
     allUsers,
     selectedStudent,
     setSelectedStudent,
+    selectedStudents,
+    setSelectedStudents,
+    availableSpots,
+    setAvailableSpots,
     locations,
     editModalOpen,
     setEditModalOpen,
@@ -83,6 +87,10 @@ const InstructorForm = ({ initialData }: { initialData?: InstructorData }) => {
             allUsers={allUsers}
             selectedStudent={selectedStudent}
             setSelectedStudent={setSelectedStudent}
+            selectedStudents={selectedStudents}
+            setSelectedStudents={setSelectedStudents}
+            availableSpots={availableSpots}
+            setAvailableSpots={setAvailableSpots}
             locations={locations}
           />
           {/* Edit Recurring Modal */}
