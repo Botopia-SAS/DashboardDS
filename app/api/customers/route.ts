@@ -114,9 +114,13 @@ export async function POST(req: NextRequest) {
         });
       }
       const course = await TicketClass.findOne({ _id: data.courseId });
-      const students = course.students || [];
-      students.push(user._id);
-      await TicketClass.updateOne({ _id: data.courseId }, { students });
+      if (course) {
+        const students = course.students || [];
+        students.push(user._id);
+        await TicketClass.updateOne({ _id: data.courseId }, { students });
+      } else {
+        console.warn(`Course with ID ${data.courseId} not found`);
+      }
     }
 
     return NextResponse.json({

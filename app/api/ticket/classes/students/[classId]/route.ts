@@ -30,20 +30,22 @@ interface Response {
 export async function GET(req: NextRequest) {
   await connectToDB();
   const classId = req.url.split("/").pop();
-  const res: Response = await TicketClass.findOne({
+  const ticketClass = await TicketClass.findOne({
     _id: classId,
   }).exec();
-  if (!res) {
+  if (!ticketClass) {
     return NextResponse.json({ error: "Class not found" }, { status: 404 });
   }
   const instructor = await Instructor.findOne({
-    _id: res.instructorId,
+    _id: ticketClass.instructorId,
   });
   const students = [];
-  for (const studentEntry of res.students) {
-    const user = await User.findOne({ _id: studentEntry.studentId }).exec();
+  for (const studentId of ticketClass.students) {
+    const user = await User.findOne({ _id: studentId }).exec();
+    if (!user) continue; // Skip if user not found
+    
     const payment = await Payment.findOne({
-      user_id: studentEntry.studentId,
+      user_id: studentId,
     }).exec();
     const cert = await Certificate.findOne({
       studentId: user.id,
@@ -64,14 +66,14 @@ export async function GET(req: NextRequest) {
       birthDate: new Date(user.birthDate).toLocaleDateString("en-US", {
         timeZone: "UTC",
       }),
-      courseDate: new Date(res.date).toLocaleDateString("en-US", {
+      courseDate: new Date(ticketClass.date).toLocaleDateString("en-US", {
         timeZone: "UTC",
       }),
       sex: user.sex,
-      reason: studentEntry.reason || "",
-      country_ticket: studentEntry.country_ticket || "",
-      course_country: studentEntry.course_country || "",
-      citation_number: studentEntry.citation_number || "",
+      reason: "", // These fields are no longer stored in studentEntry
+      country_ticket: "",
+      course_country: "",
+      citation_number: "",
       licenseNumber: user.licenseNumber,
     });
   }
