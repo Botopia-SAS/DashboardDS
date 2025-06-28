@@ -150,13 +150,38 @@ export async function POST(req: NextRequest) {
       date,
       hour,
       instructorId,
-      existingClass: existingInstructorClass ? existingInstructorClass._id : null
+      existingClass: existingInstructorClass ? {
+        _id: existingInstructorClass._id,
+        date: existingInstructorClass.date,
+        hour: existingInstructorClass.hour,
+        type: existingInstructorClass.type
+      } : null
     });
 
     if (existingInstructorClass) {
-      console.error("[API] Conflict found:", existingInstructorClass);
+      console.error("[API] Conflict found:", {
+        existing: {
+          _id: existingInstructorClass._id,
+          date: existingInstructorClass.date,
+          hour: existingInstructorClass.hour,
+          type: existingInstructorClass.type
+        },
+        attempted: {
+          date,
+          hour,
+          type: value.type
+        }
+      });
       return NextResponse.json(
-        { error: "The instructor already has a class scheduled at this time." },
+        { 
+          error: "The instructor already has a class scheduled at this time.",
+          details: {
+            existingClassId: existingInstructorClass._id,
+            existingDate: existingInstructorClass.date,
+            existingHour: existingInstructorClass.hour,
+            existingType: existingInstructorClass.type
+          }
+        },
         { status: 400 }
       );
     }
