@@ -23,6 +23,7 @@ const ticketClassSchema = Joi.object({
   duration: Joi.string().valid("2h", "4h", "8h", "12h").required(),
   instructorId: Joi.string().required(),
   students: Joi.array().items(Joi.string()).default([]),
+  cupos: Joi.number().integer().min(1).default(30),
 }).unknown(false);
 
 interface Location {
@@ -52,6 +53,7 @@ export async function POST(req: NextRequest) {
     await connectToDB();
     const requestData = await req.json();
     console.log("[API] ticket/classes POST - requestData:", requestData);
+    
     const { error, value } = ticketClassSchema.validate(requestData);
 
     if (error) {
@@ -205,6 +207,7 @@ export async function POST(req: NextRequest) {
     }
 
     // Create the new class
+    console.log('[API] Creating TicketClass with data:', JSON.stringify(value, null, 2));
     const newClass = await TicketClass.create(value);
     await newClass.save();
 

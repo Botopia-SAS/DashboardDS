@@ -67,8 +67,12 @@ export function useInstructorForm(initialData?: InstructorData) {
   const [editAll, setEditAll] = useState(false);
   const [allUsers, setAllUsers] = useState<User[]>([]);
   const [selectedStudent, setSelectedStudent] = useState<string | string[]>("");
+  const [selectedStudents, setSelectedStudents] = useState<string[]>([]);
+  const [availableSpots, setAvailableSpots] = useState<number>(30);
   const [slotType, setSlotType] = useState<SlotType>("");
   const [locations, setLocations] = useState<{ _id: string; title: string }[]>([]);
+  // Estado para almacenar información de ticket classes cargada
+  const [enrichedTicketData, setEnrichedTicketData] = useState<Record<string, any>>({});
 
   // Assigned locations logic (top-level, not inside any function)
   const assignedLocationIds = Array.isArray(initialData?.locationIds)
@@ -129,6 +133,8 @@ export function useInstructorForm(initialData?: InstructorData) {
     setIsModalOpen(false);
     setCurrentSlot({ start: "", end: "", booked: false, recurrence: "None" });
     setSelectedStudent("");
+    setSelectedStudents([]);
+    setAvailableSpots(30);
     setSlotType("");
     setRecurrenceEnd(null);
     
@@ -169,10 +175,74 @@ export function useInstructorForm(initialData?: InstructorData) {
     fetchLocations();
   }, []);
 
-  const calendarEvents = schedule.map((slot: Slot) => ({
+  // Función para enriquecer eventos del calendario con datos de ticket classes
+  const enrichCalendarEvents = async () => {
+    const ticketClassIds = schedule
+      .filter(slot => slot.ticketClassId)
+      .map(slot => slot.ticketClassId!)
+      .filter((id, index, arr) => arr.indexOf(id) === index); // unique IDs
+
+    if (ticketClassIds.length === 0) return;
+
+    const enrichedData: Record<string, any> = { ...enrichedTicketData };
+    let hasUpdates = false;
+
+    // Cargar datos de ticket classes que no tenemos aún
+    for (const ticketClassId of ticketClassIds) {
+      if (!enrichedData[ticketClassId]) {
+        try {
+          const res = await fetch(`/api/ticket/classes/${ticketClassId}`);
+          if (res.ok) {
+            const ticketData = await res.json();
+            enrichedData[ticketClassId] = {
+              students: ticketData.students || [],
+              cupos: ticketData.cupos || 30,
+            };
+            hasUpdates = true;
+            console.log(`Loaded ticket class data for ${ticketClassId}:`, enrichedData[ticketClassId]);
+          }
+        } catch (error) {
+          console.error(`Error loading ticket class ${ticketClassId}:`, error);
+        }
+      }
+    }
+
+    if (hasUpdates) {
+      setEnrichedTicketData(enrichedData);
+    }
+  };
+
+  // useEffect para cargar datos de ticket classes cuando cambie el schedule
+  useEffect(() => {
+    if (schedule.length > 0) {
+      const hasTicketClasses = schedule.some(slot => slot.ticketClassId);
+      if (hasTicketClasses) {
+        enrichCalendarEvents();
+      }
+    }
+  }, [schedule]);
+
+  const calendarEvents = schedule.map((slot: Slot) => {
+    // Para ticket classes, usar datos enriquecidos si están disponibles
+    let studentCount = 0;
+    let totalCupos = 30;
+    
+    if (slot.ticketClassId && enrichedTicketData[slot.ticketClassId]) {
+      const ticketData = enrichedTicketData[slot.ticketClassId];
+      studentCount = Array.isArray(ticketData.students) ? ticketData.students.length : 0;
+      totalCupos = ticketData.cupos || 30;
+    } else if (slot.students) {
+      // Fallback a datos del slot si existen
+      studentCount = Array.isArray(slot.students) ? slot.students.length : 0;
+      totalCupos = slot.cupos || 30;
+    }
+
+    return {
     title:
       (slot.status === "scheduled"
         ? "Booked"
+        : slot.status === "full"
+        ? "Full"
         : slot.status === "cancelled"
         ? "Cancelled"
         : slot.status === "available"
@@ -180,12 +250,16 @@ export function useInstructorForm(initialData?: InstructorData) {
         : slot.booked
         ? "Booked"
         : "Available") +
-      (slot.classType ? ` - ${slot.classType}` : ""),
+      (slot.classType ? ` - ${slot.classType}` : "") +
+      (["D.A.T.E", "B.D.I", "A.D.I"].includes(slot.classType || "") ? 
+        ` (${studentCount}/${totalCupos})` : ""),
     start: `${slot.date}T${slot.start}`,
     end: `${slot.date}T${slot.end}`,
     backgroundColor:
       slot.status === "scheduled"
         ? "blue"
+        : slot.status === "full"
+        ? "purple"
         : slot.status === "cancelled"
         ? "red"
         : slot.status === "available"
@@ -196,6 +270,8 @@ export function useInstructorForm(initialData?: InstructorData) {
     borderColor:
       slot.status === "scheduled"
         ? "darkblue"
+        : slot.status === "full"
+        ? "darkpurple"
         : slot.status === "cancelled"
         ? "darkred"
         : slot.status === "available"
@@ -211,8 +287,11 @@ export function useInstructorForm(initialData?: InstructorData) {
         ? (slot.studentId.length > 0 ? slot.studentId[0] : null)
         : slot.studentId || null,
       slotId: slot.slotId,
+      students: slot.students || [],
+      cupos: slot.cupos || 30,
     },
-  }));
+    };
+  });
 
   const generatePassword = () => {
     const chars =
@@ -239,7 +318,12 @@ export function useInstructorForm(initialData?: InstructorData) {
       end = defaultEndDate.toISOString();
     }
     
+    // Limpiar estado para nuevo slot
     setCurrentSlot({ start, end, booked: false, recurrence: "None" });
+    setSelectedStudents([]); // Limpiar estudiantes seleccionados
+    setSelectedStudent(""); // Limpiar estudiante individual
+    setAvailableSpots(30); // Resetear cupos a valor por defecto
+    setSlotType(""); // Limpiar tipo de slot
     setIsModalOpen(true);
   };
 
@@ -272,13 +356,24 @@ export function useInstructorForm(initialData?: InstructorData) {
     setIsModalOpen(false);
     setCurrentSlot({ start: "", end: "", booked: false, recurrence: "None" });
     setSelectedStudent("");
+    setSelectedStudents([]);
+    setAvailableSpots(30);
     toast.success("Slot deleted! Remember to press 'Save Changes' to save to the database.");
   };
 
-  function getSlotStatus(slotType: SlotType): "available" | "cancelled" | "scheduled" {
-    if (slotType === "booked") return "scheduled";
-    if (slotType === "cancelled") return "cancelled";
-    return "available";
+  function getSlotStatus(slotType: SlotType, isTicketClass: boolean = false): "available" | "cancelled" | "scheduled" | "full" {
+    if (isTicketClass) {
+      // Para ticket classes, no usar "scheduled", solo "available", "cancelled", "full"
+      if (slotType === "full") return "full";
+      if (slotType === "cancelled") return "cancelled";
+      return "available";
+    } else {
+      // Para driving test, mantener lógica original
+      if (slotType === "booked") return "scheduled";
+      if (slotType === "full") return "full";
+      if (slotType === "cancelled") return "cancelled";
+      return "available";
+    }
   }
 
   const handleUpdateSlot = async () => {
@@ -297,15 +392,17 @@ export function useInstructorForm(initialData?: InstructorData) {
       const filtered = prevSchedule.filter(slot => slot.slotId !== currentSlot.originalSlotId);
       const newSlotId = uuidv4();
       
+      const isTicketClass = ["D.A.T.E", "B.D.I", "A.D.I"].includes(currentSlot.classType);
+      
       // Crear el nuevo slot
       const newSlot = {
         ...currentSlot,
         date,
         start: startTime,
         end: endTime,
-        booked: slotType === "booked",
-        studentId: slotType === "booked" ? selectedStudent : null,
-        status: getSlotStatus(slotType),
+        booked: !isTicketClass && slotType === "booked", // Solo para driving test
+        studentId: !isTicketClass && slotType === "booked" ? selectedStudent : null,
+        status: getSlotStatus(slotType, isTicketClass),
         recurrence: currentSlot.recurrence,
         slotId: newSlotId,
         classType: toValidClassType(currentSlot.classType),
@@ -318,7 +415,21 @@ export function useInstructorForm(initialData?: InstructorData) {
         classId: currentSlot.classId,
         // Keep existing ticketClassId if it exists (for updates), otherwise it will be created
         ticketClassId: currentSlot.ticketClassId,
+        // Para ticket classes, incluir estudiantes y cupos
+        students: isTicketClass ? selectedStudents : undefined,
+        cupos: isTicketClass ? availableSpots : undefined,
       };
+      
+      // Si es una ticket class, actualizar los datos enriquecidos
+      if (isTicketClass && newSlot.ticketClassId) {
+        setEnrichedTicketData(prev => ({
+          ...prev,
+          [newSlot.ticketClassId!]: {
+            students: selectedStudents,
+            cupos: availableSpots
+          }
+        }));
+      }
       
       return [...filtered, newSlot];
     });
@@ -375,9 +486,39 @@ export function useInstructorForm(initialData?: InstructorData) {
       toast.error("Please select a slot type.");
       return;
     }
-    if (slotType === "booked" && !selectedStudent) {
-      toast.error("Please select a student for a booked slot.");
-      return;
+    
+    // Para módulos ADI, BDI, DATE
+    const isTicketClass = ["D.A.T.E", "B.D.I", "A.D.I"].includes(currentSlot.classType);
+    
+    if (isTicketClass) {
+      // Validar cupos para ticket classes
+      if (!availableSpots || availableSpots <= 0) {
+        toast.error("Please enter the number of available spots.");
+        return;
+      }
+      
+      // Para ticket classes, solo permitir "available", "cancelled" o "full"
+      if (!["available", "cancelled", "full"].includes(slotType)) {
+        toast.error("Please select a valid status for this class type.");
+        return;
+      }
+      
+      // Si es Available, permitir agregar estudiantes
+      if (slotType === "available" && selectedStudents.length > availableSpots) {
+        toast.error(`Cannot add more students than available spots (${availableSpots}).`);
+        return;
+      }
+      
+      // Si está lleno, cambiar a "full"
+      if (selectedStudents.length >= availableSpots) {
+        setSlotType("full");
+      }
+    } else {
+      // Para driving test, mantener lógica original
+      if (slotType === "booked" && !selectedStudent) {
+        toast.error("Please select a student for a booked slot.");
+        return;
+      }
     }
     // Prevent saving slot for unassigned location
     if (assignedLocationIds && currentSlot.locationId && !assignedLocationIds.includes(currentSlot.locationId)) {
@@ -434,7 +575,7 @@ export function useInstructorForm(initialData?: InstructorData) {
         const newSlots: Slot[] = splitIntoTwoHourSlots(dateTimeStart, dateTimeEnd, {
           booked: slotType === "booked",
           studentId: slotType === "booked" ? selectedStudent : null,
-          status: slotType === "booked" ? "scheduled" : slotType,
+          status: getSlotStatus(slotType, false), // driving test is not a ticket class
           classType: currentSlot.classType,
           amount: currentSlot.amount,
           paid: currentSlot.paid,
@@ -497,8 +638,8 @@ export function useInstructorForm(initialData?: InstructorData) {
       }
       
       const newSlot: Slot = {
-        status: "available",
-        cupos: 30,
+        status: getSlotStatus(slotType, isTicketClass),
+        cupos: isTicketClass ? availableSpots : 30,
         date: date,
         start: newStart,
         end: newEnd,
@@ -510,8 +651,9 @@ export function useInstructorForm(initialData?: InstructorData) {
         paid: (currentSlot as any).paid,
         pickupLocation: (currentSlot as any).pickupLocation,
         dropoffLocation: (currentSlot as any).dropoffLocation,
-        booked: slotType === "booked",
-        studentId: slotType === "booked" ? selectedStudent : null,
+        booked: !isTicketClass && slotType === "booked", // Solo para driving test
+        studentId: !isTicketClass && slotType === "booked" ? selectedStudent : null,
+        students: isTicketClass ? selectedStudents : undefined,
         slotId: uuidv4(), // Nuevo ID para cada slot
       };
       
@@ -519,9 +661,30 @@ export function useInstructorForm(initialData?: InstructorData) {
     }
     
     setSchedule((prevSchedule: Slot[]) => [...prevSchedule, ...allNewSlots]);
+    
+    // Si es una ticket class, actualizar los datos enriquecidos para todos los slots creados
+    if (isTicketClass) {
+      const ticketDataUpdate = {
+        students: selectedStudents,
+        cupos: availableSpots
+      };
+      
+      setEnrichedTicketData(prev => {
+        const updated = { ...prev };
+        allNewSlots.forEach(slot => {
+          if (slot.ticketClassId) {
+            updated[slot.ticketClassId] = ticketDataUpdate;
+          }
+        });
+        return updated;
+      });
+    }
+    
     setIsModalOpen(false);
     setCurrentSlot({ start: "", end: "", booked: false, recurrence: "None" });
     setSelectedStudent("");
+    setSelectedStudents([]);
+    setAvailableSpots(30);
     setSlotType("");
     setRecurrenceEnd(null);
     toast.success(`${allNewSlots.length} slots saved for ${recurringDates.length} dates!`);
@@ -546,11 +709,21 @@ export function useInstructorForm(initialData?: InstructorData) {
           s.end === formattedEnd.split("T")[1]
       );
     }
-    if (realSlot && realSlot.ticketClassId && !realSlot.classType) {
+
+    // Para ticket classes, cargar información completa desde la base de datos
+    if (realSlot && realSlot.ticketClassId) {
       try {
         const res = await fetch(`/api/ticket/classes/${realSlot.ticketClassId}`);
         if (res.ok) {
           const ticket = await res.json();
+          console.log("Loaded ticket class data for editing:", ticket);
+          
+          // Mapear el tipo correcto
+          const classType = ticket.type === 'date' ? 'D.A.T.E' : 
+                           ticket.type === 'bdi' ? 'B.D.I' : 
+                           ticket.type === 'adi' ? 'A.D.I' : 
+                           ticket.type;
+
           setCurrentSlot({
             start: realSlot.start ? `${realSlot.date}T${realSlot.start}` : "",
             end: realSlot.end ? `${realSlot.date}T${realSlot.end}` : "",
@@ -565,24 +738,65 @@ export function useInstructorForm(initialData?: InstructorData) {
               ? (realSlot.studentId[0] || "")
               : (realSlot.studentId || ""),
             status: realSlot.status,
-            classType: (ticket.type === 'date' ? 'D.A.T.E' : ticket.type === 'bdi' ? 'B.D.I' : ticket.type === 'adi' ? 'A.D.I' : ticket.type),
+            classType: classType,
             classId: ticket.classId,
-            amount: realSlot.amount,
-            duration: ticket.duration,
+            amount: ticket.price || realSlot.amount,
+            duration: ticket.duration ? `${ticket.duration}h` : '',
             paid: realSlot.paid,
             pickupLocation: realSlot.pickupLocation,
             dropoffLocation: realSlot.dropoffLocation,
             locationId: ticket.locationId,
+            cupos: ticket.cupos || realSlot.cupos || 30,
+            students: ticket.students || [],
           });
-          setSlotType(realSlot.status === "scheduled" ? "booked" : realSlot.status === "cancelled" ? "cancelled" : "available");
+          
+          // Configurar datos específicos para ticket classes
+          const isTicketClass = ["date", "bdi", "adi"].includes(ticket.type);
+          if (isTicketClass) {
+            const cuposValue = ticket.cupos || realSlot.cupos || 30;
+            const studentsValue = ticket.students || [];
+            
+            setAvailableSpots(cuposValue);
+            setSelectedStudents(studentsValue);
+            
+            // Actualizar datos enriquecidos
+            setEnrichedTicketData(prev => ({
+              ...prev,
+              [realSlot.ticketClassId!]: {
+                students: studentsValue,
+                cupos: cuposValue
+              }
+            }));
+            
+            console.log("Setting ticket class data:", {
+              cupos: cuposValue,
+              students: studentsValue,
+              studentCount: studentsValue.length
+            });
+            
+            // Determinar el estado del slot basado en la cantidad de estudiantes
+            const studentCount = studentsValue.length;
+            if (studentCount >= cuposValue) {
+              setSlotType("full");
+            } else if (realSlot.status === "cancelled") {
+              setSlotType("cancelled");
+            } else {
+              setSlotType("available");
+            }
+          } else {
+            // Para driving test, usar lógica original
+            setSlotType(realSlot.status === "scheduled" ? "booked" : realSlot.status === "cancelled" ? "cancelled" : "available");
+          }
+          
           setSelectedStudent(realSlot.status === "scheduled" && realSlot.studentId ? realSlot.studentId : "");
           setIsModalOpen(true);
           return;
         }
-      } catch {
-        // Ignore error
+      } catch (error) {
+        console.error("Error loading ticket class data:", error);
       }
     }
+    // Para slots regulares (driving tests o slots sin ticketClassId)
     setCurrentSlot({
       start: realSlot?.start ? `${realSlot.date}T${realSlot.start}` : "",
       end: realSlot?.end ? `${realSlot.date}T${realSlot.end}` : "",
@@ -605,10 +819,31 @@ export function useInstructorForm(initialData?: InstructorData) {
       pickupLocation: realSlot?.pickupLocation,
       dropoffLocation: realSlot?.dropoffLocation,
       locationId: realSlot?.locationId,
+      cupos: realSlot?.cupos,
+      students: realSlot?.students || [],
     });
-    if (realSlot?.status === "scheduled") setSlotType("booked");
-    else if (realSlot?.status === "cancelled") setSlotType("cancelled");
-    else setSlotType("available");
+    
+    // Configurar datos para slots regulares
+    const isTicketClass = ["D.A.T.E", "B.D.I", "A.D.I"].includes(realSlot?.classType || "");
+    if (isTicketClass) {
+      setAvailableSpots(realSlot?.cupos || 30);
+      setSelectedStudents(realSlot?.students || []);
+      const studentCount = (realSlot?.students || []).length;
+      const totalSpots = realSlot?.cupos || 30;
+      if (studentCount >= totalSpots) {
+        setSlotType("full");
+      } else if (realSlot?.status === "cancelled") {
+        setSlotType("cancelled");
+      } else {
+        setSlotType("available");
+      }
+    } else {
+      // Para driving test, usar lógica original
+      if (realSlot?.status === "scheduled") setSlotType("booked");
+      else if (realSlot?.status === "cancelled") setSlotType("cancelled");
+      else setSlotType("available");
+    }
+    
     if (realSlot?.status === "scheduled" && realSlot?.studentId) {
       setSelectedStudent(realSlot.studentId);
     } else {
@@ -733,7 +968,12 @@ export function useInstructorForm(initialData?: InstructorData) {
           originalSlot.date !== currentSlot.date ||
           originalSlot.start !== currentSlot.start ||
           originalSlot.end !== currentSlot.end ||
-          originalSlot.classType !== currentSlot.classType
+          originalSlot.classType !== currentSlot.classType ||
+          // For ticket classes, also check students and cupos changes
+          (["D.A.T.E", "B.D.I", "A.D.I"].includes(currentSlot.classType || "") && (
+            JSON.stringify(originalSlot.students || []) !== JSON.stringify(currentSlot.students || []) ||
+            originalSlot.cupos !== currentSlot.cupos
+          ))
         );
 
         if (hasChanges) {
@@ -743,7 +983,9 @@ export function useInstructorForm(initialData?: InstructorData) {
             locationChanged: originalSlot.locationId !== currentSlot.locationId,
             dateChanged: originalSlot.date !== currentSlot.date,
             timeChanged: originalSlot.start !== currentSlot.start || originalSlot.end !== currentSlot.end,
-            typeChanged: originalSlot.classType !== currentSlot.classType
+            typeChanged: originalSlot.classType !== currentSlot.classType,
+            studentsChanged: JSON.stringify(originalSlot.students || []) !== JSON.stringify(currentSlot.students || []),
+            cuposChanged: originalSlot.cupos !== currentSlot.cupos
           });
           changes.toUpdate.push({ old: originalSlot, new: currentSlot });
         } else {
@@ -877,12 +1119,32 @@ export function useInstructorForm(initialData?: InstructorData) {
         withoutTicketClassId: finalSchedule.filter(s => !s.ticketClassId).length
       });
 
-      // Save instructor with the final schedule
+      // For the instructor schedule, only store minimal data with ticketClassId reference
+      const scheduleToPersist = finalSchedule.map(slot => {
+        if (slot.ticketClassId && ["D.A.T.E", "B.D.I", "A.D.I"].includes(slot.classType || "")) {
+          // For ticket classes, only store reference and basic info
+          return {
+            date: slot.date,
+            start: slot.start,
+            end: slot.end,
+            classType: slot.classType,
+            ticketClassId: slot.ticketClassId,
+            slotId: slot.slotId,
+            recurrence: slot.recurrence,
+            status: slot.status,
+            // Don't store students and cupos here - they're in the ticket class
+          };
+        }
+        // For non-ticket classes (driving test), keep all data
+        return slot;
+      });
+
+      // Save instructor with the minimal schedule
       const bodyToSend: Record<string, unknown> = {
         instructorId: initialData?._id ?? "",
         ...values,
         photo: photoString,
-        schedule: finalSchedule,
+        schedule: scheduleToPersist,
       };
       
       if (initialData && !bodyToSend.password) {
@@ -953,7 +1215,8 @@ export function useInstructorForm(initialData?: InstructorData) {
       type: mapClassTypeForBackend(slot.classType),
       duration: durationForPayload,
       instructorId: initialData?._id,
-      students: [],
+      students: slot.students || [],
+      cupos: slot.cupos || 30,
     };
 
     const res = await fetch("/api/ticket/classes", {
@@ -979,26 +1242,60 @@ export function useInstructorForm(initialData?: InstructorData) {
   const updateTicketClass = async (oldSlot: Slot, newSlot: Slot): Promise<Slot> => {
     console.log('[UPDATE] Updating ticket class:', oldSlot.ticketClassId);
     
-    // For ticket classes with time/location changes, we need to delete and recreate
-    // due to the unique index on date+hour+instructorId
     if (oldSlot.ticketClassId) {
-      // Delete old ticket class
-      const deleteRes = await fetch(`/api/ticket/classes/${oldSlot.ticketClassId}`, { 
-        method: 'DELETE' 
-      });
-      
-      if (!deleteRes.ok) {
-        const errorText = await deleteRes.text();
-        throw new Error(`Failed to delete old ticket class: ${errorText}`);
+      // Check if time/date/location changed - if so, delete and recreate
+      const timeLocationChanged = (
+        oldSlot.date !== newSlot.date ||
+        oldSlot.start !== newSlot.start ||
+        oldSlot.end !== newSlot.end ||
+        oldSlot.locationId !== newSlot.locationId
+      );
+
+      if (timeLocationChanged) {
+        // Delete old ticket class
+        const deleteRes = await fetch(`/api/ticket/classes/${oldSlot.ticketClassId}`, { 
+          method: 'DELETE' 
+        });
+        
+        if (!deleteRes.ok) {
+          const errorText = await deleteRes.text();
+          throw new Error(`Failed to delete old ticket class: ${errorText}`);
+        }
+        
+        console.log('[UPDATE] Deleted old ticket class due to time/location change:', oldSlot.ticketClassId);
+        
+        // Create new ticket class
+        const updatedSlot = await createTicketClass(newSlot);
+        console.log('[UPDATE] Created new ticket class:', updatedSlot.ticketClassId);
+        
+        return updatedSlot;
+      } else {
+        // Only update students and cupos via PATCH
+        console.log('[UPDATE] Updating students and cupos for ticket class:', oldSlot.ticketClassId);
+        
+        const updatePayload = {
+          students: newSlot.students || [],
+          cupos: newSlot.cupos || 30,
+        };
+
+        const patchRes = await fetch(`/api/ticket/classes/${oldSlot.ticketClassId}`, {
+          method: 'PATCH',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify(updatePayload),
+        });
+
+        if (!patchRes.ok) {
+          const errorText = await patchRes.text();
+          throw new Error(`Failed to update ticket class: ${errorText}`);
+        }
+
+        console.log('[UPDATE] Successfully updated students and cupos for ticket class:', oldSlot.ticketClassId);
+
+        return {
+          ...newSlot,
+          ticketClassId: oldSlot.ticketClassId,
+        };
       }
-      
-      console.log('[UPDATE] Deleted old ticket class:', oldSlot.ticketClassId);
-      
-      // Create new ticket class
-      const updatedSlot = await createTicketClass(newSlot);
-      console.log('[UPDATE] Created new ticket class:', updatedSlot.ticketClassId);
-      
-      return updatedSlot;
     }
     
     return newSlot;
@@ -1055,6 +1352,10 @@ export function useInstructorForm(initialData?: InstructorData) {
     allUsers,
     selectedStudent,
     setSelectedStudent,
+    selectedStudents,
+    setSelectedStudents,
+    availableSpots,
+    setAvailableSpots,
     locations: filteredLocations,
     editModalOpen,
     setEditModalOpen,
