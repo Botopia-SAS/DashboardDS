@@ -3,9 +3,9 @@ import Instructor from "@/lib/models/Instructor";
 import { connectToDB } from "@/lib/mongoDB";
 import mongoose from "mongoose";
 
-export async function DELETE(req: NextRequest, { params }: { params: { instructorId: string } }) {
+export async function DELETE(req: NextRequest, context: { params: Promise<{ instructorId: string }> }) {
   await connectToDB();
-  const { instructorId } = await params;
+  const { instructorId } = await context.params;
   const { slotId } = await req.json(); // slotId es el _id del slot dentro de schedule
 
   if (!instructorId || !slotId) {

@@ -4,6 +4,7 @@ import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import toast from "react-hot-toast";
 import { v4 as uuidv4 } from "uuid";
+import { EventClickArg } from "@fullcalendar/core";
 import { formSchema } from "./instructorFormSchema";
 import {
   toValidClassType,
@@ -63,6 +64,7 @@ export function useInstructorForm(initialData?: InstructorData) {
     isEditing: false,
   });
   const [editModalOpen, setEditModalOpen] = useState(false);
+  const [editAll, setEditAll] = useState(false);
   const [allUsers, setAllUsers] = useState<User[]>([]);
   const [selectedStudent, setSelectedStudent] = useState<string | string[]>("");
   const [slotType, setSlotType] = useState<SlotType>("");
@@ -663,7 +665,7 @@ export function useInstructorForm(initialData?: InstructorData) {
     toast.success(`${allNewSlots.length} slots saved for ${recurringDates.length} dates!`);
   };
 
-  const handleEventClick = async (eventInfo: { event: { id: string } }) => {
+  const handleEventClick = async (eventInfo: EventClickArg) => {
     const { start, end, extendedProps } = eventInfo.event;
     if (!start || !end) {
       return;
