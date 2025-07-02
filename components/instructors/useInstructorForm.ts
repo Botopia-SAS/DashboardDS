@@ -14,36 +14,8 @@ import { InstructorData, Slot, SlotType, User } from "./types";
 import {
   normalizeSchedule,
   splitIntoTwoHourSlots,
+  convertTo24HourFormat,
 } from "./utils";
-
-// Función para convertir horas a formato 24 horas
-function convertTo24HourFormat(time: string): string {
-  // Si ya está en formato 24 horas (HH:MM), retornarlo tal como está
-  if (/^([01]?[0-9]|2[0-3]):[0-5][0-9]$/.test(time)) {
-    return time;
-  }
-  
-  // Si tiene AM/PM, convertir a 24 horas
-  const timePattern = /^(\d{1,2}):(\d{2})\s*(AM|PM)$/i;
-  const match = time.match(timePattern);
-  
-  if (match) {
-    let hours = parseInt(match[1]);
-    const minutes = match[2];
-    const period = match[3].toUpperCase();
-    
-    if (period === 'AM' && hours === 12) {
-      hours = 0;
-    } else if (period === 'PM' && hours !== 12) {
-      hours += 12;
-    }
-    
-    return `${hours.toString().padStart(2, '0')}:${minutes}`;
-  }
-  
-  // Si no coincide con ningún patrón, retornar tal como está
-  return time;
-}
 
 export function useInstructorForm(initialData?: InstructorData) {
   const recurrenceOptions = ["None", "Daily", "Weekly", "Monthly"];
@@ -1434,7 +1406,6 @@ export function useInstructorForm(initialData?: InstructorData) {
     const newClassType = newSlot.classType || "";
     
     // CRITICAL: If class type changed, this is always a significant change
-    // (e.g., ticket class ↔ driving test)
     if (oldClassType !== newClassType) {
       console.log('[DIFF] Class type changed - SIGNIFICANT:', {
         oldType: oldClassType,
@@ -1446,8 +1417,8 @@ export function useInstructorForm(initialData?: InstructorData) {
     }
     
     // CRITICAL: If one has ticketClassId and other doesn't, significant change
-    const oldHasTicketId = !!oldSlot.ticketClassId;
-    const newHasTicketId = !!newSlot.ticketClassId;
+    const oldHasTicketId = !!oldSlot.ticketClassId && !oldSlot.ticketClassId.toString().startsWith('temp-');
+    const newHasTicketId = !!newSlot.ticketClassId && !newSlot.ticketClassId.toString().startsWith('temp-');
     if (oldHasTicketId !== newHasTicketId) {
       console.log('[DIFF] TicketClassId presence changed - SIGNIFICANT:', {
         oldHasTicketId,
@@ -1458,50 +1429,87 @@ export function useInstructorForm(initialData?: InstructorData) {
       return true;
     }
     
-    // Para ticket classes, considerar cambios en estudiantes, cupos y precio como significativos
+    // Para ticket classes existentes (no temporales), ser MUY conservador
     if (["D.A.T.E", "B.D.I", "A.D.I"].includes(oldClassType)) {
-      const oldNorm = normalizeSlotForComparison(oldSlot);
-      const newNorm = normalizeSlotForComparison(newSlot);
-      
-      // Comparar solo los campos que realmente importan para ticket classes
-      const studentsChanged = JSON.stringify(oldNorm.students) !== JSON.stringify(newNorm.students);
-      const cuposChanged = oldNorm.cupos !== newNorm.cupos;
-      const amountChanged = Math.abs((oldNorm.amount || 0) - (newNorm.amount || 0)) > 0.01;
-      const locationChanged = oldNorm.locationId !== newNorm.locationId;
-      const classIdChanged = oldNorm.classId !== newNorm.classId;
-      
-      const hasChanges = studentsChanged || cuposChanged || amountChanged || locationChanged || classIdChanged;
-      
-      if (hasChanges) {
-        console.log('[DIFF] Significant changes detected for ticket class:', {
+      // Si ambos tienen el mismo ticketClassId real, probablemente son el mismo slot
+      if (oldSlot.ticketClassId && newSlot.ticketClassId && 
+          oldSlot.ticketClassId === newSlot.ticketClassId &&
+          !oldSlot.ticketClassId.toString().startsWith('temp-')) {
+        
+        console.log('[DIFF] Same ticket class ID - checking for REAL changes:', {
           ticketClassId: oldSlot.ticketClassId,
-          studentsChanged,
-          cuposChanged, 
-          amountChanged,
-          locationChanged,
-          classIdChanged,
-          oldStudents: oldNorm.students?.length || 0,
-          newStudents: newNorm.students?.length || 0,
-          oldCupos: oldNorm.cupos,
-          newCupos: newNorm.cupos
+          oldDate: oldSlot.date,
+          newDate: newSlot.date,
+          oldStart: oldSlot.start,
+          newStart: newSlot.start
         });
+        
+        // Solo considerar cambios en campos críticos para ticket classes existentes
+        const studentsChangedReal = JSON.stringify(oldSlot.students || []) !== JSON.stringify(newSlot.students || []);
+        const cuposChangedReal = (oldSlot.cupos || 30) !== (newSlot.cupos || 30);
+        const amountChangedReal = Math.abs((oldSlot.amount || 0) - (newSlot.amount || 0)) > 0.01;
+        
+        // Para ticket classes existentes, cambios de fecha/hora son muy raros y pueden ser errores
+        const timeChanged = oldSlot.start !== newSlot.start || oldSlot.end !== newSlot.end;
+        const dateChanged = oldSlot.date !== newSlot.date;
+        
+        if (timeChanged || dateChanged) {
+          console.warn('[DIFF] Time/date change detected for existing ticket class - potential data issue:', {
+            ticketClassId: oldSlot.ticketClassId,
+            dateChanged: { old: oldSlot.date, new: newSlot.date },
+            timeChanged: { 
+              old: `${oldSlot.start}-${oldSlot.end}`, 
+              new: `${newSlot.start}-${newSlot.end}` 
+            }
+          });
+        }
+        
+        const hasRealChanges = studentsChangedReal || cuposChangedReal || amountChangedReal;
+        
+        if (hasRealChanges) {
+          console.log('[DIFF] REAL changes detected for existing ticket class:', {
+            ticketClassId: oldSlot.ticketClassId,
+            studentsChanged: studentsChangedReal,
+            cuposChanged: cuposChangedReal,
+            amountChanged: amountChangedReal,
+            oldStudents: (oldSlot.students || []).length,
+            newStudents: (newSlot.students || []).length,
+            oldCupos: oldSlot.cupos || 30,
+            newCupos: newSlot.cupos || 30
+          });
+        } else {
+          console.log('[DIFF] No real changes for existing ticket class - KEEPING as-is:', {
+            ticketClassId: oldSlot.ticketClassId,
+            date: oldSlot.date,
+            start: oldSlot.start
+          });
+        }
+        
+        return hasRealChanges;
       }
       
-      return hasChanges;
-    }
-    
-    // Para driving tests, comparar todos los campos importantes
-    if (oldClassType === "driving test") {
+      // Si no tienen el mismo ticket ID, usar comparación general
       const oldNorm = normalizeSlotForComparison(oldSlot);
       const newNorm = normalizeSlotForComparison(newSlot);
       
-      // Para driving tests, verificar campos específicos
-      const timeChanged = oldNorm.start !== newNorm.start || oldNorm.end !== newNorm.end;
-      const dateChanged = oldNorm.date !== newNorm.date;
-      const studentChanged = oldNorm.selectedStudent !== newNorm.selectedStudent;
-      const statusChanged = oldNorm.status !== newNorm.status;
+      const studentsChanged = JSON.stringify(oldNorm.students || []) !== JSON.stringify(newNorm.students || []);
+      const cuposChanged = (oldNorm.cupos || 30) !== (newNorm.cupos || 30);
+      const amountChanged = Math.abs((oldNorm.amount || 0) - (newNorm.amount || 0)) > 0.01;
+      const locationChanged = (oldNorm.locationId || "") !== (newNorm.locationId || "");
+      const classIdChanged = (oldNorm.classId || "") !== (newNorm.classId || "");
       
-      const hasChanges = timeChanged || dateChanged || studentChanged || statusChanged;
+      return studentsChanged || cuposChanged || amountChanged || locationChanged || classIdChanged;
+    }
+    
+    // Para driving tests, comparar campos importantes
+    if (oldClassType === "driving test") {
+      const timeChanged = oldSlot.start !== newSlot.start || oldSlot.end !== newSlot.end;
+      const dateChanged = oldSlot.date !== newSlot.date;
+      const studentChanged = (oldSlot.studentId || "") !== (newSlot.studentId || "");
+      const statusChanged = (oldSlot.status || "") !== (newSlot.status || "");
+      const bookedChanged = (oldSlot.booked || false) !== (newSlot.booked || false);
+      
+      const hasChanges = timeChanged || dateChanged || studentChanged || statusChanged || bookedChanged;
       
       if (hasChanges) {
         console.log('[DIFF] Significant changes detected for driving test:', {
@@ -1509,18 +1517,26 @@ export function useInstructorForm(initialData?: InstructorData) {
           timeChanged,
           dateChanged,
           studentChanged,
-          statusChanged
+          statusChanged,
+          bookedChanged
         });
       }
       
       return hasChanges;
     }
     
-    // Para otros tipos, comparar todo
+    // Para otros tipos, usar comparación general pero conservadora
     const oldNorm = normalizeSlotForComparison(oldSlot);
     const newNorm = normalizeSlotForComparison(newSlot);
     
-    return JSON.stringify(oldNorm) !== JSON.stringify(newNorm);
+    const significantFields = ['date', 'start', 'end', 'status', 'booked', 'studentId', 'amount'];
+    const hasChanges = significantFields.some(field => {
+      const oldVal = (oldNorm as any)[field];
+      const newVal = (newNorm as any)[field];
+      return JSON.stringify(oldVal) !== JSON.stringify(newVal);
+    });
+    
+    return hasChanges;
   };
 
   // Normalizes a slot for comparison purposes
@@ -1661,15 +1677,22 @@ export function useInstructorForm(initialData?: InstructorData) {
 
     // Helper function to create a unique key for slot matching
     const getSlotKey = (slot: Slot): string => {
-      // Priority 1: Ticket class ID (most reliable)
+      // Priority 1: Real ticket class ID (most reliable for existing ticket classes)
       if (slot.ticketClassId && !slot.ticketClassId.toString().startsWith('temp-')) {
         return `ticket:${slot.ticketClassId}`;
       }
-      // Priority 2: Driving test slot ID
-      if (slot.slotId) {
+      
+      // Priority 2: Driving test slot ID 
+      if (slot.slotId && slot.classType === "driving test") {
         return `slot:${slot.slotId}`;
       }
-      // Priority 3: Date/time/type combination (fallback)
+      
+      // Priority 3: For ticket classes without real ID, use date/time/type combination
+      if (["D.A.T.E", "B.D.I", "A.D.I"].includes(slot.classType || "")) {
+        return `tickettime:${slot.date}:${slot.start}:${slot.end}:${slot.classType}:${slot.classId || 'noclass'}:${slot.locationId || 'noloc'}`;
+      }
+      
+      // Priority 4: Date/time combination for other types (fallback)
       return `time:${slot.date}:${slot.start}:${slot.end}:${slot.classType || 'unknown'}`;
     };
 
@@ -1682,6 +1705,14 @@ export function useInstructorForm(initialData?: InstructorData) {
     originalSchedule.forEach(slot => {
       const key = getSlotKey(slot);
       originalMap.set(key, slot);
+      console.log('[DIFF] Original slot indexed:', { 
+        key, 
+        ticketClassId: slot.ticketClassId,
+        slotId: slot.slotId,
+        classType: slot.classType,
+        date: slot.date,
+        start: slot.start
+      });
     });
 
     // Index current schedule and identify new/updated slots
@@ -1689,9 +1720,15 @@ export function useInstructorForm(initialData?: InstructorData) {
       const key = getSlotKey(slot);
       currentMap.set(key, slot);
 
-      // Handle temporary slots (always create)
+      // Handle temporary slots (always create) - these are NEW ticket classes
       if (slot.isTemporary || (slot.ticketClassId && slot.ticketClassId.toString().startsWith('temp-'))) {
-        console.log('[DIFF] Temporary slot to CREATE:', { key, ticketClassId: slot.ticketClassId });
+        console.log('[DIFF] NEW temporary ticket class to CREATE:', { 
+          key, 
+          ticketClassId: slot.ticketClassId,
+          classType: slot.classType,
+          date: slot.date,
+          start: slot.start
+        });
         changes.toCreate.push(slot);
         processedKeys.add(key);
         return;
@@ -1700,13 +1737,20 @@ export function useInstructorForm(initialData?: InstructorData) {
       const originalSlot = originalMap.get(key);
       
       if (!originalSlot) {
-        // New slot
-        console.log('[DIFF] New slot to CREATE:', { key, date: slot.date, start: slot.start, classType: slot.classType });
+        // New slot - could be driving test or new ticket class
+        console.log('[DIFF] NEW slot to CREATE:', { 
+          key, 
+          date: slot.date, 
+          start: slot.start, 
+          classType: slot.classType,
+          ticketClassId: slot.ticketClassId,
+          slotId: slot.slotId
+        });
         changes.toCreate.push(slot);
       } else {
         // Existing slot - check for significant changes
         if (hasSignificantChanges(originalSlot, slot)) {
-          console.log('[DIFF] Slot needs UPDATE:', { 
+          console.log('[DIFF] EXISTING slot needs UPDATE:', { 
             key, 
             ticketClassId: slot.ticketClassId,
             date: slot.date, 
@@ -1716,7 +1760,13 @@ export function useInstructorForm(initialData?: InstructorData) {
           });
           changes.toUpdate.push({ old: originalSlot, new: slot });
         } else {
-          console.log('[DIFF] Slot unchanged, KEEPING:', { key, ticketClassId: slot.ticketClassId });
+          console.log('[DIFF] EXISTING slot unchanged, KEEPING as-is:', { 
+            key, 
+            ticketClassId: slot.ticketClassId,
+            classType: slot.classType,
+            date: slot.date,
+            start: slot.start
+          });
           changes.toKeep.push(slot);
         }
       }
@@ -1728,7 +1778,7 @@ export function useInstructorForm(initialData?: InstructorData) {
     originalSchedule.forEach(slot => {
       const key = getSlotKey(slot);
       if (!processedKeys.has(key) && !currentMap.has(key)) {
-        console.log('[DIFF] Slot to DELETE:', { 
+        console.log('[DIFF] EXISTING slot to DELETE:', { 
           key,
           ticketClassId: slot.ticketClassId,
           slotId: slot.slotId,
@@ -1740,7 +1790,62 @@ export function useInstructorForm(initialData?: InstructorData) {
       }
     });
 
-    // Professional validation: Detect potential issues
+    // Filter questionable updates to prevent unnecessary recreations
+    const validUpdates = changes.toUpdate.filter(update => {
+      // For ticket classes, be very strict about what constitutes a real update
+      if (["D.A.T.E", "B.D.I", "A.D.I"].includes(update.old.classType || "")) {
+        const oldNorm = normalizeSlotForComparison(update.old);
+        const newNorm = normalizeSlotForComparison(update.new);
+        
+        const studentsChanged = JSON.stringify(oldNorm.students || []) !== JSON.stringify(newNorm.students || []);
+        const cuposChanged = (oldNorm.cupos || 30) !== (newNorm.cupos || 30);
+        const amountChanged = Math.abs((oldNorm.amount || 0) - (newNorm.amount || 0)) > 0.01;
+        const locationChanged = (oldNorm.locationId || "") !== (newNorm.locationId || "");
+        const classIdChanged = (oldNorm.classId || "") !== (newNorm.classId || "");
+        
+        const hasRealChanges = studentsChanged || cuposChanged || amountChanged || locationChanged || classIdChanged;
+        
+        if (!hasRealChanges) {
+          console.log('[DIFF] Preventing unnecessary ticket class update:', {
+            ticketClassId: update.old.ticketClassId,
+            reason: 'No meaningful changes detected',
+            students: { old: oldNorm.students?.length || 0, new: newNorm.students?.length || 0 },
+            cupos: { old: oldNorm.cupos || 30, new: newNorm.cupos || 30 }
+          });
+          changes.toKeep.push(update.new);
+          return false;
+        }
+        
+        console.log('[DIFF] Valid ticket class update:', {
+          ticketClassId: update.old.ticketClassId,
+          changes: {
+            students: studentsChanged,
+            cupos: cuposChanged,
+            amount: amountChanged,
+            location: locationChanged,
+            classId: classIdChanged
+          }
+        });
+        return true;
+      }
+      
+      // For driving tests, allow all detected updates
+      return true;
+    });
+
+    // Update the changes object with filtered updates
+    const removedUpdates = changes.toUpdate.filter(update => !validUpdates.includes(update));
+    changes.toUpdate = validUpdates;
+
+    console.log('[DIFF] Final diff summary:', {
+      toCreate: changes.toCreate.length,
+      toUpdate: changes.toUpdate.length,
+      toDelete: changes.toDelete.length,
+      toKeep: changes.toKeep.length,
+      removedUnnecessaryUpdates: removedUpdates.length
+    });
+
+    // Warning for high change percentage
     const totalChanges = changes.toCreate.length + changes.toUpdate.length + changes.toDelete.length;
     const changePercentage = originalSchedule.length > 0 ? (totalChanges / originalSchedule.length) * 100 : 0;
 
@@ -1752,50 +1857,6 @@ export function useInstructorForm(initialData?: InstructorData) {
         message: 'This might indicate a data format issue. Review carefully.'
       });
     }
-
-    // Filter questionable updates: Only allow updates that truly matter
-    if (changes.toUpdate.length > 3) {
-      const filteredUpdates = changes.toUpdate.filter(update => {
-        // For ticket classes, only allow updates if students or cupos actually changed
-        if (["D.A.T.E", "B.D.I", "A.D.I"].includes(update.old.classType || "")) {
-          const oldNorm = normalizeSlotForComparison(update.old);
-          const newNorm = normalizeSlotForComparison(update.new);
-          
-          const studentsChanged = JSON.stringify(oldNorm.students || []) !== JSON.stringify(newNorm.students || []);
-          const cuposChanged = oldNorm.cupos !== newNorm.cupos;
-          const amountChanged = Math.abs((oldNorm.amount || 0) - (newNorm.amount || 0)) > 0.01;
-          
-          const isValidUpdate = studentsChanged || cuposChanged || amountChanged;
-          
-          if (!isValidUpdate) {
-            console.log('[DIFF] Filtering out unnecessary update:', {
-              ticketClassId: update.old.ticketClassId,
-              reason: 'No meaningful changes in core fields'
-            });
-            changes.toKeep.push(update.new);
-          }
-          
-          return isValidUpdate;
-        }
-        
-        // For other slot types, allow all updates
-        return true;
-      });
-      
-      const filteredCount = changes.toUpdate.length - filteredUpdates.length;
-      if (filteredCount > 0) {
-        console.log(`[DIFF] Filtered out ${filteredCount} unnecessary updates`);
-        changes.toUpdate = filteredUpdates;
-      }
-    }
-
-    console.log('[DIFF] Professional diff calculation complete:', {
-      toCreate: changes.toCreate.length,
-      toUpdate: changes.toUpdate.length,
-      toDelete: changes.toDelete.length,
-      toKeep: changes.toKeep.length,
-      changePercentage: Math.round(changePercentage)
-    });
 
     return changes;
   };
