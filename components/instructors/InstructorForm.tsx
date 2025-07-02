@@ -16,6 +16,7 @@ const InstructorForm = ({ initialData }: { initialData?: InstructorData }) => {
     form,
     loading,
     loadingSchedule,
+    savingChanges,
     recurrenceOptions,
     recurrenceEnd,
     setRecurrenceEnd,
@@ -104,10 +105,17 @@ const InstructorForm = ({ initialData }: { initialData?: InstructorData }) => {
           <div className="flex gap-4">
             <Button
               type="submit"
-              disabled={loading}
+              disabled={loading || savingChanges}
               className="bg-blue-600 text-white"
             >
-              {initialData ? "Save Changes" : "Create Instructor"}
+              {savingChanges 
+                ? "Updating Calendar..." 
+                : loading 
+                ? "Processing..."
+                : initialData 
+                ? "Save Changes" 
+                : "Create Instructor"
+              }
             </Button>
             <Button
               type="button"

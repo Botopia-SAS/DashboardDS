@@ -52,7 +52,7 @@ export async function POST(req: NextRequest) {
   try {
     await connectToDB();
     const requestData = await req.json();
-    console.log("[API] ticket/classes POST - requestData:", requestData);
+    // console.log("[API] ticket/classes POST - requestData:", requestData);
     
     const { error, value } = ticketClassSchema.validate(requestData);
 
@@ -91,10 +91,10 @@ export async function POST(req: NextRequest) {
       normalizedDate = date.toISOString().split('T')[0];
     }
 
-    console.log('[API] Date normalization:', {
-      originalDate: date,
-      normalizedDate: normalizedDate
-    });
+    // console.log('[API] Date normalization:', {
+    //   originalDate: date,
+    //   normalizedDate: normalizedDate
+    // });
 
     // Verify that the location exists
     const existLocation = await Location.findOne({ _id: locationId }).exec();
@@ -167,13 +167,13 @@ export async function POST(req: NextRequest) {
       calculatedEndHour = endTime.toTimeString().slice(0, 5);
     }
 
-    console.log('[API] Time validation:', {
-      date: normalizedDate,
-      startTime: hour,
-      endTime: calculatedEndHour,
-      duration,
-      instructorId
-    });
+    // console.log('[API] Time validation:', {
+    //   date: normalizedDate,
+    //   startTime: hour,
+    //   endTime: calculatedEndHour,
+    //   duration,
+    //   instructorId
+    // });
 
     // Function to check if two time ranges overlap
     const timeRangesOverlap = (start1: string, end1: string, start2: string, end2: string) => {
@@ -228,7 +228,8 @@ export async function POST(req: NextRequest) {
     const instructor = await Instructor.findById(instructorId);
     if (instructor && instructor.schedule) {
       for (const slot of instructor.schedule) {
-        if (slot.date === normalizedDate && slot.start && slot.end) {
+        // Only check slots that have a ticketClassId (active slots)
+        if (slot.date === normalizedDate && slot.start && slot.end && slot.ticketClassId) {
           if (timeRangesOverlap(hour, calculatedEndHour, slot.start, slot.end)) {
             return NextResponse.json(
               { 
@@ -238,7 +239,8 @@ export async function POST(req: NextRequest) {
                     date: slot.date,
                     startTime: slot.start,
                     endTime: slot.end,
-                    classType: slot.classType
+                    classType: slot.classType,
+                    ticketClassId: slot.ticketClassId
                   },
                   attemptedClass: {
                     date: normalizedDate,
@@ -282,7 +284,7 @@ export async function POST(req: NextRequest) {
       students: students || []
     };
     
-    console.log('[API] Creating TicketClass with data:', JSON.stringify(classData, null, 2));
+    // console.log('[API] Creating TicketClass with data:', JSON.stringify(classData, null, 2));
     const newClass = await TicketClass.create(classData);
     await newClass.save();
 
@@ -308,18 +310,18 @@ export async function POST(req: NextRequest) {
       }
     );
 
-    console.log('[API] Updated instructor slot with ticketClassId:', {
-      instructorId,
-      date: normalizedDate,
-      hour,
-      endHour: calculatedEndHour,
-      ticketClassId: newClass._id,
-      updateResult
-    });
+    // console.log('[API] Updated instructor slot with ticketClassId:', {
+    //   instructorId,
+    //   date: normalizedDate,
+    //   hour,
+    //   endHour: calculatedEndHour,
+    //   ticketClassId: newClass._id,
+    //   updateResult
+    // });
 
     // If no existing slot was updated, create a new slot in the instructor's schedule
     if (updateResult.modifiedCount === 0) {
-      console.log('[API] No matching slot found, creating new slot in instructor schedule');
+      // console.log('[API] No matching slot found, creating new slot in instructor schedule');
       
       await Instructor.updateOne(
         { _id: instructorId },
@@ -341,7 +343,7 @@ export async function POST(req: NextRequest) {
         }
       );
       
-      console.log('[API] Created new slot in instructor schedule');
+      // console.log('[API] Created new slot in instructor schedule');
     }
 
     return NextResponse.json(newClass, { status: 201 });

@@ -24,6 +24,7 @@ export interface Slot {
   recurrence?: string;
   slotId?: string;
   studentId?: string | string[] | null;
+  selectedStudent?: string;
   status?: "available" | "cancelled" | "scheduled" | "full";
   classType?: "D.A.T.E" | "B.D.I" | "A.D.I" | "driving test";
   amount?: number;
@@ -36,6 +37,10 @@ export interface Slot {
   locationId?: string;
   cupos?: number;
   students?: string[];
+  isTemporary?: boolean;
+  // Campos para tracking de recurrencia independiente
+  createdAsRecurrence?: boolean;
+  originalRecurrenceGroup?: string;
 }
 
 export interface User {
