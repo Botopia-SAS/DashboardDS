@@ -3,6 +3,63 @@
 import { Slot, User } from "./types";
 import { addDays, addWeeks, addMonths, format } from "date-fns";
 
+// Función para convertir horas a formato 24 horas solo si es necesario
+export function convertTo24HourFormat(time: string): string {
+  if (!time || typeof time !== 'string') return time;
+  
+  // Si ya está en formato correcto (HH:MM), no hacer nada
+  if (/^([01]?[0-9]|2[0-3]):[0-5][0-9]$/.test(time.trim())) {
+    const [hours, minutes] = time.trim().split(':');
+    return `${hours.padStart(2, '0')}:${minutes.padStart(2, '0')}`;
+  }
+  
+  // Limpiar el input: remover timezone, segundos, y espacios extra
+  let cleanTime = time.trim();
+  
+  // Remover timezone si existe (ej: "11:30:00-05:00" -> "11:30:00")
+  cleanTime = cleanTime.replace(/[+-]\d{2}:\d{2}$/, '');
+  
+  // Remover segundos si existen (ej: "11:30:00" -> "11:30")
+  cleanTime = cleanTime.replace(/:\d{2}$/, '');
+  
+  // Si después de limpiar ya está en formato correcto, retornarlo
+  if (/^([01]?[0-9]|2[0-3]):[0-5][0-9]$/.test(cleanTime)) {
+    const [hours, minutes] = cleanTime.split(':');
+    return `${hours.padStart(2, '0')}:${minutes.padStart(2, '0')}`;
+  }
+  
+  // Si tiene AM/PM, convertir a 24 horas
+  const timePattern = /^(\d{1,2}):(\d{2})\s*(AM|PM)$/i;
+  const match = cleanTime.match(timePattern);
+  
+  if (match) {
+    let hours = parseInt(match[1]);
+    const minutes = match[2];
+    const period = match[3].toUpperCase();
+    
+    if (period === 'AM' && hours === 12) {
+      hours = 0;
+    } else if (period === 'PM' && hours !== 12) {
+      hours += 12;
+    }
+    
+    return `${hours.toString().padStart(2, '0')}:${minutes}`;
+  }
+  
+  // Si no coincide con ningún patrón, intentar parsear como Date
+  try {
+    const date = new Date(`2000-01-01T${cleanTime}`);
+    if (!isNaN(date.getTime())) {
+      return date.toTimeString().slice(0, 5);
+    }
+  } catch (e) {
+    // Ignorar errores de parsing
+  }
+  
+  // Como último recurso, retornar tal como está
+  return cleanTime;
+}
+
 /**
  * Normaliza el formato del schedule recibido desde el backend o formularios.
  * Permite aceptar tanto un array plano de slots como un array agrupado por días.
@@ -13,14 +70,57 @@ export function normalizeSchedule(data: unknown): Slot[] {
     // Si el slot tiene _id, lo asignamos a slotId
     return (data as any[]).map(slot => {
       const slotId = (slot as any)._id ? (slot as any)._id.toString() : slot.slotId;
-      return { ...slot, slotId };
+      
+      // Solo aplicar conversión si las horas no están en formato correcto
+      const needsStartConversion = slot.start && (
+        slot.start.includes(':00-') || // tiene timezone
+        slot.start.includes(':00:') || // tiene segundos
+        /\s*(AM|PM)$/i.test(slot.start) || // tiene AM/PM
+        !/^([01]?[0-9]|2[0-3]):[0-5][0-9]$/.test(slot.start.trim()) // no está en formato HH:MM
+      );
+      
+      const needsEndConversion = slot.end && (
+        slot.end.includes(':00-') || // tiene timezone
+        slot.end.includes(':00:') || // tiene segundos
+        /\s*(AM|PM)$/i.test(slot.end) || // tiene AM/PM
+        !/^([01]?[0-9]|2[0-3]):[0-5][0-9]$/.test(slot.end.trim()) // no está en formato HH:MM
+      );
+      
+      return { 
+        ...slot, 
+        slotId,
+        start: needsStartConversion ? convertTo24HourFormat(slot.start) : slot.start,
+        end: needsEndConversion ? convertTo24HourFormat(slot.end) : slot.end
+      };
     });
   }
   return (data as { date: string; slots: Slot[] }[]).flatMap((day) =>
     Array.isArray(day.slots) && day.slots.length > 0
       ? day.slots.map((slot) => {
           const slotId = (slot as any)._id ? (slot as any)._id.toString() : slot.slotId;
-          return { ...slot, date: day.date, slotId };
+          
+          // Solo aplicar conversión si las horas no están en formato correcto
+          const needsStartConversion = slot.start && (
+            slot.start.includes(':00-') || // tiene timezone
+            slot.start.includes(':00:') || // tiene segundos
+            /\s*(AM|PM)$/i.test(slot.start) || // tiene AM/PM
+            !/^([01]?[0-9]|2[0-3]):[0-5][0-9]$/.test(slot.start.trim()) // no está en formato HH:MM
+          );
+          
+          const needsEndConversion = slot.end && (
+            slot.end.includes(':00-') || // tiene timezone
+            slot.end.includes(':00:') || // tiene segundos
+            /\s*(AM|PM)$/i.test(slot.end) || // tiene AM/PM
+            !/^([01]?[0-9]|2[0-3]):[0-5][0-9]$/.test(slot.end.trim()) // no está en formato HH:MM
+          );
+          
+          return { 
+            ...slot, 
+            date: day.date, 
+            slotId,
+            start: needsStartConversion ? convertTo24HourFormat(slot.start) : slot.start,
+            end: needsEndConversion ? convertTo24HourFormat(slot.end) : slot.end
+          };
         })
       : []
   );
