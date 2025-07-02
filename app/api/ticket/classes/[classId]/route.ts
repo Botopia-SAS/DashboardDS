@@ -6,13 +6,14 @@ import { connectToDB } from "@/lib/mongoDB";
 import mongoose from "mongoose";
 
 const ticketClassSchema = Joi.object({
-  locationId: Joi.string(),
-  date: Joi.date().iso(),
-  hour: Joi.string().pattern(/^([01]\d|2[0-3]):([0-5]\d)$/),
-  classId: Joi.string(),
-  instructorId: Joi.string(),
-  cupos: Joi.number().integer().min(1),
-  students: Joi.array().items(Joi.string()).default([]),
+  locationId: Joi.string().optional(),
+  date: Joi.date().iso().optional(),
+  hour: Joi.string().pattern(/^([01]\d|2[0-3]):([0-5]\d)$/).optional(),
+  endHour: Joi.string().pattern(/^([01]\d|2[0-3]):([0-5]\d)$/).optional(),
+  classId: Joi.string().optional(),
+  instructorId: Joi.string().optional(),
+  cupos: Joi.number().integer().min(1).optional(),
+  students: Joi.array().items(Joi.string()).optional(),
 }).unknown(false);
 
 interface Student {
@@ -29,19 +30,23 @@ interface Student {
 }
 
 export async function PATCH(req: NextRequest, { params }: { params: Promise<{ classId: string }> }) {
-  const resolvedParams = await params;
-  const classId = resolvedParams.classId;
-
-  if (!classId) {
-    return NextResponse.json({ error: "classId is required" }, { status: 400 });
-  }
-
   try {
+    await connectToDB();
+    
+    const resolvedParams = await params;
+    const classId = resolvedParams.classId;
+
+    if (!classId) {
+      return NextResponse.json({ error: "classId is required" }, { status: 400 });
+    }
+
     const body = await req.json();
+    console.log(`[API] PATCH ticket class ${classId}:`, body);
 
     const { error, value } = ticketClassSchema.validate(body);
 
     if (error) {
+      console.error(`[API] Validation error for PATCH ${classId}:`, error.details[0].message);
       return NextResponse.json(
         { error: error.details[0].message },
         { status: 400 }
@@ -51,51 +56,119 @@ export async function PATCH(req: NextRequest, { params }: { params: Promise<{ cl
     const ticketClass = await TicketClass.findOne({ _id: classId });
 
     if (!ticketClass) {
+      console.error(`[API] Ticket class not found: ${classId}`);
       return NextResponse.json({ error: "Class not found" }, { status: 404 });
     }
 
+    const originalData = {
+      students: ticketClass.students ? [...ticketClass.students] : [],
+      cupos: ticketClass.cupos
+    };
+
+    // Update only the provided fields
     Object.keys(value).forEach((key) => {
-      (ticketClass as any)[key] = (value as any)[key];
+      if (value[key] !== undefined) {
+        (ticketClass as any)[key] = (value as any)[key];
+      }
     });
 
+    // Explicitly handle students and cupos updates
     if (body.students !== undefined) {
       ticketClass.students = body.students;
+      console.log(`[API] Updated students for ${classId}: ${body.students.length} students`);
     }
 
     if (body.cupos !== undefined) {
       ticketClass.cupos = body.cupos;
+      console.log(`[API] Updated cupos for ${classId}: ${body.cupos}`);
     }
 
     await ticketClass.save();
+    console.log(`[API] Successfully updated ticket class ${classId}`);
+
+    // If we updated students or cupos, we might need to update the instructor's schedule cache
+    if (ticketClass.instructorId && (body.students !== undefined || body.cupos !== undefined)) {
+      console.log(`[API] Checking if instructor schedule needs cache update for ${ticketClass.instructorId}`);
+      
+      try {
+        const instructor = await Instructor.findById(ticketClass.instructorId);
+        if (instructor && Array.isArray(instructor.schedule)) {
+          // Find the corresponding slot in instructor's schedule and update cached data if needed
+          const slotIndex = instructor.schedule.findIndex((slot: any) => 
+            slot.ticketClassId && slot.ticketClassId.toString() === classId
+          );
+          
+          if (slotIndex >= 0) {
+            // The slot exists in the schedule, but the schedule doesn't store students/cupos
+            // This data is fetched from the ticket class directly
+            console.log(`[API] Found corresponding slot in instructor schedule, updated data will be fetched from ticket class`);
+          }
+        }
+      } catch (scheduleError) {
+        console.error(`[API] Error updating instructor schedule cache:`, scheduleError);
+        // Don't fail the main update if schedule cache update fails
+      }
+    }
 
     return NextResponse.json({
       message: "Class updated successfully",
       data: ticketClass,
+      changes: {
+        students: originalData.students !== ticketClass.students,
+        cupos: originalData.cupos !== ticketClass.cupos
+      }
     });
   } catch (err) {
-    console.error(err);
+    console.error(`[API] Error in PATCH ticket class:`, err);
     return NextResponse.json(
-      { error: "Invalid request body" },
-      { status: 400 }
+      { error: "Invalid request body: " + (err as Error).message },
+      { status: 500 }
     );
   }
 }
 
 export async function GET(req: NextRequest, { params }: { params: Promise<{ classId: string }> }) {
-  const resolvedParams = await params;
-  const classId = resolvedParams.classId;
-  console.log(classId);
-  if (!classId) {
-    return NextResponse.json({ error: "classId is required" }, { status: 400 });
+  try {
+    await connectToDB();
+    
+    const resolvedParams = await params;
+    const classId = resolvedParams.classId;
+    console.log(classId);
+    
+    if (!classId) {
+      return NextResponse.json({ error: "classId is required" }, { status: 400 });
+    }
+
+    // Check if this is a temporary ID (starts with "temp-")
+    if (classId.startsWith('temp-')) {
+      console.log(`[API] Skipping database query for temporary ID: ${classId}`);
+      return NextResponse.json({ 
+        error: "Temporary ticket class - data stored in frontend cache only" 
+      }, { status: 404 });
+    }
+
+    // Validate that classId is a valid ObjectId format (24 character hex string)
+    if (!/^[0-9a-fA-F]{24}$/.test(classId)) {
+      console.log(`[API] Invalid ObjectId format: ${classId}`);
+      return NextResponse.json({ 
+        error: "Invalid class ID format" 
+      }, { status: 400 });
+    }
+
+    const ticketClass = await TicketClass.findOne({ _id: classId }).lean().exec();
+
+    if (!ticketClass) {
+      return NextResponse.json({ error: "Class not found" }, { status: 404 });
+    }
+
+    return NextResponse.json(ticketClass);
+  } catch (error: any) {
+    console.error("[API] Error in GET ticket class:", error);
+    return NextResponse.json(
+      { error: error.message || "Error retrieving ticket class" },
+      { status: 500 }
+    );
   }
-
-  const ticketClass = await TicketClass.findOne({ _id: classId }).lean().exec();
-
-  if (!ticketClass) {
-    return NextResponse.json({ error: "Class not found" }, { status: 404 });
-  }
-
-  return NextResponse.json(ticketClass);
 }
 
 export async function DELETE(req: NextRequest, { params }: { params: Promise<{ classId: string }> }) {
@@ -136,16 +209,15 @@ export async function DELETE(req: NextRequest, { params }: { params: Promise<{ c
       return NextResponse.json({ error: "TicketClass not deleted from collection" }, { status: 500 });
     }
     
-    // Si hay instructorId, clear the ticketClassId from the slot instead of removing the entire slot
+    // Si hay instructorId, remove the entire slot from the schedule
     if (instructorId && mongoose.Types.ObjectId.isValid(instructorId)) {
-      console.log("[DELETE ticketclass] Attempting to clear ticketClassId from instructor schedule...");
+      console.log("[DELETE ticketclass] Attempting to remove slot completely from instructor schedule...");
       const updateResult = await Instructor.updateOne(
+        { _id: instructorId },
         { 
-          _id: instructorId,
-          'schedule.ticketClassId': classId
-        },
-        { 
-          $unset: { 'schedule.$.ticketClassId': "" }
+          $pull: { 
+            schedule: { ticketClassId: classId }
+          }
         }
       );
       console.log("[DELETE ticketclass] Instructor schedule update result:", {
@@ -155,11 +227,11 @@ export async function DELETE(req: NextRequest, { params }: { params: Promise<{ c
       });
       
       if (updateResult.matchedCount === 0) {
-        console.warn("[DELETE ticketclass] No instructor found with matching slot for ticketClassId:", classId);
+        console.warn("[DELETE ticketclass] No instructor found for instructorId:", instructorId);
       } else if (updateResult.modifiedCount === 0) {
-        console.warn("[DELETE ticketclass] No slots updated in instructor schedule");
+        console.warn("[DELETE ticketclass] No slots removed from instructor schedule (no matching ticketClassId)");
       } else {
-        console.log("[DELETE ticketclass] Successfully cleared ticketClassId from instructor schedule");
+        console.log("[DELETE ticketclass] Successfully removed slot from instructor schedule");
       }
     } else {
       console.log("[DELETE ticketclass] No valid instructorId, skipping schedule cleanup");

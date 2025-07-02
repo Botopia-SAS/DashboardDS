@@ -261,6 +261,18 @@ const ScheduleModal = ({
     if (!currentSlot.start) return;
     const start = currentSlot.start.split("T")[1];
     const end = currentSlot.end ? currentSlot.end.split("T")[1] : undefined;
+    
+    // For driving test, allow flexible duration - no automatic 2-hour minimum
+    if (currentSlot.classType === "driving test") {
+      if (start && end && isLessThanMinimumDuration(start, end, 30)) { // 30 minutes minimum for driving test
+        setTimeRangeError("The end time must be at least 30 minutes after the start time.");
+      } else {
+        setTimeRangeError("");
+      }
+      return;
+    }
+    
+    // For other class types, maintain the original 2-hour logic
     if (start && (!end || isLessThanTwoHours(start, end))) {
       // Calcula el end time sumando 2 horas
       const [h, m] = start.split(":").map(Number);
@@ -275,7 +287,7 @@ const ScheduleModal = ({
     } else {
       setTimeRangeError("");
     }
-  }, [currentSlot.start, currentSlot.end, isOpen, setCurrentSlot]);
+  }, [currentSlot.start, currentSlot.end, currentSlot.classType, isOpen, setCurrentSlot]);
 
   function isLessThanTwoHours(start: string, end: string | undefined) {
     if (!end) return true;
@@ -284,6 +296,15 @@ const ScheduleModal = ({
     const startMinutes = sh * 60 + sm;
     const endMinutes = eh * 60 + em;
     return endMinutes - startMinutes < 120;
+  }
+
+  function isLessThanMinimumDuration(start: string, end: string | undefined, minimumMinutes: number) {
+    if (!end) return true;
+    const [sh, sm] = start.split(":").map(Number);
+    const [eh, em] = end.split(":").map(Number);
+    const startMinutes = sh * 60 + sm;
+    const endMinutes = eh * 60 + em;
+    return endMinutes - startMinutes < minimumMinutes;
   }
 
   // Sobrescribe el botón de guardar para validar classType
@@ -298,6 +319,13 @@ const ScheduleModal = ({
       return;
     }
     setClassTypeError("");
+    
+    // Validar que se haya seleccionado una clase para ticket classes
+    if (["D.A.T.E", "B.D.I", "A.D.I"].includes(currentSlot.classType || "") && !currentSlot.classId) {
+      setClassTypeError("Please select a driving class for this type of lesson");
+      return;
+    }
+    
     handleSaveSlot();
   };
   const handleUpdateWithClassType = () => {
@@ -311,6 +339,13 @@ const ScheduleModal = ({
       return;
     }
     setClassTypeError("");
+    
+    // Validar que se haya seleccionado una clase para ticket classes
+    if (["D.A.T.E", "B.D.I", "A.D.I"].includes(currentSlot.classType || "") && !currentSlot.classId) {
+      setClassTypeError("Please select a driving class for this type of lesson");
+      return;
+    }
+    
     handleUpdateSlot();
   };
 
@@ -414,16 +449,25 @@ const ScheduleModal = ({
           onChange={e => {
             const timeValue = convertTo24HourFormat(e.target.value);
             const rounded = roundToNearest30(timeValue, 'down');
-            // Calcula el end time sumando 2 horas
-            const [h, m] = rounded.split(":").map(Number);
-            let endHour = h + 2;
-            let endMinute = m;
-            if (endHour >= 24) { endHour = 23; endMinute = 59; }
-            const endStr = `${endHour.toString().padStart(2, "0")}:${endMinute.toString().padStart(2, "0")}`;
-            setCurrentSlot((prev: CurrentSlotType) => prev
-              ? { ...prev, start: `${prev.start.split("T")[0]}T${rounded}`, end: `${prev.end.split("T")[0]}T${endStr}` }
-              : prev
-            );
+            
+            // For driving test, don't automatically set end time - let user choose
+            if (currentSlot.classType === "driving test") {
+              setCurrentSlot((prev: CurrentSlotType) => prev
+                ? { ...prev, start: `${prev.start.split("T")[0]}T${rounded}` }
+                : prev
+              );
+            } else {
+              // For other class types, maintain original 2-hour auto-calculation
+              const [h, m] = rounded.split(":").map(Number);
+              let endHour = h + 2;
+              let endMinute = m;
+              if (endHour >= 24) { endHour = 23; endMinute = 59; }
+              const endStr = `${endHour.toString().padStart(2, "0")}:${endMinute.toString().padStart(2, "0")}`;
+              setCurrentSlot((prev: CurrentSlotType) => prev
+                ? { ...prev, start: `${prev.start.split("T")[0]}T${rounded}`, end: `${prev.end.split("T")[0]}T${endStr}` }
+                : prev
+              );
+            }
           }}
         />
 
@@ -435,10 +479,24 @@ const ScheduleModal = ({
           min={(() => {
             if (!startTime) return undefined;
             const [h, m] = startTime.split(":").map(Number);
-            let minHour = h + 2;
-            let minMinute = m;
-            if (minHour >= 24) { minHour = 23; minMinute = 59; }
-            return `${minHour.toString().padStart(2, "0")}:${minMinute.toString().padStart(2, "0")}`;
+            
+            // For driving test, minimum 30 minutes after start time
+            if (currentSlot.classType === "driving test") {
+              let minHour = h;
+              let minMinute = m + 30;
+              if (minMinute >= 60) {
+                minHour += 1;
+                minMinute -= 60;
+              }
+              if (minHour >= 24) { minHour = 23; minMinute = 59; }
+              return `${minHour.toString().padStart(2, "0")}:${minMinute.toString().padStart(2, "0")}`;
+            } else {
+              // For other class types, maintain 2-hour minimum
+              let minHour = h + 2;
+              let minMinute = m;
+              if (minHour >= 24) { minHour = 23; minMinute = 59; }
+              return `${minHour.toString().padStart(2, "0")}:${minMinute.toString().padStart(2, "0")}`;
+            }
           })()}
           onChange={e => {
             const timeValue = convertTo24HourFormat(e.target.value);
