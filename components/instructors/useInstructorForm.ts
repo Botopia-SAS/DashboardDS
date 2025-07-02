@@ -18,14 +18,25 @@ import {
 
 // Función para convertir horas a formato 24 horas
 function convertTo24HourFormat(time: string): string {
+  // Limpiar el input: remover timezone, segundos, y espacios extra
+  let cleanTime = time.trim();
+  
+  // Remover timezone si existe (ej: "11:30:00-05:00" -> "11:30:00")
+  cleanTime = cleanTime.replace(/[+-]\d{2}:\d{2}$/, '');
+  
+  // Remover segundos si existen (ej: "11:30:00" -> "11:30")
+  cleanTime = cleanTime.replace(/:\d{2}$/, '');
+  
   // Si ya está en formato 24 horas (HH:MM), retornarlo tal como está
-  if (/^([01]?[0-9]|2[0-3]):[0-5][0-9]$/.test(time)) {
-    return time;
+  if (/^([01]?[0-9]|2[0-3]):[0-5][0-9]$/.test(cleanTime)) {
+    // Asegurar que tenga formato HH:MM (con ceros a la izquierda)
+    const [hours, minutes] = cleanTime.split(':');
+    return `${hours.padStart(2, '0')}:${minutes.padStart(2, '0')}`;
   }
   
   // Si tiene AM/PM, convertir a 24 horas
   const timePattern = /^(\d{1,2}):(\d{2})\s*(AM|PM)$/i;
-  const match = time.match(timePattern);
+  const match = cleanTime.match(timePattern);
   
   if (match) {
     let hours = parseInt(match[1]);
@@ -41,8 +52,18 @@ function convertTo24HourFormat(time: string): string {
     return `${hours.toString().padStart(2, '0')}:${minutes}`;
   }
   
-  // Si no coincide con ningún patrón, retornar tal como está
-  return time;
+  // Si no coincide con ningún patrón, intentar parsear como Date
+  try {
+    const date = new Date(`2000-01-01T${cleanTime}`);
+    if (!isNaN(date.getTime())) {
+      return date.toTimeString().slice(0, 5);
+    }
+  } catch (e) {
+    // Ignorar errores de parsing
+  }
+  
+  // Como último recurso, retornar tal como está pero limpio
+  return cleanTime;
 }
 
 export function useInstructorForm(initialData?: InstructorData) {
@@ -2271,8 +2292,8 @@ export function useInstructorForm(initialData?: InstructorData) {
           // For ticket classes, only store reference and basic info
           return {
             date: slot.date,
-            start: slot.start,
-            end: slot.end,
+            start: convertTo24HourFormat(slot.start), // Normalize time format
+            end: convertTo24HourFormat(slot.end),     // Normalize time format
             classType: slot.classType,
             ticketClassId: slot.ticketClassId,
             slotId: slot.slotId,
@@ -2281,8 +2302,12 @@ export function useInstructorForm(initialData?: InstructorData) {
             // Don't store students and cupos here - they're in the ticket class
           };
         }
-        // For non-ticket classes (driving test), keep all data
-        return slot;
+        // For non-ticket classes (driving test), normalize time format but keep all data
+        return {
+          ...slot,
+          start: convertTo24HourFormat(slot.start), // Normalize time format
+          end: convertTo24HourFormat(slot.end),     // Normalize time format
+        };
       });
 
       // Save instructor with the minimal schedule
