@@ -17,6 +17,7 @@ import {
   convertTo24HourFormat,
 } from "./utils";
 
+
 export function useInstructorForm(initialData?: InstructorData) {
   const recurrenceOptions = ["None", "Daily", "Weekly", "Monthly"];
   const [recurrenceEnd, setRecurrenceEnd] = useState<string | null>(null);
@@ -2332,8 +2333,8 @@ export function useInstructorForm(initialData?: InstructorData) {
           // For ticket classes, only store reference and basic info
           return {
             date: slot.date,
-            start: slot.start,
-            end: slot.end,
+            start: convertTo24HourFormat(slot.start), // Normalize time format
+            end: convertTo24HourFormat(slot.end),     // Normalize time format
             classType: slot.classType,
             ticketClassId: slot.ticketClassId,
             slotId: slot.slotId,
@@ -2342,8 +2343,12 @@ export function useInstructorForm(initialData?: InstructorData) {
             // Don't store students and cupos here - they're in the ticket class
           };
         }
-        // For non-ticket classes (driving test), keep all data
-        return slot;
+        // For non-ticket classes (driving test), normalize time format but keep all data
+        return {
+          ...slot,
+          start: convertTo24HourFormat(slot.start), // Normalize time format
+          end: convertTo24HourFormat(slot.end),     // Normalize time format
+        };
       });
 
       // Save instructor with the minimal schedule
