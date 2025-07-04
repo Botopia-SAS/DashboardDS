@@ -3,6 +3,7 @@ import { NextResponse } from "next/server";
 import Instructor from "@/lib/models/Instructor"; // Modelo de MongoDB
 import { sendEmail } from "./sendEmail";
 import bcrypt from "bcryptjs";
+import TicketClass from "@/lib/models/TicketClass";
 
 export const dynamic = "force-dynamic";
 
@@ -353,6 +354,9 @@ export async function DELETE(req: Request) {
         { status: 404 }
       );
     }
+
+    // Eliminar todas las ticketclasses asociadas a este instructor
+    await TicketClass.deleteMany({ instructorId });
 
     return NextResponse.json({ message: "Instructor deleted successfully" }, { status: 200 });
   } catch (error) {

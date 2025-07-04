@@ -41,6 +41,7 @@ export interface Slot {
   // Campos para tracking de recurrencia independiente
   createdAsRecurrence?: boolean;
   originalRecurrenceGroup?: string;
+  clientTempId?: string;
 }
 
 export interface User {

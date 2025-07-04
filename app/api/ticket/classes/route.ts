@@ -151,12 +151,12 @@ export async function POST(req: NextRequest) {
     }
 
     // Verify that the instructor is assigned to the selected location
-    if (!existLocation.instructors.includes(instructorId)) {
-      return NextResponse.json(
-        { error: "The instructor is not assigned to this location." },
-        { status: 400 }
-      );
-    }
+    // if (!existLocation.instructors.includes(instructorId)) {
+    //   return NextResponse.json(
+    //     { error: "The instructor is not assigned to this location." },
+    //     { status: 400 }
+    //   );
+    // }
 
     // Calculate end time if not provided
     let calculatedEndHour = endHour;
