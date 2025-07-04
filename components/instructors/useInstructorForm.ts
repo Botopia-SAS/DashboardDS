@@ -1,7 +1,6 @@
-import { useState, useEffect } from "react";
+import { useEffect } from "react";
 import { useRouter } from "next/navigation";
 import toast from "react-hot-toast";
-import { v4 as uuidv4 } from "uuid";
 import { InstructorData, Slot } from "./types";
 import { normalizeSchedule, convertTo24HourFormat } from "./utils";
 import { mapClassTypeForBackend } from "./instructorFormUtils";
@@ -15,7 +14,7 @@ export function useInstructorForm(initialData?: InstructorData) {
   
   // Usar los hooks modulares
   const state = useInstructorFormState(initialData);
-  const { form, ensureInstructorAssignedToLocation, calculateScheduleChangesProfessional } = useInstructorFormCore(initialData);
+  const { form, calculateScheduleChangesProfessional } = useInstructorFormCore(initialData);
   const ticketCache = useTicketClassCache({
     initialData,
     enrichedTicketData: state.enrichedTicketData,
@@ -108,7 +107,7 @@ export function useInstructorForm(initialData?: InstructorData) {
     return () => {
       isMounted = false;
     };
-  }, [initialData]);
+  }, [initialData, state, ticketCache]);
 
   useEffect(() => {
     if (typeof window !== "undefined" && state.scheduleDraftKey) {
@@ -121,7 +120,7 @@ export function useInstructorForm(initialData?: InstructorData) {
     const changes = calculateScheduleChangesProfessional(originalSchedule, state.schedule);
     const hasRealChanges = changes.toCreate.length > 0 || changes.toUpdate.length > 0 || changes.toDelete.length > 0;
     state.setHasChanges(hasRealChanges);
-  }, [state.schedule, initialData]);
+  }, [state.schedule, initialData, calculateScheduleChangesProfessional, state]);
 
   useEffect(() => {
     const fetchUsers = async () => {
@@ -129,10 +128,10 @@ export function useInstructorForm(initialData?: InstructorData) {
         const res = await fetch("/api/users");
         const users = await res.json();
         const filtered = users
-          .filter((u: any) => u.role?.toLowerCase() === "user")
-          .map((u: any) => ({
+          .filter((u: Record<string, unknown>) => u.role?.toString().toLowerCase() === "user")
+          .map((u: Record<string, unknown>) => ({
             ...u,
-            name: u.name || `${u.firstName || ""} ${u.lastName || ""}`.trim(),
+            name: u.name || `${u.firstName || ""} ${u.lastName || ""}`.toString().trim(),
           }));
         state.setAllUsers(filtered);
       } catch {
@@ -142,7 +141,7 @@ export function useInstructorForm(initialData?: InstructorData) {
     if (state.isModalOpen) {
       fetchUsers();
     }
-  }, [state.isModalOpen]);
+  }, [state.isModalOpen, state]);
 
   useEffect(() => {
     const fetchLocations = async () => {
@@ -155,7 +154,7 @@ export function useInstructorForm(initialData?: InstructorData) {
       }
     };
     fetchLocations();
-  }, []);
+  }, [state]);
 
   useEffect(() => {
     let isMounted = true;
@@ -172,7 +171,7 @@ export function useInstructorForm(initialData?: InstructorData) {
     return () => {
       isMounted = false;
     };
-  }, [state.schedule]);
+  }, [state.schedule, ticketCache]);
 
   const calendarEvents = state.schedule.map((slot: Slot) => {
     let studentCount = 0;
@@ -306,7 +305,7 @@ export function useInstructorForm(initialData?: InstructorData) {
     
     try {
       let instructorId = initialData?._id;
-      let isNew = !instructorId;
+      const isNew = !instructorId;
       let createdInstructor = null;
       let originalSchedule: Slot[] = [];
       
@@ -370,13 +369,13 @@ export function useInstructorForm(initialData?: InstructorData) {
         }
       }
       
-      let createdTicketClasses: any[] = [];
+      const createdTicketClasses: Record<string, unknown>[] = [];
       const ticketClassTypes = ["A.D.I", "B.D.I", "D.A.T.E", "ADI", "BDI", "DATE", "adi", "bdi", "date"];
       const toCreate = changes.toCreate.filter((slot: Slot) => ticketClassTypes.includes((slot.classType || "").toUpperCase()));
       
       toCreate.forEach((slot: Slot) => {
-        if (!(slot as any).clientTempId) {
-          (slot as any).clientTempId = `${Date.now()}-${Math.random()}`;
+        if (!(slot as unknown as Record<string, unknown>).clientTempId) {
+          (slot as unknown as Record<string, unknown>).clientTempId = `${Date.now()}-${Math.random()}`;
         }
       });
       
@@ -393,7 +392,7 @@ export function useInstructorForm(initialData?: InstructorData) {
           instructorId,
           students: Array.isArray(slot.students) ? slot.students : [],
           cupos: slot.cupos || 30,
-          clientTempId: (slot as any).clientTempId,
+          clientTempId: (slot as unknown as Record<string, unknown>).clientTempId,
         };
         const res = await fetch('/api/ticket/classes', {
           method: 'POST',
@@ -415,7 +414,7 @@ export function useInstructorForm(initialData?: InstructorData) {
           instructorId,
           students: Array.isArray(slot.students) ? slot.students : [],
           cupos: slot.cupos || 30,
-          clientTempId: (slot as any).clientTempId,
+          clientTempId: (slot as unknown as Record<string, unknown>).clientTempId,
         }));
         const res = await fetch('/api/ticket/classes/batch', {
           method: 'POST',
@@ -431,30 +430,39 @@ export function useInstructorForm(initialData?: InstructorData) {
       
       const finalSchedule: Slot[] = [
         ...changes.toKeep,
-        ...changes.toUpdate.map((u: any) => u.new),
+        ...changes.toUpdate.map((u: { old: Slot, new: Slot }) => u.new),
         ...changes.toCreate
       ].map(slot => {
         if (ticketClassTypes.includes((slot.classType || "").toUpperCase())) {
-          const found = createdTicketClasses.find(s => s.clientTempId && (slot as any).clientTempId && s.clientTempId === (slot as any).clientTempId);
+          // eslint-disable-next-line @typescript-eslint/no-explicit-any
+          const found = createdTicketClasses.find(s => (s as any).clientTempId && (slot as any).clientTempId && (s as any).clientTempId === (slot as any).clientTempId);
           if (found) {
-            const { clientTempId, ...rest } = slot as any;
-            return { ...rest, ticketClassId: found.ticketClassId };
+            // eslint-disable-next-line @typescript-eslint/no-explicit-any
+            const { clientTempId: _, ...rest } = slot as any;
+            // eslint-disable-next-line @typescript-eslint/no-explicit-any
+            return { ...rest, ticketClassId: (found as any).ticketClassId } as Slot;
           }
         }
-        if ((slot.classType || "").toLowerCase() === "driving test" && slot.ticketClassId) {
-          const { ticketClassId, clientTempId, ...rest } = slot as any;
-          return rest;
+        // eslint-disable-next-line @typescript-eslint/no-explicit-any
+        if ((slot.classType || "").toLowerCase() === "driving test" && (slot as any).ticketClassId) {
+          // eslint-disable-next-line @typescript-eslint/no-explicit-any
+          const { ticketClassId: _, clientTempId: __, ...rest } = slot as any;
+          return rest as Slot;
         }
+        // eslint-disable-next-line @typescript-eslint/no-explicit-any
         if ((slot as any).clientTempId) {
-          const { clientTempId, ...rest } = slot as any;
-          return rest;
+          // eslint-disable-next-line @typescript-eslint/no-explicit-any
+          const { clientTempId: _, ...rest } = slot as any;
+          return rest as Slot;
         }
         return slot;
       });
 
       const cleanSchedule = finalSchedule.map(slot => {
         const cleaned = { ...slot };
-        if (typeof (cleaned as any).ticketClassId === 'string' && (cleaned as any).ticketClassId.startsWith('temp-')) {
+        // eslint-disable-next-line @typescript-eslint/no-explicit-any
+        if (typeof (cleaned as any).ticketClassId === 'string' && ((cleaned as any).ticketClassId as string).startsWith('temp-')) {
+          // eslint-disable-next-line @typescript-eslint/no-explicit-any
           delete (cleaned as any).ticketClassId;
         }
         if (cleaned.date && cleaned.date.includes('T')) {
