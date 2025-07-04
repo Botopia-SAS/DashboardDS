@@ -1744,13 +1744,6 @@ export function useInstructorForm(initialData?: InstructorData) {
 
       // Handle temporary slots (always create) - these are NEW ticket classes
       if (slot.isTemporary || (slot.ticketClassId && slot.ticketClassId.toString().startsWith('temp-'))) {
-        console.log('[DIFF] NEW temporary ticket class to CREATE:', { 
-          key, 
-          ticketClassId: slot.ticketClassId,
-          classType: slot.classType,
-          date: slot.date,
-          start: slot.start
-        });
         changes.toCreate.push(slot);
         processedKeys.add(key);
         return;
@@ -1760,39 +1753,19 @@ export function useInstructorForm(initialData?: InstructorData) {
       
       if (!originalSlot) {
         // New slot - could be driving test or new ticket class
-        console.log('[DIFF] NEW slot to CREATE:', { 
-          key, 
-          date: slot.date, 
-          start: slot.start, 
-          classType: slot.classType,
-          ticketClassId: slot.ticketClassId,
-          slotId: slot.slotId
-        });
         changes.toCreate.push(slot);
       } else {
-        // Existing slot - check for significant changes
-        if (hasSignificantChanges(originalSlot, slot)) {
-          console.log('[DIFF] EXISTING slot needs UPDATE:', { 
-            key, 
-            ticketClassId: slot.ticketClassId,
-            date: slot.date, 
-            start: slot.start, 
-            classType: slot.classType,
-            reason: 'Significant changes detected'
-          });
+        // Detecta cambio de tipo de clase
+        if ((originalSlot.classType || '').toLowerCase() !== (slot.classType || '').toLowerCase()) {
+          // Si cambia de ticketclass a driving test, o entre ticketclasses, elimina y crea
+          changes.toDelete.push(originalSlot);
+          changes.toCreate.push(slot);
+        } else if (hasSignificantChanges(originalSlot, slot)) {
           changes.toUpdate.push({ old: originalSlot, new: slot });
         } else {
-          console.log('[DIFF] EXISTING slot unchanged, KEEPING as-is:', { 
-            key, 
-            ticketClassId: slot.ticketClassId,
-            classType: slot.classType,
-            date: slot.date,
-            start: slot.start
-          });
           changes.toKeep.push(slot);
         }
       }
-      
       processedKeys.add(key);
     });
 
@@ -1913,93 +1886,99 @@ export function useInstructorForm(initialData?: InstructorData) {
         instructorId = createdInstructor._id;
         toast.success('Instructor created! Now saving classes...', { id: 'saving-calendar' });
         originalSchedule = [];
-      } else {
+            } else {
         originalSchedule = normalizeSchedule(initialData?.schedule || []);
       }
 
       // 2. Calcular el diff de schedule
       const changes = calculateScheduleChangesProfessional(originalSchedule, schedule);
-      // 3. Crear/actualizar/eliminar ticketclasses primero
-      // Solo para tipos ADI, BDI, DATE
-      const ticketClassTypes = ["A.D.I", "B.D.I", "D.A.T.E", "ADI", "BDI", "DATE", "adi", "bdi", "date"];
-      // --- CREAR NUEVAS TICKETCLASSES ---
+      // 3. Eliminar ticketclasses y slots marcados para borrar (por update o delete) - en serie
+      for (const slot of changes.toDelete) {
+        if (slot.ticketClassId && ["A.D.I", "B.D.I", "D.A.T.E", "ADI", "BDI", "DATE", "adi", "bdi", "date"].includes((slot.classType || "").toUpperCase())) {
+          await fetch(`/api/ticket/classes/${slot.ticketClassId}`, { method: 'DELETE' });
+        }
+        // No agregues este slot al schedule final
+      }
+      // 4. Crear nuevas ticketclasses (por update o create) - solo después de terminar todos los DELETE
       let createdTicketClasses = [];
-      if (changes.toCreate.length > 0) {
-        const toCreate = changes.toCreate.filter(slot => ticketClassTypes.includes((slot.classType || "").toUpperCase()));
-        if (toCreate.length === 1) {
-          // POST individual
-          const slot = toCreate[0];
-          const payload = {
-            locationId: slot.locationId,
-            date: slot.date,
-            hour: slot.start,
-            endHour: slot.end,
-            classId: slot.classId,
-            type: mapClassTypeForBackend(slot.classType),
-            duration: slot.duration,
-            instructorId,
-            students: slot.students || [],
-            cupos: slot.cupos || 30,
-          };
-          const res = await fetch('/api/ticket/classes', {
-            method: 'POST',
-            headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify(payload)
-          });
-          if (!res.ok) throw new Error('Failed to create ticket class');
-          const created = await res.json();
-          createdTicketClasses.push({ ...slot, ticketClassId: created._id });
-        } else if (toCreate.length > 1) {
-          // POST batch
-          const batchPayload = toCreate.map(slot => ({
-            locationId: slot.locationId,
-            date: slot.date,
-            hour: slot.start,
-            endHour: slot.end,
-            classId: slot.classId,
-            type: mapClassTypeForBackend(slot.classType),
-            duration: slot.duration,
-            instructorId,
-            students: slot.students || [],
-            cupos: slot.cupos || 30,
-          }));
-          const res = await fetch('/api/ticket/classes/batch', {
-            method: 'POST',
-            headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify(batchPayload)
-          });
-          if (!res.ok) throw new Error('Failed to create ticket classes');
-          const created = await res.json();
-          for (let i = 0; i < created.length; i++) {
-            createdTicketClasses.push({ ...toCreate[i], ticketClassId: created[i]._id });
-          }
+      const ticketClassTypes = ["A.D.I", "B.D.I", "D.A.T.E", "ADI", "BDI", "DATE", "adi", "bdi", "date"];
+      const toCreate = changes.toCreate.filter(slot => ticketClassTypes.includes((slot.classType || "").toUpperCase()));
+      // Asigna clientTempId único a cada slot a crear
+      toCreate.forEach(slot => {
+        if (!slot.clientTempId) {
+          slot.clientTempId = `${Date.now()}-${Math.random()}`;
+        }
+      });
+      if (toCreate.length === 1) {
+        const slot = toCreate[0];
+        const payload = {
+          locationId: slot.locationId,
+          date: slot.date,
+          hour: slot.start,
+          endHour: slot.end,
+          classId: slot.classId,
+          type: mapClassTypeForBackend(slot.classType),
+          duration: slot.duration,
+          instructorId,
+          students: Array.isArray(slot.students) ? slot.students : [],
+          cupos: slot.cupos || 30,
+          clientTempId: slot.clientTempId,
+        };
+        const res = await fetch('/api/ticket/classes', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify(payload)
+        });
+        if (!res.ok) throw new Error('Failed to create ticket class');
+        const created = await res.json();
+        createdTicketClasses.push({ ...slot, ticketClassId: created._id, clientTempId: created.clientTempId });
+      } else if (toCreate.length > 1) {
+        const batchPayload = toCreate.map(slot => ({
+          locationId: slot.locationId,
+          date: slot.date,
+          hour: slot.start,
+          endHour: slot.end,
+          classId: slot.classId,
+          type: mapClassTypeForBackend(slot.classType),
+          duration: slot.duration,
+          instructorId,
+          students: Array.isArray(slot.students) ? slot.students : [],
+          cupos: slot.cupos || 30,
+          clientTempId: slot.clientTempId,
+        }));
+        const res = await fetch('/api/ticket/classes/batch', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify(batchPayload)
+        });
+        if (!res.ok) throw new Error('Failed to create ticket classes');
+        const created = await res.json();
+        for (let i = 0; i < created.length; i++) {
+          createdTicketClasses.push({ ...toCreate[i], ticketClassId: created[i]._id, clientTempId: created[i].clientTempId });
         }
       }
-      // --- FIN CREACIÓN TICKETCLASSES ---
-
-      // 4. Construir el schedule FINAL con todos los slots, enlazando ticketClassId reales
+      // 5. Construir el schedule FINAL solo con los slots nuevos y correctos
       const finalSchedule: Slot[] = [
         ...changes.toKeep,
         ...changes.toUpdate.map(u => u.new),
         ...changes.toCreate
       ].map(slot => {
-        // Si es ticketclass, busca el ticketClassId real
+        // Si es ticketclass, busca el ticketClassId real usando clientTempId
         if (ticketClassTypes.includes((slot.classType || "").toUpperCase())) {
-          const found = createdTicketClasses.find(s =>
-            s.date === slot.date &&
-            s.start === slot.start &&
-            s.end === slot.end &&
-            s.classType === slot.classType &&
-            s.classId === slot.classId &&
-            s.locationId === slot.locationId
-          );
+          const found = createdTicketClasses.find(s => s.clientTempId && slot.clientTempId && s.clientTempId === slot.clientTempId);
           if (found) {
-            return { ...slot, ticketClassId: found.ticketClassId };
+            const { clientTempId, ...rest } = slot;
+            return { ...rest, ticketClassId: found.ticketClassId };
           }
         }
         // Si es driving test, nunca debe tener ticketClassId
         if ((slot.classType || "").toLowerCase() === "driving test" && slot.ticketClassId) {
-          const { ticketClassId, ...rest } = slot;
+          const { ticketClassId, clientTempId, ...rest } = slot;
+          return rest;
+        }
+        // Elimina clientTempId si existe
+        if (slot.clientTempId) {
+          const { clientTempId, ...rest } = slot;
           return rest;
         }
         return slot;

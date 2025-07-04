@@ -185,7 +185,13 @@ export async function POST(req: Request) {
       });
     }
     
-    return NextResponse.json(createdClasses, { status: 201 });
+    const response = createdClasses.map((ticketClass, idx) => ({
+      _id: ticketClass._id,
+      clientTempId: body[idx].clientTempId,
+      // Puedes agregar más campos si lo necesitas
+    }));
+
+    return NextResponse.json(response, { status: 201 });
   } catch (error: any) {
     console.error("[API] Error in batch creating ticket classes:", error);
     return NextResponse.json(
