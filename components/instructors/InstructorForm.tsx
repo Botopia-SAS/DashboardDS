@@ -10,6 +10,7 @@ import EditRecurringModal from "./EditRecurringModal";
 import InstructorFormLoader from "./InstructorFormLoader";
 import { useInstructorForm } from "./useInstructorForm";
 import { InstructorData } from "./types";
+import { toast } from "react-hot-toast";
 
 const InstructorForm = ({ initialData }: { initialData?: InstructorData }) => {
   const {
@@ -17,6 +18,7 @@ const InstructorForm = ({ initialData }: { initialData?: InstructorData }) => {
     loading,
     loadingSchedule,
     savingChanges,
+    hasChanges,
     recurrenceOptions,
     recurrenceEnd,
     setRecurrenceEnd,
@@ -50,6 +52,11 @@ const InstructorForm = ({ initialData }: { initialData?: InstructorData }) => {
     router,
   } = useInstructorForm(initialData);
 
+  const handleSubmit = async (values: InstructorData) => {
+    // Use the professional onSubmit from the hook
+    await onSubmit(values);
+  };
+
   return (
     <div className="p-10">
       {loadingSchedule && <InstructorFormLoader />}
@@ -59,7 +66,7 @@ const InstructorForm = ({ initialData }: { initialData?: InstructorData }) => {
       <Separator className="bg-grey-1 mt-4 mb-7" />
       <Form {...form}>
         <form
-          onSubmit={form.handleSubmit(onSubmit)}
+          onSubmit={form.handleSubmit(handleSubmit)}
           className="space-y-8"
           autoComplete="off"
         >
@@ -105,7 +112,7 @@ const InstructorForm = ({ initialData }: { initialData?: InstructorData }) => {
           <div className="flex gap-4">
             <Button
               type="submit"
-              disabled={loading || savingChanges}
+              disabled={loading || !hasChanges}
               className="bg-blue-600 text-white"
             >
               {savingChanges 
