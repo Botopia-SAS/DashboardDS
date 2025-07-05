@@ -82,7 +82,7 @@ function serializeOrder(order: OrderDocument, user: UserDocument | null): Serial
 
 const Page = async () => {
   await dbConnect()
-  let orders = await Order.find({}).lean() as OrderDocument[]
+  const orders = await Order.find({}).lean() as OrderDocument[]
   // Obtener todos los userIds únicos
   const userIds = Array.from(new Set(orders.map((o: OrderDocument) => o.userId?.toString?.() ?? o.user_id?.toString?.()))).filter(Boolean)
   // Buscar todos los usuarios de una vez
