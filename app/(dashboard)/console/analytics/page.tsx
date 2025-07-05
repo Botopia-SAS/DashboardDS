@@ -75,40 +75,9 @@ export default function AnalyticsPage() {
   const [data, setData] = useState<AnalyticsData | null>(null);
   const [loading, setLoading] = useState(true);
   const pathname = usePathname();
-  const [modalPage, setModalPage] = useState<string | null>(null);
-  const [clickEvents, setClickEvents] = useState<HeatmapEvent[]>([]);
-  const [clicksByPage, setClicksByPage] = useState<Record<string, number>>({});
 
   useEffect(() => {
     fetchData();
-    // Obtener y filtrar clicks por página y periodo
-    const start = dateRange.start.toISOString();
-    const end = dateRange.end.toISOString();
-    fetch(`/api/heatmap?start=${start}&end=${end}`)
-      .then(res => res.json())
-      .then((result: HeatmapResponse) => {
-        if (result.success && result.heatmap) {
-          const clicks: Record<string, number> = {};
-          // Convertir el rango de fechas a UTC y cubrir todo el día
-          const startUTC = new Date(dateRange.start);
-          startUTC.setUTCHours(0, 0, 0, 0);
-          const endUTC = new Date(dateRange.end);
-          endUTC.setUTCHours(23, 59, 59, 999);
-
-          result.heatmap.forEach((e) => {
-            if (e.event_type === 'click' && e.timestamp) {
-              const ts = new Date(e.timestamp).getTime();
-              if (!isNaN(ts) && ts >= startUTC.getTime() && ts <= endUTC.getTime()) {
-                const pageKey = e.pathname;
-                if (pageKey) {
-                  clicks[pageKey] = (clicks[pageKey] || 0) + 1;
-                }
-              }
-            }
-          });
-          setClicksByPage(clicks);
-        }
-      });
     // eslint-disable-next-line
   }, [period, dateRange]);
 
@@ -175,23 +144,7 @@ export default function AnalyticsPage() {
     return `${s}s`;
   };
 
-  // Función para abrir el modal de eventos de click
-  const handleShowClicks = async (pageUrl: string) => {
-    // Buscar eventos de click para esa página
-    try {
-      const res = await fetch(`/api/heatmap`);
-      const result: HeatmapResponse = await res.json();
-      if (result.success && result.heatmap) {
-        const clicks: HeatmapEvent[] = result.heatmap.filter((e: HeatmapEvent) => e.pathname === pageUrl && e.event_type === 'click');
-        if (clicks.length > 0) {
-          setClickEvents(clicks);
-          setModalPage(pageUrl);
-        }
-      }
-    } catch {
-      // No mostrar modal si hay error
-    }
-  };
+
 
   if (loading) {
     return (

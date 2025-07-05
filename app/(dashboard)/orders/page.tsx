@@ -27,7 +27,33 @@ interface SerializedOrder {
   __v: number
 }
 
-function serializeOrder(order: any, user: any): SerializedOrder {
+interface OrderDocument {
+  _id: any
+  orderNumber?: string | number
+  estado?: string
+  status?: string
+  createdAt?: Date
+  total?: number
+  userId?: any
+  user_id?: any
+  items?: Array<{
+    id: string
+    title: string
+    price: number
+    quantity: number
+    _id: any
+  }>
+  __v?: number
+}
+
+interface UserDocument {
+  _id: any
+  firstName?: string
+  lastName?: string
+  email?: string
+}
+
+function serializeOrder(order: OrderDocument, user: UserDocument | null): SerializedOrder {
   return {
     _id: order._id?.toString?.() ?? '',
     orderNumber: order.orderNumber ?? '',
@@ -42,7 +68,7 @@ function serializeOrder(order: any, user: any): SerializedOrder {
         }
       : { firstName: '-', lastName: '-', email: '-' },
     items: Array.isArray(order.items)
-      ? order.items.map((item: any): SerializedOrderItem => ({
+      ? order.items.map((item): SerializedOrderItem => ({
           id: item.id,
           title: item.title,
           price: item.price,
@@ -56,14 +82,14 @@ function serializeOrder(order: any, user: any): SerializedOrder {
 
 const Page = async () => {
   await dbConnect()
-  let orders = await Order.find({}).lean()
+  let orders = await Order.find({}).lean() as OrderDocument[]
   // Obtener todos los userIds únicos
-  const userIds = Array.from(new Set(orders.map((o: any) => o.userId?.toString?.() ?? o.user_id?.toString?.()))).filter(Boolean)
+  const userIds = Array.from(new Set(orders.map((o: OrderDocument) => o.userId?.toString?.() ?? o.user_id?.toString?.()))).filter(Boolean)
   // Buscar todos los usuarios de una vez
-  const usersArr = await User.find({ _id: { $in: userIds } }).lean()
-  const usersMap = Object.fromEntries(usersArr.map((u: any) => [u._id.toString(), u]))
+  const usersArr = await User.find({ _id: { $in: userIds } }).lean() as UserDocument[]
+  const usersMap = Object.fromEntries(usersArr.map((u: UserDocument) => [u._id.toString(), u]))
   // Serializar y asociar usuario correcto
-  orders = orders.map((order: any) => {
+  const serializedOrders = orders.map((order: OrderDocument) => {
     const userId = order.userId?.toString?.() ?? order.user_id?.toString?.()
     const user = usersMap[userId]
     return serializeOrder(order, user)
@@ -72,7 +98,7 @@ const Page = async () => {
   return (
     <div className="p-6">
       <h1 className="text-2xl font-bold mb-4">Orders</h1>
-      <OrdersTable orders={orders} />
+      <OrdersTable orders={serializedOrders} />
     </div>
   )
 }
