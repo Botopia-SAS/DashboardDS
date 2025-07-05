@@ -64,7 +64,7 @@ export async function POST(req: NextRequest) {
     let isPasswordValid = false;
     try {
       isPasswordValid = await bcrypt.compare(password, admin.password);
-    } catch (e) {
+    } catch {
       isPasswordValid = false;
     }
     if (!isPasswordValid) {
