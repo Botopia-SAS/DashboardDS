@@ -2,6 +2,7 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/com
 import { Button } from "@/components/ui/button";
 import { UserPlus, ArrowLeft } from "lucide-react";
 import Link from "next/link";
+import * as React from "react";
 
 export default function SignUpPage() {
   return (
