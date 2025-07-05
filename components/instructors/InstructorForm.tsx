@@ -11,6 +11,7 @@ import InstructorFormLoader from "./InstructorFormLoader";
 import { useInstructorForm } from "./useInstructorForm";
 import { InstructorData } from "./types";
 import { toast } from "react-hot-toast";
+import { PendingChangesIndicator } from "./PendingChangesIndicator";
 
 const InstructorForm = ({ initialData }: { initialData?: InstructorData }) => {
   const {
@@ -50,6 +51,7 @@ const InstructorForm = ({ initialData }: { initialData?: InstructorData }) => {
     clearScheduleDraft,
     discardAllChanges,
     router,
+    visualFeedback,
   } = useInstructorForm(initialData);
 
   const handleSubmit = async (values: InstructorData) => {
@@ -108,6 +110,16 @@ const InstructorForm = ({ initialData }: { initialData?: InstructorData }) => {
             setIsModalOpen={setIsModalOpen}
             setEditAll={setEditAll}
           />
+          
+          {/* Pending Changes Indicator */}
+          <div className="bg-gray-50 border border-gray-200 rounded-lg p-4">
+            <PendingChangesIndicator
+              pendingChanges={visualFeedback.getPendingChangesSummary()}
+              hasChanges={hasChanges}
+              savingChanges={savingChanges}
+            />
+          </div>
+          
           {/* Form Actions */}
           <div className="flex gap-4">
             <Button

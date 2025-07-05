@@ -84,9 +84,51 @@ export function useTicketClassCache({
   // Función para enriquecer eventos del calendario con datos de ticket classes
   const enrichCalendarEvents = async (schedule: any[]) => {
     try {
-      // Si ya cargamos todas las ticket classes del instructor, no necesitamos hacer nada más
+      // MEJORA: Procesar tanto datos persistentes como temporales
+      // Si ya cargamos todas las ticket classes del instructor, actualizar con datos temporales
       if (instructorTicketClassesLoaded && allInstructorTicketClasses.length > 0) {
         console.log('[CACHE] Using pre-loaded instructor ticket classes for enrichment');
+        
+        // Enriquecer también los ticket classes temporales que pueden haber sido creados
+        const tempTicketClasses = schedule.filter(slot => 
+          slot.ticketClassId && 
+          slot.ticketClassId.startsWith('temp-') &&
+          !loadedTicketClassIds.has(slot.ticketClassId)
+        );
+        
+        if (tempTicketClasses.length > 0) {
+          console.log('[CACHE] Processing temporary ticket classes:', tempTicketClasses.length);
+          
+          const enrichedData = { ...enrichedTicketData };
+          const newTempIds = new Set<string>();
+          
+          tempTicketClasses.forEach(slot => {
+            if (slot.ticketClassId && !enrichedData[slot.ticketClassId]) {
+              enrichedData[slot.ticketClassId] = {
+                students: slot.students || [],
+                cupos: slot.cupos || 30,
+                classId: slot.classId,
+                locationId: slot.locationId,
+                amount: slot.amount,
+                duration: slot.duration,
+                type: slot.classType?.toLowerCase(),
+                date: slot.date,
+                hour: slot.start,
+                endHour: slot.end,
+                isTemporary: true,
+                fullData: null
+              };
+              newTempIds.add(slot.ticketClassId);
+            }
+          });
+          
+          if (newTempIds.size > 0) {
+            setEnrichedTicketData(enrichedData);
+            setLoadedTicketClassIds(prev => new Set([...prev, ...newTempIds]));
+            console.log('[CACHE] Added temporary ticket classes to cache:', newTempIds.size);
+          }
+        }
+        
         return;
       }
       
@@ -151,8 +193,48 @@ export function useTicketClassCache({
     }
   };
 
+  // Función para limpiar datos temporales del caché después de guardar
+  const clearTemporaryTicketClasses = () => {
+    const enrichedData = { ...enrichedTicketData };
+    const cleanedIds = new Set(loadedTicketClassIds);
+    let hasChanges = false;
+    
+    // Eliminar datos temporales del cache
+    Object.keys(enrichedData).forEach(ticketClassId => {
+      if (ticketClassId.startsWith('temp-')) {
+        delete enrichedData[ticketClassId];
+        cleanedIds.delete(ticketClassId);
+        hasChanges = true;
+      }
+    });
+    
+    if (hasChanges) {
+      setEnrichedTicketData(enrichedData);
+      setLoadedTicketClassIds(cleanedIds);
+      console.log('[CACHE] Cleared temporary ticket classes from cache');
+    }
+  };
+
+  // Función para refrescar el caché completo (útil después de guardar cambios)
+  const refreshCache = async () => {
+    if (initialData?._id) {
+      console.log('[CACHE] Refreshing cache after save');
+      
+      // Limpiar estado actual
+      setEnrichedTicketData({});
+      setLoadedTicketClassIds(new Set());
+      setAllInstructorTicketClasses([]);
+      setInstructorTicketClassesLoaded(false);
+      
+      // Recargar datos
+      await loadInstructorTicketClasses();
+    }
+  };
+
   return {
     loadInstructorTicketClasses,
     enrichCalendarEvents,
+    clearTemporaryTicketClasses,
+    refreshCache,
   };
 } 

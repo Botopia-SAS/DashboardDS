@@ -346,7 +346,21 @@ export async function DELETE(req: Request) {
       }
     }
 
-    // Eliminar instructor en MongoDB
+    console.log(`[DELETE_INSTRUCTOR] 🗑️ Starting deletion of instructor: ${instructor.name} (${instructorId})`);
+
+    // STEP 1: Buscar ticket classes antes de eliminar (para logs)
+    const ticketClassesToDelete = await TicketClass.find({ instructorId });
+    console.log(`[DELETE_INSTRUCTOR] Found ${ticketClassesToDelete.length} ticket classes to delete for instructor ${instructorId}:`, 
+      ticketClassesToDelete.map(tc => ({
+        id: tc._id,
+        type: tc.type,
+        date: tc.date,
+        hour: tc.hour,
+        students: tc.students?.length || 0
+      }))
+    );
+
+    // STEP 2: Eliminar instructor en MongoDB
     const deletedInstructor = await Instructor.findByIdAndDelete(instructorId);
     if (!deletedInstructor) {
       return NextResponse.json(
@@ -354,11 +368,24 @@ export async function DELETE(req: Request) {
         { status: 404 }
       );
     }
+    console.log(`[DELETE_INSTRUCTOR] ✅ Instructor deleted: ${deletedInstructor.name} (${instructorId})`);
 
-    // Eliminar todas las ticketclasses asociadas a este instructor
-    await TicketClass.deleteMany({ instructorId });
+    // STEP 3: 🎯 CASCADE DELETE - Eliminar todas las ticket classes asociadas a este instructor
+    const deleteResult = await TicketClass.deleteMany({ instructorId });
+    console.log(`[DELETE_INSTRUCTOR] ✅ CASCADE DELETE: Deleted ${deleteResult.deletedCount} ticket classes for instructor ${instructorId}`);
+    
+    if (deleteResult.deletedCount !== ticketClassesToDelete.length) {
+      console.warn(`[DELETE_INSTRUCTOR] ⚠️ Warning: Expected to delete ${ticketClassesToDelete.length} ticket classes, but deleted ${deleteResult.deletedCount}`);
+    }
 
-    return NextResponse.json({ message: "Instructor deleted successfully" }, { status: 200 });
+    // Resumen final
+    console.log(`[DELETE_INSTRUCTOR] 🎉 COMPLETE: Successfully deleted instructor ${instructor.name} and ${deleteResult.deletedCount} associated ticket classes`);
+
+    return NextResponse.json({ 
+      message: "Instructor and all associated data deleted successfully",
+      deletedTicketClasses: deleteResult.deletedCount,
+      instructorName: instructor.name 
+    }, { status: 200 });
   } catch (error) {
     console.error("❌ Error al eliminar instructor:", error);
     return NextResponse.json({ message: "Error deleting instructor" }, { status: 500 });

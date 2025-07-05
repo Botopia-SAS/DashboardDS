@@ -42,6 +42,12 @@ export interface Slot {
   createdAsRecurrence?: boolean;
   originalRecurrenceGroup?: string;
   clientTempId?: string;
+  // Campos para eliminación de recurrencia
+  deletedFromRecurrence?: boolean;
+  originalRecurrenceData?: {
+    createdAsRecurrence?: boolean;
+    originalRecurrenceGroup?: string;
+  };
 }
 
 export interface User {
