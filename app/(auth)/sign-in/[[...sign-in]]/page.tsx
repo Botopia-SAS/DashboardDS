@@ -1,6 +1,5 @@
-export default function Page() {
-  return (
-    <div className='h-screen flex justify-center items-center'>
-  </div>
-  );
+import LoginForm from "@/components/auth/LoginForm";
+
+export default function SignInPage() {
+  return <LoginForm />;
 }
