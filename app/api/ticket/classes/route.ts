@@ -24,6 +24,7 @@ const ticketClassSchema = Joi.object({
   instructorId: Joi.string().required(),
   students: Joi.array().items(Joi.string()).default([]),
   cupos: Joi.number().integer().min(1).default(30),
+  clientTempId: Joi.string().optional(), // Allow clientTempId for tracking purposes
 }).unknown(false);
 
 interface Location {

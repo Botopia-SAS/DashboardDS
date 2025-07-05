@@ -43,8 +43,28 @@ const Delete: React.FC<DeleteProps> = ({ item, id }) => {
 
       if (res.ok) {
         setLoading(false);
+        
+        // Manejo especial para instructores con información de cascade delete
+        if (item === "instructors") {
+          try {
+            const deleteData = await res.json();
+            if (deleteData.deletedTicketClasses > 0) {
+              toast.success(
+                `✅ Instructor "${deleteData.instructorName}" deleted successfully!\n🗑️ Also deleted ${deleteData.deletedTicketClasses} associated ticket classes.`,
+                { duration: 5000 }
+              );
+            } else {
+              toast.success(`✅ Instructor "${deleteData.instructorName}" deleted successfully!`);
+            }
+          } catch {
+            // Si no puede parsear JSON, usar mensaje genérico
+            toast.success(`${item} deleted`);
+          }
+        } else {
+          toast.success(`${item} deleted`);
+        }
+        
         window.location.reload();
-        toast.success(`${item} deleted`);
       } else {
         throw new Error("Failed to delete item");
       }
@@ -65,6 +85,11 @@ const Delete: React.FC<DeleteProps> = ({ item, id }) => {
           <AlertDialogTitle className="text-red-600">Are you absolutely sure?</AlertDialogTitle>
           <AlertDialogDescription>
             This action cannot be undone. This will permanently delete this {item}.
+            {item === "instructors" && (
+              <span className="block mt-2 font-medium text-orange-600">
+                ⚠️ Warning: This will also delete all ticket classes associated with this instructor.
+              </span>
+            )}
           </AlertDialogDescription>
         </AlertDialogHeader>
         <AlertDialogFooter>

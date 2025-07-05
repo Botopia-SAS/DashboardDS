@@ -8,8 +8,9 @@
 !.yarn/patches
 !.yarn/plugins
 !.yarn/releases
-!.yarn/versions
-
+/components/instructors/CHANGE_TRACKING_SYSTEM.md
+/components/instructors/SPECIFIC_CHANGE_ACTIONS.md
+/app/api/instructors/CASCADE_DELETE_SYSTEM.md
 # testing
 /coverage
 
