@@ -15,7 +15,7 @@ export default function SignUpPage() {
           <div>
             <CardTitle className="text-2xl font-bold text-gray-800">Account Registration</CardTitle>
             <CardDescription className="text-gray-600 mt-2">
-              New accounts are created by administrators only
+              New accounts are created by administrators only.
             </CardDescription>
           </div>
         </CardHeader>
