@@ -473,209 +473,134 @@ export function useInstructorForm(initialData?: InstructorData) {
       
       // Función para detectar eliminación específica directa - SIN LÍMITES, CUALQUIER CANTIDAD
       const detectSpecificSlotDeletions = () => {
-        // Detectar si se eliminaron 1 o más slots específicos comparando schedules
-        const originalCount = normalizeSchedule(initialData?.schedule || []).length;
+        // Detectar eliminaciones específicas de slots ORIGINALES, independiente del conteo total
+        const originalSchedule = normalizeSchedule(initialData?.schedule || []);
+        const originalCount = originalSchedule.length;
         const currentCount = state.schedule.length;
         const difference = originalCount - currentCount;
         
         console.log('[SPECIFIC DELETIONS] Detection analysis:', {
           originalCount,
           currentCount,
-          difference
+          difference,
+          scenario: difference > 0 ? 'net_deletions' : difference < 0 ? 'net_additions' : 'same_count'
         });
         
-        // SIN LÍMITES: Manejar cualquier cantidad de eliminaciones específicas (1, 2, 10, 30, etc.)
-        if (difference >= 1) {
-          console.log(`[SPECIFIC DELETIONS] Detected ${difference} slot deletions - analyzing...`);
-          
-          // Encontrar TODOS los slots eliminados
-          const originalSchedule = normalizeSchedule(initialData?.schedule || []);
-          const deletedSlots = originalSchedule.filter(origSlot => 
-            !state.schedule.some(currSlot => {
-              // MÉTODO 1: Comparación por slotId (más confiable para driving tests)
-              if (origSlot.slotId && currSlot.slotId && origSlot.slotId === currSlot.slotId) {
-                return true;
-              }
-              
-              // MÉTODO 2: Comparación por ticketClassId (para ticket classes)
-              if (origSlot.ticketClassId && currSlot.ticketClassId && origSlot.ticketClassId === currSlot.ticketClassId) {
-                return true;
-              }
-              
-              // MÉTODO 3: Comparación exacta por propiedades (fallback)
-              if (origSlot.date === currSlot.date && 
-                  origSlot.start === currSlot.start && 
-                  origSlot.end === currSlot.end && 
-                  origSlot.classType === currSlot.classType) {
-                // Para driving tests, también verificar otros campos si existen
-                if ((origSlot.classType || "").toLowerCase() === "driving test") {
-                  // Comparación más estricta para driving tests
-                  return origSlot.booked === currSlot.booked &&
-                         origSlot.status === currSlot.status;
-                }
-                return true;
-              }
-              
-              return false;
-            })
-          );
-          
-          console.log(`[SPECIFIC DELETIONS] Found ${deletedSlots.length} deleted slots:`, 
-            deletedSlots.map(slot => ({
-              slotId: slot.slotId,
-              classType: slot.classType,
-              date: slot.date,
-              start: slot.start,
-              ticketClassId: slot.ticketClassId
-            }))
-          );
-          
-          // Verificar que el número coincide con la diferencia detectada
-          if (deletedSlots.length === difference) {
-            // Analizar los tipos de slots eliminados
-            const drivingTestDeletions = deletedSlots.filter(slot => 
-              (slot.classType || "").toLowerCase() === "driving test"
-            );
-            const ticketClassDeletions = deletedSlots.filter(slot => 
-              ["D.A.T.E", "B.D.I", "A.D.I"].includes(slot.classType || "")
-            );
-            
-            console.log('[SPECIFIC DELETIONS] Deletion analysis:', {
-              totalDeleted: deletedSlots.length,
-              drivingTestDeletions: drivingTestDeletions.length,
-              ticketClassDeletions: ticketClassDeletions.length,
-              drivingTestDetails: drivingTestDeletions.map(dt => ({
-                date: dt.date,
-                start: dt.start,
-                slotId: dt.slotId,
-                recurrenceGroup: dt.originalRecurrenceGroup
-              }))
-            });
-            
-            // ESPECIAL PARA DRIVING TESTS: Verificación adicional cuando hay múltiples
-            if (drivingTestDeletions.length > 0) {
-              console.log(`[SPECIFIC DELETIONS] 🚗 ${drivingTestDeletions.length} DRIVING TEST deletions confirmed - bypassing complex logic`);
-              
-              // Para recurrencia: análisis informativo (no bloqueante)
-              const recurrenceGroups = new Set(
-                drivingTestDeletions
-                  .filter(dt => dt.originalRecurrenceGroup)
-                  .map(dt => dt.originalRecurrenceGroup)
-              );
-              
-              if (recurrenceGroups.size > 0) {
-                console.log('[SPECIFIC DELETIONS] 🔄 RECURRENCE GROUP deletions analysis (informational)');
-                
-                // Para cada grupo de recurrencia, mostrar estadísticas
-                for (const groupId of recurrenceGroups) {
-                  const originalGroupSlots = originalSchedule.filter(slot => 
-                    slot.originalRecurrenceGroup === groupId
-                  );
-                  const currentGroupSlots = state.schedule.filter(slot => 
-                    slot.originalRecurrenceGroup === groupId
-                  );
-                  const deletedFromGroup = originalGroupSlots.length - currentGroupSlots.length;
-                  
-                  console.log(`[SPECIFIC DELETIONS] Group ${groupId} analysis:`, {
-                    originalInGroup: originalGroupSlots.length,
-                    currentInGroup: currentGroupSlots.length,
-                    deletedFromGroup,
-                    percentageDeleted: Math.round((deletedFromGroup / originalGroupSlots.length) * 100)
-                  });
-                  
-                  // INFORMATIVO: Solo mostrar advertencia si se eliminó todo el grupo
-                  if (deletedFromGroup === originalGroupSlots.length) {
-                    console.log(`[SPECIFIC DELETIONS] ℹ️ Info: Entire recurrence group ${groupId} was deleted (${deletedFromGroup} slots)`);
-                  }
-                }
-              }
-              
-              // Verificar que realmente no hay otros cambios no relacionados
-              const otherOriginalSlots = originalSchedule.filter(origSlot => 
-                !deletedSlots.some(deleted => 
-                  deleted.slotId === origSlot.slotId ||
-                  deleted.ticketClassId === origSlot.ticketClassId ||
-                  (deleted.date === origSlot.date && deleted.start === origSlot.start && 
-                   deleted.end === origSlot.end && deleted.classType === origSlot.classType)
-                )
-              );
-              
-              const otherChanges = otherOriginalSlots.filter(origSlot => 
-                !state.schedule.some(currSlot => 
-                  origSlot.slotId === currSlot.slotId ||
-                  origSlot.ticketClassId === currSlot.ticketClassId ||
-                  (origSlot.date === currSlot.date && origSlot.start === currSlot.start && 
-                   origSlot.end === currSlot.end && origSlot.classType === currSlot.classType)
-                )
-              );
-              
-              console.log('[SPECIFIC DELETIONS] Other changes analysis:', {
-                otherOriginalSlots: otherOriginalSlots.length,
-                otherChanges: otherChanges.length,
-                onlySpecificDeletions: otherChanges.length === 0
-              });
-              
-              if (otherChanges.length === 0) {
-                console.log(`[SPECIFIC DELETIONS] ✅ CONFIRMED: Only ${deletedSlots.length} specific slots deleted, no other changes`);
-                
-                // MENSAJE ESPECIAL para eliminaciones masivas
-                if (deletedSlots.length >= 10) {
-                  console.log(`[SPECIFIC DELETIONS] 📢 LARGE DELETION: Processing ${deletedSlots.length} specific deletions as requested`);
-                }
-                
-                return {
-                  toCreate: [],
-                  toUpdate: [],
-                  toDelete: deletedSlots, // TODOS los slots específicamente eliminados (sin límite)
-                  toKeep: state.schedule  // TODOS los demás permanecen
-                };
-              } else {
-                console.log('[SPECIFIC DELETIONS] ⚠️ Other changes detected alongside specific deletions:', {
-                  otherChangesCount: otherChanges.length,
-                  otherChanges: otherChanges.map(c => ({
-                    classType: c.classType,
-                    date: c.date,
-                    start: c.start
-                  }))
-                });
-                
-                // PERMISIVO: Aún así procesar las eliminaciones específicas
-                console.log('[SPECIFIC DELETIONS] 🔄 Processing specific deletions despite other changes');
-                return {
-                  toCreate: [],
-                  toUpdate: [],
-                  toDelete: deletedSlots, // TODOS los slots específicamente eliminados
-                  toKeep: state.schedule  // TODOS los demás permanecen
-                };
-              }
+        // FIXED: Detectar eliminaciones de slots ORIGINALES independientemente del conteo total
+        // Esto maneja el caso donde hay tanto creaciones como eliminaciones
+        const deletedOriginalSlots = originalSchedule.filter(origSlot => 
+          !state.schedule.some(currSlot => {
+            // MÉTODO 1: Comparación por slotId (más confiable para driving tests)
+            if (origSlot.slotId && currSlot.slotId && origSlot.slotId === currSlot.slotId) {
+              return true;
             }
             
-            // Para casos mixtos o solo ticket classes (también sin límite)
-            console.log(`[SPECIFIC DELETIONS] ✅ Processing ${deletedSlots.length} mixed/ticket class deletions`);
+            // MÉTODO 2: Comparación por ticketClassId (para ticket classes)
+            if (origSlot.ticketClassId && currSlot.ticketClassId && origSlot.ticketClassId === currSlot.ticketClassId) {
+              return true;
+            }
+            
+            // MÉTODO 3: Comparación exacta por propiedades (fallback)
+            if (origSlot.date === currSlot.date && 
+                origSlot.start === currSlot.start && 
+                origSlot.end === currSlot.end && 
+                origSlot.classType === currSlot.classType) {
+              // Para driving tests, también verificar otros campos si existen
+              if ((origSlot.classType || "").toLowerCase() === "driving test") {
+                // Comparación más estricta para driving tests
+                return origSlot.booked === currSlot.booked &&
+                       origSlot.status === currSlot.status;
+              }
+              return true;
+            }
+            
+            return false;
+          })
+        );
+        
+        console.log(`[SPECIFIC DELETIONS] Found ${deletedOriginalSlots.length} deleted ORIGINAL slots:`, 
+          deletedOriginalSlots.map(slot => ({
+            slotId: slot.slotId,
+            classType: slot.classType,
+            date: slot.date,
+            start: slot.start,
+            ticketClassId: slot.ticketClassId,
+            source: 'original_slot'
+          }))
+        );
+        
+        // CRITICAL: También detectar nuevos slots creados para logging
+        const newSlots = state.schedule.filter(currSlot => 
+          !originalSchedule.some(origSlot => {
+            if (origSlot.slotId && currSlot.slotId && origSlot.slotId === currSlot.slotId) {
+              return true;
+            }
+            if (origSlot.ticketClassId && currSlot.ticketClassId && origSlot.ticketClassId === currSlot.ticketClassId) {
+              return true;
+            }
+            return origSlot.date === currSlot.date && 
+                   origSlot.start === currSlot.start && 
+                   origSlot.end === currSlot.end && 
+                   origSlot.classType === currSlot.classType;
+          })
+        );
+        
+        console.log(`[SPECIFIC DELETIONS] Found ${newSlots.length} NEW slots created:`, 
+          newSlots.map(slot => ({
+            slotId: slot.slotId,
+            classType: slot.classType,
+            date: slot.date,
+            start: slot.start,
+            source: 'new_slot'
+          }))
+        );
+        
+        // PROCESO: Si hay eliminaciones de slots originales, procesarlas
+        if (deletedOriginalSlots.length >= 1) {
+          const drivingTestDeletions = deletedOriginalSlots.filter(slot => 
+            (slot.classType || "").toLowerCase() === "driving test"
+          );
+          const ticketClassDeletions = deletedOriginalSlots.filter(slot => 
+            ["D.A.T.E", "B.D.I", "A.D.I"].includes(slot.classType || "")
+          );
+          
+          console.log('[SPECIFIC DELETIONS] Mixed scenario analysis:', {
+            totalDeleted: deletedOriginalSlots.length,
+            totalCreated: newSlots.length,
+            netChange: newSlots.length - deletedOriginalSlots.length,
+            drivingTestDeletions: drivingTestDeletions.length,
+            ticketClassDeletions: ticketClassDeletions.length,
+            scenario: newSlots.length > 0 ? 'mixed_create_delete' : 'pure_delete'
+          });
+          
+          // ESPECIAL PARA DRIVING TESTS: Funciona en escenarios mixtos
+          if (drivingTestDeletions.length > 0) {
+            console.log(`[SPECIFIC DELETIONS] 🚗 ${drivingTestDeletions.length} DRIVING TEST deletions detected in ${newSlots.length > 0 ? 'MIXED' : 'PURE'} scenario`);
+            console.log('[SPECIFIC DELETIONS] ✅ CONFIRMED: Processing specific original slot deletions');
+            
             return {
-              toCreate: [],
+              toCreate: newSlots, // Incluir nuevos slots para crear
               toUpdate: [],
-              toDelete: deletedSlots,
-              toKeep: state.schedule
+              toDelete: deletedOriginalSlots, // Solo slots originales eliminados
+              toKeep: state.schedule.filter(slot => !newSlots.includes(slot)) // Los que quedan (sin los nuevos)
             };
-          } else {
-            console.log(`[SPECIFIC DELETIONS] ⚠️ Mismatch: Expected ${difference} deletions but found ${deletedSlots.length} deleted slots`);
-            
-            // NUEVO: Si hay discrepancia, aún así intentar procesar si no es muy grande
-            if (Math.abs(difference - deletedSlots.length) <= 2 && deletedSlots.length > 0) {
-              console.log(`[SPECIFIC DELETIONS] 🔄 Small discrepancy (${Math.abs(difference - deletedSlots.length)}), proceeding with detected deletions`);
-              return {
-                toCreate: [],
-                toUpdate: [],
-                toDelete: deletedSlots,
-                toKeep: state.schedule
-              };
-            }
           }
-        } else if (difference < 0) {
-          console.log('[SPECIFIC DELETIONS] More slots now than before (additions), not a deletion case');
+          
+          // Para casos mixtos o solo ticket classes
+          console.log(`[SPECIFIC DELETIONS] ✅ Processing ${deletedOriginalSlots.length} mixed/ticket class deletions with ${newSlots.length} creations`);
+          return {
+            toCreate: newSlots,
+            toUpdate: [],
+            toDelete: deletedOriginalSlots,
+            toKeep: state.schedule.filter(slot => !newSlots.includes(slot))
+          };
         } else {
-          console.log('[SPECIFIC DELETIONS] Same count, no deletions detected');
+          console.log('[SPECIFIC DELETIONS] No original slots deleted, checking pure addition case...');
+          
+          // Si solo hay adiciones puras, no es caso de eliminación específica
+          if (newSlots.length > 0 && deletedOriginalSlots.length === 0) {
+            console.log('[SPECIFIC DELETIONS] Pure addition case detected, not a deletion scenario');
+          }
         }
         
         return null;
@@ -1184,29 +1109,57 @@ export function useInstructorForm(initialData?: InstructorData) {
       const uniqueSlots = new Map<string, Slot>();
       const duplicateAnalysis: Array<{original: Slot, duplicate: Slot, key: string}> = [];
       
-      toCreate.forEach((slot: Slot) => {
-        // Create unique key based on date+hour+instructor+classType (matching DB constraint)
-        const duplicateKey = `${slot.date}:${slot.start}:${instructorId}:${slot.classType}`;
+      console.log('[DUPLICATE CHECK] BEFORE deduplication - analyzing all slots to create:', {
+        totalSlots: toCreate.length,
+        detailedSlots: toCreate.map((slot, index) => ({
+          index,
+          date: slot.date,
+          start: slot.start,
+          end: slot.end,
+          classType: slot.classType,
+          students: slot.students,
+          studentsStringified: Array.isArray(slot.students) ? JSON.stringify(slot.students.sort()) : "[]",
+          locationId: slot.locationId,
+          classId: slot.classId
+        }))
+      });
+      
+      toCreate.forEach((slot: Slot, index: number) => {
+        // CORRECT: Create unique key based on DATE + hour + endHour + instructorId (each recurring class is separate)
+        const duplicateKey = `${slot.date}:${slot.start}:${slot.end}:${instructorId}`;
+        
+        console.log(`[DUPLICATE CHECK] Processing slot ${index}:`, {
+          slot: {
+            date: slot.date,
+            start: slot.start,
+            students: slot.students,
+            classType: slot.classType
+          },
+                      duplicateKey,
+            criterion: 'date + hour + endHour + instructorId',
+            alreadyExists: uniqueSlots.has(duplicateKey)
+        });
         
         if (uniqueSlots.has(duplicateKey)) {
           const existingSlot = uniqueSlots.get(duplicateKey)!;
-          console.warn('[DUPLICATE CHECK] Found duplicate - keeping first, removing duplicate:', {
-            duplicateKey,
+                      console.warn('[DUPLICATE CHECK] 🚨 DUPLICATE FOUND - same instructor, same time slot:', {
+              duplicateKey,
+              criterion: 'date + hour + endHour + instructorId (each recurring class separate)',
             keeping: {
               date: existingSlot.date,
               start: existingSlot.start,
+              end: existingSlot.end,
               classType: existingSlot.classType,
               source: (existingSlot as any).source || 'unknown',
-              isTemporary: (existingSlot as any).isTemporary,
-              originalSlotId: (existingSlot as any).originalSlotId
+              isTemporary: (existingSlot as any).isTemporary
             },
             removing: {
               date: slot.date,
               start: slot.start,
+              students: slot.students,
               classType: slot.classType,
               source: changes.toCreate.includes(slot) ? 'direct_create' : 'update_create',
-              isTemporary: (slot as any).isTemporary,
-              originalSlotId: (slot as any).originalSlotId
+              isTemporary: (slot as any).isTemporary
             }
           });
           
@@ -1217,6 +1170,7 @@ export function useInstructorForm(initialData?: InstructorData) {
           });
         } else {
           uniqueSlots.set(duplicateKey, slot);
+          console.log(`[DUPLICATE CHECK] ✅ Added unique slot with key: ${duplicateKey}`);
         }
         
         if (!(slot as unknown as Record<string, unknown>).clientTempId) {
@@ -1225,15 +1179,26 @@ export function useInstructorForm(initialData?: InstructorData) {
       });
       
       const deduplicatedToCreate = Array.from(uniqueSlots.values());
-      console.log('[DUPLICATE CHECK] Comprehensive deduplication analysis:', {
+              console.log('[DUPLICATE CHECK] AFTER deduplication - final result:', {
+          criterion: 'date + hour + endHour + instructorId (each recurring class separate)',
         originalCount: toCreate.length,
         deduplicatedCount: deduplicatedToCreate.length,
         removedDuplicates: toCreate.length - deduplicatedToCreate.length,
-        duplicateDetails: duplicateAnalysis.map(d => ({
-          key: d.key,
-          originalSource: changes.toCreate.includes(d.original) ? 'direct_create' : 'update_create',
-          duplicateSource: changes.toCreate.includes(d.duplicate) ? 'direct_create' : 'update_create'
-        }))
+                  finalSlots: deduplicatedToCreate.map((slot, index) => ({
+            index,
+            date: slot.date,
+            start: slot.start,
+            end: slot.end,
+            classType: slot.classType,
+            key: `${slot.date}:${slot.start}:${slot.end}:${instructorId}`
+          })),
+                  duplicateDetails: duplicateAnalysis.map(d => ({
+            key: d.key,
+            criterion: 'date + hour + endHour + instructorId',
+            reason: 'Each recurring class is separate (different dates allowed)',
+            originalSource: changes.toCreate.includes(d.original) ? 'direct_create' : 'update_create',
+            duplicateSource: changes.toCreate.includes(d.duplicate) ? 'direct_create' : 'update_create'
+          }))
       });
       
       if (deduplicatedToCreate.length === 1) {
@@ -1247,7 +1212,7 @@ export function useInstructorForm(initialData?: InstructorData) {
           type: mapClassTypeForBackend(slot.classType),
           duration: slot.duration || "4h",
           instructorId,
-          students: Array.isArray(slot.students) ? slot.students : [],
+          students: Array.isArray(slot.students) ? slot.students.filter(studentId => studentId && studentId.trim() !== '') : [],
           cupos: slot.cupos || 30,
           clientTempId: (slot as unknown as Record<string, unknown>).clientTempId,
         };
@@ -1296,19 +1261,84 @@ export function useInstructorForm(initialData?: InstructorData) {
         
         createdTicketClasses.push(createdTicketClass);
       } else if (deduplicatedToCreate.length > 1) {
-        const batchPayload = deduplicatedToCreate.map((slot: Slot) => ({
-          locationId: slot.locationId,
-          date: slot.date,
-          hour: slot.start,
-          endHour: slot.end,
-          classId: slot.classId,
-          type: mapClassTypeForBackend(slot.classType),
-          duration: slot.duration || "4h",
-          instructorId,
-          students: Array.isArray(slot.students) ? slot.students : [],
-          cupos: slot.cupos || 30,
-          clientTempId: (slot as unknown as Record<string, unknown>).clientTempId,
-        }));
+        const batchPayload = deduplicatedToCreate.map((slot: Slot, index: number) => {
+          console.log(`[BATCH PAYLOAD] 🎓 Slot ${index} students analysis:`, {
+            slotIndex: index,
+            date: slot.date,
+            start: slot.start,
+            classType: slot.classType,
+            slotStudents: slot.students,
+            studentsLength: Array.isArray(slot.students) ? slot.students.length : 'not array',
+            studentsContent: Array.isArray(slot.students) ? slot.students : 'not array',
+            isStudentsArray: Array.isArray(slot.students),
+            slotCupos: slot.cupos,
+            ticketClassId: slot.ticketClassId
+          });
+          
+          return {
+            locationId: slot.locationId,
+            date: slot.date,
+            hour: slot.start,
+            endHour: slot.end,
+            classId: slot.classId,
+            type: mapClassTypeForBackend(slot.classType),
+            duration: slot.duration || "4h",
+            instructorId,
+            students: Array.isArray(slot.students) ? slot.students.filter(studentId => studentId && studentId.trim() !== '') : [],
+            cupos: slot.cupos || 30,
+            clientTempId: (slot as unknown as Record<string, unknown>).clientTempId,
+          };
+        });
+        
+        console.log('[API CALL] 🔍 DETAILED BATCH PAYLOAD ANALYSIS:', {
+          totalPayloadItems: batchPayload.length,
+          payloadItems: batchPayload.map((item, index) => ({
+            index,
+            locationId: item.locationId,
+            date: item.date,
+            hour: item.hour,
+            endHour: item.endHour,
+            classId: item.classId,
+            type: item.type,
+            instructorId: item.instructorId,
+            students: item.students,
+            studentsStringified: JSON.stringify(item.students.sort()),
+            duplicateKeyForInstructor: `${item.date}:${item.hour}:${item.endHour}:${item.instructorId}`,
+            clientTempId: item.clientTempId
+          }))
+        });
+        
+        // ADDITIONAL CHECK: Verify no duplicates in final payload
+        const payloadDuplicateCheck = new Map<string, number>();
+        batchPayload.forEach((item, index) => {
+          const key = `${item.date}:${item.hour}:${item.endHour}:${item.instructorId}`;
+          if (payloadDuplicateCheck.has(key)) {
+            console.error(`[API CALL] 🚨 CRITICAL: Duplicate found in final payload!`, {
+              key,
+              criterion: 'date + hour + endHour + instructorId (same instructor, same time, same date)',
+              firstIndex: payloadDuplicateCheck.get(key),
+              duplicateIndex: index,
+              firstItem: batchPayload[payloadDuplicateCheck.get(key)!],
+              duplicateItem: item
+            });
+          } else {
+            payloadDuplicateCheck.set(key, index);
+          }
+        });
+        
+        console.log('[API CALL] 🚨 FINAL BATCH PAYLOAD STUDENT VERIFICATION:', {
+          totalSlots: batchPayload.length,
+          slotsWithStudents: batchPayload.filter(item => item.students.length > 0).length,
+          slotsWithoutStudents: batchPayload.filter(item => item.students.length === 0).length,
+          detailedStudentBreakdown: batchPayload.map((item, index) => ({
+            index,
+            date: item.date,
+            hour: item.hour,
+            students: item.students,
+            studentCount: item.students.length,
+            cupos: item.cupos
+          }))
+        });
         
         console.log('[API CALL] Creating BATCH ticket classes with payload:', batchPayload);
         

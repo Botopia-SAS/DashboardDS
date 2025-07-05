@@ -292,7 +292,7 @@ export function useInstructorFormHandlers({
         // CRITICAL FIX: For ticket class type changes (B.D.I → D.A.T.E), REMOVE ticketClassId
         // This forces the diff algorithm to detect it as DELETE + CREATE instead of UPDATE
         ticketClassId: (isNowTicketClass && !isTypeChange) ? originalTicketClassId : undefined,
-        students: isTicketClass ? selectedStudents : undefined,
+        students: isTicketClass ? [...selectedStudents] : undefined,
         cupos: isTicketClass ? availableSpots : undefined,
         // Add metadata to help with diff matching
         originalTicketClassId: originalTicketClassId || undefined,
@@ -554,7 +554,7 @@ export function useInstructorFormHandlers({
         paid: currentSlot.paid,
         pickupLocation: currentSlot.pickupLocation,
         dropoffLocation: currentSlot.dropoffLocation,
-        students: isTicketClass ? selectedStudents : undefined,
+        students: isTicketClass ? [...selectedStudents] : undefined,
         slotId: uuidv4(),
         booked: !isTicketClass && slotType === "booked",
         studentId: !isTicketClass && slotType === "booked" ? selectedStudent : null,
@@ -568,7 +568,7 @@ export function useInstructorFormHandlers({
       
       if (isTicketClass && tempId) {
         const tempTicketData = {
-          students: selectedStudents || [],
+          students: [...(selectedStudents || [])],
           cupos: availableSpots || 30,
           classId: currentSlot.classId,
           locationId: locationId,
@@ -620,26 +620,8 @@ export function useInstructorFormHandlers({
     
     console.log('[SAVE SLOT] ✅ All slots created successfully using batch method');
     
-    if (isTicketClass) {
-      const ticketDataUpdate = {
-        students: selectedStudents,
-        cupos: availableSpots,
-        classId: currentSlot.classId,
-        locationId: currentSlot.locationId,
-        amount: currentSlot.amount,
-        duration: currentSlot.duration ? parseInt(String(currentSlot.duration).replace('h', '')) : undefined,
-      };
-      
-      setEnrichedTicketData(prev => {
-        const updated = { ...prev };
-        allNewSlots.forEach(slot => {
-          if (slot.ticketClassId) {
-            updated[slot.ticketClassId] = ticketDataUpdate;
-          }
-        });
-        return updated;
-      });
-    }
+    // ✅ FIXED: Each recurring ticket class slot now has independent student data
+    // No need to update enrichedTicketData globally - each slot has its own copy set above
     
     setIsModalOpen(false);
     setCurrentSlot({ start: "", end: "", booked: false, recurrence: "None" });
