@@ -130,11 +130,11 @@ export function useInstructorForm(initialData?: InstructorData) {
   // CRÍTICO: Efecto separado para detectar cambios del visual feedback
   useEffect(() => {
     const pendingChangesCount = visualFeedback.getPendingChangesCount();
-    console.log('[Visual Feedback] Pending changes count changed:', pendingChangesCount);
+    //console.log('[Visual Feedback] Pending changes count changed:', pendingChangesCount);
     
     if (pendingChangesCount > 0) {
       state.setHasChanges(true);
-      console.log('[Visual Feedback] ✅ Has changes set to TRUE due to pending changes');
+      //console.log('[Visual Feedback] ✅ Has changes set to TRUE due to pending changes');
     }
   }, [visualFeedback.getPendingChangesCount()]);
 
@@ -202,7 +202,7 @@ export function useInstructorForm(initialData?: InstructorData) {
       if (hasTicketClasses && isMounted) {
         ticketCache.enrichCalendarEvents(state.schedule).catch(error => {
           if (isMounted) {
-            console.error('[EFFECT] Error enriching calendar events:', error);
+            //console.error('[EFFECT] Error enriching calendar events:', error);
           }
         });
       }
@@ -372,11 +372,11 @@ export function useInstructorForm(initialData?: InstructorData) {
         });
       });
       
-      console.log('[EARLY DETECTION] All original driving tests present:', allOriginalDrivingTestsPresent);
+      //console.log('[EARLY DETECTION] All original driving tests present:', allOriginalDrivingTestsPresent);
       
       // CRÍTICO: Si NO están todas las originales presentes, es una ELIMINACIÓN
       if (!allOriginalDrivingTestsPresent) {
-        console.log('[EARLY DETECTION] ❌ Not only adding - some original driving tests missing (DELETION detected)');
+        //console.log('[EARLY DETECTION] ❌ Not only adding - some original driving tests missing (DELETION detected)');
         return false;
       }
       
@@ -409,7 +409,7 @@ export function useInstructorForm(initialData?: InstructorData) {
       return result;
     })();
     
-    console.log('[SAVE CHANGES] 🚨 EARLY DETECTION - Is only adding driving tests:', isOnlyAddingDrivingTests);
+    //console.log('[SAVE CHANGES] 🚨 EARLY DETECTION - Is only adding driving tests:', isOnlyAddingDrivingTests);
     
     // Obtener los cambios pendientes del sistema de visual feedback
     const pendingChanges = visualFeedback.getAllPendingChanges();
@@ -575,8 +575,8 @@ export function useInstructorForm(initialData?: InstructorData) {
           
           // ESPECIAL PARA DRIVING TESTS: Funciona en escenarios mixtos
           if (drivingTestDeletions.length > 0) {
-            console.log(`[SPECIFIC DELETIONS] 🚗 ${drivingTestDeletions.length} DRIVING TEST deletions detected in ${newSlots.length > 0 ? 'MIXED' : 'PURE'} scenario`);
-            console.log('[SPECIFIC DELETIONS] ✅ CONFIRMED: Processing specific original slot deletions');
+            //console.log(`[SPECIFIC DELETIONS] 🚗 ${drivingTestDeletions.length} DRIVING TEST deletions detected in ${newSlots.length > 0 ? 'MIXED' : 'PURE'} scenario`);
+            //console.log('[SPECIFIC DELETIONS] ✅ CONFIRMED: Processing specific original slot deletions');
             
             return {
               toCreate: newSlots, // Incluir nuevos slots para crear
@@ -609,10 +609,10 @@ export function useInstructorForm(initialData?: InstructorData) {
       // PRIORITARIO: Detectar eliminaciones específicas antes que cualquier otra lógica
       const specificDeletionChanges = detectSpecificSlotDeletions();
       if (specificDeletionChanges) {
-        console.log('[SAVE CHANGES] 🎯 SPECIFIC SLOT DELETIONS DETECTED - Using direct approach');
+        //console.log('[SAVE CHANGES] 🎯 SPECIFIC SLOT DELETIONS DETECTED - Using direct approach');
         changes = specificDeletionChanges;
       } else if (isOnlyAddingDrivingTests) {
-        console.log('[SAVE CHANGES] 🎯 OVERRIDE: Using additive approach for driving test additions');
+        //console.log('[SAVE CHANGES] 🎯 OVERRIDE: Using additive approach for driving test additions');
         
         const newDrivingTests = state.schedule.filter(currentSlot => {
           // Solo incluir slots que NO existen en el schedule original

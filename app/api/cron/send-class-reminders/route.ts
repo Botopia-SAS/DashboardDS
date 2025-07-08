@@ -49,7 +49,7 @@ export async function POST(req: NextRequest) {
   if (settings && settings.sendClassReminders === false) {
     return NextResponse.json({ sent: 0, disabled: true });
   }
-  const now = new Date();
+  
   let sentCount = 0;
   const reminders: string[] = [];
 
@@ -78,7 +78,7 @@ export async function POST(req: NextRequest) {
         if (diffMinutes > 0 && diffMinutes <= 30) {
           // Buscar estudiante
           const student = await User.findById(slot.studentId);
-          if (student) {
+          if (student && (student as any).drivingTestReminder === true) {
             reminders.push(`- ${student.firstName} ${student.lastName} | ${student.email} | ${slot.date} ${slot.start} | Instructor: ${instructor.name} | In ${Math.round(diffMinutes)} min`);
             const html = getReminderTemplate(
               `${student.firstName} ${student.lastName}`.trim(),
@@ -93,6 +93,8 @@ export async function POST(req: NextRequest) {
               html
             );
             sentCount++;
+          } else if (student && (student as any).drivingTestReminder === false) {
+            logWithColor(`[CLASS REMINDER] Skipped ${student.firstName} ${student.lastName} - drivingTestReminder is false`, "\x1b[31m");
           }
         }
       }
