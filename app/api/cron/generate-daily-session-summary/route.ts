@@ -45,21 +45,36 @@ export async function GET(req: NextRequest) {
   }
   await dbConnect();
 
+  // Obtener la fecha actual en Miami
+  const now = new Date();
+  const todayMiami = formatTz(toZonedTime(now, MIAMI_TZ), 'yyyy-MM-dd', { timeZone: MIAMI_TZ });
+
   // Traer todas las sesiones pendientes (puedes filtrar por un rango si lo deseas)
   const sessions = await Session.find({}).lean();
   if (!sessions.length) {
     return NextResponse.json({ message: 'No sessions found.' });
   }
 
-  // Agrupar sesiones por día local de Miami
+  // Agrupar sesiones por día local de Miami, excluyendo el día de hoy
   const sessionsByMiamiDate: Record<string, typeof sessions> = {};
   sessions.forEach((session: any) => {
     const miamiDate = formatTz(toZonedTime(new Date(session.startTimestamp), MIAMI_TZ), 'yyyy-MM-dd', { timeZone: MIAMI_TZ });
-    if (!sessionsByMiamiDate[miamiDate]) sessionsByMiamiDate[miamiDate] = [];
-    sessionsByMiamiDate[miamiDate].push(session);
+    // Solo procesar sesiones de días anteriores al día de hoy
+    if (miamiDate < todayMiami) {
+      if (!sessionsByMiamiDate[miamiDate]) sessionsByMiamiDate[miamiDate] = [];
+      sessionsByMiamiDate[miamiDate].push(session);
+    }
   });
 
   const resumenesCreados: string[] = [];
+  
+  // Verificar si hay sesiones para procesar (días anteriores)
+  if (Object.keys(sessionsByMiamiDate).length === 0) {
+    return NextResponse.json({ 
+      message: `No sessions found for previous days. Today is ${todayMiami}, only processing sessions from previous days.` 
+    });
+  }
+
   for (const [miamiDate, daySessions] of Object.entries(sessionsByMiamiDate)) {
     // Acumuladores globales SOLO para contadores
     const uniqueIPs = new Set();
@@ -170,5 +185,7 @@ export async function GET(req: NextRequest) {
     await Session.deleteMany({ _id: { $in: idsToDelete } });
   }
 
-  return NextResponse.json({ message: `Resúmenes diarios generados para días: ${resumenesCreados.join(', ')}` });
+  return NextResponse.json({ 
+    message: `Daily summaries generated for previous days: ${resumenesCreados.join(', ')}. Today (${todayMiami}) was excluded from processing.` 
+  });
 } 

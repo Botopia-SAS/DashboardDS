@@ -235,11 +235,11 @@ const ScheduleModal = ({
 
   useEffect(() => {
     if (isOpen && currentSlot.classType && currentSlot.classType !== 'driving test') {
-      console.log("Loading driving classes for class type:", currentSlot.classType);
+      //console.log("Loading driving classes for class type:", currentSlot.classType);
       fetch('/api/classes')
         .then(res => res.json())
         .then(data => {
-          console.log("Loaded driving classes:", data);
+          //console.log("Loaded driving classes:", data);
           setDrivingClasses(data);
         })
         .catch(error => console.error("Error loading driving classes:", error));
@@ -249,10 +249,10 @@ const ScheduleModal = ({
   // Log para debuggear qué datos tiene currentSlot cuando se abre para editar
   useEffect(() => {
     if (isOpen && currentSlot.isEditing) {
-      console.log("Modal opened for editing with currentSlot:", currentSlot);
-      console.log("Selected students:", selectedStudents);
-      console.log("Available spots:", availableSpots);
-      console.log("Slot type:", slotType);
+      //console.log("Modal opened for editing with currentSlot:", currentSlot);
+      //console.log("Selected students:", selectedStudents);
+      //console.log("Available spots:", availableSpots);
+      //console.log("Slot type:", slotType);
     }
   }, [isOpen, currentSlot.isEditing]);
 
