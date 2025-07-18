@@ -353,10 +353,17 @@ const ScheduleModal = ({
     <Dialog open={isOpen} onClose={onClose} className="fixed inset-0 flex items-center justify-center z-50">
       <div className="bg-white p-6 rounded-lg shadow-lg max-w-2xl w-full mt-8">
         <h2 className="text-lg font-bold mb-4">
-          Configure Schedule
+          {currentSlot?.classType && ["D.A.T.E", "B.D.I", "A.D.I"].includes(currentSlot.classType) 
+            ? "Configure TicketClass" 
+            : "Configure Schedule"}
           {currentSlot?.start && (
             <span className="block text-sm font-normal mt-1">
               {`Date: ${currentSlot.start.split("T")[0]}`}
+              {currentSlot.start.includes("T") && (
+                <span className="ml-2 text-blue-600">
+                  {`Start: ${currentSlot.start.split("T")[1].slice(0, 5)}`}
+                </span>
+              )}
             </span>
           )}
         </h2>

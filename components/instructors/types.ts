@@ -48,6 +48,12 @@ export interface Slot {
     createdAsRecurrence?: boolean;
     originalRecurrenceGroup?: string;
   };
+  // Campos para edición
+  isEditing?: boolean;
+  originalSlotId?: string;
+  originalStart?: string;
+  originalEnd?: string;
+  originalTicketClassId?: string;
 }
 
 export interface User {

@@ -11,9 +11,15 @@ const ticketClassSchema = Joi.object({
   hour: Joi.string().pattern(/^([01]\d|2[0-3]):([0-5]\d)$/).optional(),
   endHour: Joi.string().pattern(/^([01]\d|2[0-3]):([0-5]\d)$/).optional(),
   classId: Joi.string().optional(),
+  type: Joi.string().optional(),
+  duration: Joi.string().optional(),
   instructorId: Joi.string().optional(),
-  cupos: Joi.number().integer().min(1).optional(),
+  spots: Joi.number().integer().min(1).optional(),
   students: Joi.array().items(Joi.string()).optional(),
+  status: Joi.string().optional(),
+  studentRequests: Joi.array().items(Joi.string()).optional(),
+  recurrence: Joi.string().optional(),
+  recurrenceEndDate: Joi.string().optional(),
 }).unknown(false);
 
 interface Student {
@@ -41,7 +47,7 @@ export async function PATCH(req: NextRequest, { params }: { params: Promise<{ cl
     }
 
     const body = await req.json();
-    console.log(`[API] PATCH ticket class ${classId}:`, body);
+    //console.log(`[API] PATCH ticket class ${classId}:`, body);
 
     const { error, value } = ticketClassSchema.validate(body);
 
@@ -62,7 +68,7 @@ export async function PATCH(req: NextRequest, { params }: { params: Promise<{ cl
 
     const originalData = {
       students: ticketClass.students ? [...ticketClass.students] : [],
-      cupos: ticketClass.cupos
+      cupos: ticketClass.spots
     };
 
     // Update only the provided fields
@@ -75,20 +81,20 @@ export async function PATCH(req: NextRequest, { params }: { params: Promise<{ cl
     // Explicitly handle students and cupos updates
     if (body.students !== undefined) {
       ticketClass.students = body.students;
-      console.log(`[API] Updated students for ${classId}: ${body.students.length} students`);
+      //console.log(`[API] Updated students for ${classId}: ${body.students.length} students`);
     }
 
     if (body.cupos !== undefined) {
-      ticketClass.cupos = body.cupos;
-      console.log(`[API] Updated cupos for ${classId}: ${body.cupos}`);
+      ticketClass.spots = body.cupos;
+      //console.log(`[API] Updated cupos for ${classId}: ${body.cupos}`);
     }
 
     await ticketClass.save();
-    console.log(`[API] Successfully updated ticket class ${classId}`);
+    //console.log(`[API] Successfully updated ticket class ${classId}`);
 
     // If we updated students or cupos, we might need to update the instructor's schedule cache
     if (ticketClass.instructorId && (body.students !== undefined || body.cupos !== undefined)) {
-      console.log(`[API] Checking if instructor schedule needs cache update for ${ticketClass.instructorId}`);
+      //console.log(`[API] Checking if instructor schedule needs cache update for ${ticketClass.instructorId}`);
       
       try {
         const instructor = await Instructor.findById(ticketClass.instructorId);
@@ -101,7 +107,7 @@ export async function PATCH(req: NextRequest, { params }: { params: Promise<{ cl
           if (slotIndex >= 0) {
             // The slot exists in the schedule, but the schedule doesn't store students/cupos
             // This data is fetched from the ticket class directly
-            console.log(`[API] Found corresponding slot in instructor schedule, updated data will be fetched from ticket class`);
+            //console.log(`[API] Found corresponding slot in instructor schedule, updated data will be fetched from ticket class`);
           }
         }
       } catch (scheduleError) {
@@ -115,7 +121,7 @@ export async function PATCH(req: NextRequest, { params }: { params: Promise<{ cl
       data: ticketClass,
       changes: {
         students: originalData.students !== ticketClass.students,
-        cupos: originalData.cupos !== ticketClass.cupos
+        cupos: originalData.cupos !== ticketClass.spots
       }
     });
   } catch (err) {
@@ -125,6 +131,11 @@ export async function PATCH(req: NextRequest, { params }: { params: Promise<{ cl
       { status: 500 }
     );
   }
+}
+
+export async function PUT(req: NextRequest, { params }: { params: Promise<{ classId: string }> }) {
+  // PUT es idéntico a PATCH para actualizar TicketClasses
+  return PATCH(req, { params });
 }
 
 export async function GET(req: NextRequest, { params }: { params: Promise<{ classId: string }> }) {
@@ -149,7 +160,7 @@ export async function GET(req: NextRequest, { params }: { params: Promise<{ clas
 
     // Validate that classId is a valid ObjectId format (24 character hex string)
     if (!/^[0-9a-fA-F]{24}$/.test(classId)) {
-      console.log(`[API] Invalid ObjectId format: ${classId}`);
+      //console.log(`[API] Invalid ObjectId format: ${classId}`);
       return NextResponse.json({ 
         error: "Invalid class ID format" 
       }, { status: 400 });
@@ -175,7 +186,7 @@ export async function DELETE(req: NextRequest, { params }: { params: Promise<{ c
   await connectToDB();
   const resolvedParams = await params;
   const classId = resolvedParams.classId || req.url.split("/").pop();
-  console.log("[DELETE ticketclass] classId:", classId);
+  //console.log("[DELETE ticketclass] classId:", classId);
 
   if (!classId) {
     console.error("[DELETE ticketclass] No classId provided");
@@ -188,7 +199,7 @@ export async function DELETE(req: NextRequest, { params }: { params: Promise<{ c
   }
 
   try {
-    console.log("[DELETE ticketclass] Starting deletion process for classId:", classId);
+   // console.log("[DELETE ticketclass] Starting deletion process for classId:", classId);
     
     // Buscar el ticketclass para obtener el instructorId
     const ticketClass = await TicketClass.findById(classId);
@@ -198,11 +209,11 @@ export async function DELETE(req: NextRequest, { params }: { params: Promise<{ c
     }
     
     const instructorId = ticketClass.instructorId;
-    console.log("[DELETE ticketclass] Found ticketclass with instructorId:", instructorId);
+    //console.log("[DELETE ticketclass] Found ticketclass with instructorId:", instructorId);
     
     // Borrar el ticketclass de la colección
     const deleted = await TicketClass.findOneAndDelete({ _id: new mongoose.Types.ObjectId(classId) });
-    console.log("[DELETE ticketclass] Deleted from ticketclasses collection:", deleted ? "SUCCESS" : "FAILED");
+    //console.log("[DELETE ticketclass] Deleted from ticketclasses collection:", deleted ? "SUCCESS" : "FAILED");
     
     if (!deleted) {
       console.error("[DELETE ticketclass] Failed to delete from collection");
@@ -211,7 +222,7 @@ export async function DELETE(req: NextRequest, { params }: { params: Promise<{ c
     
     // Si hay instructorId, remove the entire slot from the schedule
     if (instructorId && mongoose.Types.ObjectId.isValid(instructorId)) {
-      console.log("[DELETE ticketclass] Attempting to remove slot completely from instructor schedule...");
+      //console.log("[DELETE ticketclass] Attempting to remove slot completely from instructor schedule...");
       const updateResult = await Instructor.updateOne(
         { _id: instructorId },
         { 
@@ -220,24 +231,24 @@ export async function DELETE(req: NextRequest, { params }: { params: Promise<{ c
           }
         }
       );
-      console.log("[DELETE ticketclass] Instructor schedule update result:", {
-        matchedCount: updateResult.matchedCount,
-        modifiedCount: updateResult.modifiedCount,
-        acknowledged: updateResult.acknowledged
-      });
+      //console.log("[DELETE ticketclass] Instructor schedule update result:", {
+      //  matchedCount: updateResult.matchedCount,
+      //  modifiedCount: updateResult.modifiedCount,
+      //  acknowledged: updateResult.acknowledged
+      //});
       
       if (updateResult.matchedCount === 0) {
         console.warn("[DELETE ticketclass] No instructor found for instructorId:", instructorId);
       } else if (updateResult.modifiedCount === 0) {
         console.warn("[DELETE ticketclass] No slots removed from instructor schedule (no matching ticketClassId)");
       } else {
-        console.log("[DELETE ticketclass] Successfully removed slot from instructor schedule");
+        //console.log("[DELETE ticketclass] Successfully removed slot from instructor schedule");
       }
     } else {
-      console.log("[DELETE ticketclass] No valid instructorId, skipping schedule cleanup");
+      //console.log("[DELETE ticketclass] No valid instructorId, skipping schedule cleanup");
     }
     
-    console.log("[DELETE ticketclass] Deletion process completed successfully for classId:", classId);
+    //console.log("[DELETE ticketclass] Deletion process completed successfully for classId:", classId);
     return NextResponse.json({ 
       message: "Class deleted successfully", 
       deleted: {

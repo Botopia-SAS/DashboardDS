@@ -4,9 +4,18 @@ import Navigation from "@/components/ticket/navigation-card";
 import { Card, CardContent } from "@/components/ui/card";
 import { Separator } from "@/components/ui/separator";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
+import TicketCalendar from "@/components/ticket/TicketCalendar";
+import { useState } from "react";
 
 export default function Pages() {
   const { setClassType } = useClassTypeStore();
+  const [modalOpen, setModalOpen] = useState(false);
+  const [modalData, setModalData] = useState<any>(null);
+  const [instructors, setInstructors] = useState<any[]>([]);
+  const [locations, setLocations] = useState<any[]>([]);
+  const [classes, setClasses] = useState<any[]>([]);
+  const [students, setStudents] = useState<any[]>([]);
+
   return (
     <>
       <div className="p-6">
@@ -55,6 +64,9 @@ export default function Pages() {
                     description="Access common utilities and records"
                   />
                 </div>
+                <div className="mt-8">
+                  <TicketCalendar />
+                </div>
               </CardContent>
             </Card>
           </TabsContent>
@@ -74,6 +86,9 @@ export default function Pages() {
                     description="Access common utilities and records"
                   />
                 </div>
+                <div className="mt-8">
+                  <TicketCalendar />
+                </div>
               </CardContent>
             </Card>
           </TabsContent>
@@ -92,6 +107,9 @@ export default function Pages() {
                     title="Utilities / Records"
                     description="Access common utilities and records"
                   />
+                </div>
+                <div className="mt-8">
+                  <TicketCalendar />
                 </div>
               </CardContent>
             </Card>

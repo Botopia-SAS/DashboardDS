@@ -23,7 +23,8 @@ const ticketClassSchema = Joi.object({
   duration: Joi.string().valid("2h", "4h", "8h", "12h").required(),
   instructorId: Joi.string().required(),
   students: Joi.array().items(Joi.string()).default([]),
-  cupos: Joi.number().integer().min(1).default(30),
+  spots: Joi.number().integer().min(1).default(30),
+  studentRequests: Joi.array().items(Joi.string()).default([]),
   clientTempId: Joi.string().optional(), // Allow clientTempId for tracking purposes
 }).unknown(false);
 
@@ -79,7 +80,8 @@ export async function POST(req: NextRequest) {
       classId,
       duration,
       type,
-      cupos,
+      spots,
+      studentRequests,
     } = value;
 
     // Normalize date to ensure it's in YYYY-MM-DD format (remove timezone info)
@@ -124,16 +126,6 @@ export async function POST(req: NextRequest) {
         expectedDuration = "8h";
       } else {
         expectedDuration = "12h";
-      }
-
-      // Verify that the duration matches what we expect based on class length
-      if (expectedDuration !== duration) {
-        return NextResponse.json(
-          {
-            error: `The duration does not match the expected value (${expectedDuration}) based on class length.`,
-          },
-          { status: 400 }
-        );
       }
     }
 
@@ -276,13 +268,14 @@ export async function POST(req: NextRequest) {
       }
     }
 
-    // Create the new class with cupos
+    // Create the new class with spots
     const classData = {
       ...value,
       date: normalizedDate, // Use normalized date
       endHour: calculatedEndHour,
-      cupos: cupos || 30,
-      students: students || []
+      spots: spots || 30,
+      students: students || [],
+      studentRequests: studentRequests || [],
     };
     
     // console.log('[API] Creating TicketClass with data:', JSON.stringify(classData, null, 2));
