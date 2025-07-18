@@ -2,9 +2,19 @@ import { NextRequest, NextResponse } from "next/server";
 import TicketClass from "@/lib/models/TicketClass";
 import Location from "@/lib/models/Locations";
 import Class from "@/lib/models/Class";
-
 import Instructor from "@/lib/models/Instructor";
 import { connectToDB } from "@/lib/mongoDB";
+
+// --- Fix para Next.js/Mongoose: asegura que los modelos estén registrados ---
+if (!Location) {
+  require("@/lib/models/Locations");
+}
+if (!Class) {
+  require("@/lib/models/Class");
+}
+if (!Instructor) {
+  require("@/lib/models/Instructor");
+}
 
 export async function GET() {
   try {
