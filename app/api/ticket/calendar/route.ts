@@ -5,37 +5,20 @@ import Class from "@/lib/models/Class";
 import Instructor from "@/lib/models/Instructor";
 import { connectToDB } from "@/lib/mongoDB";
 
-// --- Fix para Next.js/Mongoose: asegura que los modelos estén registrados ---
-if (!Location) {
-  require("@/lib/models/Locations");
-}
-if (!Class) {
-  require("@/lib/models/Class");
-}
-if (!Instructor) {
-  require("@/lib/models/Instructor");
-}
-
 export async function GET() {
   try {
     await connectToDB();
-    
     console.log('🔄 Fetching ticket classes for calendar...');
-    
     // Obtener todas las ticket classes con datos populados
     const ticketClasses = await TicketClass.find({})
       .populate('locationId', 'title')
       .populate('classId', 'title')
       .populate('instructorId', 'name')
       .lean();
-    
     console.log('📊 Found ticket classes:', ticketClasses.length);
-    
-    // Agregar logs para debugging
     if (ticketClasses.length > 0) {
       console.log('📋 First ticket class sample:', ticketClasses[0]);
     }
-    
     return NextResponse.json(ticketClasses);
   } catch (error) {
     console.error('❌ Error fetching ticket classes:', error);
@@ -46,7 +29,6 @@ export async function GET() {
 export async function POST(req: NextRequest) {
   await connectToDB();
   const data = await req.json();
-  // Solo permitimos los campos válidos
   const {
     locationId,
     date,
