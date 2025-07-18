@@ -1,16 +1,49 @@
-import { Slot, SlotType, InstructorData, User } from "../types";
+import { Slot, SlotType, InstructorData } from "../types";
 import toast from "react-hot-toast";
 import { v4 as uuidv4 } from "uuid";
 import { getSlotStatus, generateRecurringDates } from "./useInstructorFormHelpers";
 import { convertTo24HourFormat } from "../utils";
 import { toValidClassType, mapClassTypeForBackend } from "../instructorFormUtils";
 import { EventClickArg } from "@fullcalendar/core";
+import { useVisualFeedback } from "./useVisualFeedback";
+
+// types.ts
+// Tipos TypeScript centralizados para los componentes de instructores.
+
+interface EnrichedTicketData {
+  students: string[];
+  cupos: number;
+  classId?: string;
+  locationId?: string;
+  amount?: number;
+  duration?: number | string;
+  type?: string;
+  date?: string;
+  hour?: string;
+  endHour?: string;
+  isTemporary?: boolean;
+  createdAsRecurrence?: boolean;
+}
+
+interface InstructorTicketClass {
+  _id: string;
+  type: string;
+  classId: string;
+  locationId: string;
+  students: string[];
+  cupos: number;
+  price: number;
+  duration: number;
+  date: string;
+  hour: string;
+  endHour: string;
+}
 
 type UseInstructorFormHandlersParams = {
   schedule: Slot[];
   setSchedule: React.Dispatch<React.SetStateAction<Slot[]>>;
   setIsModalOpen: React.Dispatch<React.SetStateAction<boolean>>;
-  setCurrentSlot: React.Dispatch<React.SetStateAction<any>>;
+  setCurrentSlot: React.Dispatch<React.SetStateAction<Slot | null>>;
   setSelectedStudent: React.Dispatch<React.SetStateAction<string | string[]>>;
   setSelectedStudents: React.Dispatch<React.SetStateAction<string[]>>;
   setAvailableSpots: React.Dispatch<React.SetStateAction<number>>;
@@ -21,18 +54,18 @@ type UseInstructorFormHandlersParams = {
   selectedStudents: string[];
   availableSpots: number;
   slotType: SlotType;
-  currentSlot: any;
+  currentSlot: Slot | null;
   recurrenceEnd: string | null;
   initialData: InstructorData | undefined;
-  enrichedTicketData: Record<string, any>;
-  setEnrichedTicketData: React.Dispatch<React.SetStateAction<Record<string, any>>>;
+  enrichedTicketData: Record<string, EnrichedTicketData>;
+  setEnrichedTicketData: React.Dispatch<React.SetStateAction<Record<string, EnrichedTicketData>>>;
   loadedTicketClassIds: Set<string>;
   setLoadedTicketClassIds: React.Dispatch<React.SetStateAction<Set<string>>>;
-  allInstructorTicketClasses: any[];
-  setAllInstructorTicketClasses: React.Dispatch<React.SetStateAction<any[]>>;
+  allInstructorTicketClasses: InstructorTicketClass[];
+  setAllInstructorTicketClasses: React.Dispatch<React.SetStateAction<InstructorTicketClass[]>>;
   instructorTicketClassesLoaded: boolean;
   checkTimeOverlap: (slot: Slot, existingSlots: Slot[]) => { overlaps: boolean, overlappingSlot?: Slot };
-  visualFeedback: any; // CRÍTICO: Recibir el visualFeedback del hook principal
+  visualFeedback: ReturnType<typeof useVisualFeedback>; // CRÍTICO: Recibir el visualFeedback del hook principal
 };
 
 export function useInstructorFormHandlers({
@@ -52,14 +85,10 @@ export function useInstructorFormHandlers({
   slotType,
   currentSlot,
   recurrenceEnd,
-  initialData,
   enrichedTicketData,
   setEnrichedTicketData,
   loadedTicketClassIds,
   setLoadedTicketClassIds,
-  allInstructorTicketClasses,
-  setAllInstructorTicketClasses,
-  instructorTicketClassesLoaded,
   checkTimeOverlap,
   visualFeedback, // CRÍTICO: Usar el visualFeedback del hook principal
 }: UseInstructorFormHandlersParams) {
@@ -73,12 +102,28 @@ export function useInstructorFormHandlers({
     const endDate = new Date(end);
     const durationMinutes = (endDate.getTime() - startDate.getTime()) / (1000 * 60);
     
+    // If user selects a small time range (like clicking on a 30-minute slot),
+    // automatically extend to 2 hours for ticket classes
     if (durationMinutes < 30) {
       const defaultEndDate = new Date(startDate.getTime() + 2 * 60 * 60 * 1000);
       end = defaultEndDate.toISOString();
     }
     
-    setCurrentSlot({ start, end, booked: false, recurrence: "None" });
+    console.log('[DATE SELECT] Selected time range:', {
+      start: start,
+      end: end,
+      startTime: startDate.toTimeString().slice(0, 5),
+      endTime: new Date(end).toTimeString().slice(0, 5),
+      duration: durationMinutes + ' minutes'
+    });
+    
+    setCurrentSlot({ 
+      start, 
+      end, 
+      date: start.split("T")[0], 
+      booked: false, 
+      recurrence: "None" 
+    });
     setSelectedStudents([]);
     setSelectedStudent("");
     setAvailableSpots(30);
@@ -172,7 +217,13 @@ export function useInstructorFormHandlers({
       
       // Limpiar el modal
       setIsModalOpen(false);
-      setCurrentSlot({ start: "", end: "", booked: false, recurrence: "None" });
+      setCurrentSlot({ 
+        start: "", 
+        end: "", 
+        date: new Date().toISOString().split("T")[0],
+        booked: false, 
+        recurrence: "None" 
+      });
       setSelectedStudent("");
       setSelectedStudents([]);
       setAvailableSpots(30);
@@ -182,7 +233,13 @@ export function useInstructorFormHandlers({
       toast.error("Error deleting slot. Please try again.");
       
       setIsModalOpen(false);
-      setCurrentSlot({ start: "", end: "", booked: false, recurrence: "None" });
+      setCurrentSlot({ 
+        start: "", 
+        end: "", 
+        date: new Date().toISOString().split("T")[0],
+        booked: false, 
+        recurrence: "None" 
+      });
       setSelectedStudent("");
       setSelectedStudents([]);
       setAvailableSpots(30);
@@ -199,7 +256,7 @@ export function useInstructorFormHandlers({
     const startTime = currentSlot.start.split("T")[1];
     const endTime = currentSlot.end.split("T")[1];
     
-    const isTicketClass = ["D.A.T.E", "B.D.I", "A.D.I"].includes(currentSlot.classType);
+    const isTicketClass = ["D.A.T.E", "B.D.I", "A.D.I"].includes(currentSlot.classType || "");
     
     const tempSlot: Slot = {
       date,
@@ -332,7 +389,13 @@ export function useInstructorFormHandlers({
     });
     
     setIsModalOpen(false);
-    setCurrentSlot({ start: "", end: "", booked: false, recurrence: "None" });
+    setCurrentSlot({ 
+      start: "", 
+      end: "", 
+      date: new Date().toISOString().split("T")[0],
+      booked: false, 
+      recurrence: "None" 
+    });
     setSelectedStudent("");
     toast.success(
       "Slot updated! Remember to press 'Save Changes' to save to the database."
@@ -359,7 +422,7 @@ export function useInstructorFormHandlers({
       return;
     }
     
-    const isTicketClass = ["D.A.T.E", "B.D.I", "A.D.I"].includes(currentSlot.classType);
+    const isTicketClass = ["D.A.T.E", "B.D.I", "A.D.I"].includes(currentSlot.classType || "");
     
     if (isTicketClass) {
       if (!currentSlot.classId) {
@@ -409,14 +472,14 @@ export function useInstructorFormHandlers({
     
     let locationId = currentSlot.locationId;
     if (locationId && typeof locationId === 'object' && '_id' in locationId) {
-      locationId = (locationId as any)._id;
+      locationId = (locationId as { _id: string })._id;
     }
     if (locationId && typeof locationId !== 'string') {
       locationId = String(locationId);
     }
     
     const startDate = currentSlot.start.split("T")[0];
-    const recurringDates = generateRecurringDates(startDate, currentSlot.recurrence, recurrenceEnd);
+    const recurringDates = generateRecurringDates(startDate, currentSlot.recurrence || "None", recurrenceEnd);
     
     console.log("Generating recurring slots:", { 
       startDate, 
@@ -480,7 +543,7 @@ export function useInstructorFormHandlers({
       console.log('💥 [SAVE SLOT - DRIVING TESTS] Using VISUAL FEEDBACK system');
       
       // CRÍTICO: Usar createMultipleVisualSlots para evitar race conditions
-      const createdDrivingSlots = visualFeedback.createMultipleVisualSlots(allNewSlots);
+      visualFeedback.createMultipleVisualSlots(allNewSlots);
       
       // CRÍTICO: Verificar que se registraron los pending changes para driving tests
       const pendingCountAfterDriving = visualFeedback.getPendingChangesCount();
@@ -493,7 +556,13 @@ export function useInstructorFormHandlers({
       // NOTA: Ya NO necesitamos setSchedule manual porque createMultipleVisualSlots lo hace automáticamente
       console.log('[SAVE SLOT - DRIVING] ✅ Slots added via visual feedback system');
       setIsModalOpen(false);
-      setCurrentSlot({ start: "", end: "", booked: false, recurrence: "None" });
+      setCurrentSlot({ 
+        start: "", 
+        end: "", 
+        date: new Date().toISOString().split("T")[0],
+        booked: false, 
+        recurrence: "None" 
+      });
       setSelectedStudent("");
       setSlotType("");
       setRecurrenceEnd(null);
@@ -608,7 +677,7 @@ export function useInstructorFormHandlers({
     console.log('💥 [SAVE SLOT] Using VISUAL FEEDBACK system to register creations');
     
     // CRÍTICO: Usar createMultipleVisualSlots para evitar race conditions
-    const createdSlots = visualFeedback.createMultipleVisualSlots(allNewSlots);
+    visualFeedback.createMultipleVisualSlots(allNewSlots);
     
     // CRÍTICO: Verificar que se registraron los pending changes
     const pendingCountAfterCreation = visualFeedback.getPendingChangesCount();
@@ -624,7 +693,13 @@ export function useInstructorFormHandlers({
     // No need to update enrichedTicketData globally - each slot has its own copy set above
     
     setIsModalOpen(false);
-    setCurrentSlot({ start: "", end: "", booked: false, recurrence: "None" });
+    setCurrentSlot({ 
+      start: "", 
+      end: "", 
+      date: new Date().toISOString().split("T")[0],
+      booked: false, 
+      recurrence: "None" 
+    });
     setSelectedStudent("");
     setSelectedStudents([]);
     setAvailableSpots(30);
@@ -667,35 +742,36 @@ export function useInstructorFormHandlers({
         
         const classType = realSlot.classType || 'D.A.T.E';
 
-                  setCurrentSlot({
-            start: realSlot.start ? `${realSlot.date}T${realSlot.start}` : "",
-            end: realSlot.end ? `${realSlot.date}T${realSlot.end}` : "",
-            booked: realSlot.booked || false,
-            recurrence: realSlot.recurrence || "None",
-            isEditing: true,
-            originalStart: realSlot.start ? `${realSlot.date}T${realSlot.start}` : "",
-            originalEnd: realSlot.end ? `${realSlot.date}T${realSlot.end}` : "",
-            slotId: realSlot.slotId || realSlot.ticketClassId || uuidv4(),
-            originalSlotId: realSlot.slotId || realSlot.ticketClassId || uuidv4(),
-            studentId: Array.isArray(realSlot.studentId)
-              ? (realSlot.studentId[0] || "")
-              : (realSlot.studentId || ""),
-            status: realSlot.status,
-            classType: classType,
-            classId: cachedData.classId || realSlot.classId,
-            amount: cachedData.amount || realSlot.amount,
-            duration: cachedData.duration ? `${cachedData.duration}h` : (realSlot.duration || ''),
-            paid: realSlot.paid,
-            pickupLocation: realSlot.pickupLocation,
-            dropoffLocation: realSlot.dropoffLocation,
-            locationId: cachedData.locationId || realSlot.locationId,
-            cupos: cachedData.cupos || 30,
-            students: cachedData.students || [],
-            ticketClassId: realSlot.ticketClassId,
-            // Preserve recurrence metadata for proper diff matching
-            createdAsRecurrence: realSlot.createdAsRecurrence,
-            originalRecurrenceGroup: realSlot.originalRecurrenceGroup,
-          });
+        setCurrentSlot({
+          start: realSlot.start ? `${realSlot.date}T${realSlot.start}` : "",
+          end: realSlot.end ? `${realSlot.date}T${realSlot.end}` : "",
+          date: realSlot.date || new Date().toISOString().split("T")[0],
+          booked: realSlot.booked || false,
+          recurrence: realSlot.recurrence || "None",
+          isEditing: true,
+          originalStart: realSlot.start ? `${realSlot.date}T${realSlot.start}` : "",
+          originalEnd: realSlot.end ? `${realSlot.date}T${realSlot.end}` : "",
+          slotId: realSlot.slotId || realSlot.ticketClassId || uuidv4(),
+          originalSlotId: realSlot.slotId || realSlot.ticketClassId || uuidv4(),
+          studentId: Array.isArray(realSlot.studentId)
+            ? (realSlot.studentId[0] || "")
+            : (realSlot.studentId || ""),
+          status: realSlot.status,
+          classType: classType,
+          classId: cachedData.classId || realSlot.classId,
+          amount: cachedData.amount || realSlot.amount,
+          duration: cachedData.duration ? `${cachedData.duration}h` : (realSlot.duration || ''),
+          paid: realSlot.paid,
+          pickupLocation: realSlot.pickupLocation,
+          dropoffLocation: realSlot.dropoffLocation,
+          locationId: cachedData.locationId || realSlot.locationId,
+          cupos: cachedData.cupos || 30,
+          students: cachedData.students || [],
+          ticketClassId: realSlot.ticketClassId,
+          // Preserve recurrence metadata for proper diff matching
+          createdAsRecurrence: realSlot.createdAsRecurrence,
+          originalRecurrenceGroup: realSlot.originalRecurrenceGroup,
+        });
         
         const isTicketClass = ["D.A.T.E", "B.D.I", "A.D.I"].includes(classType);
         if (isTicketClass) {
@@ -731,6 +807,7 @@ export function useInstructorFormHandlers({
           setCurrentSlot({
             start: realSlot.start ? `${realSlot.date}T${realSlot.start}` : "",
             end: realSlot.end ? `${realSlot.date}T${realSlot.end}` : "",
+            date: realSlot.date || new Date().toISOString().split("T")[0],
             booked: realSlot.booked || false,
             recurrence: realSlot.recurrence || "None",
             isEditing: true,
@@ -786,6 +863,7 @@ export function useInstructorFormHandlers({
           setCurrentSlot({
             start: realSlot.start ? `${realSlot.date}T${realSlot.start}` : "",
             end: realSlot.end ? `${realSlot.date}T${realSlot.end}` : "",
+            date: realSlot.date || new Date().toISOString().split("T")[0],
             booked: realSlot.booked || false,
             recurrence: realSlot.recurrence || "None",
             isEditing: true,
@@ -864,6 +942,7 @@ export function useInstructorFormHandlers({
           setCurrentSlot({
             start: realSlot.start ? `${realSlot.date}T${realSlot.start}` : "",
             end: realSlot.end ? `${realSlot.date}T${realSlot.end}` : "",
+            date: realSlot.date || new Date().toISOString().split("T")[0],
             booked: realSlot.booked || false,
             recurrence: realSlot.recurrence || "None",
             isEditing: true,
@@ -941,6 +1020,7 @@ export function useInstructorFormHandlers({
     setCurrentSlot({
       start: realSlot?.start ? `${realSlot.date}T${realSlot.start}` : "",
       end: realSlot?.end ? `${realSlot.date}T${realSlot.end}` : "",
+      date: realSlot?.date || new Date().toISOString().split("T")[0],
       booked: realSlot?.booked || false,
       recurrence: realSlot?.recurrence || "None",
       isEditing: true,
