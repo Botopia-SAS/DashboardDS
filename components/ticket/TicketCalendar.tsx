@@ -9,8 +9,6 @@ import interactionPlugin from "@fullcalendar/interaction";
 import { DateSelectArg, EventClickArg } from "@fullcalendar/core";
 import { useState, useEffect, useRef } from "react";
 import ScheduleModal from "./ScheduleModal";
-// WebSocket
-import { io, Socket } from "socket.io-client";
 
 interface TicketFormData {
   _id?: string;
@@ -73,6 +71,7 @@ const TicketCalendar = ({ className }: TicketCalendarProps) => {
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [selectedSlot, setSelectedSlot] = useState<TicketFormData | null>(null);
   const [isLoading, setIsLoading] = useState(true);
+  const [hasError, setHasError] = useState(false);
   
   // Referencia al calendario para navegación
   const calendarRef = useRef<FullCalendar>(null);
@@ -90,9 +89,6 @@ const TicketCalendar = ({ className }: TicketCalendarProps) => {
   const clipboardKey = 'ticketclass_clipboard';
   // Estado para saber en qué slot se hizo click por última vez
   const [lastSelectedSlot, setLastSelectedSlot] = useState<any>(null);
-
-  // WebSocket
-  const [socket, setSocket] = useState<Socket | null>(null);
 
   // Cargar datos reales desde las APIs
   useEffect(() => {
@@ -147,100 +143,73 @@ const TicketCalendar = ({ className }: TicketCalendarProps) => {
         const response = await fetch("/api/ticket/calendar");
         
         if (!response.ok) {
-          throw new Error(`API Error: ${response.status} ${response.statusText}`);
+          console.error(`API Error: ${response.status} ${response.statusText}`);
+          setIsLoading(false);
+          return;
         }
         
         const data = await response.json();
         
         // Mapeo forzado de eventos para asegurar que se vean
         const events = Array.isArray(data) ? data.map((tc: any, index: number) => {
-          const dateStr = tc.date ? tc.date.slice(0, 10) : "";
-          const hour = tc.hour || "00:00";
-          const endHour = tc.endHour || "01:00";
-          const studentCount = Array.isArray(tc.students) ? tc.students.length : 0;
-          const totalSpots = tc.spots || 30;
-          let classType = "Class";
-          if (tc.type === "date") classType = "D.A.T.E";
-          else if (tc.type === "bdi") classType = "B.D.I";
-          else if (tc.type === "adi") classType = "A.D.I";
-          let status = "Available";
-          if (tc.status === "full") status = "Full";
-          else if (tc.status === "cancel") status = "Cancelled";
-          else if (tc.status === "expired") status = "Expired";
-          let backgroundColor = "#6b7280";
-          let borderColor = "#4b5563";
-          if (status === "Full") {
-            backgroundColor = "#7c3aed";
-            borderColor = "#6d28d9";
-          } else if (status === "Cancelled") {
-            backgroundColor = "#ef4444";
-            borderColor = "#dc2626";
-          } else if (status === "Available") {
-            backgroundColor = "#10b981";
-            borderColor = "#059669";
+          try {
+            const dateStr = tc.date ? tc.date.slice(0, 10) : "";
+            const hour = tc.hour || "00:00";
+            const endHour = tc.endHour || "01:00";
+            const studentCount = Array.isArray(tc.students) ? tc.students.length : 0;
+            const totalSpots = tc.spots || 30;
+            let classType = "Class";
+            if (tc.type === "date") classType = "D.A.T.E";
+            else if (tc.type === "bdi") classType = "B.D.I";
+            else if (tc.type === "adi") classType = "A.D.I";
+            let status = "Available";
+            if (tc.status === "full") status = "Full";
+            else if (tc.status === "cancel") status = "Cancelled";
+            else if (tc.status === "expired") status = "Expired";
+            let backgroundColor = "#6b7280";
+            let borderColor = "#4b5563";
+            if (status === "Full") {
+              backgroundColor = "#7c3aed";
+              borderColor = "#6d28d9";
+            } else if (status === "Cancelled") {
+              backgroundColor = "#ef4444";
+              borderColor = "#dc2626";
+            } else if (status === "Available") {
+              backgroundColor = "#10b981";
+              borderColor = "#059669";
+            }
+            return {
+              id: tc._id || `ticket-${index}`,
+              title: `${classType} - ${status} (${studentCount}/${totalSpots})`,
+              start: `${dateStr}T${hour}:00`,
+              end: `${dateStr}T${endHour}:00`,
+              backgroundColor,
+              borderColor,
+              textColor: "#fff",
+              extendedProps: {
+                ticketClass: tc,
+                classType,
+                status,
+                studentCount,
+                totalSpots
+              }
+            };
+          } catch (error) {
+            console.error('Error mapping ticket class:', tc, error);
+            return null;
           }
-          return {
-            id: tc._id || `ticket-${index}`,
-            title: `${classType} - ${status} (${studentCount}/${totalSpots})`,
-            start: `${dateStr}T${hour}:00`,
-            end: `${dateStr}T${endHour}:00`,
-            backgroundColor,
-            borderColor,
-            textColor: "#fff",
-            extendedProps: {
-              ticketClass: tc,
-              classType,
-              status,
-              studentCount,
-              totalSpots
-            }
-          };
-        }) : [];
-        // Si no hay eventos, agrega uno de prueba forzado
-        if (events.length === 0) {
-          events.push({
-            id: "forced-test",
-            title: "FORCED TEST EVENT",
-            start: "2025-07-15T08:30:00",
-            end: "2025-07-15T10:30:00",
-            backgroundColor: "#ef4444",
-            borderColor: "#dc2626",
-            textColor: "#ffffff",
-            extendedProps: {
-              ticketClass: {},
-              classType: "Test",
-              status: "Available",
-              studentCount: 0,
-              totalSpots: 30
-            }
-          });
-        }
+        }).filter(Boolean) as TicketCalendarEvent[] : [];
+        
         setCalendarEvents(events);
-        
-        // Navegar automáticamente a la primera clase si hay eventos
-        if (events.length > 0) {
-          const firstEventDate = events[0].start.split('T')[0];
-          setTimeout(() => {
-            if (calendarRef.current) {
-              const calendarApi = calendarRef.current.getApi();
-              calendarApi.gotoDate(firstEventDate);
-            }
-          }, 100);
-        }
-        
+        setIsLoading(false);
       } catch (error) {
         console.error('Error fetching ticket classes:', error);
-        setCalendarEvents([]);
-      } finally {
         setIsLoading(false);
       }
     };
-    
+
     fetchTicketClasses();
   }, []);
-
-  // Log básico para debugging
-  //console.log("🎯 Calendar events loaded:", calendarEvents.length);
 
   // Handler para pegar con Ctrl+V
   useEffect(() => {
@@ -694,116 +663,25 @@ const TicketCalendar = ({ className }: TicketCalendarProps) => {
     }
   };
 
-  // Conexión WebSocket (socket.io)
-  useEffect(() => {
-    const WS_URL = process.env.NODE_ENV === "production"
-      ? "https://dashboard-ds-flax.vercel.app"
-      : "http://localhost:3000";
-    const socketInstance = io(WS_URL, { transports: ["websocket"] });
-    setSocket(socketInstance);
-
-    // Eventos de ticketclass
-    socketInstance.on("ticketclass_created", (newClass: any) => {
-      setCalendarEvents((prev) => {
-        // Mapea el nuevo evento
-        const dateStr = newClass.date ? newClass.date.slice(0, 10) : "";
-        const hour = newClass.hour || "00:00";
-        const endHour = newClass.endHour || "01:00";
-        const studentCount = Array.isArray(newClass.students) ? newClass.students.length : 0;
-        const totalSpots = newClass.spots || 30;
-        let classType = "Class";
-        if (newClass.type === "date") classType = "D.A.T.E";
-        else if (newClass.type === "bdi") classType = "B.D.I";
-        else if (newClass.type === "adi") classType = "A.D.I";
-        let status = "Available";
-        if (newClass.status === "full") status = "Full";
-        else if (newClass.status === "cancel") status = "Cancelled";
-        else if (newClass.status === "expired") status = "Expired";
-        let backgroundColor = "#6b7280";
-        let borderColor = "#4b5563";
-        if (status === "Full") {
-          backgroundColor = "#7c3aed";
-          borderColor = "#6d28d9";
-        } else if (status === "Cancelled") {
-          backgroundColor = "#ef4444";
-          borderColor = "#dc2626";
-        } else if (status === "Available") {
-          backgroundColor = "#10b981";
-          borderColor = "#059669";
-        }
-        const newEvent = {
-          id: newClass._id,
-          title: `${classType} - ${status} (${studentCount}/${totalSpots})`,
-          start: `${dateStr}T${hour}:00`,
-          end: `${dateStr}T${endHour}:00`,
-          backgroundColor,
-          borderColor,
-          textColor: "#fff",
-          extendedProps: {
-            ticketClass: newClass,
-            classType,
-            status,
-            studentCount,
-            totalSpots
-          }
-        };
-        // Evita duplicados
-        return [...prev.filter(ev => ev.id !== newClass._id), newEvent];
-      });
-    });
-    socketInstance.on("ticketclass_updated", (updatedClass: any) => {
-      setCalendarEvents((prev) => {
-        const dateStr = updatedClass.date ? updatedClass.date.slice(0, 10) : "";
-        const hour = updatedClass.hour || "00:00";
-        const endHour = updatedClass.endHour || "01:00";
-        const studentCount = Array.isArray(updatedClass.students) ? updatedClass.students.length : 0;
-        const totalSpots = updatedClass.spots || 30;
-        let classType = "Class";
-        if (updatedClass.type === "date") classType = "D.A.T.E";
-        else if (updatedClass.type === "bdi") classType = "B.D.I";
-        else if (updatedClass.type === "adi") classType = "A.D.I";
-        let status = "Available";
-        if (updatedClass.status === "full") status = "Full";
-        else if (updatedClass.status === "cancel") status = "Cancelled";
-        else if (updatedClass.status === "expired") status = "Expired";
-        let backgroundColor = "#6b7280";
-        let borderColor = "#4b5563";
-        if (status === "Full") {
-          backgroundColor = "#7c3aed";
-          borderColor = "#6d28d9";
-        } else if (status === "Cancelled") {
-          backgroundColor = "#ef4444";
-          borderColor = "#dc2626";
-        } else if (status === "Available") {
-          backgroundColor = "#10b981";
-          borderColor = "#059669";
-        }
-        const updatedEvent = {
-          id: updatedClass._id,
-          title: `${classType} - ${status} (${studentCount}/${totalSpots})`,
-          start: `${dateStr}T${hour}:00`,
-          end: `${dateStr}T${endHour}:00`,
-          backgroundColor,
-          borderColor,
-          textColor: "#fff",
-          extendedProps: {
-            ticketClass: updatedClass,
-            classType,
-            status,
-            studentCount,
-            totalSpots
-          }
-        };
-        return prev.map(ev => ev.id === updatedClass._id ? updatedEvent : ev);
-      });
-    });
-    socketInstance.on("ticketclass_deleted", (deletedId: string) => {
-      setCalendarEvents((prev) => prev.filter(ev => ev.id !== deletedId));
-    });
-    return () => {
-      socketInstance.disconnect();
-    };
-  }, []);
+  if (hasError) {
+    return (
+      <Card className={`${className}`}>
+        <CardContent className="p-6">
+          <div className="flex items-center justify-center h-64">
+            <div className="text-center">
+              <p className="text-red-500">Error loading calendar</p>
+              <button 
+                onClick={() => window.location.reload()} 
+                className="mt-2 px-4 py-2 bg-blue-500 text-white rounded hover:bg-blue-600"
+              >
+                Reload Page
+              </button>
+            </div>
+          </div>
+        </CardContent>
+      </Card>
+    );
+  }
 
   return (
     <Card className={`${className}`}>
@@ -824,34 +702,36 @@ const TicketCalendar = ({ className }: TicketCalendarProps) => {
             </div>
           </div>
         )}
-        <div className="calendar-container">
-          <style>{`.fc-event { cursor: pointer !important; }`}</style>
-          <FullCalendar
-            ref={calendarRef}
-            plugins={[timeGridPlugin, interactionPlugin]}
-            initialView="timeGridWeek"
-            initialDate={new Date().toISOString().split('T')[0]}
-            selectable
-            editable={false}
-            slotMinTime="06:00:00"
-            slotMaxTime="20:00:00"
-            slotDuration="00:30:00"
-            height="auto"
-            contentHeight="auto"
-            events={calendarEvents}
-            select={handleDateSelect}
-            eventClick={handleEventClick}
-            eventDisplay="block"
-            headerToolbar={{
-              left: 'prev,next today',
-              center: 'title',
-              right: 'timeGridWeek,timeGridDay'
-            }}
-            loading={(loading) => {
-              setIsLoading(loading);
-            }}
-          />
-        </div>
+        {!isLoading && (
+          <div className="calendar-container">
+            <style>{`.fc-event { cursor: pointer !important; }`}</style>
+            <FullCalendar
+              ref={calendarRef}
+              plugins={[timeGridPlugin, interactionPlugin]}
+              initialView="timeGridWeek"
+              initialDate={new Date().toISOString().split('T')[0]}
+              selectable
+              editable={false}
+              slotMinTime="06:00:00"
+              slotMaxTime="20:00:00"
+              slotDuration="00:30:00"
+              height="auto"
+              contentHeight="auto"
+              events={calendarEvents}
+              select={handleDateSelect}
+              eventClick={handleEventClick}
+              eventDisplay="block"
+              headerToolbar={{
+                left: 'prev,next today',
+                center: 'title',
+                right: 'timeGridWeek,timeGridDay'
+              }}
+              loading={(loading) => {
+                setIsLoading(loading);
+              }}
+            />
+          </div>
+        )}
       </CardContent>
       {/* Modal para configurar TicketClass */}
       {isModalOpen && selectedSlot && (
