@@ -21,7 +21,6 @@ const classSchema = new mongoose.Schema({
   updatedAt: { type: Date, default: Date.now },
 });
 
-const DrivingClass =
-  mongoose.models.DrivingClass || mongoose.model("DrivingClass", classSchema);
+const DrivingClass = mongoose.models.DrivingClass || mongoose.model("DrivingClass", classSchema);
 
 export default DrivingClass;
