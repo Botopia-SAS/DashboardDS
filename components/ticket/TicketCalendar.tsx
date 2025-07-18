@@ -211,20 +211,22 @@ const TicketCalendar = ({ className }: TicketCalendarProps) => {
     fetchTicketClasses();
   }, []);
 
-  // Handler para pegar con Ctrl+V
+  // Handler para pegar con Ctrl+V SOLO si el modal de crear clase está abierto y es nuevo (no edición)
   useEffect(() => {
-    const handlePaste = async (e: KeyboardEvent) => {
-      if (e.ctrlKey && e.key === 'v') {
+    function handlePaste(e: KeyboardEvent) {
+      if (
+        e.ctrlKey &&
+        e.key === 'v' &&
+        isModalOpen &&
+        selectedSlot &&
+        !selectedSlot._id // Solo si es creación, no edición
+      ) {
         const clipboard = window.localStorage.getItem(clipboardKey);
         if (!clipboard) return;
-        if (!lastSelectedSlot) {
-          alert('Selecciona primero un slot en el calendario para pegar la clase copiada.');
-          return;
-        }
         try {
           const data = JSON.parse(clipboard);
           // Usa la fecha/hora del slot seleccionado
-          const { date, hour, endHour } = lastSelectedSlot;
+          const { date, hour, endHour } = selectedSlot;
           const newClass = {
             ...data,
             date,
@@ -233,7 +235,6 @@ const TicketCalendar = ({ className }: TicketCalendarProps) => {
           };
           // Limpiar campos no permitidos por el backend
           delete newClass._id;
-          delete newClass.status;
           // Si hay duration, recalcular endHour en base a hour y duration
           if (newClass.duration && newClass.hour) {
             const [h, m] = newClass.hour.split(":").map(Number);
@@ -243,70 +244,19 @@ const TicketCalendar = ({ className }: TicketCalendarProps) => {
             if (endHourNum >= 24) { endHourNum = 23; endMinute = 59; }
             newClass.endHour = `${endHourNum.toString().padStart(2, "0")}:${endMinute.toString().padStart(2, "0")}`;
           }
-          // Crea la clase en la base de datos
-          const res = await fetch('/api/ticket/classes', {
-            method: 'POST',
-            headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify(newClass),
+          // Rellenar el formulario del modal con los datos pegados
+          setSelectedSlot({
+            ...selectedSlot,
+            ...newClass,
           });
-          if (!res.ok) throw new Error('Error al crear la clase pegada');
-          // Refresca el calendario
-          const updatedResponse = await fetch('/api/ticket/calendar');
-          const updatedData = await updatedResponse.json();
-          const events = Array.isArray(updatedData) ? updatedData.map((tc: any, index: number) => {
-            const dateStr = tc.date ? tc.date.slice(0, 10) : "";
-            const hour = tc.hour || "00:00";
-            const endHour = tc.endHour || "01:00";
-            const studentCount = Array.isArray(tc.students) ? tc.students.length : 0;
-            const totalSpots = tc.spots || 30;
-            let classType = "Class";
-            if (tc.type === "date") classType = "D.A.T.E";
-            else if (tc.type === "bdi") classType = "B.D.I";
-            else if (tc.type === "adi") classType = "A.D.I";
-            let status = "Available";
-            if (tc.status === "full") status = "Full";
-            else if (tc.status === "cancel") status = "Cancelled";
-            else if (tc.status === "expired") status = "Expired";
-            let backgroundColor = "#6b7280";
-            let borderColor = "#4b5563";
-            if (status === "Full") {
-              backgroundColor = "#7c3aed";
-              borderColor = "#6d28d9";
-            } else if (status === "Cancelled") {
-              backgroundColor = "#ef4444";
-              borderColor = "#dc2626";
-            } else if (status === "Available") {
-              backgroundColor = "#10b981";
-              borderColor = "#059669";
-            }
-            return {
-              id: tc._id || `ticket-${index}`,
-              title: `${classType} - ${status} (${studentCount}/${totalSpots})`,
-              start: `${dateStr}T${hour}:00`,
-              end: `${dateStr}T${endHour}:00`,
-              backgroundColor,
-              borderColor,
-              textColor: "#fff",
-              extendedProps: {
-                ticketClass: tc,
-                classType,
-                status,
-                studentCount,
-                totalSpots
-              }
-            };
-          }) : [];
-          setCalendarEvents(events);
-          setIsModalOpen(false);
-          setSelectedSlot(null);
         } catch (err) {
           alert('Error al pegar la clase.');
         }
       }
-    };
+    }
     window.addEventListener('keydown', handlePaste);
     return () => window.removeEventListener('keydown', handlePaste);
-  }, [lastSelectedSlot]);
+  }, [isModalOpen, selectedSlot]);
 
   // Modifica handleDateSelect para guardar el slot seleccionado
   const handleDateSelect = (selectInfo: any) => {
