@@ -1,8 +1,9 @@
 import { NextRequest, NextResponse } from "next/server";
 import TicketClass from "@/lib/models/TicketClass";
-import Location from "@/lib/models/Locations";
-import Class from "@/lib/models/Class";
-import Instructor from "@/lib/models/Instructor";
+// Importa los modelos referenciados en populate para registro en Mongoose
+import "@/lib/models/Locations";
+import "@/lib/models/Class";
+import "@/lib/models/Instructor";
 import { connectToDB } from "@/lib/mongoDB";
 
 export async function GET() {
