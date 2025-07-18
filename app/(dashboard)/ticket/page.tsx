@@ -5,7 +5,8 @@ import { Card, CardContent } from "@/components/ui/card";
 import { Separator } from "@/components/ui/separator";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import TicketCalendar from "@/components/ticket/TicketCalendar";
-import { useState } from "react";
+import { useState, useEffect } from "react";
+import Loader from "@/components/custom ui/Loader";
 
 export default function Pages() {
   const { setClassType } = useClassTypeStore();
@@ -15,6 +16,14 @@ export default function Pages() {
   const [locations, setLocations] = useState<any[]>([]);
   const [classes, setClasses] = useState<any[]>([]);
   const [students, setStudents] = useState<any[]>([]);
+  const [loading, setLoading] = useState(true);
+
+  useEffect(() => {
+    const timer = setTimeout(() => setLoading(false), 1000);
+    return () => clearTimeout(timer);
+  }, []);
+
+  if (loading) return <Loader />;
 
   return (
     <>
