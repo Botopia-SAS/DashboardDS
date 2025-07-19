@@ -4,12 +4,12 @@
 import { FormField, FormItem, FormLabel, FormControl, FormMessage } from "@/components/ui/form";
 import { Input } from "@/components/ui/input";
 import { Textarea } from "../ui/textarea";
+import { Checkbox } from "../ui/checkbox";
 import ImageUpload from "../custom ui/ImageUpload";
 import { Button } from "@/components/ui/button";
 import { UseFormReturn } from "react-hook-form";
 import { useState } from "react";
 import { Eye, EyeOff } from "lucide-react";
-import type { Slot } from "./types";
 import type { FieldValues } from "react-hook-form";
 
 interface InstructorBasicInfoProps {
@@ -22,36 +22,131 @@ const InstructorBasicInfo = ({ form, generatePassword }: InstructorBasicInfoProp
   const [showPassword, setShowPassword] = useState(false);
 
   return (
-    <>
-      <FormField
-        control={form.control}
-        name="name"
-        render={({ field }) => (
-          <FormItem>
-            <FormLabel>Name</FormLabel>
-            <FormControl>
-              <Input placeholder="Instructor Name" {...field} />
-            </FormControl>
-            <FormMessage />
-          </FormItem>
-        )}
-      />
+    <div className="space-y-6">
+      {/* Photo - Centered at top */}
+      <div className="flex justify-center w-full">
+        <FormField
+          control={form.control}
+          name="photo"
+          render={({ field }) => (
+            <FormItem className="w-full max-w-sm">
+              <FormLabel className="text-center block">Photo</FormLabel>
+              <FormControl>
+                <div className="flex justify-center">
+                  <ImageUpload
+                    value={Array.isArray(field.value) ? field.value : field.value ? [field.value] : []}
+                    onChange={(url) => field.onChange(url)}
+                    onRemove={() => field.onChange("")}
+                  />
+                </div>
+              </FormControl>
+              <FormMessage />
+            </FormItem>
+          )}
+        />
+      </div>
 
-      <FormField
-        control={form.control}
-        name="dni"
-        render={({ field }) => (
-          <FormItem>
-            <FormLabel>DNI</FormLabel>
-            <FormControl>
-              <Input placeholder="DNI" {...field} />
-            </FormControl>
-            <FormMessage />
-          </FormItem>
-        )}
-      />
+      {/* Class Types Checkboxes - Moved up */}
+      <div className="space-y-4">
+        <FormLabel className="text-center block">Class Types</FormLabel>
+        <div className="flex justify-center">
+          <div className="grid grid-cols-3 gap-8">
+            <FormField
+              control={form.control}
+              name="canTeachTicketClass"
+              render={({ field }) => (
+                <FormItem className="flex flex-row items-start space-x-3 space-y-0">
+                  <FormControl>
+                    <Checkbox
+                      checked={field.value}
+                      onCheckedChange={field.onChange}
+                    />
+                  </FormControl>
+                  <div className="space-y-1 leading-none">
+                    <FormLabel className="text-sm font-normal">
+                      Ticket Class
+                    </FormLabel>
+                  </div>
+                </FormItem>
+              )}
+            />
 
-      <div className="flex gap-28">
+            <FormField
+              control={form.control}
+              name="canTeachDrivingTest"
+              render={({ field }) => (
+                <FormItem className="flex flex-row items-start space-x-3 space-y-0">
+                  <FormControl>
+                    <Checkbox
+                      checked={field.value}
+                      onCheckedChange={field.onChange}
+                    />
+                  </FormControl>
+                  <div className="space-y-1 leading-none">
+                    <FormLabel className="text-sm font-normal">
+                      Driving Test
+                    </FormLabel>
+                  </div>
+                </FormItem>
+              )}
+            />
+
+            <FormField
+              control={form.control}
+              name="canTeachDrivingLesson"
+              render={({ field }) => (
+                <FormItem className="flex flex-row items-start space-x-3 space-y-0">
+                  <FormControl>
+                    <Checkbox
+                      checked={field.value}
+                      onCheckedChange={field.onChange}
+                    />
+                  </FormControl>
+                  <div className="space-y-1 leading-none">
+                    <FormLabel className="text-sm font-normal">
+                      Driving Lesson
+                    </FormLabel>
+                  </div>
+                </FormItem>
+              )}
+            />
+          </div>
+        </div>
+      </div>
+
+      {/* Name and DNI */}
+      <div className="grid grid-cols-2 gap-6">
+        <FormField
+          control={form.control}
+          name="name"
+          render={({ field }) => (
+            <FormItem>
+              <FormLabel>Name</FormLabel>
+              <FormControl>
+                <Input placeholder="Instructor Name" {...field} />
+              </FormControl>
+              <FormMessage />
+            </FormItem>
+          )}
+        />
+
+        <FormField
+          control={form.control}
+          name="dni"
+          render={({ field }) => (
+            <FormItem>
+              <FormLabel>DNI</FormLabel>
+              <FormControl>
+                <Input placeholder="DNI" {...field} />
+              </FormControl>
+              <FormMessage />
+            </FormItem>
+          )}
+        />
+      </div>
+
+      {/* Experience and Certifications */}
+      <div className="grid grid-cols-2 gap-6">
         <FormField
           control={form.control}
           name="experience"
@@ -79,27 +174,10 @@ const InstructorBasicInfo = ({ form, generatePassword }: InstructorBasicInfoProp
             </FormItem>
           )}
         />
-
-        <FormField
-          control={form.control}
-          name="photo"
-          render={({ field }) => (
-            <FormItem>
-              <FormLabel>Photo</FormLabel>
-              <FormControl>
-                <ImageUpload
-                  value={Array.isArray(field.value) ? field.value : field.value ? [field.value] : []}
-                  onChange={(url) => field.onChange(url)}
-                  onRemove={() => field.onChange("")}
-                />
-              </FormControl>
-              <FormMessage />
-            </FormItem>
-          )}
-        />
       </div>
 
-      <div className="flex gap-24">
+      {/* Email and Password */}
+      <div className="grid grid-cols-2 gap-6">
         <FormField
           control={form.control}
           name="email"
@@ -154,7 +232,7 @@ const InstructorBasicInfo = ({ form, generatePassword }: InstructorBasicInfoProp
           )}
         />
       </div>
-    </>
+    </div>
   );
 }
 
