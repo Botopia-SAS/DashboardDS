@@ -1,9 +1,9 @@
 import { connectToDB } from "@/lib/mongoDB";
 import { NextRequest, NextResponse } from "next/server";
 import Instructor from "@/lib/models/Instructor";
-import TicketClass from "@/lib/models/TicketClass";
 import mongoose from "mongoose";
-import axios from "axios";
+import bcrypt from "bcryptjs";
+import { sendEmail } from "../sendEmail";
 
 export const dynamic = "force-dynamic";
 
@@ -54,7 +54,7 @@ export async function POST(req: NextRequest) {
       return NextResponse.json({ error: "Instructor not found" }, { status: 404 });
     }
 
-    console.log("✅ Instructor encontrado:", instructor);
+    // console.log("✅ Instructor encontrado:", instructor);
 
     return NextResponse.json(instructor, { status: 200 });
   } catch (err) {
@@ -63,31 +63,7 @@ export async function POST(req: NextRequest) {
   }
 }
 
-// Función para obtener el token de Auth0 Management API dinámicamente
-async function getAuth0ManagementToken() {
-  const response = await axios.post(
-    `https://${process.env.AUTH0_DOMAIN}/oauth/token`,
-    {
-      client_id: process.env.AUTH0_CLIENT_ID,
-      client_secret: process.env.AUTH0_CLIENT_SECRET,
-      audience: `https://${process.env.AUTH0_DOMAIN}/api/v2/`,
-      grant_type: "client_credentials",
-    },
-    {
-      headers: { "content-type": "application/json" },
-    }
-  );
-  return response.data.access_token;
-}
-
-interface Auth0Error {
-  response?: {
-    data?: unknown;
-  };
-  message?: string;
-}
-
-// ✅ DELETE: Eliminar un instructor por ID (Extrae `instructorId` desde la URL)
+// ✅ DELETE: Eliminar un instructor por ID
 export async function DELETE(req: NextRequest) {
   try {
     await connectToDB();
@@ -102,68 +78,23 @@ export async function DELETE(req: NextRequest) {
       return NextResponse.json({ error: "Invalid Instructor ID" }, { status: 400 });
     }
 
-    // 1. Busca el instructor para obtener el auth0Id
+    // Buscar el instructor
     const instructor = await Instructor.findById(instructorId);
     if (!instructor) {
       return NextResponse.json({ error: "Instructor not found" }, { status: 404 });
     }
 
-    console.log(`[DELETE_INSTRUCTOR] 🗑️ Starting deletion of instructor: ${instructor.name} (${instructorId})`);
+    // console.log(`[DELETE_INSTRUCTOR] 🗑️ Starting deletion of instructor: ${instructor.name} (${instructorId})`);
 
-    // 2. STEP 1: Buscar ticket classes antes de eliminar (para logs)
-    const ticketClassesToDelete = await TicketClass.find({ instructorId });
-    console.log(`[DELETE_INSTRUCTOR] Found ${ticketClassesToDelete.length} ticket classes to delete for instructor ${instructorId}:`, 
-      ticketClassesToDelete.map(tc => ({
-        id: tc._id,
-        type: tc.type,
-        date: tc.date,
-        hour: tc.hour,
-        students: tc.students?.length || 0
-      }))
-    );
-
-    // 3. Elimina el usuario en Auth0 si tiene auth0Id
-    if (instructor.auth0Id) {
-      try {
-        const managementToken = await getAuth0ManagementToken();
-        console.log(`[DELETE_INSTRUCTOR] 🔐 Deleting Auth0 user: ${instructor.auth0Id}`);
-        await axios.delete(
-          `https://${process.env.AUTH0_DOMAIN}/api/v2/users/${instructor.auth0Id}`,
-          {
-            headers: {
-              Authorization: `Bearer ${managementToken}`,
-            },
-          }
-        );
-        console.log(`[DELETE_INSTRUCTOR] ✅ Auth0 user deleted successfully`);
-      } catch (err: unknown) {
-        const error = err as Auth0Error;
-        console.error("[DELETE_INSTRUCTOR] ❌ Error deleting user in Auth0:", error.response?.data || error.message);
-        // Continuar con la eliminación aunque falle Auth0
-      }
-    }
-
-    // 4. STEP 2: Eliminar instructor en MongoDB
+    // Eliminar instructor en MongoDB
     const deletedInstructor = await Instructor.findByIdAndDelete(instructorId);
     if (!deletedInstructor) {
       return NextResponse.json({ error: "Instructor not found during deletion" }, { status: 404 });
     }
-    console.log(`[DELETE_INSTRUCTOR] ✅ Instructor deleted: ${deletedInstructor.name} (${instructorId})`);
-
-    // 5. STEP 3: 🎯 CASCADE DELETE - Eliminar todas las ticket classes asociadas
-    const deleteResult = await TicketClass.deleteMany({ instructorId });
-    console.log(`[DELETE_INSTRUCTOR] ✅ CASCADE DELETE: Deleted ${deleteResult.deletedCount} ticket classes for instructor ${instructorId}`);
-    
-    if (deleteResult.deletedCount !== ticketClassesToDelete.length) {
-      console.warn(`[DELETE_INSTRUCTOR] ⚠️ Warning: Expected to delete ${ticketClassesToDelete.length} ticket classes, but deleted ${deleteResult.deletedCount}`);
-    }
-
-    // 6. Resumen final
-    console.log(`[DELETE_INSTRUCTOR] 🎉 COMPLETE: Successfully deleted instructor ${instructor.name} and ${deleteResult.deletedCount} associated ticket classes`);
+    // console.log(`[DELETE_INSTRUCTOR] ✅ Instructor deleted: ${deletedInstructor.name} (${instructorId})`);
 
     return NextResponse.json({ 
-      message: "Instructor and all associated data deleted successfully",
-      deletedTicketClasses: deleteResult.deletedCount,
+      message: "Instructor deleted successfully",
       instructorName: instructor.name 
     }, { status: 200 });
   } catch (error) {
@@ -172,34 +103,97 @@ export async function DELETE(req: NextRequest) {
   }
 }
 
-
 // ✅ PATCH: Actualizar un instructor por ID
 export async function PATCH(req: NextRequest) {
   try {
     await connectToDB();
-    const { instructorId, ...updates } = await req.json();
+    const { instructorId, password, ...updates } = await req.json();
 
-    console.log("📥 Datos recibidos en el PATCH:", { instructorId, updates });
+    // console.log("📥 Datos recibidos en el PATCH:", { instructorId, updates, hasPassword: !!password });
 
     if (!instructorId) {
       return NextResponse.json({ message: "Instructor ID is required" }, { status: 400 });
     }
 
-    if (Object.keys(updates).length === 0) {
+    if (Object.keys(updates).length === 0 && !password) {
       return NextResponse.json({ message: "No updates provided" }, { status: 400 });
     }
 
+    // Preparar los campos de actualización
+    const updateFields = { ...updates };
+    let passwordChanged = false;
+    let newPassword = "";
+
+    // Si se proporciona una nueva contraseña, encriptarla
+    if (password && typeof password === "string" && password.trim() !== "") {
+      const hashedPassword = await bcrypt.hash(password, 10);
+      updateFields.password = hashedPassword;
+      passwordChanged = true;
+      newPassword = password; // Guardar la contraseña sin encriptar para el correo
+      // console.log("🔐 Contraseña encriptada y lista para guardar");
+    }
+
+    // Asegurar que los campos de Class Types sean booleanos
+    if (typeof updateFields.canTeachTicketClass !== 'undefined') {
+      updateFields.canTeachTicketClass = Boolean(updateFields.canTeachTicketClass);
+    }
+    if (typeof updateFields.canTeachDrivingTest !== 'undefined') {
+      updateFields.canTeachDrivingTest = Boolean(updateFields.canTeachDrivingTest);
+    }
+    if (typeof updateFields.canTeachDrivingLesson !== 'undefined') {
+      updateFields.canTeachDrivingLesson = Boolean(updateFields.canTeachDrivingLesson);
+    }
+
+    // console.log("📝 Campos a actualizar:", updateFields);
+
     const updatedInstructor = await Instructor.findByIdAndUpdate(
       instructorId,
-      { $set: updates },
-      { new: true }
+      { $set: updateFields },
+      { new: true, runValidators: true }
     );
 
     if (!updatedInstructor) {
       return NextResponse.json({ message: "Instructor not found" }, { status: 404 });
     }
 
-    console.log("✅ Instructor actualizado en la BD:", updatedInstructor);
+    // console.log("✅ Instructor actualizado en la BD:", updatedInstructor);
+
+    // Enviar correo si la contraseña fue cambiada
+    if (passwordChanged) {
+      try {
+        await sendEmail({
+          to: updatedInstructor.email,
+          subject: "Your Password Has Been Updated - Driving School Dashboard",
+          html: `
+            <div style="font-family: Arial, sans-serif; background: #f4f6fa; padding: 32px; color: #222;">
+              <div style="max-width: 480px; margin: 0 auto; background: #fff; border-radius: 12px; box-shadow: 0 2px 8px #0001; overflow: hidden;">
+                <div style="background: #1e40af; color: #fff; padding: 24px 32px 16px 32px; text-align: center;">
+                  <h2 style="margin: 0; font-size: 1.7rem; letter-spacing: 1px;">Password Updated</h2>
+                </div>
+                <div style="padding: 32px 32px 16px 32px;">
+                  <p style="font-size: 1.1rem; margin-bottom: 18px;">Hello ${updatedInstructor.name},</p>
+                  <p style="font-size: 1.1rem; margin-bottom: 18px;">Your password has been updated successfully. Your new credentials are:</p>
+                  <div style="background: #f1f5f9; border-radius: 8px; padding: 16px; text-align: center; margin: 18px 0;">
+                    <span style="font-size: 1.1rem; font-weight: bold; color: #1e40af; letter-spacing: 1px;">Email: ${updatedInstructor.email}</span><br/>
+                    <span style="font-size: 1.1rem; font-weight: bold; color: #1e40af; letter-spacing: 1px;">New Password: ${newPassword}</span>
+                  </div>
+                  <p style="font-size: 1rem; color: #555;">Please keep your credentials secure and do not share them with anyone.</p>
+                  <p style="font-size: 1rem; color: #555;">If you did not request this password change, please contact your administrator immediately.</p>
+                </div>
+                <div style="background: #e5e7eb; color: #1e293b; text-align: center; padding: 16px 32px; font-size: 0.95rem; border-top: 1px solid #cbd5e1;">
+                  <p style="margin: 0;">If you have any questions, please contact your administrator.</p>
+                  <p style="margin: 0; font-size: 0.93rem; color: #64748b;">&copy; ${new Date().getFullYear()} Driving School Dashboard</p>
+                </div>
+              </div>
+            </div>
+          `,
+        });
+        // console.log("📧 Correo de contraseña actualizada enviado exitosamente");
+      } catch (err) {
+        console.error("❌ Error al enviar correo de contraseña actualizada:", err);
+        // No fallar la actualización si el correo falla
+      }
+    }
 
     return NextResponse.json(updatedInstructor, { status: 200 });
   } catch (error) {

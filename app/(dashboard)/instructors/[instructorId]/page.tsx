@@ -3,14 +3,7 @@
 import { useEffect, useState } from "react";
 import Loader from "@/components/custom ui/Loader";
 import InstructorForm from "@/components/instructors/InstructorForm";
-import type { Slot } from "@/components/instructors/types";
-import { InstructorData } from "@/types/instructor";
-
-const VALID_STATUSES = ["available", "cancelled", "scheduled"] as const;
-function normalizeSlotStatus(status: string | undefined): "available" | "cancelled" | "scheduled" | undefined {
-  if (status === "available" || status === "cancelled" || status === "scheduled") return status as any;
-  return undefined;
-}
+import { InstructorData } from "@/components/instructors/types";
 
 const InstructorDetails = ({
   params,
@@ -57,29 +50,7 @@ const InstructorDetails = ({
         if (!selectedInstructor) {
           setInstructorDetails(null);
         } else {
-          let flatSchedule = selectedInstructor.schedule;
-          if (
-            flatSchedule &&
-            flatSchedule.length > 0 &&
-            (flatSchedule[0] as { slots?: Array<Slot> }).slots
-          ) {
-            flatSchedule = (flatSchedule || []).flatMap((entry: { date: string; slots?: Array<Slot> }) =>
-              (entry.slots || []).map((slot: Slot) => ({
-                date: entry.date,
-                start: slot.start,
-                end: slot.end,
-                booked: slot.booked || false,
-                studentId: slot.studentId || null,
-                status: (normalizeSlotStatus(slot.status) ?? undefined) as "available" | "cancelled" | "scheduled" | undefined,
-              } as Slot))
-            );
-          } else if (flatSchedule) {
-            flatSchedule = flatSchedule.map((slot: Slot) => ({
-              ...slot,
-              status: (normalizeSlotStatus(slot.status) ?? undefined) as "available" | "cancelled" | "scheduled" | undefined,
-            } as Slot));
-          }
-          setInstructorDetails({ ...selectedInstructor, schedule: flatSchedule });
+          setInstructorDetails(selectedInstructor);
         }
       } catch (err) {
         console.error("Error occurred:", err);
