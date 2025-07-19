@@ -1,19 +1,19 @@
 import { NextRequest, NextResponse } from "next/server";
-import { connectToDB } from "@/lib/mongoDB";
-import User from "@/lib/models/users";
+import dbConnect from "@/lib/dbConnect";
+import User from "@/lib/modals/user.modal";
 
-export async function GET(req: NextRequest) {
+export async function GET(request: NextRequest) {
   try {
-    await connectToDB();
-    // Lee los roles desde la query, por defecto solo "user"
-    const { searchParams } = new URL(req.url);
-    const rolesParam = searchParams.get("roles");
-    const roles = rolesParam ? rolesParam.split(",") : ["user"];
-    const users = await User.find({
-      role: { $regex: new RegExp(`^(${roles.join("|")})$`, "i") }
-    });
-    return NextResponse.json(users, { status: 200 });
-  } catch {
-    return NextResponse.json({ error: "Failed to fetch users" }, { status: 500 });
+    await dbConnect();
+    
+    const users = await User.find({}, 'firstName lastName email _id').sort({ firstName: 1 });
+    
+    return NextResponse.json(users);
+  } catch (error) {
+    console.error("Error fetching users:", error);
+    return NextResponse.json(
+      { message: "Error fetching users" },
+      { status: 500 }
+    );
   }
 }

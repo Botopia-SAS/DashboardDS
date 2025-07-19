@@ -67,5 +67,10 @@ import {
       url: "/ticket",  // ✅ Agregamos la URL para la sección de Tickets
       icon: <Ticket />,
       label: "Tickets",
+    },
+    {
+      url: "/driving-test-lessons",
+      icon: <BookOpen />, // Usamos BookOpen como ejemplo, puedes cambiarlo si prefieres otro
+      label: "Driving Test/Lessons",
     }
   ];
