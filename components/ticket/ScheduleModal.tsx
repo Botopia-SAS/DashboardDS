@@ -5,6 +5,7 @@ import { useState, useEffect } from "react";
 interface Instructor {
   _id: string;
   name: string;
+  canTeachTicketClass?: boolean;
 }
 
 interface Student {
@@ -135,9 +136,11 @@ export default function ScheduleModal({
   const [studentSearch, setStudentSearch] = useState("");
   const [validationErrors, setValidationErrors] = useState<string[]>([]);
 
-  const filteredInstructors = instructors.filter((i) =>
-    (i.name || "").toLowerCase().includes(instructorSearch.toLowerCase())
-  );
+  const filteredInstructors = instructors
+    .filter((i) => i.canTeachTicketClass === true) // Solo instructores que pueden enseñar ticket class
+    .filter((i) =>
+      (i.name || "").toLowerCase().includes(instructorSearch.toLowerCase())
+    );
   const filteredStudents = students.filter((s) =>
     (s.name || "").toLowerCase().includes(studentSearch.toLowerCase())
   );
