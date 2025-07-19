@@ -13,75 +13,88 @@ export async function GET(req: NextRequest) {
     const end = searchParams.get("end");
     const instructorId = searchParams.get("instructorId");
 
-    //console.log("[EVENTS] Fetching instructors with schedules");
+    //console.log("[EVENTS] Fetching instructors");
     
     // Build query to filter by instructor if instructorId is provided
     const query = instructorId ? { _id: instructorId } : {};
     
-    // Fetch instructors with their schedules
-    const instructors = await Instructor.find(query).populate("schedule_driving_test schedule_driving_lesson");
+    // Fetch instructors (sin populate ya que no tenemos schedules en el modelo simplificado)
+    const instructors = await Instructor.find(query);
     //console.log(`[EVENTS] Found ${instructors.length} instructors`);
 
     const events: any[] = [];
 
+    // Procesar los eventos reales de los schedules del instructor
     instructors.forEach((instructor) => {
       try {
-      // Process driving test schedule
+        // Procesar schedule_driving_test
         if (instructor.schedule_driving_test && Array.isArray(instructor.schedule_driving_test)) {
-        instructor.schedule_driving_test.forEach((slot: any) => {
+          instructor.schedule_driving_test.forEach((slot: any) => {
             if (slot && slot.date && slot.start && slot.end) {
-            events.push({
-                id: slot._id || `test_${Date.now()}_${Math.random()}`,
-              title: `${instructor.name} - Driving Test`,
-              start: `${slot.date}T${slot.start}:00`,
-              end: `${slot.date}T${slot.end}:00`,
-              instructorId: instructor._id,
-              instructorName: instructor.name,
-              classType: 'driving test',
-                status: slot.status || 'available',
-              amount: slot.amount,
-              backgroundColor: getStatusColor(slot.status),
-              borderColor: getStatusColor(slot.status),
-              extendedProps: {
+              events.push({
+                id: slot._id,
+                title: `${instructor.name} - Driving Test`,
+                start: `${slot.date}T${slot.start}:00`,
+                end: `${slot.date}T${slot.end}:00`,
                 instructorId: instructor._id,
                 instructorName: instructor.name,
                 classType: 'driving test',
-                  status: slot.status || 'available',
-                amount: slot.amount,
-                scheduleType: 'driving_test'
-              }
-            });
-          }
-        });
-      }
-
-      // Process driving lesson schedule
-        if (instructor.schedule_driving_lesson && Array.isArray(instructor.schedule_driving_lesson)) {
-        instructor.schedule_driving_lesson.forEach((slot: any) => {
-            if (slot && slot.date && slot.start && slot.end) {
-            events.push({
-                id: slot._id || `lesson_${Date.now()}_${Math.random()}`,
-              title: `${instructor.name} - ${slot.classType || 'Driving Lesson'}`,
-              start: `${slot.date}T${slot.start}:00`,
-              end: `${slot.date}T${slot.end}:00`,
-              instructorId: instructor._id,
-              instructorName: instructor.name,
-              classType: slot.classType || 'driving lesson',
                 status: slot.status || 'available',
-              amount: slot.amount,
-              backgroundColor: getStatusColor(slot.status),
-              borderColor: getStatusColor(slot.status),
-              extendedProps: {
+                amount: slot.amount,
+                studentId: slot.studentId,
+                studentName: slot.studentName,
+                paid: slot.paid,
+                backgroundColor: getStatusColor(slot.status),
+                borderColor: getStatusColor(slot.status),
+                extendedProps: {
+                  instructorId: instructor._id,
+                  instructorName: instructor.name,
+                  classType: 'driving test',
+                  status: slot.status || 'available',
+                  amount: slot.amount,
+                  studentId: slot.studentId,
+                  studentName: slot.studentName,
+                  paid: slot.paid,
+                  scheduleType: 'driving_test'
+                }
+              });
+            }
+          });
+        }
+
+        // Procesar schedule_driving_lesson
+        if (instructor.schedule_driving_lesson && Array.isArray(instructor.schedule_driving_lesson)) {
+          instructor.schedule_driving_lesson.forEach((slot: any) => {
+            if (slot && slot.date && slot.start && slot.end) {
+              events.push({
+                id: slot._id,
+                title: `${instructor.name} - Driving Lesson`,
+                start: `${slot.date}T${slot.start}:00`,
+                end: `${slot.date}T${slot.end}:00`,
                 instructorId: instructor._id,
                 instructorName: instructor.name,
-                classType: slot.classType || 'driving lesson',
-                  status: slot.status || 'available',
+                classType: 'driving lesson',
+                status: slot.status || 'available',
                 amount: slot.amount,
-                scheduleType: 'driving_lesson'
-              }
-            });
-          }
-        });
+                studentId: slot.studentId,
+                studentName: slot.studentName,
+                paid: slot.paid,
+                backgroundColor: getStatusColor(slot.status),
+                borderColor: getStatusColor(slot.status),
+                extendedProps: {
+                  instructorId: instructor._id,
+                  instructorName: instructor.name,
+                  classType: 'driving lesson',
+                  status: slot.status || 'available',
+                  amount: slot.amount,
+                  studentId: slot.studentId,
+                  studentName: slot.studentName,
+                  paid: slot.paid,
+                  scheduleType: 'driving_lesson'
+                }
+              });
+            }
+          });
         }
       } catch (instructorError) {
         console.error(`[EVENTS] Error processing instructor ${instructor._id}:`, instructorError);
@@ -104,12 +117,14 @@ function getStatusColor(status: string): string {
   switch (status) {
     case 'available':
       return '#10b981'; // green
+    case 'booked':
+      return '#3b82f6'; // blue
+    case 'pending':
+      return '#f59e0b'; // yellow
     case 'cancelled':
       return '#ef4444'; // red
     case 'expired':
       return '#6b7280'; // gray
-    case 'pending':
-      return '#f59e0b'; // yellow
     default:
       return '#3b82f6'; // blue
   }

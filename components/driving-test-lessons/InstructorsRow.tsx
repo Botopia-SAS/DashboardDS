@@ -7,6 +7,8 @@ export interface Instructor {
   name: string;
   photo?: string;
   email?: string;
+  canTeachDrivingTest?: boolean;
+  canTeachDrivingLesson?: boolean;
   schedule_driving_test?: any[];
   schedule_driving_lesson?: any[];
 }
@@ -31,7 +33,12 @@ const InstructorsRow: React.FC<InstructorsRowProps> = ({
 
   const filtered = useMemo(() =>
     instructors
-      .filter(i => i.name.toLowerCase().includes(search.toLowerCase()))
+      .filter(i => 
+        // Solo instructores que pueden enseñar driving test O driving lesson
+        (i.canTeachDrivingTest === true || i.canTeachDrivingLesson === true) &&
+        // Y que coincidan con la búsqueda
+        i.name.toLowerCase().includes(search.toLowerCase())
+      )
       .sort((a, b) => a.name.localeCompare(b.name)),
     [search, instructors]
   );

@@ -13,7 +13,19 @@ interface ScheduleModalProps {
   selectedDate?: string;
   selectedTime?: string;
   onScheduleCreated?: () => void;
-  selectedInstructor?: any;
+  selectedInstructor?: {
+    _id: string;
+    name: string;
+    email: string;
+    canTeachDrivingTest?: boolean;
+    canTeachDrivingLesson?: boolean;
+  };
+  // Props para edición
+  isEditMode?: boolean;
+  eventData?: any;
+  onEventUpdate?: (data: any) => void;
+  onEventDelete?: (id: string) => void;
+  onEventCopy?: (data: any) => void;
 }
 
 interface User {
@@ -29,13 +41,21 @@ const ScheduleModal: React.FC<ScheduleModalProps> = ({
   selectedDate,
   selectedTime,
   onScheduleCreated,
-  selectedInstructor
+  selectedInstructor,
+  // Props para edición
+  isEditMode,
+  eventData,
+  onEventUpdate,
+  onEventDelete,
+  onEventCopy
 }) => {
   const [loading, setLoading] = useState(false);
   const [errors, setErrors] = useState<string[]>([]);
   const [durationType, setDurationType] = useState("2"); // 1, 2, 3, or "custom"
   const [users, setUsers] = useState<User[]>([]);
   const [searchTerm, setSearchTerm] = useState("");
+  const [showConflictModal, setShowConflictModal] = useState(false);
+  const [conflictDetails, setConflictDetails] = useState<any>(null);
   
   const [formData, setFormData] = useState({
     classType: "driving lesson",
@@ -70,21 +90,111 @@ const ScheduleModal: React.FC<ScheduleModalProps> = ({
   useEffect(() => {
     if (isOpen) {
       const defaultEndTime = selectedTime ? getDefaultEndTime(selectedTime, 2) : "";
-      setFormData({
-        classType: "driving lesson",
-        start: selectedTime || "",
-        end: defaultEndTime,
-        status: "available",
-        amount: "",
-        recurrence: "none",
-        studentId: "",
-        paid: false
-      });
-      setDurationType("2");
+      
+      // Si estamos en modo edición, cargar datos del evento
+      if (isEditMode && eventData) {
+        
+        // Determinar el tipo de clase basado en las propiedades del evento
+        let classType = eventData.extendedProps?.classType || "";
+        
+        // Si no hay classType en extendedProps, intentar determinarlo por el color o título
+        if (!classType) {
+          if (eventData.title?.includes("Driving Test")) {
+            classType = "driving test";
+          } else if (eventData.title?.includes("Driving Lesson")) {
+            classType = "driving lesson";
+          }
+        }
+        
+        // También verificar si hay classType directamente en eventData
+        if (!classType && eventData.classType) {
+          classType = eventData.classType;
+        }
+        
+        // Parsear las fechas correctamente
+        const startDate = new Date(eventData.start);
+        const endDate = new Date(eventData.end);
+        
+        // Formatear las horas en formato HH:mm para los inputs
+        const formatTimeForInput = (date: Date) => {
+          const hours = date.getHours().toString().padStart(2, '0');
+          const minutes = date.getMinutes().toString().padStart(2, '0');
+          return `${hours}:${minutes}`;
+        };
+        
+        const startTime = formatTimeForInput(startDate);
+        const endTime = formatTimeForInput(endDate);
+        
+        const newFormData = {
+          classType: classType || "driving test", // Forzar valor por defecto si está vacío
+          start: startTime,
+          end: endTime,
+          status: eventData.extendedProps?.status || "available",
+          amount: eventData.extendedProps?.amount ? eventData.extendedProps.amount.toString() : "0.00",
+          studentId: eventData.extendedProps?.studentId || "",
+          paid: eventData.extendedProps?.paid || false,
+          recurrence: "none"
+        };
+        
+        setFormData(newFormData);
+        
+        // Actualizar searchTerm si hay un estudiante
+        if (eventData.extendedProps?.studentName) {
+          setSearchTerm(eventData.extendedProps.studentName);
+        }
+        
+        // Calcular duración para el botón de duración
+        const durationHours = Math.round((endDate.getTime() - startDate.getTime()) / (1000 * 60 * 60));
+        setDurationType(durationHours.toString());
+      } else {
+        // Determinar el class type por defecto según los permisos del instructor
+        let defaultClassType = "driving lesson";
+        if (selectedInstructor) {
+          if (selectedInstructor.canTeachDrivingTest && !selectedInstructor.canTeachDrivingLesson) {
+            defaultClassType = "driving test";
+          } else if (selectedInstructor.canTeachDrivingLesson && !selectedInstructor.canTeachDrivingTest) {
+            defaultClassType = "driving lesson";
+          } else if (selectedInstructor.canTeachDrivingTest && selectedInstructor.canTeachDrivingLesson) {
+            // Si puede ambos, mantener driving lesson como default
+            defaultClassType = "driving lesson";
+          }
+        }
+        
+        setFormData({
+          classType: defaultClassType,
+          start: selectedTime || "",
+          end: getDefaultEndTime(selectedTime || "", 2),
+          status: "available",
+          amount: "",
+          recurrence: "none",
+          studentId: "",
+          paid: false
+        });
+        setDurationType("2");
+        setSearchTerm("");
+      }
       setErrors([]);
-      setSearchTerm("");
     }
-  }, [isOpen, selectedTime]);
+  }, [isOpen, selectedTime, selectedInstructor, isEditMode, eventData]);
+
+  // Forzar que el classType se mantenga si está vacío pero tenemos eventData
+  useEffect(() => {
+    if (isEditMode && !formData.classType && eventData) {
+      let forcedClassType = eventData.extendedProps?.classType || "";
+      if (!forcedClassType && eventData.title?.includes("Driving Test")) {
+        forcedClassType = "driving test";
+      } else if (!forcedClassType && eventData.title?.includes("Driving Lesson")) {
+        forcedClassType = "driving lesson";
+      }
+      
+      if (forcedClassType) {
+        setFormData(prev => ({
+          ...prev,
+          classType: forcedClassType
+        }));
+      }
+    }
+  }, [formData.classType, isEditMode, eventData]);
 
   const getDefaultEndTime = (startTime: string, hours: number) => {
     if (!startTime) return "";
@@ -132,6 +242,7 @@ const ScheduleModal: React.FC<ScheduleModalProps> = ({
     if (!formData.start) newErrors.push("Start time is required");
     if (!formData.end) newErrors.push("End time is required");
     if (!formData.status) newErrors.push("Status is required");
+    if (!formData.amount || formData.amount === "0" || formData.amount === "0.00") newErrors.push("Amount is required and must be greater than 0");
     if (formData.start >= formData.end) newErrors.push("End time must be after start time");
     
     // Validate student ID for driving test with booked/pending status
@@ -145,10 +256,80 @@ const ScheduleModal: React.FC<ScheduleModalProps> = ({
     return newErrors.length === 0;
   };
 
+  // Función para validar conflictos de horarios
+  const validateScheduleConflict = async () => {
+    if (!selectedInstructor?._id || !selectedDate || !formData.start || !formData.end) {
+      return false;
+    }
+
+    try {
+      const response = await fetch(`/api/driving-test-lessons/events?instructorId=${selectedInstructor._id}`);
+      if (!response.ok) return false;
+
+      const events = await response.json();
+      
+      // Verificar conflictos con eventos existentes
+      for (const event of events) {
+        const eventDate = event.start.split('T')[0];
+        
+        // Solo verificar eventos del mismo día
+        if (eventDate === selectedDate) {
+          const eventStart = event.start.split('T')[1].slice(0, 5); // HH:mm
+          const eventEnd = event.end.split('T')[1].slice(0, 5); // HH:mm
+          
+          // Verificar si hay superposición
+          if (
+            (formData.start < eventEnd && formData.end > eventStart) ||
+            (eventStart < formData.end && eventEnd > formData.start)
+          ) {
+            return {
+              hasConflict: true,
+              conflictingEvent: event
+            };
+          }
+        }
+      }
+      
+      return { hasConflict: false };
+    } catch (error) {
+      console.error("Error validating schedule conflict:", error);
+      return false;
+    }
+  };
+
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     
+    if (!selectedInstructor?._id) {
+      alert("No instructor selected");
+      return;
+    }
+    
     if (!validateForm()) {
+      return;
+    }
+
+    // Validación adicional para amount
+    if (!formData.amount || parseFloat(formData.amount) <= 0) {
+      setErrors(["Amount is required and must be greater than 0"]);
+      return;
+    }
+
+    // Validar conflictos de horarios
+    const conflictValidation = await validateScheduleConflict();
+    if (conflictValidation && conflictValidation.hasConflict) {
+      const conflictingEvent = conflictValidation.conflictingEvent;
+      const conflictTime = `${conflictingEvent.start.split('T')[1].slice(0, 5)} - ${conflictingEvent.end.split('T')[1].slice(0, 5)}`;
+      const conflictType = conflictingEvent.classType === 'driving test' ? 'Test' : 'Lesson';
+      const conflictStatus = conflictingEvent.status;
+      
+      setConflictDetails({
+        type: conflictType,
+        status: conflictStatus,
+        time: conflictTime,
+        date: selectedDate
+      });
+      setShowConflictModal(true);
       return;
     }
 
@@ -158,6 +339,10 @@ const ScheduleModal: React.FC<ScheduleModalProps> = ({
       const endpoint = formData.classType === "driving test" 
         ? "/api/driving-test-lessons/driving-test"
         : "/api/driving-test-lessons/driving-lesson";
+
+      // Obtener el nombre del estudiante si está seleccionado
+      const selectedUser = users.find(user => user._id === formData.studentId);
+      const studentName = selectedUser ? `${selectedUser.firstName} ${selectedUser.lastName}` : null;
 
       const requestBody = {
         instructorId: selectedInstructor._id,
@@ -169,7 +354,10 @@ const ScheduleModal: React.FC<ScheduleModalProps> = ({
         recurrence: formData.recurrence,
         ...(formData.classType === "driving test" && { 
           classType: "driving test",
-          ...(formData.studentId && { studentId: formData.studentId }),
+          ...(formData.studentId && { 
+            studentId: formData.studentId,
+            studentName: studentName
+          }),
           ...(formData.status === "booked" || formData.status === "pending" ? { paid: formData.paid } : {})
         })
       };
@@ -183,12 +371,23 @@ const ScheduleModal: React.FC<ScheduleModalProps> = ({
       });
 
       if (response.ok) {
-        alert("Schedule created successfully!");
+        // Schedule created successfully - close modal without alert
         onScheduleCreated?.();
         onClose();
       } else {
         const error = await response.json();
-        alert(`Error: ${error.message}`);
+        if (response.status === 409) {
+          setConflictDetails({
+            type: "Class",
+            status: "Scheduled",
+            time: `${formData.start} - ${formData.end}`,
+            date: selectedDate,
+            message: error.message
+          });
+          setShowConflictModal(true);
+        } else {
+          alert(`Error: ${error.message}`);
+        }
       }
     } catch (error) {
       console.error("Error creating schedule:", error);
@@ -198,9 +397,113 @@ const ScheduleModal: React.FC<ScheduleModalProps> = ({
     }
   };
 
+  // Funciones para edición
+  const handleUpdate = async () => {
+    if (!validateForm()) {
+      return;
+    }
+
+    // Validación adicional para amount
+    if (!formData.amount || parseFloat(formData.amount) <= 0) {
+      setErrors(["Amount is required and must be greater than 0"]);
+      return;
+    }
+
+    setLoading(true);
+    try {
+      const selectedUser = users.find(user => user._id === formData.studentId);
+      const studentName = selectedUser ? `${selectedUser.firstName} ${selectedUser.lastName}` : null;
+
+      // Obtener el classType original del evento
+      const originalClassType = eventData?.extendedProps?.classType || eventData?.classType;
+      const eventId = eventData?.id || eventData?._id;
+
+      const updateData = {
+        eventId: eventId,
+        instructorId: selectedInstructor?._id,
+        classType: formData.classType,
+        date: selectedDate,
+        start: formData.start,
+        end: formData.end,
+        status: formData.status,
+        amount: formData.amount ? parseFloat(formData.amount) : null,
+        studentId: formData.studentId || null,
+        studentName: studentName,
+        paid: formData.paid,
+        originalClassType
+      };
+
+      if (onEventUpdate) {
+        await onEventUpdate(updateData);
+      }
+      onClose();
+    } catch (error) {
+      console.error("Error updating event:", error);
+      alert("Error updating event");
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const handleDelete = async () => {
+    const eventId = eventData?.id || eventData?._id;
+    
+    if (!eventId) {
+      return;
+    }
+    
+    setLoading(true);
+    try {
+      if (onEventDelete) {
+        await onEventDelete(eventId);
+      }
+      onClose();
+    } catch (error) {
+      console.error("Error deleting event:", error);
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const handleCopy = async () => {
+    try {
+      // Validación para amount antes de copiar
+      if (!formData.amount || parseFloat(formData.amount) <= 0) {
+        setErrors(["Amount is required and must be greater than 0"]);
+        return;
+      }
+
+      const selectedUser = users.find(user => user._id === formData.studentId);
+      const studentName = selectedUser ? `${selectedUser.firstName} ${selectedUser.lastName}` : null;
+
+      const copyData = {
+        instructorId: selectedInstructor?._id,
+        classType: formData.classType,
+        date: selectedDate,
+        start: formData.start,
+        end: formData.end,
+        status: formData.status,
+        amount: formData.amount ? parseFloat(formData.amount) : null,
+        studentId: formData.studentId || null,
+        studentName: studentName,
+        paid: formData.paid
+      };
+
+      if (onEventCopy) {
+        await onEventCopy(copyData);
+      }
+      onClose();
+    } catch (error) {
+      console.error("Error copying event:", error);
+      alert("Error copying event");
+    }
+  };
+
   // Check if we should show additional fields for driving test
-  const showDrivingTestFields = formData.classType === "driving test" && 
-    (formData.status === "booked" || formData.status === "pending");
+  const showDrivingTestFields = (formData.classType === "driving test" && 
+    (formData.status === "booked" || formData.status === "pending")) || 
+    (isEditMode && eventData?.extendedProps?.classType === "driving test" && 
+     (eventData.extendedProps?.status === "booked" || eventData.extendedProps?.status === "pending"));
 
   // Filter users based on search term
   const filteredUsers = users.filter(user => 
@@ -210,13 +513,17 @@ const ScheduleModal: React.FC<ScheduleModalProps> = ({
   // Get selected user name for display
   const selectedUser = users.find(user => user._id === formData.studentId);
 
+
+
   if (!isOpen) return null;
 
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center">
       <div className="bg-white rounded-lg shadow-lg border p-6 w-full max-w-2xl mx-4">
         <div className="flex justify-between items-center mb-4">
-          <h2 className="text-lg font-semibold">Configure Schedule</h2>
+          <h2 className="text-lg font-semibold">
+            {isEditMode ? "Edit Schedule" : "Configure Schedule"}
+          </h2>
           <button
             onClick={onClose}
             className="text-gray-400 hover:text-gray-600 text-xl font-bold"
@@ -251,10 +558,11 @@ const ScheduleModal: React.FC<ScheduleModalProps> = ({
         
         <form onSubmit={handleSubmit} className="space-y-4">
           <div>
-            <Label>Class type *</Label>
-            <Select 
-              value={formData.classType} 
+            <Label>Class type <span className="text-red-500">*</span></Label>
+            <Select
+              value={formData.classType || (isEditMode && eventData ? (eventData.extendedProps?.classType || (eventData.title?.includes("Driving Test") ? "driving test" : "driving lesson")) : "")}
               onValueChange={(value) => handleInputChange("classType", value)}
+              required
             >
               <SelectTrigger className="w-full">
                 <SelectValue placeholder="Select class type" />
@@ -364,7 +672,7 @@ const ScheduleModal: React.FC<ScheduleModalProps> = ({
           </div>
 
           <div>
-            <Label>Amount ($)</Label>
+            <Label>Amount ($) <span className="text-red-500">*</span></Label>
             <Input
               type="number"
               value={formData.amount}
@@ -373,6 +681,7 @@ const ScheduleModal: React.FC<ScheduleModalProps> = ({
               min="0"
               step="0.01"
               className="w-full"
+              required
             />
           </div>
 
@@ -486,12 +795,84 @@ const ScheduleModal: React.FC<ScheduleModalProps> = ({
             <Button type="button" variant="outline" onClick={onClose} disabled={loading}>
               Cancel
             </Button>
-            <Button type="submit" disabled={loading}>
-              {loading ? "Creating..." : "Create Schedule"}
-            </Button>
+            
+            {isEditMode ? (
+              <>
+                <Button 
+                  type="button" 
+                  onClick={handleCopy}
+                  disabled={loading}
+                  className="bg-gray-600 hover:bg-gray-700 text-white"
+                >
+                  Copy
+                </Button>
+                <Button 
+                  type="button" 
+                  onClick={handleUpdate}
+                  disabled={loading}
+                  className="bg-blue-600 hover:bg-blue-700 text-white"
+                >
+                  {loading ? "Updating..." : "Update"}
+                </Button>
+                <Button 
+                  type="button" 
+                  onClick={handleDelete}
+                  disabled={loading}
+                  className="bg-red-600 hover:bg-red-700 text-white"
+                >
+                  Delete
+                </Button>
+              </>
+            ) : (
+              <Button type="submit" disabled={loading}>
+                {loading ? "Creating..." : "Create Schedule"}
+              </Button>
+            )}
           </div>
         </form>
       </div>
+      
+      {/* Conflict Modal */}
+      {showConflictModal && conflictDetails && (
+        <div className="fixed inset-0 z-[9999] flex items-center justify-center bg-black bg-opacity-50">
+          <div className="bg-white rounded-lg shadow-xl max-w-md w-full mx-4 p-6">
+            <div className="flex items-center mb-4">
+              <div className="w-10 h-10 bg-red-100 rounded-full flex items-center justify-center mr-3">
+                <svg className="w-6 h-6 text-red-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-2.5L13.732 4c-.77-.833-1.964-.833-2.732 0L3.732 16.5c-.77.833.192 2.5 1.732 2.5z" />
+                </svg>
+              </div>
+              <h3 className="text-lg font-semibold text-gray-900">Schedule Conflict Detected</h3>
+            </div>
+            
+            <div className="mb-6">
+              <p className="text-gray-700 mb-3">
+                There's already a <span className="font-semibold">{conflictDetails.type}</span> ({conflictDetails.status}) scheduled during this time.
+              </p>
+              
+              <div className="bg-gray-50 rounded-lg p-3 mb-3">
+                <div className="text-sm text-gray-600">
+                  <div><span className="font-medium">Date:</span> {conflictDetails.date}</div>
+                  <div><span className="font-medium">Time:</span> {conflictDetails.time}</div>
+                </div>
+              </div>
+              
+              <p className="text-gray-600 text-sm">
+                Please choose a different time or date to avoid conflicts.
+              </p>
+            </div>
+            
+            <div className="flex justify-end">
+              <button
+                onClick={() => setShowConflictModal(false)}
+                className="px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors"
+              >
+                OK
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   );
 };

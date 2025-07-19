@@ -16,6 +16,7 @@ export async function POST(req: NextRequest) {
       status = "available",
       amount,
       studentId,
+      studentName,
       paid = false,
       recurrence = "none"
     } = body;
@@ -36,6 +37,15 @@ export async function POST(req: NextRequest) {
       );
     }
 
+    // Validar conflictos de horarios
+    const hasConflict = await validateScheduleConflict(instructor, date, start, end);
+    if (hasConflict) {
+      return NextResponse.json(
+        { message: "Schedule conflict detected. There's already a class scheduled during this time." },
+        { status: 409 }
+      );
+    }
+
     // Create the driving test schedule slot
     const scheduleSlot = {
       date,
@@ -45,6 +55,7 @@ export async function POST(req: NextRequest) {
       classType: "driving test",
       amount: amount || null,
       studentId: studentId || null,
+      studentName: studentName || null,
       paid: paid || false
     };
 
@@ -68,6 +79,46 @@ export async function POST(req: NextRequest) {
       { message: "Error adding driving test schedule slot" },
       { status: 500 }
     );
+  }
+}
+
+// Función para validar conflictos de horarios
+async function validateScheduleConflict(instructor: any, date: string, start: string, end: string) {
+  try {
+    // Verificar conflictos en schedule_driving_test
+    if (instructor.schedule_driving_test && Array.isArray(instructor.schedule_driving_test)) {
+      for (const slot of instructor.schedule_driving_test) {
+        if (slot.date === date) {
+          // Verificar si hay superposición
+          if (
+            (start < slot.end && end > slot.start) ||
+            (slot.start < end && slot.end > start)
+          ) {
+            return true; // Hay conflicto
+          }
+        }
+      }
+    }
+
+    // Verificar conflictos en schedule_driving_lesson
+    if (instructor.schedule_driving_lesson && Array.isArray(instructor.schedule_driving_lesson)) {
+      for (const slot of instructor.schedule_driving_lesson) {
+        if (slot.date === date) {
+          // Verificar si hay superposición
+          if (
+            (start < slot.end && end > slot.start) ||
+            (slot.start < end && slot.end > start)
+          ) {
+            return true; // Hay conflicto
+          }
+        }
+      }
+    }
+
+    return false; // No hay conflictos
+  } catch (error) {
+    console.error("Error validating schedule conflict:", error);
+    return false;
   }
 }
 

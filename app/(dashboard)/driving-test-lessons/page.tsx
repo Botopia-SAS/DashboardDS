@@ -4,9 +4,15 @@ import InstructorsRow, { Instructor } from "@/components/driving-test-lessons/In
 import { useEffect, useState } from "react";
 import Loader from "@/components/custom ui/Loader";
 
+// Extender la interfaz Instructor para incluir los campos de schedule
+interface ExtendedInstructor extends Instructor {
+  schedule_driving_test?: any[];
+  schedule_driving_lesson?: any[];
+}
+
 export default function DrivingTestLessonsPage() {
-  const [instructors, setInstructors] = useState<Instructor[]>([]);
-  const [selectedInstructor, setSelectedInstructor] = useState<Instructor | null>(null);
+  const [instructors, setInstructors] = useState<ExtendedInstructor[]>([]);
+  const [selectedInstructor, setSelectedInstructor] = useState<ExtendedInstructor | null>(null);
   const [loading, setLoading] = useState(true);
   const [initializingInstructor, setInitializingInstructor] = useState(false);
 
@@ -29,13 +35,29 @@ export default function DrivingTestLessonsPage() {
     }
   };
 
-  const handleInstructorSelect = async (instructor: Instructor) => {
+  const handleInstructorSelect = async (instructor: ExtendedInstructor) => {
     try {
       setInitializingInstructor(true);
       
-      // Check if instructor has schedule arrays, if not, initialize them
-      if (!instructor.schedule_driving_test || !instructor.schedule_driving_lesson) {
-        //console.log("Initializing schedule arrays for instructor:", instructor._id);
+      // Verificar si el instructor necesita inicializar los arrays de schedule
+      const needsInitialization = (
+        (instructor.canTeachDrivingTest && !instructor.schedule_driving_test) ||
+        (instructor.canTeachDrivingLesson && !instructor.schedule_driving_lesson)
+      );
+      
+      if (needsInitialization) {
+        // console.log("Initializing schedule arrays for instructor:", instructor._id);
+        
+        // Preparar los campos a inicializar
+        const updateFields: any = {};
+        
+        if (instructor.canTeachDrivingTest && !instructor.schedule_driving_test) {
+          updateFields.schedule_driving_test = [];
+        }
+        
+        if (instructor.canTeachDrivingLesson && !instructor.schedule_driving_lesson) {
+          updateFields.schedule_driving_lesson = [];
+        }
         
         const response = await fetch(`/api/instructors/${instructor._id}`, {
           method: 'PATCH',
@@ -43,13 +65,14 @@ export default function DrivingTestLessonsPage() {
             'Content-Type': 'application/json',
           },
           body: JSON.stringify({
-            schedule_driving_test: instructor.schedule_driving_test || [],
-            schedule_driving_lesson: instructor.schedule_driving_lesson || []
+            instructorId: instructor._id,
+            ...updateFields
           })
         });
 
         if (response.ok) {
           const updatedInstructor = await response.json();
+          // console.log("✅ Schedule arrays initialized successfully");
           setSelectedInstructor(updatedInstructor);
         } else {
           console.error("Failed to initialize instructor schedules");
@@ -57,8 +80,10 @@ export default function DrivingTestLessonsPage() {
           setSelectedInstructor(instructor);
         }
       } else {
+        // console.log("✅ Instructor already has required schedule arrays");
         setSelectedInstructor(instructor);
       }
+      
     } catch (error) {
       console.error("Error selecting instructor:", error);
       setSelectedInstructor(instructor);
