@@ -22,7 +22,7 @@ export const connectToDB = async (): Promise<void> => {
 
   // Si ya hay una conexión en caché, la reutiliza
   if (cached.conn) {
-    console.log("✅ Usando conexión en caché a MongoDB");
+    console.log("✅ Using cached MongoDB connection");
     isConnected = true;
     return;
   }
@@ -41,9 +41,9 @@ export const connectToDB = async (): Promise<void> => {
     (global as any).mongoose = cached;
 
     isConnected = true;
-    console.log("✅ MongoDB is connected correctamente");
+    console.log("✅ MongoDB is connected correctly");
   } catch (err) {
-    console.error("❌ Error conectando a MongoDB:", err);
+    console.error("❌ Error connecting to MongoDB:", err);
     throw new Error("Database connection failed");
   }
 };

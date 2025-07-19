@@ -12,6 +12,8 @@ const InstructorSchema = new mongoose.Schema(
     canTeachTicketClass: { type: Boolean, default: false },
     canTeachDrivingTest: { type: Boolean, default: false },
     canTeachDrivingLesson: { type: Boolean, default: false },
+    schedule_driving_test: [{ type: mongoose.Schema.Types.Mixed, default: [] }],
+    schedule_driving_lesson: [{ type: mongoose.Schema.Types.Mixed, default: [] }],
   },
   { timestamps: true }
 );
