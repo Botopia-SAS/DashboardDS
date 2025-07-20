@@ -26,6 +26,7 @@ export const GET = async (req: NextRequest) => {
       description: product.description,
       media: product.media,
       price: product.price,
+      duration: product.duration,
       category: product.category, // 🔥 Incluir `category`
       type: product.type, // 🔥 Incluir `type`
       buttonLabel: product.buttonLabel, // 🔥 Incluir `buttonLabel`
@@ -48,12 +49,13 @@ export const POST = async (req: NextRequest) => {
       hasImage,
       media,
       price,
+      duration,
       category,
       type,
       buttonLabel,
     } = await req.json();
 
-    if (!title || !description || !price || !category || !type || !buttonLabel) {
+    if (!title || !description || !price || !duration || !category || !type || !buttonLabel) {
       return new NextResponse("All fields are required", { status: 400 });
     }
 
@@ -65,6 +67,7 @@ export const POST = async (req: NextRequest) => {
       hasImage,
       media: processedMedia,
       price,
+      duration,
       category,
       type,
       buttonLabel,

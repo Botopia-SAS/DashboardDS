@@ -1,6 +1,7 @@
 import { connectToDB } from "@/lib/mongoDB";
 import { NextRequest, NextResponse } from "next/server";
 import Instructor from "@/lib/models/Instructor";
+import { generateEventId } from "@/lib/utils";
 
 export const dynamic = "force-dynamic";
 
@@ -18,7 +19,8 @@ export async function POST(req: NextRequest) {
       studentId,
       studentName,
       paid = false,
-      recurrence = "none"
+      recurrence = "none",
+      recurrenceEndDate
     } = body;
 
     if (!instructorId || !date || !start || !end) {
@@ -46,24 +48,66 @@ export async function POST(req: NextRequest) {
       );
     }
 
-    // Create the driving test schedule slot
-    const scheduleSlot = {
-      date,
-      start,
-      end,
-      status,
-      classType: "driving test",
-      amount: amount || null,
-      studentId: studentId || null,
-      studentName: studentName || null,
-      paid: paid || false
+    // Función para generar fechas recurrentes
+    const generateRecurrenceDates = (startDate: string, recurrence: string, endDate: string) => {
+      const dates = [];
+      const currentDate = new Date(startDate);
+      const endRecurrenceDate = new Date(endDate);
+      
+      while (currentDate <= endRecurrenceDate) {
+        dates.push(currentDate.toISOString().split('T')[0]);
+        
+        switch (recurrence) {
+          case 'daily':
+            currentDate.setDate(currentDate.getDate() + 1);
+            break;
+          case 'weekly':
+            currentDate.setDate(currentDate.getDate() + 7);
+            break;
+          case 'monthly':
+            currentDate.setMonth(currentDate.getMonth() + 1);
+            break;
+          default:
+            break;
+        }
+      }
+      
+      return dates;
     };
 
-    // Add the slot to the driving test schedule array
+    // Generar eventos recurrentes si es necesario
+    let eventsToCreate = [{ date, start, end }];
+    
+    if (recurrence && recurrence !== 'none' && recurrenceEndDate) {
+      const dates = generateRecurrenceDates(date, recurrence, recurrenceEndDate);
+      eventsToCreate = dates.map(d => ({ date: d, start, end }));
+    }
+
+    // Crear todos los eventos
+    const createdEvents = [];
+    for (const eventData of eventsToCreate) {
+      const eventId = generateEventId("driving_test", instructorId, eventData.date, start);
+      const scheduleSlot = {
+        _id: eventId,
+        date: eventData.date,
+        start,
+        end,
+        status,
+        classType: "driving test",
+        amount: amount || null,
+        studentId: studentId || null,
+        studentName: studentName || null,
+        paid: paid || false
+      };
+      
+      createdEvents.push(scheduleSlot);
+    }
+
+    // Add all slots to the driving test schedule array
     const updatedInstructor = await Instructor.findByIdAndUpdate(
       instructorId,
       {
-        $push: { schedule_driving_test: scheduleSlot }
+        $push: { schedule_driving_test: { $each: createdEvents } }
       },
       { new: true }
     );

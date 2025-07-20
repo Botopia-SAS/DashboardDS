@@ -25,14 +25,15 @@ import { Combobox } from "@/components/ui/combobox";
 import { Switch } from "@/components/ui/switch";
 
 const formSchema = z.object({
-  title: z.string().min(2).max(70),
-  description: z.string().min(2).max(500).trim(),
+  title: z.string().min(2, "Title must be at least 2 characters").max(70),
+  description: z.string().min(2, "Description must be at least 2 characters").max(500).trim(),
   hasImage: z.boolean().default(false),
   media: z.array(z.string()).default([]),
-  price: z.coerce.number().min(0.1),
+  price: z.coerce.number().min(0.1, "Price must be at least $0.10"),
+  duration: z.coerce.number().int("Duration must be a whole number").min(1, "Duration must be at least 1 hour").max(24, "Duration cannot exceed 24 hours"),
   category: z.enum(["General", "Road Skills for Life"]),
   type: z.enum(["Book", "Buy","Contact"]),
-  buttonLabel: z.string().min(1).max(20),
+  buttonLabel: z.string().min(1, "Button label is required").max(20),
 });
 
 interface ProductFormProps {
@@ -42,6 +43,7 @@ interface ProductFormProps {
     description: string;
     media: string[];
     price: number;
+    duration: number;
     category: "General" | "Road Skills for Life";
     type: "Book" | "Buy" | "Contact";
     buttonLabel: string;
@@ -60,6 +62,7 @@ const ProductForm: React.FC<ProductFormProps> = ({ initialData }) => {
       hasImage: (initialData?.media?.length ?? 0) > 0 || false,
       media: initialData?.media || [],
       price: initialData?.price ?? 0.1, // Usa `??` para evitar undefined
+      duration: initialData?.duration ?? 1,
       category: initialData?.category || "General",
       type: initialData?.type || "Book",
       buttonLabel: initialData?.buttonLabel || "",
@@ -101,6 +104,7 @@ const ProductForm: React.FC<ProductFormProps> = ({ initialData }) => {
         <h1 className="text-2xl font-semibold">Create Driving Lesson</h1>
       )}
       <Separator className="bg-gray-300 my-4" />
+      <p className="text-sm text-gray-600 mb-4">* Campos obligatorios</p>
       <Form {...form}>
         <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-9">
 
@@ -110,9 +114,9 @@ const ProductForm: React.FC<ProductFormProps> = ({ initialData }) => {
             name="title"
             render={({ field }) => (
               <FormItem>
-                <FormLabel>Title</FormLabel>
+                <FormLabel>Title *</FormLabel>
                 <FormControl>
-                  <Input placeholder="Enter title" {...field} className="border-gray-300 rounded-md shadow-sm" />
+                  <Input placeholder="Enter title" {...field} className="border-gray-300 rounded-md shadow-sm" required />
                 </FormControl>
                 <FormMessage />
               </FormItem>
@@ -125,9 +129,9 @@ const ProductForm: React.FC<ProductFormProps> = ({ initialData }) => {
             name="description"
             render={({ field }) => (
               <FormItem>
-                <FormLabel>Description</FormLabel>
+                <FormLabel>Description *</FormLabel>
                 <FormControl>
-                  <Textarea placeholder="Enter description" {...field} rows={4} className="border-gray-300 rounded-md shadow-sm" />
+                  <Textarea placeholder="Enter description" {...field} rows={4} className="border-gray-300 rounded-md shadow-sm" required />
                 </FormControl>
                 <FormMessage />
               </FormItem>
@@ -177,16 +181,30 @@ const ProductForm: React.FC<ProductFormProps> = ({ initialData }) => {
             />
           )}
 
-          {/* 🔹 PRICE y CATEGORY en una FILA */}
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-32">
+          {/* 🔹 PRICE, DURATION y CATEGORY en una FILA */}
+          <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
             <FormField
               control={form.control}
               name="price"
               render={({ field }) => (
                 <FormItem>
-                  <FormLabel>Price ($)</FormLabel>
+                  <FormLabel>Price ($) *</FormLabel>
                   <FormControl>
-                    <Input type="number" placeholder="Enter price" {...field} className="border-gray-300 rounded-md shadow-sm" />
+                    <Input type="number" placeholder="Enter price" {...field} className="border-gray-300 rounded-md shadow-sm" required />
+                  </FormControl>
+                  <FormMessage />
+                </FormItem>
+              )}
+            />
+
+            <FormField
+              control={form.control}
+              name="duration"
+              render={({ field }) => (
+                <FormItem>
+                  <FormLabel>Duration (hours) *</FormLabel>
+                  <FormControl>
+                    <Input type="number" step="1" min="1" placeholder="Enter duration" {...field} className="border-gray-300 rounded-md shadow-sm" required />
                   </FormControl>
                   <FormMessage />
                 </FormItem>
@@ -198,7 +216,7 @@ const ProductForm: React.FC<ProductFormProps> = ({ initialData }) => {
               name="category"
               render={({ field }) => (
                 <FormItem>
-                  <FormLabel>Category</FormLabel>
+                  <FormLabel>Category *</FormLabel>
                   <FormControl>
                     <Combobox
                       options={[
@@ -222,7 +240,7 @@ const ProductForm: React.FC<ProductFormProps> = ({ initialData }) => {
               name="type"
               render={({ field }) => (
                 <FormItem>
-                  <FormLabel>Type</FormLabel>
+                  <FormLabel>Type *</FormLabel>
                   <FormControl>
                     <Combobox
                       options={[
@@ -244,9 +262,9 @@ const ProductForm: React.FC<ProductFormProps> = ({ initialData }) => {
               name="buttonLabel"
               render={({ field }) => (
                 <FormItem>
-                  <FormLabel>Button Label</FormLabel>
+                  <FormLabel>Button Label *</FormLabel>
                   <FormControl>
-                    <Input placeholder="Enter button label (20 characters max)" {...field} maxLength={20} className="border-gray-300 rounded-md shadow-sm" />
+                    <Input placeholder="Enter button label (20 characters max)" {...field} maxLength={20} className="border-gray-300 rounded-md shadow-sm" required />
                   </FormControl>
                   <FormMessage />
                 </FormItem>

@@ -1,6 +1,7 @@
 import { connectToDB } from "@/lib/mongoDB";
 import { NextRequest, NextResponse } from "next/server";
 import Instructor from "@/lib/models/Instructor";
+import { generateEventId } from "@/lib/utils";
 
 export const dynamic = "force-dynamic";
 
@@ -41,9 +42,40 @@ export async function PUT(req: NextRequest) {
     }
 
     // Verificar que el evento existe en alguna de las colecciones
-    const eventExists = 
+    let eventExists = 
       (instructor.schedule_driving_test && instructor.schedule_driving_test.some((e: any) => e._id === eventId)) ||
       (instructor.schedule_driving_lesson && instructor.schedule_driving_lesson.some((e: any) => e._id === eventId));
+
+    // Si no se encuentra con _id, buscar por el patrón del ID generado
+    if (!eventExists) {
+      console.log(`Event not found with _id, trying to find by generated ID pattern`);
+      
+      // Buscar en schedule_driving_test
+      if (instructor.schedule_driving_test) {
+        const testEventIndex = instructor.schedule_driving_test.findIndex((e: any) => {
+          const generatedId = `driving_test_${instructor._id}_${e.date}_${e.start}_${instructor.schedule_driving_test.indexOf(e)}`;
+          return generatedId === eventId;
+        });
+        if (testEventIndex !== -1) {
+          eventExists = true;
+          // Actualizar el evento con un _id real
+          instructor.schedule_driving_test[testEventIndex]._id = eventId;
+        }
+      }
+
+      // Buscar en schedule_driving_lesson
+      if (instructor.schedule_driving_lesson) {
+        const lessonEventIndex = instructor.schedule_driving_lesson.findIndex((e: any) => {
+          const generatedId = `driving_lesson_${instructor._id}_${e.date}_${e.start}_${instructor.schedule_driving_lesson.indexOf(e)}`;
+          return generatedId === eventId;
+        });
+        if (lessonEventIndex !== -1) {
+          eventExists = true;
+          // Actualizar el evento con un _id real
+          instructor.schedule_driving_lesson[lessonEventIndex]._id = eventId;
+        }
+      }
+    }
 
     if (!eventExists) {
       return NextResponse.json(
@@ -54,6 +86,8 @@ export async function PUT(req: NextRequest) {
 
     // Si el classType cambió, necesitamos eliminar de una colección y agregar a la otra
     if (originalClassType && originalClassType !== classType) {
+      console.log(`Moving event from ${originalClassType} to ${classType}`);
+      
       // Primero, eliminar de ambas colecciones para asegurar limpieza
       await Instructor.updateOne(
         { _id: instructorId },
@@ -65,9 +99,10 @@ export async function PUT(req: NextRequest) {
         { $pull: { schedule_driving_lesson: { _id: eventId } } }
       );
 
-      // Crear el nuevo evento
+      // Crear el nuevo evento con un ID único
+      const newEventId = generateEventId(classType, instructorId, date, start);
       const newEvent = {
-        _id: eventId,
+        _id: newEventId,
         date,
         start,
         end,
@@ -96,7 +131,9 @@ export async function PUT(req: NextRequest) {
         );
       }
     } else {
-      // Actualizar en la misma colección
+      // Actualizar en la misma colección (mismo tipo de clase)
+      console.log(`Updating event in same class type: ${classType}`);
+      
       const updateData = {
         date,
         start,

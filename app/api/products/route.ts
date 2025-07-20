@@ -19,13 +19,14 @@ export const POST = async (req: NextRequest) => {
       hasImage,
       media,
       price,
+      duration,
       category,
       type,
       buttonLabel,
     } = await req.json();
 
-    if (!title || !description || !price || !category || !type || !buttonLabel) {
-      return new NextResponse("Title, description, media, and price are required", { status: 400 });
+    if (!title || !description || !price || !duration || !category || !type || !buttonLabel) {
+      return new NextResponse("Title, description, price, duration, category, type, and buttonLabel are required", { status: 400 });
     }
 
     // 🔹 Si `hasImage` es `false`, asegúrate de que `media` esté vacío
@@ -37,6 +38,7 @@ export const POST = async (req: NextRequest) => {
       hasImage,
       media: processedMedia,
       price,
+      duration,
       category,
       type,
       buttonLabel,

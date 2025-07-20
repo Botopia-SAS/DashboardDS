@@ -29,10 +29,13 @@ export async function GET(req: NextRequest) {
       try {
         // Procesar schedule_driving_test
         if (instructor.schedule_driving_test && Array.isArray(instructor.schedule_driving_test)) {
-          instructor.schedule_driving_test.forEach((slot: any) => {
+          instructor.schedule_driving_test.forEach((slot: any, index: number) => {
             if (slot && slot.date && slot.start && slot.end) {
+              // Generar ID único si no existe
+              const eventId = slot._id || `driving_test_${instructor._id}_${slot.date}_${slot.start}_${index}`;
+              
               events.push({
-                id: slot._id,
+                id: eventId,
                 title: `${instructor.name} - Driving Test`,
                 start: `${slot.date}T${slot.start}:00`,
                 end: `${slot.date}T${slot.end}:00`,
@@ -55,7 +58,8 @@ export async function GET(req: NextRequest) {
                   studentId: slot.studentId,
                   studentName: slot.studentName,
                   paid: slot.paid,
-                  scheduleType: 'driving_test'
+                  scheduleType: 'driving_test',
+                  eventId: eventId
                 }
               });
             }
@@ -64,10 +68,13 @@ export async function GET(req: NextRequest) {
 
         // Procesar schedule_driving_lesson
         if (instructor.schedule_driving_lesson && Array.isArray(instructor.schedule_driving_lesson)) {
-          instructor.schedule_driving_lesson.forEach((slot: any) => {
+          instructor.schedule_driving_lesson.forEach((slot: any, index: number) => {
             if (slot && slot.date && slot.start && slot.end) {
+              // Generar ID único si no existe
+              const eventId = slot._id || `driving_lesson_${instructor._id}_${slot.date}_${slot.start}_${index}`;
+              
               events.push({
-                id: slot._id,
+                id: eventId,
                 title: `${instructor.name} - Driving Lesson`,
                 start: `${slot.date}T${slot.start}:00`,
                 end: `${slot.date}T${slot.end}:00`,
@@ -90,7 +97,11 @@ export async function GET(req: NextRequest) {
                   studentId: slot.studentId,
                   studentName: slot.studentName,
                   paid: slot.paid,
-                  scheduleType: 'driving_lesson'
+                  pickupLocation: slot.pickupLocation,
+                  dropoffLocation: slot.dropoffLocation,
+                  selectedProduct: slot.selectedProduct,
+                  scheduleType: 'driving_lesson',
+                  eventId: eventId
                 }
               });
             }

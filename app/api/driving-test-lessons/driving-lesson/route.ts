@@ -1,6 +1,22 @@
 import { connectToDB } from "@/lib/mongoDB";
 import { NextRequest, NextResponse } from "next/server";
 import Instructor from "@/lib/models/Instructor";
+import { generateEventId } from "@/lib/utils";
+
+// Tipo para el instructor con las propiedades necesarias
+interface InstructorWithSchedule {
+  schedule_driving_test?: Array<{
+    date: string;
+    start: string;
+    end: string;
+  }>;
+  schedule_driving_lesson?: Array<{
+    date: string;
+    start: string;
+    end: string;
+    classType: string;
+  }>;
+}
 
 export const dynamic = "force-dynamic";
 
@@ -18,6 +34,9 @@ export async function POST(req: NextRequest) {
       amount,
       pickupLocation = "",
       dropoffLocation = "",
+      selectedProduct = "",
+      recurrence = "none",
+      recurrenceEndDate
     } = body;
 
     if (!instructorId || !date || !start || !end) {
@@ -45,27 +64,75 @@ export async function POST(req: NextRequest) {
       );
     }
 
-    // Create the driving lesson schedule slot
-    const scheduleSlot = {
-      date,
-      start,
-      end,
-      status,
-      classType,
-      amount: amount || null,
-      pickupLocation,
-      dropoffLocation,
-      instructorId,
-      booked: false,
-      studentId: null,
-      paid: false,
+    // Función para generar fechas recurrentes
+    const generateRecurrenceDates = (startDate: string, recurrence: string, endDate: string) => {
+      const dates = [];
+      const currentDate = new Date(startDate);
+      const endRecurrenceDate = new Date(endDate);
+      
+      while (currentDate <= endRecurrenceDate) {
+        dates.push(currentDate.toISOString().split('T')[0]);
+        
+        switch (recurrence) {
+          case 'daily':
+            currentDate.setDate(currentDate.getDate() + 1);
+            break;
+          case 'weekly':
+            currentDate.setDate(currentDate.getDate() + 7);
+            break;
+          case 'monthly':
+            currentDate.setMonth(currentDate.getMonth() + 1);
+            break;
+          default:
+            break;
+        }
+      }
+      
+      return dates;
     };
 
-    // Add the slot to the driving lesson schedule array
+    // Generar eventos recurrentes si es necesario
+    let eventsToCreate = [{ date, start, end }];
+    
+    //console.log("🔄 Processing recurrence:", { recurrence, recurrenceEndDate, date });
+    
+    if (recurrence && recurrence !== 'none' && recurrenceEndDate) {
+      const dates = generateRecurrenceDates(date, recurrence, recurrenceEndDate);
+      //console.log("📅 Generated recurrence dates:", dates);
+      eventsToCreate = dates.map(d => ({ date: d, start, end }));
+    }
+    
+    //console.log("🎯 Events to create:", eventsToCreate.length);
+
+    // Crear todos los eventos
+    const createdEvents = [];
+    for (const eventData of eventsToCreate) {
+      const eventId = generateEventId("driving_lesson", instructorId, eventData.date, start);
+      const scheduleSlot = {
+        _id: eventId,
+        date: eventData.date,
+        start,
+        end,
+        status,
+        classType,
+        pickupLocation,
+        dropoffLocation,
+        selectedProduct,
+        studentId: body.studentId || null,
+        studentName: body.studentName || null,
+        paid: body.paid || false,
+      };
+      
+      createdEvents.push(scheduleSlot);
+    }
+
+    //console.log("✅ Created events:", createdEvents.length);
+    
+    // Add all slots to the driving lesson schedule array
     const updatedInstructor = await Instructor.findByIdAndUpdate(
       instructorId,
       {
-        $push: { schedule_driving_lesson: scheduleSlot }
+        $push: { schedule_driving_lesson: { $each: createdEvents } }
       },
       { new: true }
     );
@@ -85,7 +152,7 @@ export async function POST(req: NextRequest) {
 }
 
 // Función para validar conflictos de horarios
-async function validateScheduleConflict(instructor: any, date: string, start: string, end: string) {
+async function validateScheduleConflict(instructor: InstructorWithSchedule, date: string, start: string, end: string) {
   try {
     // Verificar conflictos en schedule_driving_test
     if (instructor.schedule_driving_test && Array.isArray(instructor.schedule_driving_test)) {
@@ -150,7 +217,7 @@ export async function GET(req: NextRequest) {
     
     // Filter by class type if specified
     if (classType) {
-      schedule = schedule.filter((slot: any) => slot.classType === classType);
+      schedule = schedule.filter((slot: { classType: string }) => slot.classType === classType);
     }
 
     return NextResponse.json(schedule, { status: 200 });

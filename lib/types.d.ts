@@ -12,16 +12,11 @@ type ProductType = {
   description: string;
   hasImage: boolean; // 🔹 Nuevo campo booleano
   media: string[]; // 🔹 Ahora soporta múltiples imágenes
-  category: "General" | "Road Skills for Life"; // 🔹 Usamos enum para consistencia
-  type: "Book" | "Buy"; // 🔹 Nuevo campo de tipo de producto
-  buttonLabel: string; // 🔹 Texto personalizado para el botón
-  category: string;
-  collections: [CollectionType];
-  tags: [string];
-  sizes: [string];
-  colors: [string];
   price: number;
-  expense: number;
+  duration: number; // 🔹 Duración en horas
+  category: "General" | "Road Skills for Life"; // 🔹 Usamos enum para consistencia
+  type: "Book" | "Buy" | "Contact"; // 🔹 Nuevo campo de tipo de producto
+  buttonLabel: string; // 🔹 Texto personalizado para el botón
   createdAt: Date;
   updatedAt: Date;
 }
