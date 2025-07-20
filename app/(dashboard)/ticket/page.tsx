@@ -10,12 +10,6 @@ import Loader from "@/components/custom ui/Loader";
 
 export default function Pages() {
   const { setClassType } = useClassTypeStore();
-  const [modalOpen, setModalOpen] = useState(false);
-  const [modalData, setModalData] = useState<any>(null);
-  const [instructors, setInstructors] = useState<any[]>([]);
-  const [locations, setLocations] = useState<any[]>([]);
-  const [classes, setClasses] = useState<any[]>([]);
-  const [students, setStudents] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {

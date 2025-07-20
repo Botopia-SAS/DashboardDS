@@ -1,7 +1,6 @@
 "use client";
 
 import React, { useState, useEffect } from "react";
-import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -22,10 +21,52 @@ interface ScheduleModalProps {
   };
   // Props para edición
   isEditMode?: boolean;
-  eventData?: any;
-  onEventUpdate?: (data: any) => void;
+  eventData?: {
+    _id?: string;
+    title?: string;
+    start: string;
+    end: string;
+    classType?: string;
+    extendedProps?: {
+      classType?: string;
+      status?: string;
+      amount?: number;
+      studentId?: string;
+      studentName?: string;
+      paid?: boolean;
+    };
+  };
+  onEventUpdate?: (data: {
+    _id?: string;
+    title?: string;
+    start: string;
+    end: string;
+    classType?: string;
+    extendedProps?: {
+      classType?: string;
+      status?: string;
+      amount?: number;
+      studentId?: string;
+      studentName?: string;
+      paid?: boolean;
+    };
+  }) => void;
   onEventDelete?: (id: string) => void;
-  onEventCopy?: (data: any) => void;
+  onEventCopy?: (data: {
+    _id?: string;
+    title?: string;
+    start: string;
+    end: string;
+    classType?: string;
+    extendedProps?: {
+      classType?: string;
+      status?: string;
+      amount?: number;
+      studentId?: string;
+      studentName?: string;
+      paid?: boolean;
+    };
+  }) => void;
 }
 
 interface User {
@@ -55,7 +96,13 @@ const ScheduleModal: React.FC<ScheduleModalProps> = ({
   const [users, setUsers] = useState<User[]>([]);
   const [searchTerm, setSearchTerm] = useState("");
   const [showConflictModal, setShowConflictModal] = useState(false);
-  const [conflictDetails, setConflictDetails] = useState<any>(null);
+  const [conflictDetails, setConflictDetails] = useState<{
+    type: string;
+    status: string;
+    date: string;
+    time: string;
+    message?: string;
+  } | null>(null);
   
   const [formData, setFormData] = useState({
     classType: "driving lesson",
@@ -89,8 +136,6 @@ const ScheduleModal: React.FC<ScheduleModalProps> = ({
 
   useEffect(() => {
     if (isOpen) {
-      const defaultEndTime = selectedTime ? getDefaultEndTime(selectedTime, 2) : "";
-      
       // Si estamos en modo edición, cargar datos del evento
       if (isEditMode && eventData) {
         
@@ -323,12 +368,12 @@ const ScheduleModal: React.FC<ScheduleModalProps> = ({
       const conflictType = conflictingEvent.classType === 'driving test' ? 'Test' : 'Lesson';
       const conflictStatus = conflictingEvent.status;
       
-      setConflictDetails({
-        type: conflictType,
-        status: conflictStatus,
-        time: conflictTime,
-        date: selectedDate
-      });
+              setConflictDetails({
+          type: conflictType,
+          status: conflictStatus,
+          time: conflictTime,
+          date: selectedDate || ""
+        });
       setShowConflictModal(true);
       return;
     }
@@ -345,8 +390,8 @@ const ScheduleModal: React.FC<ScheduleModalProps> = ({
       const studentName = selectedUser ? `${selectedUser.firstName} ${selectedUser.lastName}` : null;
 
       const requestBody = {
-        instructorId: selectedInstructor._id,
-        date: selectedDate,
+        instructorId: selectedInstructor?._id || "",
+        date: selectedDate || "",
         start: formData.start,
         end: formData.end,
         status: formData.status,
@@ -381,7 +426,7 @@ const ScheduleModal: React.FC<ScheduleModalProps> = ({
             type: "Class",
             status: "Scheduled",
             time: `${formData.start} - ${formData.end}`,
-            date: selectedDate,
+            date: selectedDate || "",
             message: error.message
           });
           setShowConflictModal(true);
@@ -416,13 +461,13 @@ const ScheduleModal: React.FC<ScheduleModalProps> = ({
 
       // Obtener el classType original del evento
       const originalClassType = eventData?.extendedProps?.classType || eventData?.classType;
-      const eventId = eventData?.id || eventData?._id;
+      const eventId = eventData?._id;
 
       const updateData = {
         eventId: eventId,
-        instructorId: selectedInstructor?._id,
+        instructorId: selectedInstructor?._id || "",
         classType: formData.classType,
-        date: selectedDate,
+        date: selectedDate || "",
         start: formData.start,
         end: formData.end,
         status: formData.status,
@@ -446,7 +491,7 @@ const ScheduleModal: React.FC<ScheduleModalProps> = ({
   };
 
   const handleDelete = async () => {
-    const eventId = eventData?.id || eventData?._id;
+    const eventId = eventData?._id;
     
     if (!eventId) {
       return;
@@ -847,7 +892,7 @@ const ScheduleModal: React.FC<ScheduleModalProps> = ({
             
             <div className="mb-6">
               <p className="text-gray-700 mb-3">
-                There's already a <span className="font-semibold">{conflictDetails.type}</span> ({conflictDetails.status}) scheduled during this time.
+                There&apos;s already a <span className="font-semibold">{conflictDetails.type}</span> ({conflictDetails.status}) scheduled during this time.
               </p>
               
               <div className="bg-gray-50 rounded-lg p-3 mb-3">
