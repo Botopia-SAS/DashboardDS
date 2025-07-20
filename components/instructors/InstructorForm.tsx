@@ -88,7 +88,7 @@ const InstructorForm = ({ initialData }: { initialData?: InstructorData }) => {
           <AlertDialogHeader>
             <AlertDialogTitle className="text-black">⚠️ Warning: Ticket Class Deactivation</AlertDialogTitle>
             <AlertDialogDescription className="text-gray-700">
-              You are about to deactivate the "Ticket Class" capability for this instructor. 
+              You are about to deactivate the &quot;Ticket Class&quot; capability for this instructor. 
               This action will automatically delete ALL ticket classes associated with this instructor.
               <br /><br />
               <strong>This action cannot be undone.</strong> All scheduled ticket classes for this instructor will be permanently removed.

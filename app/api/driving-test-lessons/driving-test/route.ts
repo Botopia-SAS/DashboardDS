@@ -51,7 +51,7 @@ export async function POST(req: NextRequest) {
     // Función para generar fechas recurrentes
     const generateRecurrenceDates = (startDate: string, recurrence: string, endDate: string) => {
       const dates = [];
-      let currentDate = new Date(startDate);
+      const currentDate = new Date(startDate);
       const endRecurrenceDate = new Date(endDate);
       
       while (currentDate <= endRecurrenceDate) {

@@ -3,6 +3,21 @@ import { NextRequest, NextResponse } from "next/server";
 import Instructor from "@/lib/models/Instructor";
 import { generateEventId } from "@/lib/utils";
 
+// Tipo para el instructor con las propiedades necesarias
+interface InstructorWithSchedule {
+  schedule_driving_test?: Array<{
+    date: string;
+    start: string;
+    end: string;
+  }>;
+  schedule_driving_lesson?: Array<{
+    date: string;
+    start: string;
+    end: string;
+    classType: string;
+  }>;
+}
+
 export const dynamic = "force-dynamic";
 
 export async function POST(req: NextRequest) {
@@ -51,7 +66,7 @@ export async function POST(req: NextRequest) {
     // Función para generar fechas recurrentes
     const generateRecurrenceDates = (startDate: string, recurrence: string, endDate: string) => {
       const dates = [];
-      let currentDate = new Date(startDate);
+      const currentDate = new Date(startDate);
       const endRecurrenceDate = new Date(endDate);
       
       while (currentDate <= endRecurrenceDate) {
@@ -130,7 +145,7 @@ export async function POST(req: NextRequest) {
 }
 
 // Función para validar conflictos de horarios
-async function validateScheduleConflict(instructor: any, date: string, start: string, end: string) {
+async function validateScheduleConflict(instructor: InstructorWithSchedule, date: string, start: string, end: string) {
   try {
     // Verificar conflictos en schedule_driving_test
     if (instructor.schedule_driving_test && Array.isArray(instructor.schedule_driving_test)) {
@@ -195,7 +210,7 @@ export async function GET(req: NextRequest) {
     
     // Filter by class type if specified
     if (classType) {
-      schedule = schedule.filter((slot: any) => slot.classType === classType);
+      schedule = schedule.filter((slot: { classType: string }) => slot.classType === classType);
     }
 
     return NextResponse.json(schedule, { status: 200 });
