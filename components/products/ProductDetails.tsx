@@ -10,6 +10,7 @@ type ProductType = {
   description: string;
   media: string[];
   price: number;
+  duration: number; // 🔹 Duración en horas
   category: "General" | "Road Skills for Life"; // 🔥 Incluir `category`
   type: "Book" | "Buy" | "Contact"; // 🔥 Incluir `type`
   buttonLabel: string; // 🔥 Incluir `buttonLabel`

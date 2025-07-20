@@ -26,6 +26,11 @@ export const columns: ColumnDef<ProductType>[] = [
     cell: ({ row }) => <p className="font-medium text-gray-700">${row.original.price.toFixed(2)}</p>,
   },
   {
+    accessorKey: "duration",
+    header: "Duration (hrs)",
+    cell: ({ row }) => <p className="font-medium text-gray-700">{row.original.duration} hrs</p>,
+  },
+  {
     accessorKey: "media",
     header: "Image",
     cell: ({ row }) =>

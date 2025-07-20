@@ -5,6 +5,7 @@ const productSchema = new mongoose.Schema({
   description: { type: String, required: true },
   media: { type: [String], default: [] }, // URLs de imágenes/videos
   price: { type: Number, required: true, min: 0.1 },
+  duration: { type: Number, required: true, min: 1, validate: { validator: Number.isInteger, message: 'Duration must be a whole number' } }, // Duración en horas
   category: { type: String, enum: ["General", "Road Skills for Life"], required: true },
   type: { type: String, enum: ["Book", "Buy", "Contact"], required: true },
   buttonLabel: { type: String, required: true },
@@ -12,5 +13,5 @@ const productSchema = new mongoose.Schema({
   updatedAt: { type: Date, default: Date.now },
 });
 
-const Package = mongoose.models.Package || mongoose.model("Product", productSchema);
-export default Package;
+const Product = mongoose.models.Product || mongoose.model("Product", productSchema);
+export default Product;
