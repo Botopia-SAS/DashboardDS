@@ -6,8 +6,18 @@ import Loader from "@/components/custom ui/Loader";
 
 // Extender la interfaz Instructor para incluir los campos de schedule
 interface ExtendedInstructor extends Instructor {
-  schedule_driving_test?: any[];
-  schedule_driving_lesson?: any[];
+  schedule_driving_test?: Array<{
+    date: string;
+    time: string;
+    status: string;
+    studentId?: string;
+  }>;
+  schedule_driving_lesson?: Array<{
+    date: string;
+    time: string;
+    status: string;
+    studentId?: string;
+  }>;
 }
 
 export default function DrivingTestLessonsPage() {
@@ -49,7 +59,20 @@ export default function DrivingTestLessonsPage() {
         // console.log("Initializing schedule arrays for instructor:", instructor._id);
         
         // Preparar los campos a inicializar
-        const updateFields: any = {};
+        const updateFields: {
+          schedule_driving_test?: Array<{
+            date: string;
+            time: string;
+            status: string;
+            studentId?: string;
+          }>;
+          schedule_driving_lesson?: Array<{
+            date: string;
+            time: string;
+            status: string;
+            studentId?: string;
+          }>;
+        } = {};
         
         if (instructor.canTeachDrivingTest && !instructor.schedule_driving_test) {
           updateFields.schedule_driving_test = [];
