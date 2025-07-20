@@ -12,6 +12,8 @@ export const useInstructorForm = (initialData?: InstructorData) => {
   const router = useRouter();
   const [loading, setLoading] = useState(false);
   const [savingChanges, setSavingChanges] = useState(false);
+  const [showTicketClassWarning, setShowTicketClassWarning] = useState(false);
+  const [pendingValues, setPendingValues] = useState<InstructorData | null>(null);
 
   const form = useForm<InstructorData>({
     resolver: zodResolver(instructorFormSchema),
@@ -31,6 +33,10 @@ export const useInstructorForm = (initialData?: InstructorData) => {
 
   const hasChanges = form.formState.isDirty;
 
+  // Watch for changes in canTeachTicketClass
+  const currentTicketClassStatus = form.watch("canTeachTicketClass");
+  const initialTicketClassStatus = initialData?.canTeachTicketClass || false;
+
   // Generate random password
   const generatePassword = () => {
     const chars = "ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789!@#$%^&*";
@@ -42,8 +48,40 @@ export const useInstructorForm = (initialData?: InstructorData) => {
     toast.success("Password generated successfully!");
   };
 
+  // Handle ticket class deactivation warning
+  const handleTicketClassDeactivation = (values: InstructorData) => {
+    // Check if we're editing an instructor and ticket class is being deactivated
+    if (initialData && 
+        initialTicketClassStatus === true && 
+        values.canTeachTicketClass === false) {
+      setShowTicketClassWarning(true);
+      setPendingValues(values);
+      return;
+    }
+    
+    // Proceed with normal submission
+    submitForm(values);
+  };
+
+  // Confirm ticket class deletion
+  const confirmTicketClassDeletion = () => {
+    if (pendingValues) {
+      submitForm(pendingValues);
+      setShowTicketClassWarning(false);
+      setPendingValues(null);
+    }
+  };
+
+  // Cancel ticket class deletion
+  const cancelTicketClassDeletion = () => {
+    // Revert the checkbox to its original state
+    form.setValue("canTeachTicketClass", initialTicketClassStatus);
+    setShowTicketClassWarning(false);
+    setPendingValues(null);
+  };
+
   // Submit form
-  const onSubmit = async (values: InstructorData) => {
+  const submitForm = async (values: InstructorData) => {
     try {
       setLoading(true);
       setSavingChanges(true);
@@ -84,11 +122,18 @@ export const useInstructorForm = (initialData?: InstructorData) => {
       const data = await response.json();
       // console.log("✅ Respuesta exitosa:", data);
       
-      toast.success(
-        initialData 
-          ? "Instructor updated successfully!" 
-          : "Instructor created successfully!"
-      );
+      // Mostrar mensaje específico si se eliminaron ticket classes
+      if (data.ticketClassesDeleted !== undefined) {
+        toast.success(
+          `Instructor updated successfully! ${data.ticketClassesDeleted} ticket classes have been deleted.`
+        );
+      } else {
+        toast.success(
+          initialData 
+            ? "Instructor updated successfully!" 
+            : "Instructor created successfully!"
+        );
+      }
       
       router.push("/instructors");
       router.refresh();
@@ -102,6 +147,11 @@ export const useInstructorForm = (initialData?: InstructorData) => {
     }
   };
 
+  // Submit form
+  const onSubmit = async (values: InstructorData) => {
+    handleTicketClassDeactivation(values);
+  };
+
   return {
     form,
     loading,
@@ -110,6 +160,10 @@ export const useInstructorForm = (initialData?: InstructorData) => {
     generatePassword,
     onSubmit,
     router,
+    showTicketClassWarning,
+    setShowTicketClassWarning,
+    confirmTicketClassDeletion,
+    cancelTicketClassDeletion,
   };
 };
 

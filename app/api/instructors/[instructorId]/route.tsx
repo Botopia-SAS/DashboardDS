@@ -1,6 +1,7 @@
 import { connectToDB } from "@/lib/mongoDB";
 import { NextRequest, NextResponse } from "next/server";
 import Instructor from "@/lib/models/Instructor";
+import TicketClass from "@/lib/models/TicketClass";
 import mongoose from "mongoose";
 import bcrypt from "bcryptjs";
 import { sendEmail } from "../sendEmail";
@@ -123,6 +124,7 @@ export async function PATCH(req: NextRequest) {
     const updateFields = { ...updates };
     let passwordChanged = false;
     let newPassword = "";
+    let ticketClassesDeleted = 0;
 
     // Si se proporciona una nueva contraseña, encriptarla
     if (password && typeof password === "string" && password.trim() !== "") {
@@ -142,6 +144,36 @@ export async function PATCH(req: NextRequest) {
     }
     if (typeof updateFields.canTeachDrivingLesson !== 'undefined') {
       updateFields.canTeachDrivingLesson = Boolean(updateFields.canTeachDrivingLesson);
+    }
+
+    // Verificar si se está desactivando Ticket Class
+    const instructor = await Instructor.findById(instructorId);
+    if (!instructor) {
+      return NextResponse.json({ message: "Instructor not found" }, { status: 404 });
+    }
+
+    const wasTicketClassEnabled = instructor.canTeachTicketClass || false;
+    const isTicketClassBeingDisabled = wasTicketClassEnabled && updateFields.canTeachTicketClass === false;
+
+    // Si se está desactivando Ticket Class, eliminar todas las ticket classes asociadas
+    if (isTicketClassBeingDisabled) {
+      console.log(`🗑️ Deleting all ticket classes for instructor ${instructorId} (Ticket Class capability disabled)`);
+      
+      // Eliminar todas las ticket classes asociadas al instructor
+      const deleteResult = await TicketClass.deleteMany({ instructorId });
+      ticketClassesDeleted = deleteResult.deletedCount;
+      
+      console.log(`✅ Deleted ${ticketClassesDeleted} ticket classes for instructor ${instructorId}`);
+      
+      // Limpiar el horario del instructor para remover referencias a ticket classes
+      if (instructor.schedule && instructor.schedule.length > 0) {
+        const cleanedSchedule = instructor.schedule.filter((slot: any) => 
+          !slot.ticketClassId && slot.classType !== 'D.A.T.E' && slot.classType !== 'B.D.I' && slot.classType !== 'A.D.I'
+        );
+        
+        updateFields.schedule = cleanedSchedule;
+        console.log(`🧹 Cleaned instructor schedule, kept ${cleanedSchedule.length} non-ticket slots`);
+      }
     }
 
     // console.log("📝 Campos a actualizar:", updateFields);
@@ -195,7 +227,13 @@ export async function PATCH(req: NextRequest) {
       }
     }
 
-    return NextResponse.json(updatedInstructor, { status: 200 });
+    // Incluir información sobre las ticket classes eliminadas en la respuesta
+    const responseData = {
+      ...updatedInstructor.toObject(),
+      ticketClassesDeleted: isTicketClassBeingDisabled ? ticketClassesDeleted : undefined
+    };
+
+    return NextResponse.json(responseData, { status: 200 });
   } catch (error) {
     console.error("❌ Error al actualizar instructor:", error);
     return NextResponse.json({ message: "Error updating instructor" }, { status: 500 });

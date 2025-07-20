@@ -7,6 +7,16 @@ import InstructorBasicInfo from "./InstructorBasicInfo";
 import { useInstructorForm } from "./useInstructorForm";
 import { InstructorData } from "./types";
 import { toast } from "react-hot-toast";
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+} from "@/components/ui/alert-dialog";
 
 const InstructorForm = ({ initialData }: { initialData?: InstructorData }) => {
   const {
@@ -17,6 +27,10 @@ const InstructorForm = ({ initialData }: { initialData?: InstructorData }) => {
     generatePassword,
     onSubmit,
     router,
+    showTicketClassWarning,
+    setShowTicketClassWarning,
+    confirmTicketClassDeletion,
+    cancelTicketClassDeletion,
   } = useInstructorForm(initialData);
 
   const handleSubmit = async (values: InstructorData) => {
@@ -67,6 +81,34 @@ const InstructorForm = ({ initialData }: { initialData?: InstructorData }) => {
           </div>
         </form>
       </Form>
+
+      {/* Ticket Class Deactivation Warning Modal */}
+      <AlertDialog open={showTicketClassWarning} onOpenChange={setShowTicketClassWarning}>
+        <AlertDialogContent className="bg-white text-black border-gray-200">
+          <AlertDialogHeader>
+            <AlertDialogTitle className="text-black">⚠️ Warning: Ticket Class Deactivation</AlertDialogTitle>
+            <AlertDialogDescription className="text-gray-700">
+              You are about to deactivate the "Ticket Class" capability for this instructor. 
+              This action will automatically delete ALL ticket classes associated with this instructor.
+              <br /><br />
+              <strong>This action cannot be undone.</strong> All scheduled ticket classes for this instructor will be permanently removed.
+              <br /><br />
+              Are you sure you want to proceed?
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel onClick={cancelTicketClassDeletion} className="bg-gray-100 text-gray-800 hover:bg-gray-200 border-gray-300">
+              Cancel
+            </AlertDialogCancel>
+            <AlertDialogAction 
+              onClick={confirmTicketClassDeletion}
+              className="bg-red-600 hover:bg-red-700 text-white"
+            >
+              Yes, Delete All Ticket Classes
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
     </div>
   );
 };
