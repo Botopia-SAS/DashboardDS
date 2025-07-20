@@ -1,6 +1,7 @@
 import { connectToDB } from "@/lib/mongoDB";
 import { NextRequest, NextResponse } from "next/server";
 import Instructor from "@/lib/models/Instructor";
+import { generateEventId } from "@/lib/utils";
 
 export const dynamic = "force-dynamic";
 
@@ -39,8 +40,9 @@ export async function POST(req: NextRequest) {
     }
 
     // Crear nuevo evento con ID único
+    const eventId = generateEventId(classType, instructorId, date, start);
     const newEvent = {
-      _id: `${classType}_${instructorId}_${Date.now()}_${Math.random()}`,
+      _id: eventId,
       date,
       start,
       end,

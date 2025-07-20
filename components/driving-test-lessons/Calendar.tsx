@@ -20,6 +20,9 @@ const Calendar: React.FC<CalendarProps> = ({ selectedInstructor }) => {
   const calendarRef = useRef<any>(null);
   const [isEditModalOpen, setIsEditModalOpen] = useState(false);
   const [selectedEvent, setSelectedEvent] = useState<any>(null);
+  
+  // Clipboard para copiar/pegar eventos
+  const clipboardKey = 'driving_schedule_clipboard';
 
   const fetchEvents = async () => {
     if (!selectedInstructor) {
@@ -86,6 +89,44 @@ const Calendar: React.FC<CalendarProps> = ({ selectedInstructor }) => {
     fetchEvents();
   }, [selectedInstructor?._id]);
 
+
+
+  // Handler para pegar con Ctrl+V SOLO si el modal está abierto y es nuevo (no edición)
+  useEffect(() => {
+    function handlePaste(e: KeyboardEvent) {
+      if (
+        e.ctrlKey &&
+        e.key === 'v' &&
+        isModalOpen &&
+        selectedDate &&
+        selectedTime
+      ) {
+        const clipboard = window.localStorage.getItem(clipboardKey);
+        if (!clipboard) return;
+        try {
+          const data = JSON.parse(clipboard);
+          console.log("Pasted data:", data);
+          
+          // El modal detectará automáticamente los datos pegados
+          
+        } catch (err) {
+          console.error('Error al pegar el evento:', err);
+          alert('Error al pegar el evento.');
+        }
+      }
+    }
+    window.addEventListener('keydown', handlePaste);
+    return () => window.removeEventListener('keydown', handlePaste);
+  }, [isModalOpen, selectedDate, selectedTime]);
+
+  const getDefaultEndTime = (startTime: string, hours: number) => {
+    if (!startTime) return "";
+    const [hoursStart, minutes] = startTime.split(":").map(Number);
+    let endHours = hoursStart + hours;
+    if (endHours >= 24) endHours = 23;
+    return `${endHours.toString().padStart(2, "0")}:${minutes.toString().padStart(2, "0")}`;
+  };
+
   const handleDateSelect = (selectInfo: any) => {
     try {
       // console.log("Date select triggered:", selectInfo);
@@ -114,10 +155,33 @@ const Calendar: React.FC<CalendarProps> = ({ selectedInstructor }) => {
     }
   };
 
+
+
   const handleEventClick = (clickInfo: any) => {
     try {
+      console.log("Event clicked:", clickInfo.event);
+      
+      // Preparar los datos del evento para el modal de edición
+      const eventData = {
+        _id: clickInfo.event.id,
+        title: clickInfo.event.title,
+        start: clickInfo.event.start.toISOString(),
+        end: clickInfo.event.end.toISOString(),
+        classType: clickInfo.event.extendedProps?.classType,
+        extendedProps: {
+          classType: clickInfo.event.extendedProps?.classType,
+          status: clickInfo.event.extendedProps?.status,
+          amount: clickInfo.event.extendedProps?.amount,
+          studentId: clickInfo.event.extendedProps?.studentId,
+          studentName: clickInfo.event.extendedProps?.studentName,
+          paid: clickInfo.event.extendedProps?.paid
+        }
+      };
+      
+      console.log("Prepared event data:", eventData);
+      
       // Abrir modal de edición con los datos del evento
-      setSelectedEvent(clickInfo.event);
+      setSelectedEvent(eventData);
       setIsEditModalOpen(true);
     } catch (error) {
       console.error("Error handling event click:", error);
@@ -147,6 +211,8 @@ const Calendar: React.FC<CalendarProps> = ({ selectedInstructor }) => {
 
   const handleEventDelete = async (eventId: string) => {
     try {
+      console.log("Sending delete request for event:", eventId);
+      
       const response = await fetch(`/api/driving-test-lessons/delete-event`, {
         method: 'DELETE',
         headers: {
@@ -156,19 +222,24 @@ const Calendar: React.FC<CalendarProps> = ({ selectedInstructor }) => {
       });
 
       if (response.ok) {
+        console.log("Event deleted successfully");
         handleEditModalClose();
         fetchEvents(); // Refrescar eventos
       } else {
-        // Silenciosamente manejar el error sin mostrar alerta
-        console.error("Delete failed:", response.status);
+        const error = await response.json();
+        console.error("Delete failed:", error);
+        alert(`Error deleting event: ${error.message}`);
       }
     } catch (error) {
       console.error("Error deleting event:", error);
+      alert("Error deleting event");
     }
   };
 
   const handleEventUpdate = async (eventData: any) => {
     try {
+      console.log("Sending update request:", eventData);
+      
       const response = await fetch(`/api/driving-test-lessons/update-event`, {
         method: 'PUT',
         headers: {
@@ -178,10 +249,12 @@ const Calendar: React.FC<CalendarProps> = ({ selectedInstructor }) => {
       });
 
       if (response.ok) {
+        console.log("Event updated successfully");
         handleEditModalClose();
         fetchEvents(); // Refrescar eventos
       } else {
         const error = await response.json();
+        console.error("Update failed:", error);
         alert(`Error updating event: ${error.message}`);
       }
     } catch (error) {
@@ -192,6 +265,8 @@ const Calendar: React.FC<CalendarProps> = ({ selectedInstructor }) => {
 
   const handleEventCopy = async (eventData: any) => {
     try {
+      console.log("Sending copy request:", eventData);
+      
       const response = await fetch(`/api/driving-test-lessons/copy-event`, {
         method: 'POST',
         headers: {
@@ -201,11 +276,13 @@ const Calendar: React.FC<CalendarProps> = ({ selectedInstructor }) => {
       });
 
       if (response.ok) {
+        console.log("Event copied successfully");
         handleEditModalClose();
         fetchEvents(); // Refrescar eventos
         alert("Event copied successfully!");
       } else {
         const error = await response.json();
+        console.error("Copy failed:", error);
         alert(`Error copying event: ${error.message}`);
       }
     } catch (error) {
@@ -221,6 +298,8 @@ const Calendar: React.FC<CalendarProps> = ({ selectedInstructor }) => {
       </div>
     );
   };
+
+
 
   if (!selectedInstructor) {
     return (
@@ -312,6 +391,10 @@ const Calendar: React.FC<CalendarProps> = ({ selectedInstructor }) => {
           selectedDate={selectedEvent ? (selectedEvent.start instanceof Date 
             ? selectedEvent.start.toISOString().split('T')[0]
             : selectedEvent.start.split('T')[0]
+          ) : undefined}
+          selectedTime={selectedEvent ? (selectedEvent.start instanceof Date 
+            ? selectedEvent.start.toTimeString().slice(0, 5)
+            : selectedEvent.start.split('T')[1]?.slice(0, 5)
           ) : undefined}
           isEditMode={true}
           eventData={selectedEvent}

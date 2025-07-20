@@ -18,6 +18,8 @@ export async function DELETE(req: NextRequest) {
       );
     }
 
+    console.log(`Attempting to delete event: ${eventId}`);
+
     // Buscar el instructor que tiene este evento
     const instructor = await Instructor.findOne({
       $or: [
@@ -26,24 +28,80 @@ export async function DELETE(req: NextRequest) {
       ]
     });
 
-    // Si no se encuentra el instructor o el evento, simplemente retornar éxito
+    // Si no se encuentra el instructor o el evento, intentar buscar por el ID generado
     if (!instructor) {
-      return NextResponse.json(
-        { message: "Event deleted successfully" },
-        { status: 200 }
-      );
+      console.log(`Event not found with _id, trying to find by generated ID pattern`);
+      
+      // Buscar por el patrón del ID generado
+      const allInstructors = await Instructor.find({});
+      let foundInstructor = null;
+      let foundEvent = null;
+      let foundArray = null;
+
+      for (const inst of allInstructors) {
+        // Buscar en schedule_driving_test
+        if (inst.schedule_driving_test) {
+          const testEvent = inst.schedule_driving_test.find((event: any) => {
+            const generatedId = `driving_test_${inst._id}_${event.date}_${event.start}_${inst.schedule_driving_test.indexOf(event)}`;
+            return generatedId === eventId || event._id === eventId;
+          });
+          if (testEvent) {
+            foundInstructor = inst;
+            foundEvent = testEvent;
+            foundArray = 'schedule_driving_test';
+            break;
+          }
+        }
+
+        // Buscar en schedule_driving_lesson
+        if (inst.schedule_driving_lesson) {
+          const lessonEvent = inst.schedule_driving_lesson.find((event: any) => {
+            const generatedId = `driving_lesson_${inst._id}_${event.date}_${event.start}_${inst.schedule_driving_lesson.indexOf(event)}`;
+            return generatedId === eventId || event._id === eventId;
+          });
+          if (lessonEvent) {
+            foundInstructor = inst;
+            foundEvent = lessonEvent;
+            foundArray = 'schedule_driving_lesson';
+            break;
+          }
+        }
+      }
+
+      if (foundInstructor && foundEvent) {
+        console.log(`Found event in ${foundArray} for instructor ${foundInstructor._id}`);
+        
+        // Eliminar el evento específico del array
+        const result = await Instructor.updateOne(
+          { _id: foundInstructor._id },
+          { $pull: { [foundArray as string]: foundEvent } }
+        );
+
+        console.log(`Delete result: ${result.modifiedCount} documents modified`);
+        
+        return NextResponse.json(
+          { message: "Event deleted successfully" },
+          { status: 200 }
+        );
+      }
     }
 
-    // Eliminar el evento de ambas colecciones para asegurar limpieza
-    const testResult = await Instructor.updateOne(
-      { _id: instructor._id },
-      { $pull: { schedule_driving_test: { _id: eventId } } }
-    );
+    // Si se encontró el instructor con el método original
+    if (instructor) {
+      // Eliminar el evento de ambas colecciones para asegurar limpieza
+      const testResult = await Instructor.updateOne(
+        { _id: instructor._id },
+        { $pull: { schedule_driving_test: { _id: eventId } } }
+      );
 
-    const lessonResult = await Instructor.updateOne(
-      { _id: instructor._id },
-      { $pull: { schedule_driving_lesson: { _id: eventId } } }
-    );
+      const lessonResult = await Instructor.updateOne(
+        { _id: instructor._id },
+        { $pull: { schedule_driving_lesson: { _id: eventId } } }
+      );
+
+      console.log(`Deleted event ${eventId} from instructor ${instructor._id}`);
+      console.log(`Test result: ${testResult.modifiedCount}, Lesson result: ${lessonResult.modifiedCount}`);
+    }
 
     // Si no se eliminó nada, no importa - el evento ya no existe
     // Simplemente retornar éxito

@@ -103,6 +103,7 @@ const ScheduleModal: React.FC<ScheduleModalProps> = ({
     time: string;
     message?: string;
   } | null>(null);
+  const [showCopyModal, setShowCopyModal] = useState(false);
   
   const [formData, setFormData] = useState({
     classType: "driving lesson",
@@ -111,6 +112,7 @@ const ScheduleModal: React.FC<ScheduleModalProps> = ({
     status: "available",
     amount: "",
     recurrence: "none",
+    recurrenceEndDate: "",
     studentId: "",
     paid: false
   });
@@ -134,6 +136,66 @@ const ScheduleModal: React.FC<ScheduleModalProps> = ({
     }
   };
 
+  // Reset form data when modal opens with new date/time
+  useEffect(() => {
+    if (isOpen && selectedTime) {
+      setFormData(prev => ({
+        ...prev,
+        start: selectedTime,
+        end: getDefaultEndTime(selectedTime, 2)
+      }));
+    }
+  }, [isOpen, selectedTime]);
+
+  // Manejar datos pegados del clipboard
+  useEffect(() => {
+    if (isOpen && !isEditMode) {
+      const clipboard = window.localStorage.getItem('driving_schedule_clipboard');
+      if (clipboard) {
+        try {
+          const pastedData = JSON.parse(clipboard);
+          console.log("Loading pasted data:", pastedData);
+          
+          setFormData({
+            classType: pastedData.classType || "driving lesson",
+            start: pastedData.start || selectedTime || "",
+            end: pastedData.end || getDefaultEndTime(selectedTime || "", 2),
+            status: pastedData.status || "available",
+            amount: pastedData.amount ? pastedData.amount.toString() : "",
+            recurrence: pastedData.recurrence || "none",
+            recurrenceEndDate: pastedData.recurrenceEndDate || "",
+            studentId: pastedData.studentId || "",
+            paid: pastedData.paid || false
+          });
+          
+          // Calcular duración basada en las horas
+          if (pastedData.start && pastedData.end) {
+            const startTime = new Date(`2000-01-01T${pastedData.start}:00`);
+            const endTime = new Date(`2000-01-01T${pastedData.end}:00`);
+            const durationHours = Math.round((endTime.getTime() - startTime.getTime()) / (1000 * 60 * 60));
+            setDurationType(durationHours.toString());
+          } else {
+            setDurationType("2");
+          }
+          
+          // Actualizar searchTerm si hay un estudiante
+          if (pastedData.studentName) {
+            setSearchTerm(pastedData.studentName);
+          } else {
+            setSearchTerm("");
+          }
+          
+          // Limpiar el clipboard después de usarlo
+          window.localStorage.removeItem('driving_schedule_clipboard');
+          
+        } catch (error) {
+          console.error("Error loading pasted data:", error);
+        }
+      }
+    }
+  }, [isOpen, selectedTime, isEditMode]);
+
+  // TERCERO: Manejar datos de edición y carga normal
   useEffect(() => {
     if (isOpen) {
       // Si estamos en modo edición, cargar datos del evento
@@ -178,7 +240,8 @@ const ScheduleModal: React.FC<ScheduleModalProps> = ({
           amount: eventData.extendedProps?.amount ? eventData.extendedProps.amount.toString() : "0.00",
           studentId: eventData.extendedProps?.studentId || "",
           paid: eventData.extendedProps?.paid || false,
-          recurrence: "none"
+          recurrence: "none",
+          recurrenceEndDate: ""
         };
         
         setFormData(newFormData);
@@ -212,6 +275,7 @@ const ScheduleModal: React.FC<ScheduleModalProps> = ({
           status: "available",
           amount: "",
           recurrence: "none",
+          recurrenceEndDate: "",
           studentId: "",
           paid: false
         });
@@ -510,39 +574,37 @@ const ScheduleModal: React.FC<ScheduleModalProps> = ({
     }
   };
 
-  const handleCopy = async () => {
-    try {
-      // Validación para amount antes de copiar
-      if (!formData.amount || parseFloat(formData.amount) <= 0) {
-        setErrors(["Amount is required and must be greater than 0"]);
-        return;
-      }
-
-      const selectedUser = users.find(user => user._id === formData.studentId);
-      const studentName = selectedUser ? `${selectedUser.firstName} ${selectedUser.lastName}` : null;
-
-      const copyData = {
-        instructorId: selectedInstructor?._id,
-        classType: formData.classType,
-        date: selectedDate,
-        start: formData.start,
-        end: formData.end,
-        status: formData.status,
-        amount: formData.amount ? parseFloat(formData.amount) : null,
-        studentId: formData.studentId || null,
-        studentName: studentName,
-        paid: formData.paid
-      };
-
-      if (onEventCopy) {
-        await onEventCopy(copyData);
-      }
-      onClose();
-    } catch (error) {
-      console.error("Error copying event:", error);
-      alert("Error copying event");
-    }
+  // Copy (guarda en clipboard global)
+  const handleCopy = () => {
+    const copyData = {
+      instructorId: selectedInstructor?._id,
+      classType: formData.classType,
+      date: selectedDate,
+      start: formData.start,
+      end: formData.end,
+      status: formData.status,
+      amount: formData.amount ? parseFloat(formData.amount) : null,
+      studentId: formData.studentId || null,
+      studentName: formData.studentId ? users.find(user => user._id === formData.studentId)?.firstName + " " + users.find(user => user._id === formData.studentId)?.lastName : null,
+      paid: formData.paid,
+      recurrence: formData.recurrence,
+      recurrenceEndDate: formData.recurrenceEndDate
+    };
+    window.localStorage.setItem('driving_schedule_clipboard', JSON.stringify(copyData));
+    setShowCopyModal(true);
+    onClose();
   };
+
+  // Forzar que el modal aparezca después de cerrar el modal principal
+  useEffect(() => {
+    if (showCopyModal) {
+      // Pequeño delay para asegurar que el modal principal se cierre primero
+      const timer = setTimeout(() => {
+        setShowCopyModal(true);
+      }, 100);
+      return () => clearTimeout(timer);
+    }
+  }, [showCopyModal]);
 
   // Check if we should show additional fields for driving test
   const showDrivingTestFields = (formData.classType === "driving test" && 
@@ -687,6 +749,19 @@ const ScheduleModal: React.FC<ScheduleModalProps> = ({
               </SelectContent>
             </Select>
           </div>
+
+          {formData.recurrence !== "none" && (
+            <div>
+              <Label>Recurrence End Date</Label>
+              <Input
+                type="date"
+                value={formData.recurrenceEndDate}
+                onChange={(e) => handleInputChange("recurrenceEndDate", e.target.value)}
+                min={selectedDate}
+                className="w-full"
+              />
+            </div>
+          )}
 
           <div>
             <Label>Status</Label>
@@ -915,6 +990,29 @@ const ScheduleModal: React.FC<ScheduleModalProps> = ({
                 OK
               </button>
             </div>
+          </div>
+        </div>
+      )}
+      
+      {/* Modal bonito para copy - FUERA del modal principal */}
+      {showCopyModal && (
+        <div className="fixed inset-0 z-[9999] flex items-center justify-center bg-black bg-opacity-50">
+          <div className="bg-white p-8 rounded-xl shadow-2xl max-w-md w-full mx-4 text-center border border-gray-100">
+            <div className="mb-6">
+              <div className="w-16 h-16 bg-green-100 rounded-full flex items-center justify-center mx-auto mb-4">
+                <svg className="w-8 h-8 text-green-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 13l4 4L19 7" />
+                </svg>
+              </div>
+              <h2 className="text-2xl font-bold text-gray-800 mb-2">Schedule copied!</h2>
+              <p className="text-gray-600 text-lg">Go to the calendar and press <span className="bg-gray-100 px-2 py-1 rounded font-mono text-sm font-bold">Ctrl+V</span> on a slot to paste it.</p>
+            </div>
+            <Button 
+              onClick={() => setShowCopyModal(false)} 
+              className="bg-gradient-to-r from-blue-600 to-blue-700 hover:from-blue-700 hover:to-blue-800 text-white px-8 py-3 rounded-lg font-semibold text-lg shadow-lg hover:shadow-xl transition-all duration-200"
+            >
+              Got it!
+            </Button>
           </div>
         </div>
       )}
