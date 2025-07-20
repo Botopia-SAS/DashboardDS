@@ -1,10 +1,15 @@
 "use client";
 
-import React, { useState, useEffect } from "react";
+import React, { useState, useEffect, useRef } from "react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
+import { useJsApiLoader, Autocomplete } from "@react-google-maps/api";
+
+// Configurar la API de Google Maps
+const GOOGLE_MAPS_API_KEY = process.env.NEXT_PUBLIC_GOOGLE_MAPS_API_KEY || "";
+const LIBRARIES: "places"[] = ["places"];
 
 interface ScheduleModalProps {
   isOpen: boolean;
@@ -34,6 +39,9 @@ interface ScheduleModalProps {
       studentId?: string;
       studentName?: string;
       paid?: boolean;
+      pickupLocation?: string;
+      dropoffLocation?: string;
+      selectedProduct?: string;
     };
   };
   onEventUpdate?: (data: {
@@ -49,6 +57,9 @@ interface ScheduleModalProps {
       studentId?: string;
       studentName?: string;
       paid?: boolean;
+      pickupLocation?: string;
+      dropoffLocation?: string;
+      selectedProduct?: string;
     };
   }) => void;
   onEventDelete?: (id: string) => void;
@@ -65,6 +76,9 @@ interface ScheduleModalProps {
       studentId?: string;
       studentName?: string;
       paid?: boolean;
+      pickupLocation?: string;
+      dropoffLocation?: string;
+      selectedProduct?: string;
     };
   }) => void;
 }
@@ -94,8 +108,19 @@ const ScheduleModal: React.FC<ScheduleModalProps> = ({
   const [errors, setErrors] = useState<string[]>([]);
   const [durationType, setDurationType] = useState("2"); // 1, 2, 3, or "custom"
   const [users, setUsers] = useState<User[]>([]);
+  const [products, setProducts] = useState<any[]>([]);
   const [searchTerm, setSearchTerm] = useState("");
   const [showConflictModal, setShowConflictModal] = useState(false);
+  
+  // Google Maps Autocomplete refs
+  const pickupAutocompleteRef = useRef<google.maps.places.Autocomplete | null>(null);
+  const dropoffAutocompleteRef = useRef<google.maps.places.Autocomplete | null>(null);
+
+  // Load Google Maps API
+  const { isLoaded } = useJsApiLoader({
+    googleMapsApiKey: GOOGLE_MAPS_API_KEY,
+    libraries: LIBRARIES,
+  });
   const [conflictDetails, setConflictDetails] = useState<{
     type: string;
     status: string;
@@ -111,16 +136,20 @@ const ScheduleModal: React.FC<ScheduleModalProps> = ({
     end: "",
     status: "available",
     amount: "",
+    pickupLocation: "",
+    dropoffLocation: "",
+    selectedProduct: "",
     recurrence: "none",
     recurrenceEndDate: "",
     studentId: "",
     paid: false
   });
 
-  // Fetch users when modal opens
+  // Fetch users and products when modal opens
   useEffect(() => {
     if (isOpen) {
       fetchUsers();
+      fetchProducts();
     }
   }, [isOpen]);
 
@@ -133,6 +162,45 @@ const ScheduleModal: React.FC<ScheduleModalProps> = ({
       }
     } catch (error) {
       console.error('Error fetching users:', error);
+    }
+  };
+
+  const fetchProducts = async () => {
+    try {
+      const response = await fetch('/api/products');
+      if (response.ok) {
+        const data = await response.json();
+        setProducts(data);
+      }
+    } catch (error) {
+      console.error('Error fetching products:', error);
+    }
+  };
+
+  // Google Maps Autocomplete handlers
+  const onPickupLoad = (autocomplete: google.maps.places.Autocomplete) => {
+    pickupAutocompleteRef.current = autocomplete;
+  };
+
+  const onPickupPlaceChanged = () => {
+    if (pickupAutocompleteRef.current) {
+      const place = pickupAutocompleteRef.current.getPlace();
+      if (place?.formatted_address) {
+        handleInputChange("pickupLocation", place.formatted_address);
+      }
+    }
+  };
+
+  const onDropoffLoad = (autocomplete: google.maps.places.Autocomplete) => {
+    dropoffAutocompleteRef.current = autocomplete;
+  };
+
+  const onDropoffPlaceChanged = () => {
+    if (dropoffAutocompleteRef.current) {
+      const place = dropoffAutocompleteRef.current.getPlace();
+      if (place?.formatted_address) {
+        handleInputChange("dropoffLocation", place.formatted_address);
+      }
     }
   };
 
@@ -162,6 +230,9 @@ const ScheduleModal: React.FC<ScheduleModalProps> = ({
             end: pastedData.end || getDefaultEndTime(selectedTime || "", 2),
             status: pastedData.status || "available",
             amount: pastedData.amount ? pastedData.amount.toString() : "",
+            pickupLocation: pastedData.pickupLocation || "",
+            dropoffLocation: pastedData.dropoffLocation || "",
+            selectedProduct: pastedData.selectedProduct || "",
             recurrence: pastedData.recurrence || "none",
             recurrenceEndDate: pastedData.recurrenceEndDate || "",
             studentId: pastedData.studentId || "",
@@ -200,6 +271,7 @@ const ScheduleModal: React.FC<ScheduleModalProps> = ({
     if (isOpen) {
       // Si estamos en modo edición, cargar datos del evento
       if (isEditMode && eventData) {
+        // console.log("🔄 Loading event data for editing:", eventData);
         
         // Determinar el tipo de clase basado en las propiedades del evento
         let classType = eventData.extendedProps?.classType || "";
@@ -233,22 +305,37 @@ const ScheduleModal: React.FC<ScheduleModalProps> = ({
         const endTime = formatTimeForInput(endDate);
         
         const newFormData = {
-          classType: classType || "driving test", // Forzar valor por defecto si está vacío
+          classType: classType || "driving lesson", // Cambiar default a driving lesson
           start: startTime,
           end: endTime,
           status: eventData.extendedProps?.status || "available",
-          amount: eventData.extendedProps?.amount ? eventData.extendedProps.amount.toString() : "0.00",
+          amount: eventData.extendedProps?.amount ? eventData.extendedProps.amount.toString() : "",
+          pickupLocation: eventData.extendedProps?.pickupLocation || "",
+          dropoffLocation: eventData.extendedProps?.dropoffLocation || "",
+          selectedProduct: eventData.extendedProps?.selectedProduct || "",
           studentId: eventData.extendedProps?.studentId || "",
           paid: eventData.extendedProps?.paid || false,
           recurrence: "none",
           recurrenceEndDate: ""
         };
         
+        // console.log("📝 Setting form data with product:", {
+        //   selectedProduct: eventData.extendedProps?.selectedProduct,
+        //   newFormDataSelectedProduct: newFormData.selectedProduct
+        // });
+        
+        // console.log("📝 Setting form data:", newFormData);
         setFormData(newFormData);
         
         // Actualizar searchTerm si hay un estudiante
         if (eventData.extendedProps?.studentName) {
           setSearchTerm(eventData.extendedProps.studentName);
+        } else if (eventData.extendedProps?.studentId) {
+          // Si no hay studentName pero sí studentId, buscar el estudiante en la lista
+          const student = users.find(user => user._id === eventData.extendedProps?.studentId);
+          if (student) {
+            setSearchTerm(`${student.firstName} ${student.lastName} (${student.email})`);
+          }
         }
         
         // Calcular duración para el botón de duración
@@ -274,6 +361,9 @@ const ScheduleModal: React.FC<ScheduleModalProps> = ({
           end: getDefaultEndTime(selectedTime || "", 2),
           status: "available",
           amount: "",
+          pickupLocation: "",
+          dropoffLocation: "",
+          selectedProduct: "",
           recurrence: "none",
           recurrenceEndDate: "",
           studentId: "",
@@ -284,7 +374,7 @@ const ScheduleModal: React.FC<ScheduleModalProps> = ({
       }
       setErrors([]);
     }
-  }, [isOpen, selectedTime, selectedInstructor, isEditMode, eventData]);
+  }, [isOpen, selectedTime, selectedInstructor, isEditMode, eventData, users, products]);
 
   // Forzar que el classType se mantenga si está vacío pero tenemos eventData
   useEffect(() => {
@@ -304,6 +394,38 @@ const ScheduleModal: React.FC<ScheduleModalProps> = ({
       }
     }
   }, [formData.classType, isEditMode, eventData]);
+
+  // Asegurar que los datos del estudiante se carguen cuando los usuarios estén disponibles
+  useEffect(() => {
+    if (isEditMode && eventData && users.length > 0 && formData.studentId && !searchTerm) {
+      const student = users.find(user => user._id === formData.studentId);
+      if (student) {
+        setSearchTerm(`${student.firstName} ${student.lastName} (${student.email})`);
+      }
+    }
+  }, [isEditMode, eventData, users, formData.studentId, searchTerm]);
+
+  // Asegurar que el producto se cargue cuando los productos estén disponibles
+  useEffect(() => {
+    if (isEditMode && eventData && products.length > 0 && eventData.extendedProps?.selectedProduct) {
+      // console.log("🔄 Loading product data:", {
+      //   selectedProductId: eventData.extendedProps.selectedProduct,
+      //   currentFormProduct: formData.selectedProduct,
+      //   availableProducts: products.map(p => ({ id: p._id, name: p.title }))
+      // });
+      
+      const product = products.find(p => p._id === eventData.extendedProps?.selectedProduct);
+      if (product) {
+        // console.log("✅ Found product:", product.title);
+        setFormData(prev => ({
+          ...prev,
+          selectedProduct: product._id
+        }));
+      } else {
+        // console.log("❌ Product not found in available products");
+      }
+    }
+  }, [isEditMode, eventData, products]);
 
   const getDefaultEndTime = (startTime: string, hours: number) => {
     if (!startTime) return "";
@@ -351,14 +473,45 @@ const ScheduleModal: React.FC<ScheduleModalProps> = ({
     if (!formData.start) newErrors.push("Start time is required");
     if (!formData.end) newErrors.push("End time is required");
     if (!formData.status) newErrors.push("Status is required");
-    if (!formData.amount || formData.amount === "0" || formData.amount === "0.00") newErrors.push("Amount is required and must be greater than 0");
     if (formData.start >= formData.end) newErrors.push("End time must be after start time");
+    
+    // Validate recurrence
+    if (formData.recurrence && formData.recurrence !== "none" && !formData.recurrenceEndDate) {
+      newErrors.push("Recurrence end date is required when recurrence is enabled");
+    }
+    
+    // Validate amount for driving test
+    if (formData.classType === "driving test" && 
+        (!formData.amount || formData.amount === "0" || formData.amount === "0.00")) {
+      newErrors.push("Amount is required and must be greater than 0 for driving tests");
+    }
+    
+    // Validate location fields for driving lesson with booked/pending status
+    if (formData.classType === "driving lesson" && 
+        (formData.status === "booked" || formData.status === "pending")) {
+      if (!formData.pickupLocation) newErrors.push("Pickup location is required for driving lessons");
+      if (!formData.dropoffLocation) newErrors.push("Dropoff location is required for driving lessons");
+    }
     
     // Validate student ID for driving test with booked/pending status
     if (formData.classType === "driving test" && 
         (formData.status === "booked" || formData.status === "pending") && 
         !formData.studentId) {
       newErrors.push("Student is required for booked/pending driving tests");
+    }
+    
+    // Validate student ID for driving lesson with booked/pending status
+    if (formData.classType === "driving lesson" && 
+        (formData.status === "booked" || formData.status === "pending") && 
+        !formData.studentId) {
+      newErrors.push("Student is required for booked/pending driving lessons");
+    }
+    
+    // Validate product selection for students with booked/pending status
+    if (formData.studentId && 
+        (formData.status === "booked" || formData.status === "pending") && 
+        !formData.selectedProduct) {
+      newErrors.push("Product selection is required when a student is assigned");
     }
     
     setErrors(newErrors);
@@ -418,9 +571,9 @@ const ScheduleModal: React.FC<ScheduleModalProps> = ({
       return;
     }
 
-    // Validación adicional para amount
-    if (!formData.amount || parseFloat(formData.amount) <= 0) {
-      setErrors(["Amount is required and must be greater than 0"]);
+    // Validación adicional según el tipo de clase
+    if (formData.classType === "driving test" && (!formData.amount || parseFloat(formData.amount) <= 0)) {
+      setErrors(["Amount is required and must be greater than 0 for driving tests"]);
       return;
     }
 
@@ -459,10 +612,22 @@ const ScheduleModal: React.FC<ScheduleModalProps> = ({
         start: formData.start,
         end: formData.end,
         status: formData.status,
-        amount: formData.amount ? parseFloat(formData.amount) : null,
         recurrence: formData.recurrence,
+        recurrenceEndDate: formData.recurrenceEndDate,
         ...(formData.classType === "driving test" && { 
           classType: "driving test",
+          amount: formData.amount ? parseFloat(formData.amount) : null,
+          ...(formData.studentId && { 
+            studentId: formData.studentId,
+            studentName: studentName
+          }),
+          ...(formData.status === "booked" || formData.status === "pending" ? { paid: formData.paid } : {})
+        }),
+        ...(formData.classType === "driving lesson" && { 
+          classType: "driving lesson",
+          pickupLocation: formData.pickupLocation,
+          dropoffLocation: formData.dropoffLocation,
+          selectedProduct: formData.selectedProduct,
           ...(formData.studentId && { 
             studentId: formData.studentId,
             studentName: studentName
@@ -470,6 +635,12 @@ const ScheduleModal: React.FC<ScheduleModalProps> = ({
           ...(formData.status === "booked" || formData.status === "pending" ? { paid: formData.paid } : {})
         })
       };
+
+      // console.log("🔄 Sending request with recurrence data:", {
+      //   recurrence: formData.recurrence,
+      //   recurrenceEndDate: formData.recurrenceEndDate,
+      //   requestBody
+      // });
 
       const response = await fetch(endpoint, {
         method: "POST",
@@ -512,9 +683,9 @@ const ScheduleModal: React.FC<ScheduleModalProps> = ({
       return;
     }
 
-    // Validación adicional para amount
-    if (!formData.amount || parseFloat(formData.amount) <= 0) {
-      setErrors(["Amount is required and must be greater than 0"]);
+    // Validación adicional según el tipo de clase
+    if (formData.classType === "driving test" && (!formData.amount || parseFloat(formData.amount) <= 0)) {
+      setErrors(["Amount is required and must be greater than 0 for driving tests"]);
       return;
     }
 
@@ -535,10 +706,19 @@ const ScheduleModal: React.FC<ScheduleModalProps> = ({
         start: formData.start,
         end: formData.end,
         status: formData.status,
-        amount: formData.amount ? parseFloat(formData.amount) : null,
-        studentId: formData.studentId || null,
+        ...(formData.classType === "driving test" && { 
+          amount: formData.amount ? parseFloat(formData.amount) : null,
+          studentId: formData.studentId || null,
+          paid: formData.paid,
+        }),
+        ...(formData.classType === "driving lesson" && { 
+          pickupLocation: formData.pickupLocation,
+          dropoffLocation: formData.dropoffLocation,
+          selectedProduct: formData.selectedProduct,
+          studentId: formData.studentId || null,
+          paid: formData.paid,
+        }),
         studentName: studentName,
-        paid: formData.paid,
         originalClassType
       };
 
@@ -583,12 +763,21 @@ const ScheduleModal: React.FC<ScheduleModalProps> = ({
       start: formData.start,
       end: formData.end,
       status: formData.status,
-      amount: formData.amount ? parseFloat(formData.amount) : null,
-      studentId: formData.studentId || null,
-      studentName: formData.studentId ? users.find(user => user._id === formData.studentId)?.firstName + " " + users.find(user => user._id === formData.studentId)?.lastName : null,
-      paid: formData.paid,
       recurrence: formData.recurrence,
-      recurrenceEndDate: formData.recurrenceEndDate
+      recurrenceEndDate: formData.recurrenceEndDate,
+      ...(formData.classType === "driving test" && { 
+        amount: formData.amount ? parseFloat(formData.amount) : null,
+        studentId: formData.studentId || null,
+        paid: formData.paid,
+      }),
+      ...(formData.classType === "driving lesson" && { 
+        pickupLocation: formData.pickupLocation,
+        dropoffLocation: formData.dropoffLocation,
+        selectedProduct: formData.selectedProduct,
+        studentId: formData.studentId || null,
+        paid: formData.paid,
+      }),
+      studentName: formData.studentId ? users.find(user => user._id === formData.studentId)?.firstName + " " + users.find(user => user._id === formData.studentId)?.lastName : null,
     };
     window.localStorage.setItem('driving_schedule_clipboard', JSON.stringify(copyData));
     setShowCopyModal(true);
@@ -610,6 +799,18 @@ const ScheduleModal: React.FC<ScheduleModalProps> = ({
   const showDrivingTestFields = (formData.classType === "driving test" && 
     (formData.status === "booked" || formData.status === "pending")) || 
     (isEditMode && eventData?.extendedProps?.classType === "driving test" && 
+     (eventData.extendedProps?.status === "booked" || eventData.extendedProps?.status === "pending"));
+
+  // Check if we should show location fields for driving lesson
+  const showDrivingLessonLocationFields = (formData.classType === "driving lesson" && 
+    (formData.status === "booked" || formData.status === "pending")) || 
+    (isEditMode && eventData?.extendedProps?.classType === "driving lesson" && 
+     (eventData.extendedProps?.status === "booked" || eventData.extendedProps?.status === "pending"));
+
+  // Check if we should show product selection for students
+  const showProductSelection = (formData.studentId && 
+    (formData.status === "booked" || formData.status === "pending")) || 
+    (isEditMode && eventData?.extendedProps?.studentId && 
      (eventData.extendedProps?.status === "booked" || eventData.extendedProps?.status === "pending"));
 
   // Filter users based on search term
@@ -791,19 +992,81 @@ const ScheduleModal: React.FC<ScheduleModalProps> = ({
             </div>
           </div>
 
-          <div>
-            <Label>Amount ($) <span className="text-red-500">*</span></Label>
-            <Input
-              type="number"
-              value={formData.amount}
-              onChange={(e) => handleInputChange("amount", e.target.value)}
-              placeholder="0.00"
-              min="0"
-              step="0.01"
-              className="w-full"
-              required
-            />
-          </div>
+          {/* Show Amount for Driving Test, Location fields for Driving Lesson */}
+          {formData.classType === "driving test" ? (
+            <div>
+              <Label>Amount ($) <span className="text-red-500">*</span></Label>
+              <Input
+                type="number"
+                value={formData.amount}
+                onChange={(e) => handleInputChange("amount", e.target.value)}
+                placeholder="0.00"
+                min="0"
+                step="0.01"
+                className="w-full"
+                required
+              />
+            </div>
+          ) : formData.classType === "driving lesson" && showDrivingLessonLocationFields ? (
+            <div className="grid grid-cols-2 gap-4">
+              <div>
+                <Label>Pickup Location <span className="text-red-500">*</span></Label>
+                {isLoaded ? (
+                  <Autocomplete
+                    onLoad={onPickupLoad}
+                    onPlaceChanged={onPickupPlaceChanged}
+                  >
+                    <Input
+                      type="text"
+                      value={formData.pickupLocation}
+                      onChange={(e) => handleInputChange("pickupLocation", e.target.value)}
+                      placeholder="Enter pickup location"
+                      className="w-full"
+                      required
+                    />
+                  </Autocomplete>
+                ) : (
+                  <Input
+                    type="text"
+                    value={formData.pickupLocation}
+                    onChange={(e) => handleInputChange("pickupLocation", e.target.value)}
+                    placeholder="Loading Google Maps..."
+                    className="w-full"
+                    required
+                    disabled
+                  />
+                )}
+              </div>
+              <div>
+                <Label>Dropoff Location <span className="text-red-500">*</span></Label>
+                {isLoaded ? (
+                  <Autocomplete
+                    onLoad={onDropoffLoad}
+                    onPlaceChanged={onDropoffPlaceChanged}
+                  >
+                    <Input
+                      type="text"
+                      value={formData.dropoffLocation}
+                      onChange={(e) => handleInputChange("dropoffLocation", e.target.value)}
+                      placeholder="Enter dropoff location"
+                      className="w-full"
+                      required
+                    />
+                  </Autocomplete>
+                ) : (
+                  <Input
+                    type="text"
+                    value={formData.dropoffLocation}
+                    onChange={(e) => handleInputChange("dropoffLocation", e.target.value)}
+                    placeholder="Loading Google Maps..."
+                    className="w-full"
+                    required
+                    disabled
+                  />
+                )}
+              </div>
+            </div>
+          ) : null}
 
           {showDrivingTestFields && (
             <>
@@ -909,6 +1172,170 @@ const ScheduleModal: React.FC<ScheduleModalProps> = ({
                 </div>
               </div>
             </>
+          )}
+
+          {/* Student and Product Selection for Driving Lesson */}
+          {formData.classType === "driving lesson" && (formData.status === "booked" || formData.status === "pending") && (
+            <>
+              <div>
+                <Label>Students</Label>
+                <div className="relative">
+                  <Input
+                    type="text"
+                    value={searchTerm}
+                    onChange={(e) => setSearchTerm(e.target.value)}
+                    placeholder="Search student..."
+                    className="w-full mb-2"
+                  />
+                  <div className="max-h-20 overflow-y-auto border border-gray-200 rounded bg-white">
+                    {filteredUsers.map((user) => (
+                      <div
+                        key={user._id}
+                        className="flex items-center space-x-2 p-2 hover:bg-gray-50"
+                      >
+                        <input
+                          type="checkbox"
+                          id={`user-${user._id}`}
+                          checked={formData.studentId === user._id}
+                          onChange={() => {
+                            handleInputChange("studentId", user._id);
+                            setSearchTerm(`${user.firstName} ${user.lastName} (${user.email})`);
+                          }}
+                          className="w-4 h-4"
+                        />
+                        <label htmlFor={`user-${user._id}`} className="flex-1 cursor-pointer">
+                          <div className="font-medium">{user.firstName} {user.lastName}</div>
+                          <div className="text-sm text-gray-600">{user.email}</div>
+                        </label>
+                        {formData.studentId === user._id && (
+                          <button
+                            type="button"
+                            onClick={() => {
+                              handleInputChange("studentId", "");
+                              setSearchTerm("");
+                            }}
+                            className="text-red-500 hover:text-red-700 text-xl font-bold w-6 h-6 flex items-center justify-center rounded-full hover:bg-red-100 border border-red-300"
+                            title="Remove student"
+                          >
+                            ×
+                          </button>
+                        )}
+                      </div>
+                    ))}
+                    {filteredUsers.length === 0 && !selectedUser && (
+                      <div className="p-2 text-gray-500">No students found</div>
+                    )}
+                  </div>
+                  {selectedUser && (
+                    <div className="mt-2 flex items-center justify-between p-2 bg-blue-50 border border-blue-200 rounded">
+                      <div className="text-sm">
+                        <span className="font-medium">Selected:</span> {selectedUser.firstName} {selectedUser.lastName}
+                      </div>
+                      <button
+                        type="button"
+                        onClick={() => {
+                          handleInputChange("studentId", "");
+                          setSearchTerm("");
+                        }}
+                        className="text-red-500 hover:text-red-700 text-lg font-bold w-6 h-6 flex items-center justify-center rounded-full hover:bg-red-100 border border-red-300"
+                        title="Remove student"
+                      >
+                        ×
+                      </button>
+                    </div>
+                  )}
+                </div>
+              </div>
+
+              {formData.studentId && (
+                <>
+                  <div>
+                    <Label>Selected Product <span className="text-red-500">*</span></Label>
+                    {/* {(() => {
+                      console.log("🔍 Product dropdown debug:", {
+                        selectedProduct: formData.selectedProduct,
+                        productsCount: products.length,
+                        products: products.map(p => ({ id: p._id, name: p.title })),
+                        isEditMode,
+                        eventDataProduct: eventData?.extendedProps?.selectedProduct
+                      });
+                      return null;
+                    })()} */}
+                    <Select
+                      value={formData.selectedProduct}
+                      onValueChange={(value) => handleInputChange("selectedProduct", value)}
+                      required
+                    >
+                      <SelectTrigger className="w-full">
+                        <SelectValue placeholder="Select a product" />
+                      </SelectTrigger>
+                      <SelectContent className="bg-white border border-gray-200 shadow-lg">
+                        {products.map((product) => (
+                          <SelectItem key={product._id} value={product._id} className="hover:bg-gray-100">
+                            {product.title} - ${product.price} ({product.duration} hrs)
+                          </SelectItem>
+                        ))}
+                      </SelectContent>
+                    </Select>
+                  </div>
+
+                  <div>
+                    <Label>Payment Status</Label>
+                    <div className="flex space-x-4 mt-2">
+                      <div className="flex items-center space-x-2">
+                        <input
+                          type="radio"
+                          id="paid-true-lesson"
+                          name="paid-lesson"
+                          checked={formData.paid === true}
+                          onChange={() => handleInputChange("paid", true)}
+                          className="w-4 h-4"
+                        />
+                        <label htmlFor="paid-true-lesson" className="text-sm cursor-pointer">
+                          Paid
+                        </label>
+                      </div>
+                      <div className="flex items-center space-x-2">
+                        <input
+                          type="radio"
+                          id="paid-false-lesson"
+                          name="paid-lesson"
+                          checked={formData.paid === false}
+                          onChange={() => handleInputChange("paid", false)}
+                          className="w-4 h-4"
+                        />
+                        <label htmlFor="paid-false-lesson" className="text-sm cursor-pointer">
+                          Not Paid
+                        </label>
+                      </div>
+                    </div>
+                  </div>
+                </>
+              )}
+            </>
+          )}
+
+          {/* Product Selection for Students (for driving test) */}
+          {showProductSelection && formData.classType === "driving test" && (
+            <div>
+              <Label>Selected Product <span className="text-red-500">*</span></Label>
+              <Select
+                value={formData.selectedProduct}
+                onValueChange={(value) => handleInputChange("selectedProduct", value)}
+                required
+              >
+                <SelectTrigger className="w-full">
+                  <SelectValue placeholder="Select a product" />
+                </SelectTrigger>
+                <SelectContent className="bg-white border border-gray-200 shadow-lg">
+                  {products.map((product) => (
+                    <SelectItem key={product._id} value={product._id} className="hover:bg-gray-100">
+                      {product.title} - ${product.price} ({product.duration} hrs)
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+            </div>
           )}
 
           <div className="flex justify-end space-x-2 pt-4">

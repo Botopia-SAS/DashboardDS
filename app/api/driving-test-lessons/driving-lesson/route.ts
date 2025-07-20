@@ -34,6 +34,7 @@ export async function POST(req: NextRequest) {
       amount,
       pickupLocation = "",
       dropoffLocation = "",
+      selectedProduct = "",
       recurrence = "none",
       recurrenceEndDate
     } = body;
@@ -93,10 +94,15 @@ export async function POST(req: NextRequest) {
     // Generar eventos recurrentes si es necesario
     let eventsToCreate = [{ date, start, end }];
     
+    //console.log("🔄 Processing recurrence:", { recurrence, recurrenceEndDate, date });
+    
     if (recurrence && recurrence !== 'none' && recurrenceEndDate) {
       const dates = generateRecurrenceDates(date, recurrence, recurrenceEndDate);
+      //console.log("📅 Generated recurrence dates:", dates);
       eventsToCreate = dates.map(d => ({ date: d, start, end }));
     }
+    
+    //console.log("🎯 Events to create:", eventsToCreate.length);
 
     // Crear todos los eventos
     const createdEvents = [];
@@ -109,18 +115,19 @@ export async function POST(req: NextRequest) {
         end,
         status,
         classType,
-        amount: amount || null,
         pickupLocation,
         dropoffLocation,
-        instructorId,
-        booked: false,
-        studentId: null,
-        paid: false,
+        selectedProduct,
+        studentId: body.studentId || null,
+        studentName: body.studentName || null,
+        paid: body.paid || false,
       };
       
       createdEvents.push(scheduleSlot);
     }
 
+    //console.log("✅ Created events:", createdEvents.length);
+    
     // Add all slots to the driving lesson schedule array
     const updatedInstructor = await Instructor.findByIdAndUpdate(
       instructorId,

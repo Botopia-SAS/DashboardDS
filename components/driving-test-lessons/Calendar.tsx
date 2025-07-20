@@ -105,7 +105,7 @@ const Calendar: React.FC<CalendarProps> = ({ selectedInstructor }) => {
         if (!clipboard) return;
         try {
           const data = JSON.parse(clipboard);
-          console.log("Pasted data:", data);
+          // console.log("Pasted data:", data);
           
           // El modal detectará automáticamente los datos pegados
           
@@ -159,7 +159,7 @@ const Calendar: React.FC<CalendarProps> = ({ selectedInstructor }) => {
 
   const handleEventClick = (clickInfo: any) => {
     try {
-      console.log("Event clicked:", clickInfo.event);
+      // console.log("Event clicked:", clickInfo.event);
       
       // Preparar los datos del evento para el modal de edición
       const eventData = {
@@ -174,11 +174,14 @@ const Calendar: React.FC<CalendarProps> = ({ selectedInstructor }) => {
           amount: clickInfo.event.extendedProps?.amount,
           studentId: clickInfo.event.extendedProps?.studentId,
           studentName: clickInfo.event.extendedProps?.studentName,
-          paid: clickInfo.event.extendedProps?.paid
+          paid: clickInfo.event.extendedProps?.paid,
+          pickupLocation: clickInfo.event.extendedProps?.pickupLocation,
+          dropoffLocation: clickInfo.event.extendedProps?.dropoffLocation,
+          selectedProduct: clickInfo.event.extendedProps?.selectedProduct
         }
       };
       
-      console.log("Prepared event data:", eventData);
+      // console.log("Prepared event data:", eventData);
       
       // Abrir modal de edición con los datos del evento
       setSelectedEvent(eventData);
@@ -211,7 +214,7 @@ const Calendar: React.FC<CalendarProps> = ({ selectedInstructor }) => {
 
   const handleEventDelete = async (eventId: string) => {
     try {
-      console.log("Sending delete request for event:", eventId);
+      // console.log("Sending delete request for event:", eventId);
       
       const response = await fetch(`/api/driving-test-lessons/delete-event`, {
         method: 'DELETE',
@@ -222,7 +225,7 @@ const Calendar: React.FC<CalendarProps> = ({ selectedInstructor }) => {
       });
 
       if (response.ok) {
-        console.log("Event deleted successfully");
+        // console.log("Event deleted successfully");
         handleEditModalClose();
         fetchEvents(); // Refrescar eventos
       } else {
@@ -238,7 +241,7 @@ const Calendar: React.FC<CalendarProps> = ({ selectedInstructor }) => {
 
   const handleEventUpdate = async (eventData: any) => {
     try {
-      console.log("Sending update request:", eventData);
+      // console.log("Sending update request:", eventData);
       
       const response = await fetch(`/api/driving-test-lessons/update-event`, {
         method: 'PUT',
@@ -249,7 +252,7 @@ const Calendar: React.FC<CalendarProps> = ({ selectedInstructor }) => {
       });
 
       if (response.ok) {
-        console.log("Event updated successfully");
+        // console.log("Event updated successfully");
         handleEditModalClose();
         fetchEvents(); // Refrescar eventos
       } else {
@@ -265,7 +268,7 @@ const Calendar: React.FC<CalendarProps> = ({ selectedInstructor }) => {
 
   const handleEventCopy = async (eventData: any) => {
     try {
-      console.log("Sending copy request:", eventData);
+      // console.log("Sending copy request:", eventData);
       
       const response = await fetch(`/api/driving-test-lessons/copy-event`, {
         method: 'POST',
@@ -276,7 +279,7 @@ const Calendar: React.FC<CalendarProps> = ({ selectedInstructor }) => {
       });
 
       if (response.ok) {
-        console.log("Event copied successfully");
+        // console.log("Event copied successfully");
         handleEditModalClose();
         fetchEvents(); // Refrescar eventos
         alert("Event copied successfully!");

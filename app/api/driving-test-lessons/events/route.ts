@@ -97,6 +97,9 @@ export async function GET(req: NextRequest) {
                   studentId: slot.studentId,
                   studentName: slot.studentName,
                   paid: slot.paid,
+                  pickupLocation: slot.pickupLocation,
+                  dropoffLocation: slot.dropoffLocation,
+                  selectedProduct: slot.selectedProduct,
                   scheduleType: 'driving_lesson',
                   eventId: eventId
                 }
