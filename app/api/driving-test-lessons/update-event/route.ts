@@ -150,12 +150,12 @@ export async function PUT(req: NextRequest) {
       if (classType === "driving test") {
         await Instructor.updateOne(
           { _id: instructorId, "schedule_driving_test._id": eventId },
-          { $set: { "schedule_driving_test.$": { ...updateData, _id: eventId, pickupLocation: "", dropoffLocation: "", instructorId } } }
+          { $set: { "schedule_driving_test.$": { ...updateData, _id: eventId, pickupLocation: eventData.pickupLocation || "", dropoffLocation: eventData.dropoffLocation || "", instructorId } } }
         );
       } else if (classType === "driving lesson") {
         await Instructor.updateOne(
           { _id: instructorId, "schedule_driving_lesson._id": eventId },
-          { $set: { "schedule_driving_lesson.$": { ...updateData, _id: eventId, pickupLocation: "", dropoffLocation: "", instructorId } } }
+          { $set: { "schedule_driving_lesson.$": { ...updateData, _id: eventId, pickupLocation: eventData.pickupLocation || "", dropoffLocation: eventData.dropoffLocation || "", instructorId } } }
         );
       }
     }

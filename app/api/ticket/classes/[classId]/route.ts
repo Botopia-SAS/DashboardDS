@@ -49,6 +49,30 @@ export async function PATCH(req: NextRequest, { params }: { params: Promise<{ cl
     const body = await req.json();
     //console.log(`[API] PATCH ticket class ${classId}:`, body);
 
+    const ticketClass = await TicketClass.findOne({ _id: classId });
+
+    if (!ticketClass) {
+      console.error(`[API] Ticket class not found: ${classId}`);
+      return NextResponse.json({ error: "Class not found" }, { status: 404 });
+    }
+
+    // Lógica especial para aceptar solicitud
+    if (body.action === "acceptRequest" && body.studentId && body.requestId) {
+      // Eliminar el objeto de studentRequests (array de objetos)
+      const reqObj = (ticketClass.studentRequests || []).find((req: any) => req._id?.toString() === body.requestId);
+      ticketClass.studentRequests = (ticketClass.studentRequests || []).filter((req: any) => req._id?.toString() !== body.requestId);
+      // Agregar el studentId a students si no está
+      let studentIdToAdd = body.studentId;
+      if (reqObj && typeof reqObj === 'object' && 'studentId' in reqObj) {
+        studentIdToAdd = reqObj.studentId;
+      }
+      if (studentIdToAdd && !ticketClass.students.includes(studentIdToAdd)) {
+        ticketClass.students.push(studentIdToAdd);
+      }
+      await ticketClass.save();
+      return NextResponse.json({ message: "Request accepted", data: ticketClass });
+    }
+
     const { error, value } = ticketClassSchema.validate(body);
 
     if (error) {
@@ -57,13 +81,6 @@ export async function PATCH(req: NextRequest, { params }: { params: Promise<{ cl
         { error: error.details[0].message },
         { status: 400 }
       );
-    }
-
-    const ticketClass = await TicketClass.findOne({ _id: classId });
-
-    if (!ticketClass) {
-      console.error(`[API] Ticket class not found: ${classId}`);
-      return NextResponse.json({ error: "Class not found" }, { status: 404 });
     }
 
     const originalData = {
