@@ -64,9 +64,10 @@ interface TicketCalendarEvent {
 
 interface TicketCalendarProps {
   className?: string;
+  refreshKey?: number;
 }
 
-const TicketCalendar = ({ className }: TicketCalendarProps) => {
+const TicketCalendar = ({ className, refreshKey }: TicketCalendarProps) => {
   // Estado para el modal
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [selectedSlot, setSelectedSlot] = useState<TicketFormData | null>(null);
@@ -209,7 +210,7 @@ const TicketCalendar = ({ className }: TicketCalendarProps) => {
     };
 
     fetchTicketClasses();
-  }, []);
+  }, [refreshKey]);
 
   // Handler para pegar con Ctrl+V SOLO si el modal de crear clase está abierto y es nuevo (no edición)
   useEffect(() => {
