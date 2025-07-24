@@ -62,8 +62,11 @@ export async function PATCH(req: NextRequest, { params }: { params: Promise<{ cl
       const reqObj = (ticketClass.studentRequests || []).find((req: any) => req._id?.toString() === body.requestId);
       ticketClass.studentRequests = (ticketClass.studentRequests || []).filter((req: any) => req._id?.toString() !== body.requestId);
       // Agregar el studentId a students si no está
+      function isStudentRequestObj(obj: any): obj is { studentId: string } {
+        return obj && typeof obj === 'object' && !Array.isArray(obj) && typeof obj.studentId === 'string';
+      }
       let studentIdToAdd = body.studentId;
-      if (reqObj && typeof reqObj === 'object' && 'studentId' in reqObj) {
+      if (isStudentRequestObj(reqObj)) {
         studentIdToAdd = reqObj.studentId;
       }
       if (studentIdToAdd && !ticketClass.students.includes(studentIdToAdd)) {
