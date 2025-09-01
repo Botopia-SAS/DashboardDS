@@ -14,6 +14,7 @@ import ScheduleModal from "./ScheduleModal";
 // No separate CSS imports needed
 
 interface TicketFormData {
+  _id?: string;
   date: string;
   hour: string;
   endHour: string;
@@ -26,6 +27,8 @@ interface TicketFormData {
   duration?: string;
   locationId?: string;
   studentRequests?: string[];
+  recurrence?: string;
+  recurrenceEndDate?: string;
 }
 
 interface TicketClassResponse {
@@ -151,11 +154,16 @@ const TicketCalendar = ({ className }: TicketCalendarProps) => {
           setClasses(classesData);
         }
 
-        // Cargar estudiantes (usuarios)
-        const studentsResponse = await fetch('/api/users');
+        // Cargar estudiantes (customers)
+        const studentsResponse = await fetch('/api/customers');
         if (studentsResponse.ok) {
           const studentsData = await studentsResponse.json();
-          setStudents(studentsData);
+          // Transformar el formato para que coincida con lo que espera ScheduleModal
+          const transformedStudents = studentsData.map((student: any) => ({
+            _id: student.id,
+            name: student.name
+          }));
+          setStudents(transformedStudents);
         }
 
       } catch (error) {
@@ -318,6 +326,7 @@ const TicketCalendar = ({ className }: TicketCalendarProps) => {
     const ticketClass = eventInfo.event.extendedProps.ticketClass as TicketClassResponse;
     if (ticketClass) {
       setSelectedSlot({
+        _id: ticketClass._id,
         date: ticketClass.date?.slice(0, 10) || "",
         hour: ticketClass.hour || "",
         endHour: ticketClass.endHour || "",
@@ -335,37 +344,137 @@ const TicketCalendar = ({ className }: TicketCalendarProps) => {
     }
   };
 
+  const refreshCalendar = async () => {
+    const updatedResponse = await fetch("/api/ticket/calendar");
+    if (!updatedResponse.ok) {
+      throw new Error(`Failed to refresh calendar: ${updatedResponse.status}`);
+    }
+    const updatedData = await updatedResponse.json();
+    if (!Array.isArray(updatedData)) {
+      console.error('❌ Expected array but got:', typeof updatedData);
+      return;
+    }
+    const events = updatedData.map((ticketClass: unknown) => {
+      const tc = ticketClass as TicketClassResponse;
+      const studentCount = Array.isArray(tc.students) ? tc.students.length : 0;
+      const totalSpots = tc.spots || 30;
+      let classType = "Class";
+      if (tc.type === "date") classType = "D.A.T.E";
+      else if (tc.type === "bdi") classType = "B.D.I";
+      else if (tc.type === "adi") classType = "A.D.I";
+      let status = "Available";
+      if (tc.status === "full") status = "Full";
+      else if (tc.status === "cancel") status = "Cancelled";
+      else if (tc.status === "expired") status = "Expired";
+      const dateStr = tc.date?.slice(0, 10) || "";
+      let backgroundColor = "#6b7280";
+      let borderColor = "#4b5563";
+      if (status === "Full") {
+        backgroundColor = "#7c3aed";
+        borderColor = "#6d28d9";
+      } else if (status === "Cancelled") {
+        backgroundColor = "#ef4444";
+        borderColor = "#dc2626";
+      } else if (status === "Available") {
+        backgroundColor = "#10b981";
+        borderColor = "#059669";
+      }
+      return {
+        id: tc._id,
+        title: `${classType} - ${status} (${studentCount}/${totalSpots})`,
+        start: `${dateStr}T${tc.hour || "00:00"}`,
+        end: `${dateStr}T${tc.endHour || "00:00"}`,
+        backgroundColor,
+        borderColor,
+        textColor: "#ffffff",
+        extendedProps: {
+          ticketClass: tc,
+          classType,
+          status,
+          studentCount,
+          totalSpots
+        }
+      } as TicketCalendarEvent;
+    });
+    setCalendarEvents(events);
+  };
+
+  const handleModalDelete = async (id: string) => {
+    try {
+      const res = await fetch(`/api/ticket/classes/${id}`, { method: 'DELETE' });
+      if (!res.ok) {
+        const data = await res.json();
+        throw new Error(data.error || 'Failed to delete TicketClass');
+      }
+      setIsModalOpen(false);
+      await refreshCalendar();
+    } catch (error) {
+      console.error('❌ Error deleting TicketClass:', error);
+      alert(`❌ Error deleting TicketClass: ${error instanceof Error ? error.message : 'Unknown error'}`);
+    }
+  };
+
   const handleModalSave = async (data: TicketFormData) => {
     try {
-      const ticketClassData = {
-        date: new Date(data.date + 'T' + data.hour).toISOString(),
-        hour: data.hour,
-        endHour: data.endHour,
-        classId: data.classId,
-        type: data.type,
-        locationId: data.locationId,
-        instructorId: data.instructorId,
-        students: data.students,
-        spots: data.spots,
-        duration: data.duration,
-        status: data.status,
-        studentRequests: data.studentRequests || [],
-      };
-      
-      const response = await fetch('/api/ticket/classes', {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-        },
-        body: JSON.stringify(ticketClassData),
-      });
-      
-      if (!response.ok) {
-        const result = await response.json();
-        throw new Error(result.error || 'Failed to create ticket class');
+      // Crear múltiples clases si hay recurrencia
+      if (data.recurrence && data.recurrence !== 'none' && data.recurrenceEndDate) {
+        const startDate = new Date(data.date);
+        const endDate = new Date(data.recurrenceEndDate);
+        const addDays = (date: Date, days: number) => {
+          const d = new Date(date);
+          d.setDate(d.getDate() + days);
+          return d;
+        };
+        const step = data.recurrence === 'daily' ? 1 : data.recurrence === 'weekly' ? 7 : 30;
+        const payload: any[] = [];
+        for (let d = new Date(startDate); d <= endDate; d = addDays(d, step)) {
+          payload.push({
+            date: d.toISOString().split('T')[0],
+            hour: data.hour,
+            endHour: data.endHour,
+            classId: data.classId,
+            type: data.type,
+            locationId: data.locationId,
+            instructorId: data.instructorId,
+            students: data.students,
+            spots: data.spots,
+            duration: data.duration,
+            studentRequests: data.studentRequests || [],
+          });
+        }
+        const response = await fetch('/api/ticket/classes/batch', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify(payload),
+        });
+        if (!response.ok) {
+          const result = await response.json();
+          throw new Error(result.error || 'Failed to create recurring ticket classes');
+        }
+      } else {
+        const ticketClassData = {
+          date: data.date,
+          hour: data.hour,
+          endHour: data.endHour,
+          classId: data.classId,
+          type: data.type,
+          locationId: data.locationId,
+          instructorId: data.instructorId,
+          students: data.students,
+          spots: data.spots,
+          duration: data.duration,
+          studentRequests: data.studentRequests || [],
+        };
+        const response = await fetch('/api/ticket/classes', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify(ticketClassData),
+        });
+        if (!response.ok) {
+          const result = await response.json();
+          throw new Error(result.error || 'Failed to create ticket class');
+        }
       }
-      
-      alert('✅ TicketClass created successfully!');
       setIsModalOpen(false);
       
       // Recargar los eventos del calendario
@@ -471,7 +580,7 @@ const TicketCalendar = ({ className }: TicketCalendarProps) => {
           </div>
         )}
         
-        <div className="calendar-container" style={{ minHeight: '500px' }}>
+        <div className="calendar-container" style={{ minHeight: '850px' }}>
           <FullCalendar
             plugins={[timeGridPlugin, interactionPlugin]}
             initialView="timeGridWeek"
@@ -480,7 +589,7 @@ const TicketCalendar = ({ className }: TicketCalendarProps) => {
             slotMinTime="06:00:00"
             slotMaxTime="20:00:00"
             slotDuration="00:30:00"
-            height="500px"
+            height="850px"
             events={calendarEvents}
             select={handleDateSelect}
             eventClick={handleEventClick}
@@ -505,6 +614,8 @@ const TicketCalendar = ({ className }: TicketCalendarProps) => {
           isOpen={isModalOpen}
           onClose={handleModalClose}
           onSave={handleModalSave}
+          onDelete={handleModalDelete}
+          onUpdate={refreshCalendar}
           initialData={selectedSlot}
           instructors={instructors}
           locations={locations}
