@@ -1,25 +1,27 @@
 import { NextRequest, NextResponse } from "next/server";
 import TicketClass from "@/lib/models/TicketClass";
-// Importa los modelos referenciados en populate para registro en Mongoose
-import "@/lib/models/Locations";
-import "@/lib/models/Class";
-import "@/lib/models/Instructor";
 import { connectToDB } from "@/lib/mongoDB";
 
 export async function GET() {
   try {
     await connectToDB();
-    //console.log('🔄 Fetching ticket classes for calendar...');
+    
+    console.log('🔄 Fetching ticket classes for calendar...');
+    
     // Obtener todas las ticket classes con datos populados
     const ticketClasses = await TicketClass.find({})
       .populate('locationId', 'title')
       .populate('classId', 'title')
       .populate('instructorId', 'name')
       .lean();
-    //console.log('📊 Found ticket classes:', ticketClasses.length);
+    
+    console.log('📊 Found ticket classes:', ticketClasses.length);
+    
+    // Agregar logs para debugging
     if (ticketClasses.length > 0) {
-      //console.log('📋 First ticket class sample:', ticketClasses[0]);
+      console.log('📋 First ticket class sample:', ticketClasses[0]);
     }
+    
     return NextResponse.json(ticketClasses);
   } catch (error) {
     console.error('❌ Error fetching ticket classes:', error);
@@ -30,6 +32,7 @@ export async function GET() {
 export async function POST(req: NextRequest) {
   await connectToDB();
   const data = await req.json();
+  // Solo permitimos los campos válidos
   const {
     locationId,
     date,
