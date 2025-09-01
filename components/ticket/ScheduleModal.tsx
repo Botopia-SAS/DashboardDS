@@ -246,16 +246,8 @@ export default function ScheduleModal({
     setValidationErrors([]);
     
     try {
-      // Estrategia 'delete and recreate' para evitar incompatibilidades de tipos en backend
-      const delRes = await fetch(`/api/ticket/classes/${form._id}`, { method: 'DELETE' });
-      // Si no existe, continuamos de todas formas con el create
-      if (!delRes.ok && delRes.status !== 404) {
-        const errorData = await delRes.json();
-        throw new Error(errorData.error || 'Error deleting existing TicketClass');
-      }
-
-      const createPayload = {
-        // enviar fecha en formato YYYY-MM-DD (el API la normaliza)
+      // Usar PUT real para mantener el mismo ID
+      const updatePayload = {
         date: form.date,
         hour: form.hour,
         endHour: form.endHour,
@@ -263,22 +255,27 @@ export default function ScheduleModal({
         type: form.type,
         locationId: form.locationId,
         instructorId: form.instructorId,
-        students: form.students,
+        // Asegurar que students y studentRequests sean arrays de strings
+        students: Array.isArray(form.students) 
+          ? form.students.filter(s => typeof s === 'string')
+          : [],
         spots: form.spots,
         duration: form.duration,
-        // status no está permitido por el schema de POST
-        studentRequests: form.studentRequests || [],
+        status: form.status,
+        studentRequests: Array.isArray(form.studentRequests) 
+          ? form.studentRequests.filter(req => typeof req === 'string')
+          : [],
       };
 
-      const createRes = await fetch('/api/ticket/classes', {
-        method: 'POST',
+      const updateRes = await fetch(`/api/ticket/classes/${form._id}`, {
+        method: 'PUT',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify(createPayload),
+        body: JSON.stringify(updatePayload),
       });
 
-      if (!createRes.ok) {
-        const errorData = await createRes.json();
-        throw new Error(errorData.error || 'Error creating TicketClass');
+      if (!updateRes.ok) {
+        const errorData = await updateRes.json();
+        throw new Error(errorData.error || 'Error updating TicketClass');
       }
 
       // Cerrar el modal y refrescar el calendario sin alerts de éxito
