@@ -246,28 +246,41 @@ export default function ScheduleModal({
     setValidationErrors([]);
     
     try {
-      // Remover campos que no deben enviarse al backend
-      const updateData = { ...form };
-      delete updateData._id; // El backend no debe recibir el _id
-      
-      const res = await fetch(`/api/ticket/classes/${form._id}`, {
+      // Usar PUT real para mantener el mismo ID
+      const updatePayload = {
+        date: form.date,
+        hour: form.hour,
+        endHour: form.endHour,
+        classId: form.classId,
+        type: form.type,
+        locationId: form.locationId,
+        instructorId: form.instructorId,
+        // Asegurar que students y studentRequests sean arrays de strings
+        students: Array.isArray(form.students) 
+          ? form.students.filter(s => typeof s === 'string')
+          : [],
+        spots: form.spots,
+        duration: form.duration,
+        status: form.status,
+        studentRequests: Array.isArray(form.studentRequests) 
+          ? form.studentRequests.filter(req => typeof req === 'string')
+          : [],
+      };
+
+      const updateRes = await fetch(`/api/ticket/classes/${form._id}`, {
         method: 'PUT',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify(updateData),
+        body: JSON.stringify(updatePayload),
       });
-      
-      if (!res.ok) {
-        const errorData = await res.json();
+
+      if (!updateRes.ok) {
+        const errorData = await updateRes.json();
         throw new Error(errorData.error || 'Error updating TicketClass');
       }
-      
-      // Cerrar el modal y refrescar el calendario
+
+      // Cerrar el modal y refrescar el calendario sin alerts de éxito
       onClose();
-      
-      // Llamar callback para refrescar el calendario
-      if (onUpdate) {
-        onUpdate();
-      }
+      if (onUpdate) onUpdate();
     } catch (err) {
       console.error('Update error:', err);
       alert(`Error updating TicketClass: ${err instanceof Error ? err.message : 'Unknown error'}`);
@@ -304,8 +317,8 @@ export default function ScheduleModal({
 
   return (
     <Dialog open={isOpen} onClose={onClose} className="fixed inset-0 flex items-center justify-center z-50">
-      <div className="bg-white p-6 rounded-lg shadow-lg max-w-2xl w-full mt-8">
-        <h2 className="text-lg font-bold mb-4">
+      <div className="bg-white p-4 rounded-lg shadow-lg max-w-2xl w-full mt-4">
+        <h2 className="text-lg font-bold mb-2">
           Configure TicketClass
           {form.date && (
             <span className="block text-sm font-normal mt-1">
@@ -320,8 +333,8 @@ export default function ScheduleModal({
         </h2>
         
         {validationErrors.length > 0 && (
-          <div className="mb-4 p-3 bg-red-50 border border-red-200 rounded-md">
-            <h3 className="text-sm font-medium text-red-800 mb-2">Please fix the following errors:</h3>
+          <div className="mb-2 p-2 bg-red-50 border border-red-200 rounded-md">
+            <h3 className="text-sm font-medium text-red-800 mb-1">Please fix the following errors:</h3>
             <ul className="text-sm text-red-700 space-y-1">
               {validationErrors.map((error, index) => (
                 <li key={index}>{error}</li>
@@ -330,7 +343,7 @@ export default function ScheduleModal({
           </div>
         )}
         
-        <div className="grid grid-cols-1 gap-4">
+        <div className="grid grid-cols-1 gap-2">
           <div className="flex gap-4 items-end">
             <div className="flex-1">
               <label className="block text-sm font-medium mb-1">Class type <span className="text-red-500">*</span></label>
@@ -435,7 +448,7 @@ export default function ScheduleModal({
               onChange={e => setInstructorSearch(e.target.value)}
               className="w-full border rounded px-2 py-1 mb-2"
             />
-            <div className="max-h-16 overflow-y-auto border rounded px-2 py-1 bg-gray-50">
+            <div className="max-h-12 overflow-y-auto border rounded px-2 py-1 bg-gray-50">
               {filteredInstructors.length === 0 && <div className="text-xs text-gray-400">No instructors found</div>}
               {filteredInstructors.map((i) => (
                 <label key={i._id} className="flex items-center justify-between py-1 cursor-pointer text-sm">
@@ -481,7 +494,7 @@ export default function ScheduleModal({
                 onChange={e => setStudentSearch(e.target.value)}
                 className="w-full border rounded px-2 py-1 mb-2"
               />
-              <div className="max-h-16 overflow-y-auto border rounded px-2 py-1 bg-gray-50">
+              <div className="max-h-12 overflow-y-auto border rounded px-2 py-1 bg-gray-50">
                 {filteredStudents.length === 0 && <div className="text-xs text-gray-400">No students found</div>}
                 {filteredStudents.map((s) => (
                   <label key={s._id} className="flex items-center justify-between py-1 cursor-pointer text-sm">
@@ -497,7 +510,7 @@ export default function ScheduleModal({
             </div>
           )}
         </div>
-        <div className="flex justify-end gap-2 mt-6">
+        <div className="flex justify-end gap-2 mt-3">
           <Button variant="outline" onClick={onClose}>Cancel</Button>
           {form._id ? (
             <>

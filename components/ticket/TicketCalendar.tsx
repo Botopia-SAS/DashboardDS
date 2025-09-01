@@ -7,8 +7,11 @@ import FullCalendar from "@fullcalendar/react";
 import timeGridPlugin from "@fullcalendar/timegrid";
 import interactionPlugin from "@fullcalendar/interaction";
 import { DateSelectArg, EventClickArg } from "@fullcalendar/core";
-import { useState, useEffect, useRef } from "react";
+import { useState, useEffect } from "react";
 import ScheduleModal from "./ScheduleModal";
+
+// FullCalendar v6 includes styles in the JavaScript bundles
+// No separate CSS imports needed
 
 interface TicketFormData {
   _id?: string;
@@ -67,29 +70,64 @@ interface TicketCalendarProps {
   refreshKey?: number;
 }
 
-const TicketCalendar = ({ className, refreshKey }: TicketCalendarProps) => {
+const TicketCalendar = ({ className }: TicketCalendarProps) => {
   // Estado para el modal
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [selectedSlot, setSelectedSlot] = useState<TicketFormData | null>(null);
   const [isLoading, setIsLoading] = useState(true);
-  const [hasError, setHasError] = useState(false);
-  
-  // Referencia al calendario para navegación
-  const calendarRef = useRef<FullCalendar>(null);
 
-  // Datos del calendario - inicializar vacío
-  const [calendarEvents, setCalendarEvents] = useState<TicketCalendarEvent[]>([]);
+  // Datos de ejemplo para el calendario
+  const [calendarEvents, setCalendarEvents] = useState<TicketCalendarEvent[]>([
+    {
+      id: "1",
+      title: "D.A.T.E - Driving Test",
+      start: "2025-07-09T09:00:00",
+      end: "2025-07-09T09:30:00",
+      backgroundColor: "#3b82f6",
+      borderColor: "#2563eb",
+      textColor: "#ffffff",
+      extendedProps: {
+        classType: "D.A.T.E",
+        student: "John Doe",
+        status: "Booked"
+      }
+    },
+    {
+      id: "2",
+      title: "B.D.I - Basic Driving",
+      start: "2025-07-10T14:00:00",
+      end: "2025-07-10T15:00:00",
+      backgroundColor: "#10b981",
+      borderColor: "#059669",
+      textColor: "#ffffff",
+      extendedProps: {
+        classType: "B.D.I",
+        student: "Jane Smith",
+        status: "Scheduled"
+      }
+    }
+  ]);
 
-  // Datos para el modal - inicializar vacíos
-  const [instructors, setInstructors] = useState([]);
-  const [locations, setLocations] = useState([]);
-  const [classes, setClasses] = useState([]);
-  const [students, setStudents] = useState([]);
+  // Datos reales para el modal
+  const [instructors, setInstructors] = useState([
+    { _id: "1", name: "Nelson Guarín" },
+    { _id: "2", name: "James" },
+  ]);
 
-  // Clipboard para copiar/pegar clases
-  const clipboardKey = 'ticketclass_clipboard';
-  // Estado para saber en qué slot se hizo click por última vez
-  const [lastSelectedSlot, setLastSelectedSlot] = useState<any>(null);
+  const [locations, setLocations] = useState([
+    { _id: "1", title: "Location 1" },
+    { _id: "2", title: "Location 2" },
+  ]);
+
+  const [classes, setClasses] = useState([
+    { _id: "1", title: "Basic Driving Course" },
+    { _id: "2", title: "Advanced Driving Course" },
+  ]);
+
+  const [students, setStudents] = useState([
+    { _id: "1", name: "Botopia Technology" },
+    { _id: "2", name: "Santiago Aristizabal" },
+  ]);
 
   // Cargar datos reales desde las APIs
   useEffect(() => {
@@ -116,16 +154,16 @@ const TicketCalendar = ({ className, refreshKey }: TicketCalendarProps) => {
           setClasses(classesData);
         }
 
-        // Cargar estudiantes (usuarios)
-        const studentsResponse = await fetch('/api/users');
+        // Cargar estudiantes (customers)
+        const studentsResponse = await fetch('/api/customers');
         if (studentsResponse.ok) {
           const studentsData = await studentsResponse.json();
-          // Mapeo para asegurar {_id, name}
-          const mappedStudents = studentsData.map((u: any) => ({
-            _id: u._id,
-            name: u.name || `${u.firstName || ''} ${u.lastName || ''}`.trim()
+          // Transformar el formato para que coincida con lo que espera ScheduleModal
+          const transformedStudents = studentsData.map((student: any) => ({
+            _id: student.id,
+            name: student.name
           }));
-          setStudents(mappedStudents);
+          setStudents(transformedStudents);
         }
 
       } catch (error) {
@@ -141,133 +179,130 @@ const TicketCalendar = ({ className, refreshKey }: TicketCalendarProps) => {
     const fetchTicketClasses = async () => {
       setIsLoading(true);
       try {
+        console.log('🔄 Fetching ticket classes from API...');
         const response = await fetch("/api/ticket/calendar");
         
         if (!response.ok) {
-          console.error(`API Error: ${response.status} ${response.statusText}`);
-          setIsLoading(false);
-          return;
+          throw new Error(`API Error: ${response.status} ${response.statusText}`);
         }
         
         const data = await response.json();
+        console.log('📥 Raw API response:', data);
+        console.log('📊 Number of ticket classes fetched:', data.length);
         
-        // Mapeo forzado de eventos para asegurar que se vean
-        const events = Array.isArray(data) ? data.map((tc: any, index: number) => {
-          try {
-            const dateStr = tc.date ? tc.date.slice(0, 10) : "";
-            const hour = tc.hour || "00:00";
-            const endHour = tc.endHour || "01:00";
-            const studentCount = Array.isArray(tc.students) ? tc.students.length : 0;
-            const totalSpots = tc.spots || 30;
-            let classType = "Class";
-            if (tc.type === "date") classType = "D.A.T.E";
-            else if (tc.type === "bdi") classType = "B.D.I";
-            else if (tc.type === "adi") classType = "A.D.I";
-            let status = "Available";
-            if (tc.status === "full") status = "Full";
-            else if (tc.status === "cancel") status = "Cancelled";
-            else if (tc.status === "expired") status = "Expired";
-            let backgroundColor = "#6b7280";
-            let borderColor = "#4b5563";
-            if (status === "Full") {
-              backgroundColor = "#7c3aed";
-              borderColor = "#6d28d9";
-            } else if (status === "Cancelled") {
-              backgroundColor = "#ef4444";
-              borderColor = "#dc2626";
-            } else if (status === "Available") {
-              backgroundColor = "#10b981";
-              borderColor = "#059669";
-            }
-            return {
-              id: tc._id || `ticket-${index}`,
-              title: `${classType} - ${status} (${studentCount}/${totalSpots})`,
-              start: `${dateStr}T${hour}:00`,
-              end: `${dateStr}T${endHour}:00`,
-              backgroundColor,
-              borderColor,
-              textColor: "#fff",
-              extendedProps: {
-                ticketClass: tc,
-                classType,
-                status,
-                studentCount,
-                totalSpots
+        // Verificar que data sea un array
+        if (!Array.isArray(data)) {
+          console.error('❌ Expected array but got:', typeof data);
+          setCalendarEvents([]);
+          return;
+        }
+        
+        // Convertir ticketClasses a eventos del calendario
+        const events = data.map((ticketClass: unknown, index: number) => {
+          const tc = ticketClass as TicketClassResponse;
+          console.log(`🎫 Processing ticket class ${index + 1}:`, tc);
+          
+          const studentCount = Array.isArray(tc.students) ? tc.students.length : 0;
+          const totalSpots = tc.spots || 30;
+          
+          // Determinar tipo de clase
+          let classType = "Class";
+          if (tc.type === "date") classType = "D.A.T.E";
+          else if (tc.type === "bdi") classType = "B.D.I";
+          else if (tc.type === "adi") classType = "A.D.I";
+          
+          // Determinar estado
+          let status = "Available";
+          if (tc.status === "full") status = "Full";
+          else if (tc.status === "cancel") status = "Cancelled";
+          else if (tc.status === "expired") status = "Expired";
+          
+          // Formatear fecha - mejorar el handling de fechas
+          let dateStr = "";
+          if (tc.date) {
+            try {
+              const date = new Date(tc.date);
+              if (!isNaN(date.getTime())) {
+                dateStr = date.toISOString().slice(0, 10);
+              } else {
+                console.warn('⚠️ Invalid date format:', tc.date);
+                dateStr = tc.date.slice(0, 10);
               }
-            };
-          } catch (error) {
-            console.error('Error mapping ticket class:', tc, error);
-            return null;
+            } catch (error) {
+              console.error('❌ Error parsing date:', tc.date, error);
+              dateStr = new Date().toISOString().slice(0, 10);
+            }
           }
-        }).filter(Boolean) as TicketCalendarEvent[] : [];
+          
+          // Verificar que tengamos hora
+          const hour = tc.hour || "00:00";
+          const endHour = tc.endHour || "00:00";
+          
+          // Determinar color según estado
+          let backgroundColor = "#6b7280"; // gris por defecto
+          let borderColor = "#4b5563";
+          
+          if (status === "Full") {
+            backgroundColor = "#7c3aed"; // púrpura
+            borderColor = "#6d28d9";
+          } else if (status === "Cancelled") {
+            backgroundColor = "#ef4444"; // rojo
+            borderColor = "#dc2626";
+          } else if (status === "Available") {
+            backgroundColor = "#10b981"; // verde
+            borderColor = "#059669";
+          }
+          
+          const event: TicketCalendarEvent = {
+            id: tc._id || `ticket-${index}`,
+            title: `${classType} - ${status} (${studentCount}/${totalSpots})`,
+            start: `${dateStr}T${hour}`,
+            end: `${dateStr}T${endHour}`,
+            backgroundColor,
+            borderColor,
+            textColor: "#ffffff",
+            extendedProps: {
+              ticketClass: tc,
+              classType,
+              status,
+              studentCount,
+              totalSpots
+            }
+          };
+          
+          console.log(`✅ Created event ${index + 1}:`, event);
+          return event;
+        });
         
+        console.log('🎉 Final events array:', events);
+        console.log('📈 Total events created:', events.length);
         setCalendarEvents(events);
-        setIsLoading(false);
+        
       } catch (error) {
-        console.error('Error fetching ticket classes:', error);
+        console.error('❌ Error fetching ticket classes:', error);
+        setCalendarEvents([]);
+      } finally {
         setIsLoading(false);
       }
     };
-
+    
     fetchTicketClasses();
-  }, [refreshKey]);
+  }, []);
 
-  // Handler para pegar con Ctrl+V SOLO si el modal de crear clase está abierto y es nuevo (no edición)
-  useEffect(() => {
-    function handlePaste(e: KeyboardEvent) {
-      if (
-        e.ctrlKey &&
-        e.key === 'v' &&
-        isModalOpen &&
-        selectedSlot &&
-        !selectedSlot._id // Solo si es creación, no edición
-      ) {
-        const clipboard = window.localStorage.getItem(clipboardKey);
-        if (!clipboard) return;
-        try {
-          const data = JSON.parse(clipboard);
-          // Usa la fecha/hora del slot seleccionado
-          const { date, hour, endHour } = selectedSlot;
-          const newClass = {
-            ...data,
-            date,
-            hour,
-            endHour,
-          };
-          // Limpiar campos no permitidos por el backend
-          delete newClass._id;
-          // Si hay duration, recalcular endHour en base a hour y duration
-          if (newClass.duration && newClass.hour) {
-            const [h, m] = newClass.hour.split(":").map(Number);
-            const dur = parseInt(newClass.duration);
-            let endHourNum = h + dur;
-            let endMinute = m;
-            if (endHourNum >= 24) { endHourNum = 23; endMinute = 59; }
-            newClass.endHour = `${endHourNum.toString().padStart(2, "0")}:${endMinute.toString().padStart(2, "0")}`;
-          }
-          // Rellenar el formulario del modal con los datos pegados
-          setSelectedSlot({
-            ...selectedSlot,
-            ...newClass,
-          });
-        } catch (err) {
-          alert('Error al pegar la clase.');
-        }
-      }
-    }
-    window.addEventListener('keydown', handlePaste);
-    return () => window.removeEventListener('keydown', handlePaste);
-  }, [isModalOpen, selectedSlot]);
+  // Log para ver qué datos recibe FullCalendar
+  console.log("Eventos que recibe FullCalendar:", calendarEvents);
 
-  // Modifica handleDateSelect para guardar el slot seleccionado
-  const handleDateSelect = (selectInfo: any) => {
+  const handleDateSelect = (selectInfo: DateSelectArg) => {
+    console.log('Date selected:', selectInfo);
+    
     // Formatear la fecha y hora seleccionada
     const startDate = selectInfo.start;
     const endDate = selectInfo.end;
+    
     const formattedDate = startDate.toISOString().split('T')[0];
     const formattedStartTime = startDate.toTimeString().slice(0, 5);
     const formattedEndTime = endDate.toTimeString().slice(0, 5);
-    setLastSelectedSlot({ date: formattedDate, hour: formattedStartTime, endHour: formattedEndTime });
+    
     // Configurar el slot seleccionado con la hora inicial del click
     setSelectedSlot({
       date: formattedDate,
@@ -283,6 +318,7 @@ const TicketCalendar = ({ className, refreshKey }: TicketCalendarProps) => {
       locationId: "",
       studentRequests: [],
     });
+    
     setIsModalOpen(true);
   };
 
@@ -303,84 +339,97 @@ const TicketCalendar = ({ className, refreshKey }: TicketCalendarProps) => {
         duration: ticketClass.duration || "2h",
         locationId: typeof ticketClass.locationId === 'string' ? ticketClass.locationId : ticketClass.locationId?._id || "",
         studentRequests: ticketClass.studentRequests || [],
-      } as TicketFormData & { _id?: string });
+      });
       setIsModalOpen(true);
+    }
+  };
+
+  const refreshCalendar = async () => {
+    const updatedResponse = await fetch("/api/ticket/calendar");
+    if (!updatedResponse.ok) {
+      throw new Error(`Failed to refresh calendar: ${updatedResponse.status}`);
+    }
+    const updatedData = await updatedResponse.json();
+    if (!Array.isArray(updatedData)) {
+      console.error('❌ Expected array but got:', typeof updatedData);
+      return;
+    }
+    const events = updatedData.map((ticketClass: unknown) => {
+      const tc = ticketClass as TicketClassResponse;
+      const studentCount = Array.isArray(tc.students) ? tc.students.length : 0;
+      const totalSpots = tc.spots || 30;
+      let classType = "Class";
+      if (tc.type === "date") classType = "D.A.T.E";
+      else if (tc.type === "bdi") classType = "B.D.I";
+      else if (tc.type === "adi") classType = "A.D.I";
+      let status = "Available";
+      if (tc.status === "full") status = "Full";
+      else if (tc.status === "cancel") status = "Cancelled";
+      else if (tc.status === "expired") status = "Expired";
+      const dateStr = tc.date?.slice(0, 10) || "";
+      let backgroundColor = "#6b7280";
+      let borderColor = "#4b5563";
+      if (status === "Full") {
+        backgroundColor = "#7c3aed";
+        borderColor = "#6d28d9";
+      } else if (status === "Cancelled") {
+        backgroundColor = "#ef4444";
+        borderColor = "#dc2626";
+      } else if (status === "Available") {
+        backgroundColor = "#10b981";
+        borderColor = "#059669";
+      }
+      return {
+        id: tc._id,
+        title: `${classType} - ${status} (${studentCount}/${totalSpots})`,
+        start: `${dateStr}T${tc.hour || "00:00"}`,
+        end: `${dateStr}T${tc.endHour || "00:00"}`,
+        backgroundColor,
+        borderColor,
+        textColor: "#ffffff",
+        extendedProps: {
+          ticketClass: tc,
+          classType,
+          status,
+          studentCount,
+          totalSpots
+        }
+      } as TicketCalendarEvent;
+    });
+    setCalendarEvents(events);
+  };
+
+  const handleModalDelete = async (id: string) => {
+    try {
+      const res = await fetch(`/api/ticket/classes/${id}`, { method: 'DELETE' });
+      if (!res.ok) {
+        const data = await res.json();
+        throw new Error(data.error || 'Failed to delete TicketClass');
+      }
+      setIsModalOpen(false);
+      await refreshCalendar();
+    } catch (error) {
+      console.error('❌ Error deleting TicketClass:', error);
+      alert(`❌ Error deleting TicketClass: ${error instanceof Error ? error.message : 'Unknown error'}`);
     }
   };
 
   const handleModalSave = async (data: TicketFormData) => {
     try {
-      // Detectar si es un update (tiene _id) o una creación nueva
-      const isUpdate = '_id' in data && data._id;
-      
-      if (isUpdate) {
-        // Es un update - el modal ya manejó la petición PUT, solo necesitamos refrescar
-        //console.log('🔄 Refreshing calendar after update...');
-      } else {
-        // Es una creación nueva - manejar recurrencia si existe
-        const generateRecurrenceDates = (startDate: string, recurrence: string, endDate: string) => {
-          const dates = [];
-          const current = new Date(startDate);
-          const end = new Date(endDate);
-          
-          while (current <= end) {
-            dates.push(new Date(current));
-            
-            switch (recurrence) {
-              case 'daily':
-                current.setDate(current.getDate() + 1);
-                break;
-              case 'weekly':
-                current.setDate(current.getDate() + 7);
-                break;
-              case 'monthly':
-                current.setMonth(current.getMonth() + 1);
-                break;
-              default:
-                break;
-            }
-          }
-          
-          return dates;
+      // Crear múltiples clases si hay recurrencia
+      if (data.recurrence && data.recurrence !== 'none' && data.recurrenceEndDate) {
+        const startDate = new Date(data.date);
+        const endDate = new Date(data.recurrenceEndDate);
+        const addDays = (date: Date, days: number) => {
+          const d = new Date(date);
+          d.setDate(d.getDate() + days);
+          return d;
         };
-        
-        // Si hay recurrencia, crear múltiples clases
-        if (data.recurrence && data.recurrence !== 'none' && data.recurrenceEndDate) {
-          const dates = generateRecurrenceDates(data.date, data.recurrence, data.recurrenceEndDate);
-          
-          // Crear cada clase individualmente
-          for (const date of dates) {
-            const ticketClassData = {
-              date: new Date(date.toISOString().split('T')[0] + 'T' + data.hour).toISOString(),
-              hour: data.hour,
-              endHour: data.endHour,
-              classId: data.classId,
-              type: data.type,
-              locationId: data.locationId,
-              instructorId: data.instructorId,
-              students: data.students,
-              spots: data.spots,
-              duration: data.duration,
-              studentRequests: data.studentRequests || [],
-            };
-            
-            const response = await fetch('/api/ticket/classes', {
-              method: 'POST',
-              headers: {
-                'Content-Type': 'application/json',
-              },
-              body: JSON.stringify(ticketClassData),
-            });
-            
-            if (!response.ok) {
-              const result = await response.json();
-              throw new Error(result.error || `Failed to create ticket class for ${date.toISOString().split('T')[0]}`);
-            }
-          }
-        } else {
-          // Si no hay recurrencia, crear una sola clase
-          const ticketClassData = {
-            date: new Date(data.date + 'T' + data.hour).toISOString(),
+        const step = data.recurrence === 'daily' ? 1 : data.recurrence === 'weekly' ? 7 : 30;
+        const payload: any[] = [];
+        for (let d = new Date(startDate); d <= endDate; d = addDays(d, step)) {
+          payload.push({
+            date: d.toISOString().split('T')[0],
             hour: data.hour,
             endHour: data.endHour,
             classId: data.classId,
@@ -391,24 +440,41 @@ const TicketCalendar = ({ className, refreshKey }: TicketCalendarProps) => {
             spots: data.spots,
             duration: data.duration,
             studentRequests: data.studentRequests || [],
-          };
-          
-          const response = await fetch('/api/ticket/classes', {
-            method: 'POST',
-            headers: {
-              'Content-Type': 'application/json',
-            },
-            body: JSON.stringify(ticketClassData),
           });
-          
-          if (!response.ok) {
-            const result = await response.json();
-            throw new Error(result.error || 'Failed to create ticket class');
-          }
+        }
+        const response = await fetch('/api/ticket/classes/batch', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify(payload),
+        });
+        if (!response.ok) {
+          const result = await response.json();
+          throw new Error(result.error || 'Failed to create recurring ticket classes');
+        }
+      } else {
+        const ticketClassData = {
+          date: data.date,
+          hour: data.hour,
+          endHour: data.endHour,
+          classId: data.classId,
+          type: data.type,
+          locationId: data.locationId,
+          instructorId: data.instructorId,
+          students: data.students,
+          spots: data.spots,
+          duration: data.duration,
+          studentRequests: data.studentRequests || [],
+        };
+        const response = await fetch('/api/ticket/classes', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify(ticketClassData),
+        });
+        if (!response.ok) {
+          const result = await response.json();
+          throw new Error(result.error || 'Failed to create ticket class');
         }
       }
-      
-      // Cerrar el modal
       setIsModalOpen(false);
       
       // Recargar los eventos del calendario
@@ -475,9 +541,10 @@ const TicketCalendar = ({ className, refreshKey }: TicketCalendarProps) => {
       });
       
       setCalendarEvents(events);
+      
     } catch (error) {
-      console.error('Error saving ticket class:', error);
-      alert(`Error: ${error instanceof Error ? error.message : 'Unknown error'}`);
+      console.error('❌ Error creating TicketClass:', error);
+      alert(`❌ Error creating TicketClass: ${error instanceof Error ? error.message : 'Unknown error'}`);
     }
   };
 
@@ -486,156 +553,14 @@ const TicketCalendar = ({ className, refreshKey }: TicketCalendarProps) => {
     setSelectedSlot(null);
   };
 
-  const handleModalDelete = async (id: string) => {
-    try {
-      const res = await fetch(`/api/ticket/classes/${id}`, {
-        method: 'DELETE',
-      });
-      if (!res.ok) throw new Error('Error deleting TicketClass');
-      // Refresca los eventos
-      const updatedResponse = await fetch('/api/ticket/calendar');
-      if (!updatedResponse.ok) throw new Error('Failed to refresh calendar');
-      const updatedData = await updatedResponse.json();
-      const events = Array.isArray(updatedData) ? updatedData.map((tc: any, index: number) => {
-        const dateStr = tc.date ? tc.date.slice(0, 10) : "";
-        const hour = tc.hour || "00:00";
-        const endHour = tc.endHour || "01:00";
-        const studentCount = Array.isArray(tc.students) ? tc.students.length : 0;
-        const totalSpots = tc.spots || 30;
-        let classType = "Class";
-        if (tc.type === "date") classType = "D.A.T.E";
-        else if (tc.type === "bdi") classType = "B.D.I";
-        else if (tc.type === "adi") classType = "A.D.I";
-        let status = "Available";
-        if (tc.status === "full") status = "Full";
-        else if (tc.status === "cancel") status = "Cancelled";
-        else if (tc.status === "expired") status = "Expired";
-        let backgroundColor = "#6b7280";
-        let borderColor = "#4b5563";
-        if (status === "Full") {
-          backgroundColor = "#7c3aed";
-          borderColor = "#6d28d9";
-        } else if (status === "Cancelled") {
-          backgroundColor = "#ef4444";
-          borderColor = "#dc2626";
-        } else if (status === "Available") {
-          backgroundColor = "#10b981";
-          borderColor = "#059669";
-        }
-        return {
-          id: tc._id || `ticket-${index}`,
-          title: `${classType} - ${status} (${studentCount}/${totalSpots})`,
-          start: `${dateStr}T${hour}:00`,
-          end: `${dateStr}T${endHour}:00`,
-          backgroundColor,
-          borderColor,
-          textColor: "#fff",
-          extendedProps: {
-            ticketClass: tc,
-            classType,
-            status,
-            studentCount,
-            totalSpots
-          }
-        };
-      }) : [];
-      setCalendarEvents(events);
-      setIsModalOpen(false);
-      setSelectedSlot(null);
-    } catch (err) {
-      alert('Error deleting TicketClass');
-    }
-  };
-
-  const handleModalUpdate = async () => {
-    try {
-      // Refrescar los eventos del calendario
-      const updatedResponse = await fetch("/api/ticket/calendar");
-      if (!updatedResponse.ok) throw new Error('Failed to refresh calendar');
-      const updatedData = await updatedResponse.json();
-      
-      if (!Array.isArray(updatedData)) {
-        console.error('❌ Expected array but got:', typeof updatedData);
-        return;
-      }
-      
-      const events = updatedData.map((ticketClass: unknown) => {
-        const tc = ticketClass as TicketClassResponse;
-        const studentCount = Array.isArray(tc.students) ? tc.students.length : 0;
-        const totalSpots = tc.spots || 30;
-        
-        let classType = "Class";
-        if (tc.type === "date") classType = "D.A.T.E";
-        else if (tc.type === "bdi") classType = "B.D.I";
-        else if (tc.type === "adi") classType = "A.D.I";
-        
-        let status = "Available";
-        if (tc.status === "full") status = "Full";
-        else if (tc.status === "cancel") status = "Cancelled";
-        else if (tc.status === "expired") status = "Expired";
-        
-        const dateStr = tc.date?.slice(0, 10) || "";
-        
-        let backgroundColor = "#6b7280";
-        let borderColor = "#4b5563";
-        
-        if (status === "Full") {
-          backgroundColor = "#7c3aed";
-          borderColor = "#6d28d9";
-        } else if (status === "Cancelled") {
-          backgroundColor = "#ef4444";
-          borderColor = "#dc2626";
-        } else if (status === "Available") {
-          backgroundColor = "#10b981";
-          borderColor = "#059669";
-        }
-        
-        return {
-          id: tc._id,
-          title: `${classType} - ${status} (${studentCount}/${totalSpots})`,
-          start: `${dateStr}T${tc.hour || "00:00"}`,
-          end: `${dateStr}T${tc.endHour || "00:00"}`,
-          backgroundColor,
-          borderColor,
-          textColor: "#ffffff",
-          extendedProps: {
-            ticketClass: tc,
-            classType,
-            status,
-            studentCount,
-            totalSpots
-          }
-        } as TicketCalendarEvent;
-      });
-      
-      setCalendarEvents(events);
-    } catch (error) {
-      console.error('Error refreshing calendar after update:', error);
-    }
-  };
-
-  if (hasError) {
-    return (
-      <Card className={`${className}`}>
-        <CardContent className="p-6">
-          <div className="flex items-center justify-center h-64">
-            <div className="text-center">
-              <p className="text-red-500">Error loading calendar</p>
-              <button 
-                onClick={() => window.location.reload()} 
-                className="mt-2 px-4 py-2 bg-blue-500 text-white rounded hover:bg-blue-600"
-              >
-                Reload Page
-              </button>
-            </div>
-          </div>
-        </CardContent>
-      </Card>
-    );
-  }
-
   return (
     <Card className={`${className}`}>
+      <CardHeader>
+        <CardTitle>🗓️ Ticket Classes Calendar</CardTitle>
+        <p className="text-sm text-gray-600">
+          Showing {calendarEvents.length} ticket classes
+        </p>
+      </CardHeader>
       <CardContent className="p-6">
         {isLoading && (
           <div className="flex items-center justify-center h-64">
@@ -645,6 +570,7 @@ const TicketCalendar = ({ className, refreshKey }: TicketCalendarProps) => {
             </div>
           </div>
         )}
+        
         {!isLoading && calendarEvents.length === 0 && (
           <div className="flex items-center justify-center h-64">
             <div className="text-center">
@@ -653,37 +579,35 @@ const TicketCalendar = ({ className, refreshKey }: TicketCalendarProps) => {
             </div>
           </div>
         )}
-        {!isLoading && (
-          <div className="calendar-container">
-            <style>{`.fc-event { cursor: pointer !important; }`}</style>
-            <FullCalendar
-              ref={calendarRef}
-              plugins={[timeGridPlugin, interactionPlugin]}
-              initialView="timeGridWeek"
-              initialDate={new Date().toISOString().split('T')[0]}
-              selectable
-              editable={false}
-              slotMinTime="06:00:00"
-              slotMaxTime="20:00:00"
-              slotDuration="00:30:00"
-              height="auto"
-              contentHeight="auto"
-              events={calendarEvents}
-              select={handleDateSelect}
-              eventClick={handleEventClick}
-              eventDisplay="block"
-              headerToolbar={{
-                left: 'prev,next today',
-                center: 'title',
-                right: 'timeGridWeek,timeGridDay'
-              }}
-              loading={(loading) => {
-                setIsLoading(loading);
-              }}
-            />
-          </div>
-        )}
+        
+        <div className="calendar-container" style={{ minHeight: '850px' }}>
+          <FullCalendar
+            plugins={[timeGridPlugin, interactionPlugin]}
+            initialView="timeGridWeek"
+            selectable
+            editable={false}
+            slotMinTime="06:00:00"
+            slotMaxTime="20:00:00"
+            slotDuration="00:30:00"
+            height="850px"
+            events={calendarEvents}
+            select={handleDateSelect}
+            eventClick={handleEventClick}
+            headerToolbar={{
+              left: 'prev,next today',
+              center: 'title',
+              right: 'timeGridWeek,timeGridDay'
+            }}
+            eventDidMount={() => setIsLoading(false)}
+            loading={(loading) => setIsLoading(loading)}
+            eventDisplay="block"
+            eventTextColor="#ffffff"
+            eventBackgroundColor="#10b981"
+            eventBorderColor="#059669"
+          />
+        </div>
       </CardContent>
+      
       {/* Modal para configurar TicketClass */}
       {isModalOpen && selectedSlot && (
         <ScheduleModal
@@ -691,8 +615,8 @@ const TicketCalendar = ({ className, refreshKey }: TicketCalendarProps) => {
           onClose={handleModalClose}
           onSave={handleModalSave}
           onDelete={handleModalDelete}
-          onUpdate={handleModalUpdate}
-          initialData={selectedSlot || {}}
+          onUpdate={refreshCalendar}
+          initialData={selectedSlot}
           instructors={instructors}
           locations={locations}
           classes={classes}

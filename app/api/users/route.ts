@@ -6,7 +6,16 @@ export async function GET(request: NextRequest) {
   try {
     await dbConnect();
     
-    const users = await User.find({}, 'firstName lastName email _id').sort({ firstName: 1 });
+    const { searchParams } = new URL(request.url);
+    const ids = searchParams.get('ids');
+    
+    let query = {};
+    if (ids) {
+      const idArray = ids.split(',').filter(id => id.trim());
+      query = { _id: { $in: idArray } };
+    }
+    
+    const users = await User.find(query, 'firstName lastName email _id').sort({ firstName: 1 });
     
     return NextResponse.json(users);
   } catch (error) {
