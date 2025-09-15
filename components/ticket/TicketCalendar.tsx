@@ -598,7 +598,15 @@ const TicketCalendar = ({ className }: TicketCalendarProps) => {
               center: 'title',
               right: 'timeGridWeek,timeGridDay'
             }}
-            eventDidMount={() => setIsLoading(false)}
+            eventDidMount={(info) => {
+              setIsLoading(false);
+              // Add ID to slot for navigation
+              const event = info.event;
+              const dateStr = event.start?.toISOString().split('T')[0] || '';
+              const timeStr = event.start?.toTimeString().slice(0, 5).replace(':', '') || '';
+              const slotId = `slot-${dateStr}-${timeStr}`;
+              info.el.id = slotId;
+            }}
             loading={(loading) => setIsLoading(loading)}
             eventDisplay="block"
             eventTextColor="#ffffff"

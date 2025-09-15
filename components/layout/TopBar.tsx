@@ -8,6 +8,7 @@ import { useAuth } from "@/contexts/AuthContext";
 import { Menu, X, User, LogOut, ChevronDown } from "lucide-react";
 import { motion } from "framer-motion";
 import { navLinks } from "@/lib/constants";
+import GlobalNotifications from "@/components/ui/GlobalNotifications";
 
 const TopBar = () => {
   const [dropdownMenu, setDropdownMenu] = useState(false);
@@ -50,6 +51,8 @@ const TopBar = () => {
 
       {/* USER INFO & MENU */}
       <div className="relative flex gap-4 items-center">
+        {/* Global Notifications */}
+        <GlobalNotifications className="hidden md:block" />
         {/* User Dropdown (Desktop) */}
         {isClient && user && (
           <div className="hidden md:block relative">
@@ -111,6 +114,11 @@ const TopBar = () => {
                 <p className="text-xs text-gray-400">{user.email}</p>
               </div>
             )}
+
+            {/* Notifications in Mobile */}
+            <div className="border-b border-gray-600 pb-3 mb-3">
+              <GlobalNotifications className="md:hidden" />
+            </div>
 
             {/* Navigation Links */}
             {navLinks.map((link) => (
