@@ -85,9 +85,26 @@ export async function PUT(req: NextRequest) {
     }
 
     // Si el classType cambió, necesitamos eliminar de una colección y agregar a la otra
+    let movedToDifferentCollection = false;
+    let finalEventId = eventId;
     if (originalClassType && originalClassType !== classType) {
       console.log(`Moving event from ${originalClassType} to ${classType}`);
       
+      // Buscar el evento original para heredar campos si no vienen en el body
+      let originalEvent: any | null = null;
+      if (instructor.schedule_driving_test) {
+        originalEvent =
+          instructor.schedule_driving_test.find((e: any) => e._id === eventId) ||
+          instructor.schedule_driving_test.find((e: any, idx: number) => `driving_test_${instructor._id}_${e.date}_${e.start}_${idx}` === eventId) ||
+          null;
+      }
+      if (!originalEvent && instructor.schedule_driving_lesson) {
+        originalEvent =
+          instructor.schedule_driving_lesson.find((e: any) => e._id === eventId) ||
+          instructor.schedule_driving_lesson.find((e: any, idx: number) => `driving_lesson_${instructor._id}_${e.date}_${e.start}_${idx}` === eventId) ||
+          null;
+      }
+
       // Primero, eliminar de ambas colecciones para asegurar limpieza
       await Instructor.updateOne(
         { _id: instructorId },
@@ -101,22 +118,23 @@ export async function PUT(req: NextRequest) {
 
       // Crear el nuevo evento con un ID único
       const newEventId = generateEventId(classType, instructorId, date, start);
-      const newEvent = {
+      const newEventBase = {
         _id: newEventId,
         date,
         start,
         end,
         status,
         classType,
-        amount: amount ? parseFloat(amount) : null,
-        studentId: studentId || null,
-        studentName: studentName || null,
-        paid: paid || false,
-        pickupLocation: "",
-        dropoffLocation: "",
-        instructorId,
-        booked: status === "booked" || status === "pending"
+        amount: amount ? parseFloat(amount) : (originalEvent?.amount ?? null),
+        studentId: (typeof studentId !== 'undefined' ? studentId : originalEvent?.studentId) || null,
+        studentName: (typeof studentName !== 'undefined' ? studentName : originalEvent?.studentName) || null,
+        paid: typeof paid === 'boolean' ? paid : (originalEvent?.paid ?? false),
+        // For driving test we will not include instructorId or booked
       };
+      // For driving test we must NOT store pickup/dropoff
+      const newEvent = classType === "driving test"
+        ? newEventBase
+        : { ...newEventBase, pickupLocation: eventData.pickupLocation ?? originalEvent?.pickupLocation ?? "", dropoffLocation: eventData.dropoffLocation ?? originalEvent?.dropoffLocation ?? "" };
 
       // Agregar a la nueva colección
       if (classType === "driving test") {
@@ -127,14 +145,16 @@ export async function PUT(req: NextRequest) {
       } else if (classType === "driving lesson") {
         await Instructor.updateOne(
           { _id: instructorId },
-          { $push: { schedule_driving_lesson: newEvent } }
+          { $push: { schedule_driving_lesson: { ...newEvent, instructorId, booked: typeof originalEvent?.booked === 'boolean' ? originalEvent.booked : (status === "booked" || status === "pending") } } }
         );
       }
+      movedToDifferentCollection = true;
+      finalEventId = newEventId;
     } else {
       // Actualizar en la misma colección (mismo tipo de clase)
       console.log(`Updating event in same class type: ${classType}`);
       
-      const updateData = {
+      const updateDataBase = {
         date,
         start,
         end,
@@ -144,27 +164,34 @@ export async function PUT(req: NextRequest) {
         studentId: studentId || null,
         studentName: studentName || null,
         paid: paid || false,
-        booked: status === "booked" || status === "pending"
       };
 
       if (classType === "driving test") {
+        // Update base fields and ensure pickup/dropoff, instructorId and booked are removed
         await Instructor.updateOne(
           { _id: instructorId, "schedule_driving_test._id": eventId },
-          { $set: { "schedule_driving_test.$": { ...updateData, _id: eventId, pickupLocation: eventData.pickupLocation || "", dropoffLocation: eventData.dropoffLocation || "", instructorId } } }
+          {
+            $set: { "schedule_driving_test.$": { ...updateDataBase, _id: eventId } },
+          }
+        );
+        await Instructor.updateOne(
+          { _id: instructorId, "schedule_driving_test._id": eventId },
+          { $unset: { "schedule_driving_test.$.pickupLocation": "", "schedule_driving_test.$.dropoffLocation": "", "schedule_driving_test.$.instructorId": "", "schedule_driving_test.$.booked": "" } }
         );
       } else if (classType === "driving lesson") {
         await Instructor.updateOne(
           { _id: instructorId, "schedule_driving_lesson._id": eventId },
-          { $set: { "schedule_driving_lesson.$": { ...updateData, _id: eventId, pickupLocation: eventData.pickupLocation || "", dropoffLocation: eventData.dropoffLocation || "", instructorId } } }
+          { $set: { "schedule_driving_lesson.$": { ...updateDataBase, booked: status === "booked" || status === "pending", _id: eventId, pickupLocation: eventData.pickupLocation || "", dropoffLocation: eventData.dropoffLocation || "", instructorId } } }
         );
       }
     }
 
     // Verificar que el evento se actualizó correctamente
     const updatedInstructor = await Instructor.findById(instructorId);
+    const targetEventId = finalEventId;
     const eventUpdated = 
-      (updatedInstructor.schedule_driving_test && updatedInstructor.schedule_driving_test.some((e: any) => e._id === eventId && e.classType === classType)) ||
-      (updatedInstructor.schedule_driving_lesson && updatedInstructor.schedule_driving_lesson.some((e: any) => e._id === eventId && e.classType === classType));
+      (updatedInstructor.schedule_driving_test && updatedInstructor.schedule_driving_test.some((e: any) => e._id === targetEventId && e.classType === classType)) ||
+      (updatedInstructor.schedule_driving_lesson && updatedInstructor.schedule_driving_lesson.some((e: any) => e._id === targetEventId && e.classType === classType));
 
     if (!eventUpdated) {
       return NextResponse.json(
@@ -174,7 +201,7 @@ export async function PUT(req: NextRequest) {
     }
 
     return NextResponse.json(
-      { message: "Event updated successfully" },
+      { message: "Event updated successfully", eventId: targetEventId, moved: movedToDifferentCollection },
       { status: 200 }
     );
 

@@ -6,6 +6,11 @@ import User from '@/lib/models/users'
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
 import { Badge } from '@/components/ui/badge'
 import { DollarSign, ShoppingCart, Clock, CheckCircle, AlertCircle, TrendingUp } from 'lucide-react'
+import { unstable_noStore as noStore } from 'next/cache'
+
+export const dynamic = 'force-dynamic'
+export const revalidate = 0
+export const fetchCache = 'force-no-store'
 
 interface SerializedOrderItem {
   id: string
@@ -83,7 +88,8 @@ function serializeOrder(order: OrderDocument, user: UserDocument | null): Serial
   }
 }
 
-const Page = async () => {
+const Page = async ({ searchParams }: { searchParams?: any }) => {
+  noStore()
   await dbConnect()
   const orders = await Order.find({}).lean() as OrderDocument[]
   // Get all unique userIds
@@ -98,25 +104,58 @@ const Page = async () => {
     return serializeOrder(order, user)
   })
 
-  // Calculate metrics
-  const totalRevenue = serializedOrders.reduce((sum, order) => sum + (order.total || 0), 0)
-  const completedOrders = serializedOrders.filter(order => order.estado === 'completed' || order.estado === 'Completed').length
-  const pendingOrders = serializedOrders.filter(order => order.estado === 'pending' || order.estado === 'Pending').length
-  const totalOrders = serializedOrders.length
+  // Date range filtering for metrics
+  const resolvedSearchParams = searchParams && typeof searchParams.then === 'function' ? await searchParams : searchParams
+  const range = (resolvedSearchParams?.range || 'all').toLowerCase()
+  const now = new Date()
+  let startDate: Date | null = null
+  if (range === 'day' || range === 'today') {
+    startDate = new Date(now.getFullYear(), now.getMonth(), now.getDate())
+  } else if (range === 'month') {
+    startDate = new Date(now.getFullYear(), now.getMonth(), 1)
+  } else if (range === 'year') {
+    startDate = new Date(now.getFullYear(), 0, 1)
+  }
+
+  const ordersForMetrics = startDate
+    ? serializedOrders.filter(order => new Date(order.createdAt) >= startDate!)
+    : serializedOrders
+
+  // Calculate metrics based on selected range
+  const totalRevenue = ordersForMetrics.reduce((sum, order) => sum + (order.total || 0), 0)
+  const completedOrders = ordersForMetrics.filter(order => order.estado === 'completed' || order.estado === 'Completed').length
+  const pendingOrders = ordersForMetrics.filter(order => order.estado === 'pending' || order.estado === 'Pending').length
+  const totalOrders = ordersForMetrics.length
   const averageOrderValue = totalOrders > 0 ? totalRevenue / totalOrders : 0
 
-  // Calculate recent orders (last 30 days)
+  // Calculate recent orders (last 30 days) for secondary metric
   const thirtyDaysAgo = new Date()
   thirtyDaysAgo.setDate(thirtyDaysAgo.getDate() - 30)
-  const recentOrders = serializedOrders.filter(order => new Date(order.createdAt) >= thirtyDaysAgo)
+  const recentOrders = ordersForMetrics.filter(order => new Date(order.createdAt) >= thirtyDaysAgo)
   const recentRevenue = recentOrders.reduce((sum, order) => sum + (order.total || 0), 0)
 
   return (
     <div className="p-6">
-      {/* Simple Header */}
+      {/* Header with range filter */}
       <div className="flex justify-between items-center bg-gray-800 text-white px-5 py-3 rounded-lg shadow-md">
-        <h1 className="text-xl font-semibold text-white">Orders Management</h1>
-        <div className="flex gap-6 items-center">
+        <div className="flex flex-col">
+          <h1 className="text-xl font-semibold text-white">Orders Management</h1>
+          <span className="text-xs text-gray-300">Range: {range === 'all' ? 'All time' : range === 'day' || range === 'today' ? 'Today' : range === 'month' ? 'This month' : 'This year'}</span>
+        </div>
+        <div className="flex items-center gap-4">
+          <form className="flex items-center gap-2" method="get">
+            <select
+              name="range"
+              defaultValue={range}
+              className="text-black rounded-md px-2 py-1 text-sm"
+            >
+              <option value="all">All</option>
+              <option value="day">Today</option>
+              <option value="month">This Month</option>
+              <option value="year">This Year</option>
+            </select>
+            <button className="bg-white text-black px-3 py-1 rounded-md text-sm" type="submit">Apply</button>
+          </form>
           <div className="px-4 py-2 rounded-lg hover:bg-gray-700">
             <span className="text-sm">Revenue: ${totalRevenue.toFixed(2)}</span>
           </div>

@@ -808,10 +808,11 @@ const ScheduleModal: React.FC<ScheduleModalProps> = ({
      (eventData.extendedProps?.status === "booked" || eventData.extendedProps?.status === "pending"));
 
   // Check if we should show product selection for students
-  const showProductSelection = (formData.studentId && 
-    (formData.status === "booked" || formData.status === "pending")) || 
-    (isEditMode && eventData?.extendedProps?.studentId && 
-     (eventData.extendedProps?.status === "booked" || eventData.extendedProps?.status === "pending"));
+  // Product selection applies only to driving tests
+  const showProductSelection = (formData.classType === "driving test") && (
+    (formData.studentId && (formData.status === "booked" || formData.status === "pending")) ||
+    (isEditMode && eventData?.extendedProps?.studentId && (eventData.extendedProps?.status === "booked" || eventData.extendedProps?.status === "pending"))
+  );
 
   // Filter users based on search term
   const filteredUsers = users.filter(user => 
@@ -1247,7 +1248,8 @@ const ScheduleModal: React.FC<ScheduleModalProps> = ({
                 </div>
               </div>
 
-              {formData.studentId && (
+              {/* For driving lesson creation from here, product is optional/hidden */}
+              {false && formData.studentId && (
                 <>
                   <div>
                     <Label>Selected Product <span className="text-red-500">*</span></Label>
