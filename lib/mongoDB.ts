@@ -1,5 +1,24 @@
 import mongoose from "mongoose";
 
+// Import all models to ensure they are registered
+import "@/lib/models/users";
+import "@/lib/models/TicketClass";
+import "@/lib/models/Locations";
+import "@/lib/models/Class";
+import "@/lib/models/Instructor";
+import "@/lib/models/Order";
+import "@/lib/models/Product";
+import "@/lib/models/Package";
+import "@/lib/models/Collection";
+import "@/lib/models/OnlineCourse";
+import "@/lib/models/SEO";
+import "@/lib/models/Settings";
+import "@/lib/models/ScheduledEmail";
+import "@/lib/models/EmailTemplate";
+import "@/lib/models/Cerificate";
+import "@/lib/models/ResumenSeccion";
+import "@/lib/models/Payments";
+
 const MONGODB_URL = process.env.MONGODB_URL || "";
 
 if (!MONGODB_URL) {

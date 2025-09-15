@@ -340,6 +340,25 @@ export async function POST(req: NextRequest) {
       // console.log('[API] Created new slot in instructor schedule');
     }
 
+    // Emit SSE notification for new ticket class
+    try {
+      await fetch('http://localhost:3000/api/notifications/emit', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          type: 'new_ticket_class',
+          data: { 
+            ticketClassId: newClass._id,
+            type: type,
+            date: normalizedDate,
+            instructorId: instructorId
+          }
+        })
+      });
+    } catch (error) {
+      console.log('SSE notification failed:', error instanceof Error ? error.message : 'Unknown error');
+    }
+
     return NextResponse.json(newClass, { status: 201 });
   } catch (error) {
     console.error("Error creating class:", error);
