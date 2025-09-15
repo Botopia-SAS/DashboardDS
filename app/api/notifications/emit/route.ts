@@ -1,5 +1,5 @@
 import { NextRequest } from "next/server";
-import { broadcastNotification } from "./stream/route";
+import { broadcastNotification } from "@/lib/notifications";
 
 export async function POST(req: NextRequest) {
   try {

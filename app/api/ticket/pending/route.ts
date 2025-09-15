@@ -17,17 +17,17 @@ export async function GET() {
       if (ticketClass.studentRequests && ticketClass.studentRequests.length > 0) {
         for (const request of ticketClass.studentRequests) {
           // Si el request es un objeto con _id, usar sus propiedades
-          if (typeof request === 'object' && request._id) {
+          if (typeof request === 'object' && request !== null && '_id' in request) {
             pendingRequests.push({
-              requestId: request._id.toString(),
+              requestId: (request as any)._id.toString(),
               ticketClassId: ticketClass._id.toString(),
-              studentId: request.studentId || request.student_id,
+              studentId: (request as any).studentId || (request as any).student_id,
               date: ticketClass.date,
               hour: ticketClass.hour,
               endHour: ticketClass.endHour,
               classType: ticketClass.type,
-              requestDate: request.requestDate || request.createdAt,
-              status: request.status || 'pending'
+              requestDate: (request as any).requestDate || (request as any).createdAt,
+              status: (request as any).status || 'pending'
             });
           }
         }

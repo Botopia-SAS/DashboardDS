@@ -356,7 +356,7 @@ export async function POST(req: NextRequest) {
         })
       });
     } catch (error) {
-      console.log('SSE notification failed:', error.message);
+      console.log('SSE notification failed:', error instanceof Error ? error.message : 'Unknown error');
     }
 
     return NextResponse.json(newClass, { status: 201 });
