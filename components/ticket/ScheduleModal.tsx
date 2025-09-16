@@ -42,6 +42,7 @@ interface ScheduleModalProps {
   locations: { _id: string; title: string }[];
   classes: { _id: string; title: string }[];
   students?: Student[];
+  selectedLocationId?: string;
 }
 
 const recurrenceOptions = [
@@ -62,6 +63,7 @@ export default function ScheduleModal({
   locations = [],
   classes = [],
   students = [],
+  selectedLocationId,
 }: ScheduleModalProps) {
   // Calcular hora final por defecto (2 horas después de la inicial)
   function getDefaultEndHour(hour: string) {
@@ -86,7 +88,7 @@ export default function ScheduleModal({
     classId: initialData?.classId || "",
     type: initialData?.type || "date",
     duration: initialData?.duration || "2h",
-    locationId: initialData?.locationId || "",
+    locationId: initialData?.locationId || selectedLocationId || "",
     instructorId: initialData?.instructorId || "",
     students: initialData?.students || [],
     spots: initialData?.spots || 30,
@@ -111,7 +113,7 @@ export default function ScheduleModal({
         classId: initialData?.classId || "",
         type: initialData?.type || "date",
         duration: initialData?.duration || "2h",
-        locationId: initialData?.locationId || "",
+        locationId: initialData?.locationId || selectedLocationId || "",
         instructorId: initialData?.instructorId || "",
         students: initialData?.students || [],
         spots: initialData?.spots || 30,
@@ -202,7 +204,6 @@ export default function ScheduleModal({
   const handleSave = () => {
     const errors = [];
     if (!form.classId) errors.push("Driving Class is required");
-    if (!form.locationId) errors.push("Location is required");
     if (!form.hour) errors.push("Start Time is required");
     if (!form.endHour) errors.push("End Time is required");
     if (!form.instructorId) errors.push("You must select a valid instructor");
@@ -231,7 +232,6 @@ export default function ScheduleModal({
     // Validar el formulario antes de enviar
     const errors = [];
     if (!form.classId) errors.push("Driving Class is required");
-    if (!form.locationId) errors.push("Location is required");
     if (!form.hour) errors.push("Start Time is required");
     if (!form.endHour) errors.push("End Time is required");
     if (!form.instructorId) errors.push("You must select a valid instructor");
@@ -375,19 +375,6 @@ export default function ScheduleModal({
             >
               <option value="">Select class</option>
               {classes.map((c) => <option key={c._id} value={c._id}>{c.title}</option>)}
-            </select>
-          </div>
-          <div>
-            <label className="block text-sm font-medium mb-1">Location <span className="text-red-500">*</span></label>
-            <select
-              className="w-full border rounded px-2 py-1"
-              name="locationId"
-              value={form.locationId}
-              onChange={handleChange}
-              required
-            >
-              <option value="">Select location</option>
-              {locations.map((l) => <option key={l._id} value={l._id}>{l.title}</option>)}
             </select>
           </div>
           <div className="grid grid-cols-2 gap-2">

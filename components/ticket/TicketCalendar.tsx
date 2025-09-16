@@ -75,59 +75,16 @@ const TicketCalendar = ({ className }: TicketCalendarProps) => {
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [selectedSlot, setSelectedSlot] = useState<TicketFormData | null>(null);
   const [isLoading, setIsLoading] = useState(true);
+  const [selectedLocationId, setSelectedLocationId] = useState<string>("");
+  const [locations, setLocations] = useState<{ _id: string; title: string }[]>([]);
 
-  // Datos de ejemplo para el calendario
-  const [calendarEvents, setCalendarEvents] = useState<TicketCalendarEvent[]>([
-    {
-      id: "1",
-      title: "D.A.T.E - Driving Test",
-      start: "2025-07-09T09:00:00",
-      end: "2025-07-09T09:30:00",
-      backgroundColor: "#3b82f6",
-      borderColor: "#2563eb",
-      textColor: "#ffffff",
-      extendedProps: {
-        classType: "D.A.T.E",
-        student: "John Doe",
-        status: "Booked"
-      }
-    },
-    {
-      id: "2",
-      title: "B.D.I - Basic Driving",
-      start: "2025-07-10T14:00:00",
-      end: "2025-07-10T15:00:00",
-      backgroundColor: "#10b981",
-      borderColor: "#059669",
-      textColor: "#ffffff",
-      extendedProps: {
-        classType: "B.D.I",
-        student: "Jane Smith",
-        status: "Scheduled"
-      }
-    }
-  ]);
+  // Datos reales cargados desde las APIs
+  const [calendarEvents, setCalendarEvents] = useState<TicketCalendarEvent[]>([]);
 
   // Datos reales para el modal
-  const [instructors, setInstructors] = useState([
-    { _id: "1", name: "Nelson Guarín" },
-    { _id: "2", name: "James" },
-  ]);
-
-  const [locations, setLocations] = useState([
-    { _id: "1", title: "Location 1" },
-    { _id: "2", title: "Location 2" },
-  ]);
-
-  const [classes, setClasses] = useState([
-    { _id: "1", title: "Basic Driving Course" },
-    { _id: "2", title: "Advanced Driving Course" },
-  ]);
-
-  const [students, setStudents] = useState([
-    { _id: "1", name: "Botopia Technology" },
-    { _id: "2", name: "Santiago Aristizabal" },
-  ]);
+  const [instructors, setInstructors] = useState<{ _id: string; name: string }[]>([]);
+  const [classes, setClasses] = useState<{ _id: string; title: string }[]>([]);
+  const [students, setStudents] = useState<{ _id: string; name: string }[]>([]);
 
   // Cargar datos reales desde las APIs
   useEffect(() => {
@@ -172,6 +129,26 @@ const TicketCalendar = ({ className }: TicketCalendarProps) => {
     };
 
     loadData();
+  }, []);
+
+  // Cargar ubicaciones
+  useEffect(() => {
+    const fetchLocations = async () => {
+      try {
+        const response = await fetch("/api/locations");
+        if (response.ok) {
+          const data = await response.json();
+          setLocations(data);
+          // Seleccionar la primera ubicación por defecto
+          if (data.length > 0) {
+            setSelectedLocationId(data[0]._id);
+          }
+        }
+      } catch (error) {
+        console.error("Error fetching locations:", error);
+      }
+    };
+    fetchLocations();
   }, []);
 
   // Cargar todos los TicketClass reales desde la API
@@ -556,10 +533,28 @@ const TicketCalendar = ({ className }: TicketCalendarProps) => {
   return (
     <Card className={`${className}`}>
       <CardHeader>
-        <CardTitle>🗓️ Ticket Classes Calendar</CardTitle>
-        <p className="text-sm text-gray-600">
-          Showing {calendarEvents.length} ticket classes
-        </p>
+        <div className="flex justify-between items-center">
+          <div>
+            <CardTitle>🗓️ Ticket Classes Calendar</CardTitle>
+            <p className="text-sm text-gray-600">
+              Showing {calendarEvents.length} ticket classes
+            </p>
+          </div>
+          <div className="flex items-center gap-2">
+            <label className="text-sm font-medium">Location:</label>
+            <select
+              className="border rounded px-3 py-1 text-sm"
+              value={selectedLocationId}
+              onChange={(e) => setSelectedLocationId(e.target.value)}
+            >
+              {locations.map((location) => (
+                <option key={location._id} value={location._id}>
+                  {location.title}
+                </option>
+              ))}
+            </select>
+          </div>
+        </div>
       </CardHeader>
       <CardContent className="p-6">
         {isLoading && (
@@ -629,6 +624,7 @@ const TicketCalendar = ({ className }: TicketCalendarProps) => {
           locations={locations}
           classes={classes}
           students={students}
+          selectedLocationId={selectedLocationId}
         />
       )}
     </Card>
