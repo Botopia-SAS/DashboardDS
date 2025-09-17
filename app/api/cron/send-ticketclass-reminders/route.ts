@@ -60,7 +60,7 @@ export async function POST(req: NextRequest) {
 
   for (const ticketClass of ticketClasses) {
     // Verificar si la ticket class tiene estudiantes
-    if (ticketClass.students && ticketClass.students.length > 0) {
+    if (Array.isArray(ticketClass.students) && ticketClass.students.length > 0) {
       // Obtener la hora actual en UTC y en Miami
       const now = new Date();
       const utc = now.getTime() + now.getTimezoneOffset() * 60000;
@@ -78,8 +78,11 @@ export async function POST(req: NextRequest) {
       logWithColor(`[TICKET CLASS REMINDER] Clase: ${ticketClass.type || 'Unknown'} | ${ticketClass.date} ${ticketClass.hour || '00:00'} (Miami) | diff: ${diffMinutes.toFixed(2)} min`, "\x1b[33m");
       
       if (diffMinutes > 0 && diffMinutes <= 30) {
+        // Ensure students is an array before iterating
+        const studentsArray = Array.isArray(ticketClass.students) ? ticketClass.students : [];
+        
         // Iterar sobre cada estudiante en la ticket class
-        for (const studentId of ticketClass.students) {
+        for (const studentId of studentsArray) {
           const student = await User.findById(studentId);
           
           if (student && (student as any).classReminder === true) {

@@ -7,3 +7,76 @@ body,
 :root {
   height: 100%;
 }
+
+/* Custom scrollbar hiding */
+.scrollbar-hidden {
+  -ms-overflow-style: none;  /* IE and Edge */
+  scrollbar-width: none;  /* Firefox */
+}
+
+.scrollbar-hidden::-webkit-scrollbar {
+  display: none;  /* Chrome, Safari, Opera */
+}
+
+/* Responsive sidebar adjustments for zoom levels */
+@media (max-height: 650px) {
+  .sidebar-responsive {
+    padding: 0.5rem;
+  }
+  
+  .sidebar-responsive .sidebar-logo {
+    padding: 0.5rem;
+  }
+  
+  .sidebar-responsive .sidebar-nav {
+    gap: 0.25rem;
+    padding: 0.5rem;
+  }
+  
+  .sidebar-responsive .sidebar-item {
+    padding: 0.375rem 0.75rem;
+    font-size: 0.75rem;
+    line-height: 1.1;
+  }
+  
+  .sidebar-responsive .sidebar-footer {
+    padding: 0.5rem;
+    margin-bottom: 0.5rem;
+  }
+  
+  .sidebar-responsive .sidebar-logo img {
+    width: 48px !important;
+    height: 48px !important;
+  }
+}
+
+@media (max-height: 500px) {
+  .sidebar-responsive {
+    padding: 0.25rem;
+  }
+  
+  .sidebar-responsive .sidebar-logo {
+    padding: 0.25rem;
+  }
+  
+  .sidebar-responsive .sidebar-nav {
+    gap: 0.125rem;
+    padding: 0.25rem;
+  }
+  
+  .sidebar-responsive .sidebar-item {
+    padding: 0.25rem 0.5rem;
+    font-size: 0.7rem;
+    line-height: 1;
+  }
+  
+  .sidebar-responsive .sidebar-footer {
+    padding: 0.25rem;
+    margin-bottom: 0.25rem;
+  }
+  
+  .sidebar-responsive .sidebar-logo img {
+    width: 36px !important;
+    height: 36px !important;
+  }
+}

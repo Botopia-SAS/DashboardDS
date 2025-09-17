@@ -9,6 +9,7 @@ import interactionPlugin from "@fullcalendar/interaction";
 import { DateSelectArg, EventClickArg } from "@fullcalendar/core";
 import { useState, useEffect } from "react";
 import ScheduleModal from "./ScheduleModal";
+import useClassTypeStore from "@/app/store/classTypeStore";
 
 // FullCalendar v6 includes styles in the JavaScript bundles
 // No separate CSS imports needed
@@ -70,7 +71,10 @@ interface TicketCalendarProps {
   refreshKey?: number;
 }
 
-const TicketCalendar = ({ className }: TicketCalendarProps) => {
+const TicketCalendar = ({ className, refreshKey }: TicketCalendarProps) => {
+  // Obtener el tipo de clase del store
+  const { classType } = useClassTypeStore();
+  
   // Estado para el modal
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [selectedSlot, setSelectedSlot] = useState<TicketFormData | null>(null);
@@ -156,7 +160,7 @@ const TicketCalendar = ({ className }: TicketCalendarProps) => {
     const fetchTicketClasses = async () => {
       setIsLoading(true);
       try {
-        console.log('🔄 Fetching ticket classes from API...');
+        console.log('🔄 Fetching all ticket classes from API');
         const response = await fetch("/api/ticket/calendar");
         
         if (!response.ok) {
@@ -174,8 +178,13 @@ const TicketCalendar = ({ className }: TicketCalendarProps) => {
           return;
         }
         
+        // No filtrar - mostrar todas las clases de todos los tipos
+        const filteredData = data;
+        
+        console.log(`🔍 Showing all ticket classes:`, filteredData.length);
+        
         // Convertir ticketClasses a eventos del calendario
-        const events = data.map((ticketClass: unknown, index: number) => {
+        const events = filteredData.map((ticketClass: unknown, index: number) => {
           const tc = ticketClass as TicketClassResponse;
           console.log(`🎫 Processing ticket class ${index + 1}:`, tc);
           
@@ -264,7 +273,7 @@ const TicketCalendar = ({ className }: TicketCalendarProps) => {
     };
     
     fetchTicketClasses();
-  }, []);
+  }, [refreshKey]);
 
   // Log para ver qué datos recibe FullCalendar
   console.log("Eventos que recibe FullCalendar:", calendarEvents);
@@ -285,7 +294,7 @@ const TicketCalendar = ({ className }: TicketCalendarProps) => {
       date: formattedDate,
       hour: formattedStartTime,
       endHour: formattedEndTime,
-      type: "date", // Tipo por defecto
+      type: classType, // Usar el tipo seleccionado en lugar de "date" fijo
       status: "available",
       instructorId: "",
       students: [],
@@ -331,7 +340,11 @@ const TicketCalendar = ({ className }: TicketCalendarProps) => {
       console.error('❌ Expected array but got:', typeof updatedData);
       return;
     }
-    const events = updatedData.map((ticketClass: unknown) => {
+    
+    // No filtrar - mostrar todas las clases de todos los tipos
+    const filteredData = updatedData;
+    
+    const events = filteredData.map((ticketClass: unknown) => {
       const tc = ticketClass as TicketClassResponse;
       const studentCount = Array.isArray(tc.students) ? tc.students.length : 0;
       const totalSpots = tc.spots || 30;
@@ -535,7 +548,7 @@ const TicketCalendar = ({ className }: TicketCalendarProps) => {
       <CardHeader>
         <div className="flex justify-between items-center">
           <div>
-            <CardTitle>🗓️ Ticket Classes Calendar</CardTitle>
+            <CardTitle>🗓️ Ticket Classes Calendar - All Types</CardTitle>
             <p className="text-sm text-gray-600">
               Showing {calendarEvents.length} ticket classes
             </p>

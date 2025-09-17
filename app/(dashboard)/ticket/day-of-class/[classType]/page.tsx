@@ -13,7 +13,7 @@ import {
   SelectValue,
 } from "@/components/ui/select";
 import { ArrowLeftIcon } from "lucide-react";
-import { usePathname, useRouter } from "next/navigation";
+import { useRouter } from "next/navigation";
 import { useEffect, useState } from "react";
 
 interface Class {
@@ -32,20 +32,19 @@ export default function Page() {
   const [classes, setClasses] = useState<Class[]>([]);
   const [loading, setLoading] = useState(false);
   const { setClassId, classId } = useClassStore();
-  const url = usePathname()
-  const classType = url.split('/').pop()
   const router = useRouter();
   useEffect(() => {
     setLoading(true);
     setClassId("");
-    fetch(`/api/ticket/classes?type=${classType}`)
+    // Fetch all classes without filtering by type
+    fetch(`/api/ticket/classes`)
       .then((res) => res.json())
       .then((data) => {
         setClasses(data);
         setLoading(false);
       })
       .catch((error) => console.error("Error fetching classes:", error));
-  }, [setClassId, classType]);
+  }, [setClassId]);
   if (loading) {
     return <Loader />;
   }
@@ -102,7 +101,7 @@ export default function Page() {
           <CardContent>
             <div className="grid grid-cols-1 md:grid-cols-2 gap-4 py-2">
               <Navigation
-                href={`/ticket/${classType}/class-records/${classId}`}
+                href={`/ticket/date/class-records/${classId}`}
                 title="View the Class Records"
                 description="View the records of the selected class."
                 onClick={handleClick}
