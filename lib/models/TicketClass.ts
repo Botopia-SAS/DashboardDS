@@ -33,7 +33,10 @@ const TicketClassSchema = new mongoose.Schema({
     type: String,
     required: true,
   },
-  students: [String],
+  students: {
+    type: [mongoose.Schema.Types.Mixed],
+    default: [],
+  },
   spots: {
     type: Number,
     default: 30,

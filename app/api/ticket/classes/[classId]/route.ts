@@ -69,8 +69,14 @@ export async function PATCH(req: NextRequest, { params }: { params: Promise<{ cl
       if (isStudentRequestObj(reqObj)) {
         studentIdToAdd = reqObj.studentId;
       }
-      if (studentIdToAdd && !ticketClass.students.includes(studentIdToAdd)) {
-        ticketClass.students.push(studentIdToAdd);
+      if (studentIdToAdd) {
+        // Ensure students is an array
+        if (!Array.isArray(ticketClass.students)) {
+          ticketClass.students = [];
+        }
+        if (!ticketClass.students.includes(studentIdToAdd)) {
+          ticketClass.students.push(studentIdToAdd);
+        }
       }
       await ticketClass.save();
       return NextResponse.json({ message: "Request accepted", data: ticketClass });
@@ -87,7 +93,7 @@ export async function PATCH(req: NextRequest, { params }: { params: Promise<{ cl
     }
 
     const originalData = {
-      students: ticketClass.students ? [...ticketClass.students] : [],
+      students: Array.isArray(ticketClass.students) ? [...ticketClass.students] : [],
       cupos: ticketClass.spots
     };
 

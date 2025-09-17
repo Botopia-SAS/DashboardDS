@@ -4,8 +4,7 @@ import Loader from "@/components/custom ui/Loader";
 import { columns, Student } from "@/components/ticket/columns";
 import { DataTable } from "@/components/ticket/data-table";
 import { Button } from "@/components/ui/button";
-import { ArrowLeftIcon, Plus } from "lucide-react";
-import Link from "next/link";
+import { ArrowLeftIcon } from "lucide-react";
 import { useParams, useRouter } from "next/navigation";
 import { useCallback, useEffect, useRef, useState } from "react";
 import toast from "react-hot-toast";
@@ -70,13 +69,6 @@ export default function Page() {
         <div className="flex justify-between items-center bg-gray-800 text-white px-5 py-3 rounded-lg shadow-md">
           <h1 className="text-xl font-semibold">Tickets</h1>
           <div className="flex items-center space-x-2">
-            <Link
-              href={`/ticket/bdi/class-records/${classId}/new`}
-              className="hover:underline flex items-center gap-x-2 bg-blue-500 text-white px-3 py-1 rounded-md"
-            >
-              <Plus className="size-4" />
-              Add new
-            </Link>
             <Button onClick={navigate} className="hover:scale-110">
               <ArrowLeftIcon size={16} />
             </Button>
