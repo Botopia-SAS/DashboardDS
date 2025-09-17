@@ -82,6 +82,12 @@ const config: Config = {
         "blue-3": "#F5F7F9",
         "red-1": "#FF0000",
       },
+      screens: {
+        'h-xs': {'raw': '(max-height: 640px)'},  // Zoom 150%+
+        'h-sm': {'raw': '(max-height: 768px)'},  // Zoom 125%
+        'h-md': {'raw': '(max-height: 900px)'},  // Zoom 110%
+        'h-lg': {'raw': '(min-height: 901px)'},  // Zoom 100% normal
+      },
     },
   },
   plugins: [],
