@@ -49,6 +49,61 @@ export async function PATCH(req: NextRequest, { params }: { params: Promise<{ cl
     const body = await req.json();
     //console.log(`[API] PATCH ticket class ${classId}:`, body);
 
+    // Handle Accept/Reject student requests
+    if (body.action === 'acceptRequest') {
+      const { studentId, requestId } = body;
+      
+      const ticketClass = await TicketClass.findById(classId);
+      if (!ticketClass) {
+        return NextResponse.json({ error: "Class not found" }, { status: 404 });
+      }
+
+      // Ensure studentRequests is an array before filtering
+      if (!Array.isArray(ticketClass.studentRequests)) {
+        ticketClass.studentRequests = [];
+      }
+
+      // Remove from studentRequests
+      ticketClass.studentRequests = ticketClass.studentRequests.filter(
+        (req: any) => req._id.toString() !== requestId
+      );
+
+      // Ensure students is an array
+      if (!Array.isArray(ticketClass.students)) {
+        ticketClass.students = [];
+      }
+
+      // Add to students array if not already there
+      if (!ticketClass.students.includes(studentId)) {
+        ticketClass.students.push(studentId);
+      }
+
+      await ticketClass.save();
+      return NextResponse.json({ message: "Request accepted successfully" });
+    }
+
+    if (body.action === 'rejectRequest') {
+      const { requestId } = body;
+      
+      const ticketClass = await TicketClass.findById(classId);
+      if (!ticketClass) {
+        return NextResponse.json({ error: "Class not found" }, { status: 404 });
+      }
+
+      // Ensure studentRequests is an array before filtering
+      if (!Array.isArray(ticketClass.studentRequests)) {
+        ticketClass.studentRequests = [];
+      }
+
+      // Remove from studentRequests
+      ticketClass.studentRequests = ticketClass.studentRequests.filter(
+        (req: any) => req._id.toString() !== requestId
+      );
+
+      await ticketClass.save();
+      return NextResponse.json({ message: "Request rejected successfully" });
+    }
+
     const ticketClass = await TicketClass.findOne({ _id: classId });
 
     if (!ticketClass) {
