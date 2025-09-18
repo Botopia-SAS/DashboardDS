@@ -4,7 +4,7 @@ import { useState, useEffect } from "react";
 import { Calendar } from "lucide-react";
 import { useRouter } from "next/navigation";
 import { useCalendarRefresh } from "@/hooks/useCalendarRefresh";
-import { useWebSocketNotifications } from "@/hooks/useWebSocketNotifications";
+import { useNotificationContext } from "@/contexts/NotificationContext";
 
 interface StudentRequest {
   _id: string;
@@ -61,26 +61,8 @@ export default function TicketNotifications({ isOpen }: TicketNotificationsProps
   const router = useRouter();
   const { refreshCalendar } = useCalendarRefresh();
   
-  // WebSocket para notificaciones en tiempo real
-  useWebSocketNotifications({
-    onNotification: (notification) => {
-      console.log('🔔 New notification received:', notification);
-      if (notification.type === 'ticket') {
-        // Refrescar notificaciones cuando llega una nueva
-        fetchTicketNotifications();
-      }
-    },
-    onTicketUpdate: () => {
-      console.log('🎫 Ticket update received via WebSocket');
-      // Refrescar notificaciones cuando hay actualizaciones
-      fetchTicketNotifications();
-    },
-    onCountUpdate: () => {
-      console.log('📊 Count update received via WebSocket');
-      // Refrescar notificaciones para actualizar contadores
-      fetchTicketNotifications();
-    }
-  });
+  // Usar el contexto global de notificaciones
+  const { refreshNotifications } = useNotificationContext();
 
   const handleAccept = async (notification: TicketNotification) => {
     try {
@@ -228,6 +210,20 @@ export default function TicketNotifications({ isOpen }: TicketNotificationsProps
       return () => clearTimeout(timeout);
     }
   }, [isOpen]);
+
+  // Escuchar eventos de actualización global
+  useEffect(() => {
+    const handleGlobalRefresh = () => {
+      console.log('🔄 Global notification refresh received');
+      fetchTicketNotifications();
+    };
+
+    window.addEventListener('notificationRefresh', handleGlobalRefresh);
+    
+    return () => {
+      window.removeEventListener('notificationRefresh', handleGlobalRefresh);
+    };
+  }, []);
 
   const formatTime = (timestamp: string) => {
     return new Date(timestamp).toLocaleString('en-US', {
@@ -390,20 +386,19 @@ export function useTicketNotificationsCount() {
     }
   };
 
-  // WebSocket para actualizaciones en tiempo real
-  const { isConnected } = useWebSocketNotifications({
-    onNotification: (notification) => {
-      if (notification.type === 'ticket') {
-        fetchCount();
-      }
-    },
-    onTicketUpdate: () => {
+  // Escuchar eventos de actualización global
+  useEffect(() => {
+    const handleGlobalRefresh = () => {
+      console.log('🔄 Global count refresh received');
       fetchCount();
-    },
-    onCountUpdate: () => {
-      fetchCount();
-    }
-  });
+    };
+
+    window.addEventListener('notificationRefresh', handleGlobalRefresh);
+    
+    return () => {
+      window.removeEventListener('notificationRefresh', handleGlobalRefresh);
+    };
+  }, []);
 
   useEffect(() => {
     fetchCount();
