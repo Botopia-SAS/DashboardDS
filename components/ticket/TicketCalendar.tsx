@@ -614,6 +614,40 @@ const TicketCalendar = ({ className, refreshKey }: TicketCalendarProps) => {
               const timeStr = event.start?.toTimeString().slice(0, 5).replace(':', '') || '';
               const slotId = `slot-${dateStr}-${timeStr}`;
               info.el.id = slotId;
+              
+              // Add hover effects
+              info.el.style.cursor = 'pointer';
+              info.el.style.transition = 'all 0.2s ease';
+              
+              // Store original colors
+              const originalBg = info.el.style.backgroundColor;
+              const originalBorder = info.el.style.borderColor;
+              
+              // Add hover event listeners
+              info.el.addEventListener('mouseenter', () => {
+                info.el.style.transform = 'scale(1.02)';
+                info.el.style.boxShadow = '0 4px 12px rgba(0, 0, 0, 0.15)';
+                info.el.style.zIndex = '10';
+                // Make color slightly lighter on hover
+                const currentBg = info.el.style.backgroundColor;
+                if (currentBg.includes('rgb(16, 185, 129)')) { // green
+                  info.el.style.backgroundColor = 'rgb(34, 197, 94)'; // lighter green
+                } else if (currentBg.includes('rgb(124, 58, 237)')) { // purple
+                  info.el.style.backgroundColor = 'rgb(139, 92, 246)'; // lighter purple
+                } else if (currentBg.includes('rgb(239, 68, 68)')) { // red
+                  info.el.style.backgroundColor = 'rgb(248, 113, 113)'; // lighter red
+                } else if (currentBg.includes('rgb(107, 114, 128)')) { // gray
+                  info.el.style.backgroundColor = 'rgb(156, 163, 175)'; // lighter gray
+                }
+              });
+              
+              info.el.addEventListener('mouseleave', () => {
+                info.el.style.transform = 'scale(1)';
+                info.el.style.boxShadow = 'none';
+                info.el.style.zIndex = '1';
+                // Restore original color
+                info.el.style.backgroundColor = originalBg;
+              });
             }}
             loading={(loading) => setIsLoading(loading)}
             eventDisplay="block"

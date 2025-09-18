@@ -7,6 +7,7 @@ import { Plus } from "lucide-react";
 import React, { useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
 import Loader from "@/components/custom ui/Loader";
+import DashboardHeader from "@/components/layout/DashboardHeader";
 
 const CustomersDashboard = () => {
   const [customers, setCustomers] = useState([]);
@@ -36,15 +37,14 @@ const CustomersDashboard = () => {
 
   return (
     <div className="p-5">
+      <DashboardHeader title="Customers">
+        <Button className="bg-blue-500 text-white" onClick={() => router.push("/customers/new")}>
+          <Plus className="size-4 mr-2" />
+          Create customer
+        </Button>
+      </DashboardHeader>
       <div className="mt-6">
         <div className="mt-6">
-          <div className="flex items-center justify-between">
-            <p className="text-lg font-bold text-gray-800">Customers</p>
-            <Button className="bg-blue-500 text-white" onClick={() => router.push("/customers/new")}>
-              <Plus className="size-4 mr-2" />
-              Create customer
-            </Button>
-          </div>
           <Separator className="bg-gray-400 my-4" />
           <DataTable columns={customersColumns} data={customers} searchKey="name" />
         </div>

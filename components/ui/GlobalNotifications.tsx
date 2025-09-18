@@ -1,176 +1,114 @@
-"use client";
+﻿"use client";
 
 import { useState } from "react";
-import { Bell } from "lucide-react";
-import { Button } from "@/components/ui/button";
-import { useRouter } from "next/navigation";
-import { useNotifications } from "@/hooks/useNotifications";
-
-interface PendingRequest {
-  requestId: string;
-  ticketClassId?: string;
-  drivingTestId?: string;
-  lessonId?: string;
-  studentId: string;
-  date: string;
-  hour: string;
-  endHour?: string;
-  classType: string;
-  type: 'ticket' | 'driving-test' | 'lesson';
-}
+import { Bell, X, Calendar, Car, GraduationCap } from "lucide-react";
+import TicketNotifications, { useTicketNotificationsCount } from "@/components/ui/notifications/TicketNotifications";
+import DrivingTestNotifications, { useDrivingTestNotificationsCount } from "@/components/ui/notifications/DrivingTestNotifications";
+import DrivingLessonsNotifications, { useDrivingLessonsNotificationsCount } from "@/components/ui/notifications/DrivingLessonsNotifications";
 
 interface GlobalNotificationsProps {
   className?: string;
+  iconColor?: string;
 }
 
-export default function GlobalNotifications({ className }: GlobalNotificationsProps) {
-  const [notifOpen, setNotifOpen] = useState(false);
-  const router = useRouter();
-  const { pendingRequests, studentNames, connected, emitNotification } = useNotifications();
+type TabType = 'tickets' | 'driving-test' | 'driving-lessons';
 
+export default function GlobalNotifications({ className, iconColor = "text-gray-600" }: GlobalNotificationsProps) {
+  const [isOpen, setIsOpen] = useState(false);
+  const [activeTab, setActiveTab] = useState<TabType>('tickets');
+  
+  const ticketCount = useTicketNotificationsCount();
+  const drivingTestCount = useDrivingTestNotificationsCount();
+  const drivingLessonsCount = useDrivingLessonsNotificationsCount();
+  
+  const totalNotifications = ticketCount + drivingTestCount + drivingLessonsCount;
 
-  const handleAccept = async (request: PendingRequest) => {
-    try {
-      let endpoint = '';
-      let body = {};
+  const tabs = [
+    { id: 'tickets' as TabType, label: 'Tickets', icon: Calendar, count: ticketCount },
+    { id: 'driving-test' as TabType, label: 'Driving Test', icon: Car, count: drivingTestCount },
+    { id: 'driving-lessons' as TabType, label: 'Driving Lessons', icon: GraduationCap, count: drivingLessonsCount }
+  ];
 
-      switch (request.type) {
-        case 'ticket':
-          endpoint = `/api/ticket/classes/${request.ticketClassId}`;
-          body = { action: "acceptRequest", studentId: request.studentId, requestId: request.requestId };
-          break;
-        case 'driving-test':
-          endpoint = `/api/driving-test-lessons/${request.drivingTestId}`;
-          body = { action: "acceptRequest", studentId: request.studentId, requestId: request.requestId };
-          break;
-        case 'lesson':
-          endpoint = `/api/instructors/${request.lessonId}`;
-          body = { action: "acceptRequest", studentId: request.studentId, requestId: request.requestId };
-          break;
-      }
-
-      const response = await fetch(endpoint, {
-        method: "PATCH",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify(body),
-      });
-
-      if (response.ok) {
-        // Emit SSE notification to notify all clients
-        await emitNotification('request_accepted', { 
-          requestType: request.type, 
-          requestId: request.requestId 
-        });
-        
-        // Navigate to the appropriate page and slot
-        navigateToSlot(request);
-      }
-    } catch (error) {
-      console.error('Error accepting request:', error);
-    }
-  };
-
-  const navigateToSlot = (request: PendingRequest) => {
-    let route = '';
-    
-    switch (request.type) {
-      case 'ticket':
-        route = '/ticket';
-        break;
+  const renderContent = () => {
+    switch (activeTab) {
+      case 'tickets':
+        return <TicketNotifications isOpen={isOpen} />;
       case 'driving-test':
-        route = '/driving-test-lessons';
-        break;
-      case 'lesson':
-        route = '/instructors';
-        break;
+        return <DrivingTestNotifications isOpen={isOpen} />;
+      case 'driving-lessons':
+        return <DrivingLessonsNotifications isOpen={isOpen} />;
+      default:
+        return <TicketNotifications isOpen={isOpen} />;
     }
-
-    // Navigate to the page
-    router.push(route);
-    
-    // After navigation, scroll to the specific slot
-    setTimeout(() => {
-      const slotId = `slot-${request.date}-${request.hour.replace(':', '')}`;
-      const slotElement = document.getElementById(slotId);
-      if (slotElement) {
-        slotElement.scrollIntoView({ behavior: 'smooth', block: 'center' });
-        // Add a highlight effect
-        slotElement.style.backgroundColor = '#fef3c7';
-        setTimeout(() => {
-          slotElement.style.backgroundColor = '';
-        }, 3000);
-      }
-    }, 500);
   };
 
   return (
     <div className={`relative ${className}`}>
-      <button 
-        onClick={() => setNotifOpen(!notifOpen)} 
-        className="relative p-2 hover:bg-gray-100 rounded-lg transition-colors"
+      <button
+        onClick={() => setIsOpen(!isOpen)}
+        className={`relative p-2 rounded-full hover:bg-gray-100/10 transition-colors ${iconColor}`}
       >
-        <Bell className="w-6 h-6 text-gray-600" />
-        {pendingRequests.length > 0 && (
-          <span className="absolute -top-1 -right-1 flex items-center justify-center w-5 h-5 bg-red-600 text-white text-xs font-bold rounded-full border-2 border-white">
-            {pendingRequests.length}
+        <Bell size={20} />
+        {totalNotifications > 0 && (
+          <span className="absolute -top-1 -right-1 bg-red-500 text-white text-xs rounded-full min-w-[18px] h-[18px] flex items-center justify-center px-1">
+            {totalNotifications > 99 ? "99+" : totalNotifications}
           </span>
         )}
       </button>
 
-      {notifOpen && (
-        <div className="absolute right-0 mt-2 w-96 bg-white text-gray-900 rounded-lg shadow-lg z-50 p-4 border">
-          <h3 className="font-bold mb-3 text-lg">Pending Requests</h3>
-          {pendingRequests.length === 0 ? (
-            <p className="text-gray-500">No pending requests</p>
-          ) : (
-            <div className="space-y-3 max-h-80 overflow-y-auto">
-              {pendingRequests.map((req) => {
-                const dateStr = req.date ? req.date.split("T")[0] : "";
-                const hourStr = req.hour || "";
-                const endHourStr = req.endHour || "";
-                const studentName = studentNames[req.studentId] || req.studentId;
-                const typeLabel = req.type === 'ticket' ? 'TICKET' : 
-                                 req.type === 'driving-test' ? 'DRIVING TEST' : 'LESSON';
-
-                return (
-                  <div key={req.requestId} className="border rounded-lg p-3 hover:bg-gray-50">
-                    <div className="flex items-start justify-between">
-                      <div className="flex-1">
-                        <div className="flex items-center gap-2 mb-1">
-                          <span className="px-2 py-1 text-xs font-medium bg-blue-100 text-blue-800 rounded">
-                            {typeLabel}
-                          </span>
-                          <span className="text-sm font-medium text-gray-900">
-                            {req.classType.toUpperCase()}
-                          </span>
-                        </div>
-                        <p className="text-sm text-gray-600">
-                          {dateStr} {hourStr}{endHourStr ? ` - ${endHourStr}` : ""}
-                        </p>
-                        <p className="text-sm text-gray-700 mt-1">
-                          Student: <span className="font-medium">{studentName}</span>
-                        </p>
-                      </div>
-                      <Button 
-                        size="sm" 
-                        className="ml-2 bg-green-600 hover:bg-green-700 text-white"
-                        onClick={() => handleAccept(req)}
-                      >
-                        Accept
-                      </Button>
-                    </div>
-                  </div>
-                );
-              })}
+      {isOpen && (
+        <div className="absolute right-0 mt-2 w-[520px] bg-white rounded-xl shadow-2xl border border-gray-200 z-50 max-h-[85vh] overflow-hidden">
+          {/* Header */}
+          <div className="flex items-center justify-between p-4 border-b border-gray-200 bg-gradient-to-r from-blue-50 to-indigo-50">
+            <div className="flex items-center gap-3">
+              <div className="p-2 bg-blue-100 rounded-lg">
+                <Bell size={20} className="text-blue-600" />
+              </div>
+              <div>
+                <h3 className="font-semibold text-gray-900">Notifications</h3>
+                <p className="text-sm text-gray-600">{totalNotifications} pending</p>
+              </div>
             </div>
-          )}
-          <div className="mt-3 pt-3 border-t">
-            <button 
-              onClick={() => setNotifOpen(false)}
-              className="text-sm text-gray-500 hover:text-gray-700"
+            <button
+              onClick={() => setIsOpen(false)}
+              className="text-gray-400 hover:text-gray-600 transition-colors p-1 hover:bg-gray-100 rounded-md"
             >
-              Close
+              <X size={20} />
             </button>
+          </div>
+
+          {/* Pestañas horizontales */}
+          <div className="flex border-b border-gray-200 bg-gray-50">
+            {tabs.map((tab) => {
+              const Icon = tab.icon;
+              const isActive = activeTab === tab.id;
+              return (
+                <button
+                  key={tab.id}
+                  onClick={() => setActiveTab(tab.id)}
+                  className={`flex-1 flex items-center justify-center gap-2 px-4 py-3 text-sm font-medium transition-colors ${
+                    isActive
+                      ? 'text-blue-600 border-b-2 border-blue-500 bg-white'
+                      : 'text-gray-600 hover:text-blue-600 hover:bg-blue-50'
+                  }`}
+                >
+                  <Icon size={16} />
+                  <span>{tab.label}</span>
+                  {tab.count > 0 && (
+                    <span className={`px-2 py-1 text-xs rounded-full ${
+                      isActive ? 'bg-blue-100 text-blue-600' : 'bg-gray-200 text-gray-600'
+                    }`}>
+                      {tab.count}
+                    </span>
+                  )}
+                </button>
+              );
+            })}
+          </div>
+
+          {/* Contenido */}
+          <div className="max-h-[60vh] overflow-y-auto">
+            {renderContent()}
           </div>
         </div>
       )}

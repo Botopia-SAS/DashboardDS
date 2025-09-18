@@ -18,6 +18,7 @@ import Image from "next/image";
 import { Button } from "@/components/ui/button";
 import { ArrowLeft } from "lucide-react";
 import { usePathname } from "next/navigation";
+import DashboardHeader from "@/components/layout/DashboardHeader";
 
 function ConsolePage() {
   const pathname = usePathname();
@@ -161,9 +162,8 @@ function ConsolePage() {
             <h1 className="text-xl font-semibold flex-1 text-center">Console Dashboard</h1>
           </div>
         )}
-        {/* 🔹 MENÚ SUPERIOR */}
-        <div className="flex justify-between items-center bg-gray-800 text-white px-5 py-3 rounded-lg shadow-md">
-          <h1 className="text-xl font-semibold text-white">Console Dashboard</h1>
+        
+        <DashboardHeader title="Console Dashboard">
           <div className="flex gap-6 items-center">
             <Link
               href="/console/user"
@@ -190,7 +190,7 @@ function ConsolePage() {
               Contact
             </Link>
           </div>
-        </div>
+        </DashboardHeader>
       </div>
       {/* Active Users (row 1) */}
       <div className="p-6">
