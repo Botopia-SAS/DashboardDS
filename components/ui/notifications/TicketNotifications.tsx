@@ -3,12 +3,15 @@
 import { useState, useEffect } from "react";
 import { Calendar } from "lucide-react";
 import { useRouter } from "next/navigation";
+import { useCalendarRefresh } from "@/hooks/useCalendarRefresh";
+import { useWebSocketNotifications } from "@/hooks/useWebSocketNotifications";
 
 interface StudentRequest {
   _id: string;
   studentId: string;
   requestDate: string;
   status: string;
+  paymentMethod: string;
 }
 
 interface Student {
@@ -56,6 +59,28 @@ export default function TicketNotifications({ isOpen }: TicketNotificationsProps
   const [notifications, setNotifications] = useState<TicketNotification[]>([]);
   const [loading, setLoading] = useState(false);
   const router = useRouter();
+  const { refreshCalendar } = useCalendarRefresh();
+  
+  // WebSocket para notificaciones en tiempo real
+  useWebSocketNotifications({
+    onNotification: (notification) => {
+      console.log('🔔 New notification received:', notification);
+      if (notification.type === 'ticket') {
+        // Refrescar notificaciones cuando llega una nueva
+        fetchTicketNotifications();
+      }
+    },
+    onTicketUpdate: () => {
+      console.log('🎫 Ticket update received via WebSocket');
+      // Refrescar notificaciones cuando hay actualizaciones
+      fetchTicketNotifications();
+    },
+    onCountUpdate: () => {
+      console.log('📊 Count update received via WebSocket');
+      // Refrescar notificaciones para actualizar contadores
+      fetchTicketNotifications();
+    }
+  });
 
   const handleAccept = async (notification: TicketNotification) => {
     try {
@@ -72,6 +97,9 @@ export default function TicketNotifications({ isOpen }: TicketNotificationsProps
       if (response.ok) {
         // Refresh notifications
         fetchTicketNotifications();
+        
+        // Trigger calendar refresh
+        refreshCalendar();
       }
     } catch (error) {
       console.error('Error accepting request:', error);
@@ -92,6 +120,9 @@ export default function TicketNotifications({ isOpen }: TicketNotificationsProps
       if (response.ok) {
         // Refresh notifications
         fetchTicketNotifications();
+        
+        // Trigger calendar refresh
+        refreshCalendar();
       }
     } catch (error) {
       console.error('Error rejecting request:', error);
@@ -114,8 +145,12 @@ export default function TicketNotifications({ isOpen }: TicketNotificationsProps
   const fetchTicketNotifications = async () => {
     try {
       setLoading(true);
+      console.log('🔄 Fetching ticket notifications...');
+      
       const response = await fetch('/api/ticketclasses');
       const data = await response.json();
+      
+      console.log('📥 Ticket classes response:', data);
       
       if (data.success) {
         // Filter classes that have studentRequests
@@ -123,46 +158,55 @@ export default function TicketNotifications({ isOpen }: TicketNotificationsProps
           ticketClass.studentRequests && ticketClass.studentRequests.length > 0
         );
         
+        console.log('🎫 Classes with requests:', classesWithRequests.length);
+        
         // Create notifications for each studentRequest and fetch student data
+        // Only show notifications for requests with paymentMethod "local"
         const ticketNotifications = await Promise.all(
           classesWithRequests.flatMap((ticketClass: TicketClass) =>
-            ticketClass.studentRequests.map(async (request: StudentRequest) => {
-              // Fetch student information
-              let student: Student | undefined;
-              try {
-                const studentResponse = await fetch(`/api/users/${request.studentId}`);
-                if (studentResponse.ok) {
-                  const studentData = await studentResponse.json();
-                  student = studentData.user;
+            ticketClass.studentRequests
+              .filter((request: StudentRequest) => request.paymentMethod === "local")
+              .map(async (request: StudentRequest) => {
+                // Fetch student information
+                let student: Student | undefined;
+                try {
+                  const studentResponse = await fetch(`/api/users/${request.studentId}`);
+                  if (studentResponse.ok) {
+                    const studentData = await studentResponse.json();
+                    student = studentData.user;
+                  }
+                } catch (error) {
+                  console.error('Error fetching student data:', error);
                 }
-              } catch (error) {
-                console.error('Error fetching student data:', error);
-              }
 
-              return {
-                id: `${ticketClass._id}-${request._id}`,
-                type: 'ticket',
-                title: 'New Student Request',
-                message: `Request for class on ${ticketClass.date} at ${ticketClass.hour}`,
-                timestamp: request.requestDate,
-                status: request.status,
-                classId: ticketClass._id,
-                studentId: request.studentId,
-                classType: ticketClass.type,
-                classDate: ticketClass.date,
-                classHour: ticketClass.hour,
-                classEndHour: ticketClass.endHour,
-                requestId: request._id,
-                student: student
-              };
-            })
+                return {
+                  id: `${ticketClass._id}-${request._id}`,
+                  type: 'ticket',
+                  title: 'New Student Request',
+                  message: `Request for class on ${ticketClass.date} at ${ticketClass.hour}`,
+                  timestamp: request.requestDate,
+                  status: request.status,
+                  classId: ticketClass._id,
+                  studentId: request.studentId,
+                  classType: ticketClass.type,
+                  classDate: ticketClass.date,
+                  classHour: ticketClass.hour,
+                  classEndHour: ticketClass.endHour,
+                  requestId: request._id,
+                  student: student
+                };
+              })
           )
         );
         
+        console.log('✅ Created notifications:', ticketNotifications.length);
         setNotifications(ticketNotifications);
+      } else {
+        console.log('❌ API response not successful:', data);
+        setNotifications([]);
       }
     } catch (error) {
-      console.error('Error fetching ticket notifications:', error);
+      console.error('❌ Error fetching ticket notifications:', error);
       setNotifications([]);
     } finally {
       setLoading(false);
@@ -172,6 +216,16 @@ export default function TicketNotifications({ isOpen }: TicketNotificationsProps
   useEffect(() => {
     if (isOpen) {
       fetchTicketNotifications();
+      
+      // Timeout de seguridad para evitar loading infinito
+      const timeout = setTimeout(() => {
+        if (loading) {
+          console.log('⏰ Loading timeout reached, stopping loading state');
+          setLoading(false);
+        }
+      }, 10000); // 10 segundos timeout
+      
+      return () => clearTimeout(timeout);
     }
   }, [isOpen]);
 
@@ -212,6 +266,12 @@ export default function TicketNotifications({ isOpen }: TicketNotificationsProps
             <div className="w-4 h-4 border-2 border-gray-300 border-t-blue-500 rounded-full animate-spin"></div>
             Loading requests...
           </div>
+          <button 
+            onClick={() => fetchTicketNotifications()}
+            className="mt-2 text-xs text-blue-600 hover:text-blue-800 underline"
+          >
+            Retry
+          </button>
         </div>
       ) : notifications.length > 0 ? (
         <div className="space-y-2">
@@ -319,7 +379,7 @@ export function useTicketNotificationsCount() {
         );
         
         const totalRequests = classesWithRequests.reduce((total: number, ticketClass: TicketClass) => 
-          total + ticketClass.studentRequests.length, 0
+          total + ticketClass.studentRequests.filter((request: StudentRequest) => request.paymentMethod === "local").length, 0
         );
         
         setCount(totalRequests);
@@ -330,11 +390,23 @@ export function useTicketNotificationsCount() {
     }
   };
 
+  // WebSocket para actualizaciones en tiempo real
+  const { isConnected } = useWebSocketNotifications({
+    onNotification: (notification) => {
+      if (notification.type === 'ticket') {
+        fetchCount();
+      }
+    },
+    onTicketUpdate: () => {
+      fetchCount();
+    },
+    onCountUpdate: () => {
+      fetchCount();
+    }
+  });
+
   useEffect(() => {
     fetchCount();
-    // Actualizar cada 30 segundos
-    const interval = setInterval(fetchCount, 30000);
-    return () => clearInterval(interval);
   }, []);
 
   return count;

@@ -5,6 +5,7 @@ import { Bell, X, Calendar, Car, GraduationCap } from "lucide-react";
 import TicketNotifications, { useTicketNotificationsCount } from "@/components/ui/notifications/TicketNotifications";
 import DrivingTestNotifications, { useDrivingTestNotificationsCount } from "@/components/ui/notifications/DrivingTestNotifications";
 import DrivingLessonsNotifications, { useDrivingLessonsNotificationsCount } from "@/components/ui/notifications/DrivingLessonsNotifications";
+import { useWebSocketNotifications } from "@/hooks/useWebSocketNotifications";
 
 interface GlobalNotificationsProps {
   className?: string;
@@ -22,6 +23,20 @@ export default function GlobalNotifications({ className, iconColor = "text-gray-
   const drivingLessonsCount = useDrivingLessonsNotificationsCount();
   
   const totalNotifications = ticketCount + drivingTestCount + drivingLessonsCount;
+  
+  // WebSocket para notificaciones en tiempo real (sin indicadores visuales)
+  useWebSocketNotifications({
+    onNotification: (notification) => {
+      console.log('🔔 Global notification received:', notification);
+      // Los contadores se actualizarán automáticamente a través de sus respectivos hooks
+    },
+    onTicketUpdate: () => {
+      console.log('🎫 Global ticket update received');
+    },
+    onCountUpdate: () => {
+      console.log('📊 Global count update received');
+    }
+  });
 
   const tabs = [
     { id: 'tickets' as TabType, label: 'Tickets', icon: Calendar, count: ticketCount },

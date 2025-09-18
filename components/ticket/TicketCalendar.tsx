@@ -69,9 +69,12 @@ interface TicketCalendarEvent {
 interface TicketCalendarProps {
   className?: string;
   refreshKey?: number;
+  focusClassId?: string | null;
+  focusWeek?: number;
+  focusYear?: number;
 }
 
-const TicketCalendar = ({ className, refreshKey }: TicketCalendarProps) => {
+const TicketCalendar = ({ className, refreshKey, focusClassId, focusWeek, focusYear }: TicketCalendarProps) => {
   // Obtener el tipo de clase del store
   const { classType } = useClassTypeStore();
   
@@ -155,125 +158,188 @@ const TicketCalendar = ({ className, refreshKey }: TicketCalendarProps) => {
     fetchLocations();
   }, []);
 
+  // Función para cargar los datos del calendario
+  const fetchTicketClasses = async () => {
+    setIsLoading(true);
+    try {
+      console.log('🔄 Fetching all ticket classes from API');
+      const response = await fetch("/api/ticket/calendar");
+      
+      if (!response.ok) {
+        throw new Error(`API Error: ${response.status} ${response.statusText}`);
+      }
+      
+      const data = await response.json();
+      console.log('📥 Raw API response:', data);
+      console.log('📊 Number of ticket classes fetched:', data.length);
+      
+      // Verificar que data sea un array
+      if (!Array.isArray(data)) {
+        console.error('❌ Expected array but got:', typeof data);
+        setCalendarEvents([]);
+        return;
+      }
+      
+      // No filtrar - mostrar todas las clases de todos los tipos
+      const filteredData = data;
+      
+      console.log(`🔍 Showing all ticket classes:`, filteredData.length);
+      
+      // Convertir ticketClasses a eventos del calendario
+      const events = filteredData.map((ticketClass: unknown, index: number) => {
+        const tc = ticketClass as TicketClassResponse;
+        console.log(`🎫 Processing ticket class ${index + 1}:`, tc);
+        
+        const studentCount = Array.isArray(tc.students) ? tc.students.length : 0;
+        const totalSpots = tc.spots || 30;
+        
+        // Determinar tipo de clase
+        let classType = "Class";
+        if (tc.type === "date") classType = "D.A.T.E";
+        else if (tc.type === "bdi") classType = "B.D.I";
+        else if (tc.type === "adi") classType = "A.D.I";
+        
+        // Determinar estado
+        let status = "Available";
+        if (tc.status === "full") status = "Full";
+        else if (tc.status === "cancel") status = "Cancelled";
+        else if (tc.status === "expired") status = "Expired";
+        
+        // Formatear fecha - mejorar el handling de fechas
+        let dateStr = "";
+        if (tc.date) {
+          try {
+            const date = new Date(tc.date);
+            if (!isNaN(date.getTime())) {
+              dateStr = date.toISOString().slice(0, 10);
+            } else {
+              console.warn('⚠️ Invalid date format:', tc.date);
+              dateStr = tc.date.slice(0, 10);
+            }
+          } catch (error) {
+            console.error('❌ Error parsing date:', tc.date, error);
+            dateStr = new Date().toISOString().slice(0, 10);
+          }
+        }
+        
+        // Verificar que tengamos hora
+        const hour = tc.hour || "00:00";
+        const endHour = tc.endHour || "00:00";
+        
+        // Determinar color según estado
+        let backgroundColor = "#6b7280"; // gris por defecto
+        let borderColor = "#4b5563";
+        
+        if (status === "Full") {
+          backgroundColor = "#7c3aed"; // púrpura
+          borderColor = "#6d28d9";
+        } else if (status === "Cancelled") {
+          backgroundColor = "#ef4444"; // rojo
+          borderColor = "#dc2626";
+        } else if (status === "Available") {
+          backgroundColor = "#10b981"; // verde
+          borderColor = "#059669";
+        }
+        
+        const event: TicketCalendarEvent = {
+          id: tc._id || `ticket-${index}`,
+          title: `${classType} - ${status} (${studentCount}/${totalSpots})`,
+          start: `${dateStr}T${hour}`,
+          end: `${dateStr}T${endHour}`,
+          backgroundColor,
+          borderColor,
+          textColor: "#ffffff",
+          extendedProps: {
+            ticketClass: tc,
+            classType,
+            status,
+            studentCount,
+            totalSpots
+          }
+        };
+        
+        console.log(`✅ Created event ${index + 1}:`, event);
+        return event;
+      });
+      
+      console.log('🎉 Final events array:', events);
+      console.log('📈 Total events created:', events.length);
+      setCalendarEvents(events);
+      
+    } catch (error) {
+      console.error('❌ Error fetching ticket classes:', error);
+      setCalendarEvents([]);
+    } finally {
+      setIsLoading(false);
+    }
+  };
+
   // Cargar todos los TicketClass reales desde la API
   useEffect(() => {
-    const fetchTicketClasses = async () => {
-      setIsLoading(true);
-      try {
-        console.log('🔄 Fetching all ticket classes from API');
-        const response = await fetch("/api/ticket/calendar");
-        
-        if (!response.ok) {
-          throw new Error(`API Error: ${response.status} ${response.statusText}`);
-        }
-        
-        const data = await response.json();
-        console.log('📥 Raw API response:', data);
-        console.log('📊 Number of ticket classes fetched:', data.length);
-        
-        // Verificar que data sea un array
-        if (!Array.isArray(data)) {
-          console.error('❌ Expected array but got:', typeof data);
-          setCalendarEvents([]);
-          return;
-        }
-        
-        // No filtrar - mostrar todas las clases de todos los tipos
-        const filteredData = data;
-        
-        console.log(`🔍 Showing all ticket classes:`, filteredData.length);
-        
-        // Convertir ticketClasses a eventos del calendario
-        const events = filteredData.map((ticketClass: unknown, index: number) => {
-          const tc = ticketClass as TicketClassResponse;
-          console.log(`🎫 Processing ticket class ${index + 1}:`, tc);
-          
-          const studentCount = Array.isArray(tc.students) ? tc.students.length : 0;
-          const totalSpots = tc.spots || 30;
-          
-          // Determinar tipo de clase
-          let classType = "Class";
-          if (tc.type === "date") classType = "D.A.T.E";
-          else if (tc.type === "bdi") classType = "B.D.I";
-          else if (tc.type === "adi") classType = "A.D.I";
-          
-          // Determinar estado
-          let status = "Available";
-          if (tc.status === "full") status = "Full";
-          else if (tc.status === "cancel") status = "Cancelled";
-          else if (tc.status === "expired") status = "Expired";
-          
-          // Formatear fecha - mejorar el handling de fechas
-          let dateStr = "";
-          if (tc.date) {
-            try {
-              const date = new Date(tc.date);
-              if (!isNaN(date.getTime())) {
-                dateStr = date.toISOString().slice(0, 10);
-              } else {
-                console.warn('⚠️ Invalid date format:', tc.date);
-                dateStr = tc.date.slice(0, 10);
-              }
-            } catch (error) {
-              console.error('❌ Error parsing date:', tc.date, error);
-              dateStr = new Date().toISOString().slice(0, 10);
-            }
-          }
-          
-          // Verificar que tengamos hora
-          const hour = tc.hour || "00:00";
-          const endHour = tc.endHour || "00:00";
-          
-          // Determinar color según estado
-          let backgroundColor = "#6b7280"; // gris por defecto
-          let borderColor = "#4b5563";
-          
-          if (status === "Full") {
-            backgroundColor = "#7c3aed"; // púrpura
-            borderColor = "#6d28d9";
-          } else if (status === "Cancelled") {
-            backgroundColor = "#ef4444"; // rojo
-            borderColor = "#dc2626";
-          } else if (status === "Available") {
-            backgroundColor = "#10b981"; // verde
-            borderColor = "#059669";
-          }
-          
-          const event: TicketCalendarEvent = {
-            id: tc._id || `ticket-${index}`,
-            title: `${classType} - ${status} (${studentCount}/${totalSpots})`,
-            start: `${dateStr}T${hour}`,
-            end: `${dateStr}T${endHour}`,
-            backgroundColor,
-            borderColor,
-            textColor: "#ffffff",
-            extendedProps: {
-              ticketClass: tc,
-              classType,
-              status,
-              studentCount,
-              totalSpots
-            }
-          };
-          
-          console.log(`✅ Created event ${index + 1}:`, event);
-          return event;
-        });
-        
-        console.log('🎉 Final events array:', events);
-        console.log('📈 Total events created:', events.length);
-        setCalendarEvents(events);
-        
-      } catch (error) {
-        console.error('❌ Error fetching ticket classes:', error);
-        setCalendarEvents([]);
-      } finally {
-        setIsLoading(false);
+    fetchTicketClasses();
+  }, [refreshKey]);
+
+  // Escuchar eventos de actualización en tiempo real
+  useEffect(() => {
+    const handleCalendarRefresh = () => {
+      console.log('🔄 Calendar refresh triggered from external event');
+      fetchTicketClasses();
+    };
+
+    // Escuchar eventos personalizados
+    window.addEventListener('calendarRefresh', handleCalendarRefresh);
+    
+    // También escuchar cambios en el localStorage como backup
+    const handleStorageChange = (e: StorageEvent) => {
+      if (e.key === 'calendarNeedsRefresh') {
+        console.log('🔄 Calendar refresh triggered from localStorage');
+        fetchTicketClasses();
+        localStorage.removeItem('calendarNeedsRefresh');
       }
     };
     
-    fetchTicketClasses();
-  }, [refreshKey]);
+    window.addEventListener('storage', handleStorageChange);
+
+    return () => {
+      window.removeEventListener('calendarRefresh', handleCalendarRefresh);
+      window.removeEventListener('storage', handleStorageChange);
+    };
+  }, []);
+
+  // Efecto para enfocar automáticamente en un evento específico
+  useEffect(() => {
+    if (focusClassId && calendarEvents.length > 0) {
+      // Buscar el evento específico
+      const targetEvent = calendarEvents.find(event => event.id === focusClassId);
+      
+      if (targetEvent) {
+        console.log('🎯 Focusing on event:', targetEvent);
+        
+        // Crear un pequeño delay para asegurar que el calendario esté renderizado
+        setTimeout(() => {
+          // Buscar el elemento del evento en el DOM
+          const eventElement = document.querySelector(`[data-event-id="${focusClassId}"]`);
+          
+          if (eventElement) {
+            // Scroll al elemento
+            eventElement.scrollIntoView({ 
+              behavior: 'smooth', 
+              block: 'center',
+              inline: 'center'
+            });
+            
+            // Agregar un highlight temporal
+            eventElement.classList.add('ring-4', 'ring-yellow-400', 'ring-opacity-75');
+            
+            // Remover el highlight después de 3 segundos
+            setTimeout(() => {
+              eventElement.classList.remove('ring-4', 'ring-yellow-400', 'ring-opacity-75');
+            }, 3000);
+          }
+        }, 500);
+      }
+    }
+  }, [focusClassId, calendarEvents]);
 
   // Log para ver qué datos recibe FullCalendar
   console.log("Eventos que recibe FullCalendar:", calendarEvents);
@@ -608,7 +674,10 @@ const TicketCalendar = ({ className, refreshKey }: TicketCalendarProps) => {
             }}
             eventDidMount={(info) => {
               setIsLoading(false);
-              // Add ID to slot for navigation
+              // Add ID to slot for navigation and focus functionality
+              if (info.event.id) {
+                info.el.setAttribute('data-event-id', info.event.id);
+              }
               const event = info.event;
               const dateStr = event.start?.toISOString().split('T')[0] || '';
               const timeStr = event.start?.toTimeString().slice(0, 5).replace(':', '') || '';
