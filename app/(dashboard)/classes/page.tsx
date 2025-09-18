@@ -10,6 +10,7 @@ import { DataTable } from "@/components/custom ui/DataTable";
 import { Button } from "@/components/ui/button";
 import { Separator } from "@/components/ui/separator";
 import Loader from "@/components/custom ui/Loader";
+import DashboardHeader from "@/components/layout/DashboardHeader";
 
 const DrivingClassesDashboard = () => {
   const router = useRouter();
@@ -52,9 +53,7 @@ const DrivingClassesDashboard = () => {
   return (
     <div className="px-5 py-5">
       {/* 🔹 MENÚ SUPERIOR */}
-      <div className="flex justify-between items-center bg-gray-800 text-white px-5 py-3 rounded-lg shadow-md">
-        <h1 className="text-xl font-semibold">Driving School Classes</h1>
-
+      <DashboardHeader title="Driving School Classes">
         {/* 🔹 Menú Desktop */}
         <div className="hidden md:flex gap-6">
           <button
@@ -104,7 +103,7 @@ const DrivingClassesDashboard = () => {
             </div>
           )}
         </div>
-      </div>
+      </DashboardHeader>
 
       <Separator className="bg-gray-400 my-4" />
 

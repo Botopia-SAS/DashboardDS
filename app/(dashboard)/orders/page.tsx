@@ -7,6 +7,7 @@ import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
 import { Badge } from '@/components/ui/badge'
 import { DollarSign, ShoppingCart, Clock, CheckCircle, AlertCircle, TrendingUp } from 'lucide-react'
 import { unstable_noStore as noStore } from 'next/cache'
+import DashboardHeader from '@/components/layout/DashboardHeader'
 
 export const dynamic = 'force-dynamic'
 export const revalidate = 0
@@ -137,12 +138,9 @@ const Page = async ({ searchParams }: { searchParams?: any }) => {
   return (
     <div className="p-6">
       {/* Header with range filter */}
-      <div className="flex justify-between items-center bg-gray-800 text-white px-5 py-3 rounded-lg shadow-md">
-        <div className="flex flex-col">
-          <h1 className="text-xl font-semibold text-white">Orders Management</h1>
-          <span className="text-xs text-gray-300">Range: {range === 'all' ? 'All time' : range === 'day' || range === 'today' ? 'Today' : range === 'month' ? 'This month' : 'This year'}</span>
-        </div>
+      <DashboardHeader title="Orders Management">
         <div className="flex items-center gap-4">
+          <span className="text-xs text-gray-300">Range: {range === 'all' ? 'All time' : range === 'day' || range === 'today' ? 'Today' : range === 'month' ? 'This month' : 'This year'}</span>
           <form className="flex items-center gap-2" method="get">
             <select
               name="range"
@@ -163,7 +161,7 @@ const Page = async ({ searchParams }: { searchParams?: any }) => {
             <span className="text-sm">{totalOrders} Orders</span>
           </div>
         </div>
-      </div>
+      </DashboardHeader>
 
       <div className="space-y-6 mt-6">
 

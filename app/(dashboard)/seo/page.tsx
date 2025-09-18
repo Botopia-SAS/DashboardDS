@@ -1,5 +1,6 @@
 "use client";
 import { useState, useEffect } from "react";
+import NotificationBar from "@/components/layout/NotificationBar";
 
 export default function SEOSettings() {
   // Estados para los valores del formulario
@@ -56,6 +57,7 @@ export default function SEOSettings() {
 
   return (
     <div className="p-6">
+      <NotificationBar variant="dark" />
       <h1 className="text-2xl font-bold mb-4">SEO Settings</h1>
 
       {/* Mostrar mensaje de carga antes de renderizar */}

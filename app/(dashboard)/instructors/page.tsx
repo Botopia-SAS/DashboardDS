@@ -9,6 +9,7 @@ import { DataTable } from "@/components/custom ui/DataTable";
 import { Button } from "@/components/ui/button";
 import { Separator } from "@/components/ui/separator";
 import Loader from "@/components/custom ui/Loader";
+import GlobalNotifications from "@/components/ui/GlobalNotifications";
 
 const Instructors = () => {
   const router = useRouter();
@@ -38,10 +39,15 @@ const Instructors = () => {
       <div className="flex items-center justify-between">
         <p className="text-heading2-bold">Instructors</p>
         <p className="text-grey-1">All Instructors</p>
-        <Button className="bg-blue-1 text-white" onClick={() => router.push("/instructors/new")}>
-          <Plus className="h-4 w-4 mr-2" />
-          Add Instructor
-        </Button>
+        <div className="flex items-center gap-3">
+          <Button className="bg-blue-1 text-white" onClick={() => router.push("/instructors/new")}>
+            <Plus className="h-4 w-4 mr-2" />
+            Add Instructor
+          </Button>
+          <div className="bg-gray-800 p-2 rounded-lg">
+            <GlobalNotifications iconColor="text-white" />
+          </div>
+        </div>
       </div>
       <Separator className="bg-grey-1 my-4" />
       <DataTable columns={columns} data={instructors} searchKey="name" />

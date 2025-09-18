@@ -21,9 +21,10 @@ interface PendingRequest {
 
 interface GlobalNotificationsProps {
   className?: string;
+  iconColor?: string; // Nueva prop para el color del icono
 }
 
-export default function GlobalNotifications({ className }: GlobalNotificationsProps) {
+export default function GlobalNotifications({ className, iconColor = "text-gray-600" }: GlobalNotificationsProps) {
   const [notifOpen, setNotifOpen] = useState(false);
   const router = useRouter();
   const { pendingRequests, studentNames, connected, emitNotification } = useNotifications();
@@ -109,7 +110,7 @@ export default function GlobalNotifications({ className }: GlobalNotificationsPr
         onClick={() => setNotifOpen(!notifOpen)} 
         className="relative p-2 hover:bg-gray-100 rounded-lg transition-colors"
       >
-        <Bell className="w-6 h-6 text-gray-600" />
+        <Bell className={`w-6 h-6 ${iconColor}`} />
         {pendingRequests.length > 0 && (
           <span className="absolute -top-1 -right-1 flex items-center justify-center w-5 h-5 bg-red-600 text-white text-xs font-bold rounded-full border-2 border-white">
             {pendingRequests.length}
