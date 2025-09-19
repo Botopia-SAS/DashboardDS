@@ -1,8 +1,32 @@
 import { connectToDB } from "@/lib/mongoDB";
 import { NextResponse } from "next/server";
 import Instructor from "@/lib/models/Instructor";
+import { broadcastNotification } from "@/lib/notifications";
 
 export const dynamic = "force-dynamic";
+
+// Define proper types for driving test
+interface DrivingTest {
+  _id: string;
+  paymentMethod: string;
+  reservedAt: string;
+  date: string;
+  start: string;
+  end: string;
+  status: string;
+  classType: string;
+  amount: number;
+  studentId: string;
+  studentName: string;
+  paid: boolean;
+}
+
+interface InstructorDocument {
+  _id: string;
+  schedule_driving_test: DrivingTest[];
+  markModified: (path: string) => void;
+  save: () => Promise<InstructorDocument>;
+}
 
 export async function PATCH(
   req: Request,
@@ -28,7 +52,7 @@ export async function PATCH(
 
     // Buscar el test específico en schedule_driving_test
     const testIndex = instructor.schedule_driving_test.findIndex(
-      (test: any) => test._id.toString() === testId
+      (test: DrivingTest) => test._id.toString() === testId
     );
 
     if (testIndex === -1) {
@@ -39,31 +63,41 @@ export async function PATCH(
     }
 
     // Actualizar el test
+    const oldStatus = instructor.schedule_driving_test[testIndex].status;
     instructor.schedule_driving_test[testIndex].status = status;
     instructor.schedule_driving_test[testIndex].paid = paid;
 
+    console.log(`📝 Updating test status: ${oldStatus} → ${status}`);
+    console.log(`💾 Test data before save:`, {
+      id: instructor.schedule_driving_test[testIndex]._id,
+      status: instructor.schedule_driving_test[testIndex].status,
+      paid: instructor.schedule_driving_test[testIndex].paid,
+      studentName: instructor.schedule_driving_test[testIndex].studentName
+    });
+
+    // Marcar que el array ha sido modificado para Mongoose
+    instructor.markModified('schedule_driving_test');
+    
     await instructor.save();
 
     console.log('✅ Driving test accepted successfully');
+    console.log(`🔍 Final test status: ${instructor.schedule_driving_test[testIndex].status}`);
 
-    // Emit SSE notification
-    try {
-      await fetch(`${process.env.NEXT_PUBLIC_BASE_URL || 'http://localhost:3000'}/api/notifications/emit`, {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          type: 'driving_test_update',
-          data: { 
-            action: 'test_accepted',
-            instructorId: instructorId,
-            testId: testId,
-            studentId: instructor.schedule_driving_test[testIndex].studentId
-          }
-        })
-      });
-    } catch (error) {
-      console.log('SSE notification failed:', error instanceof Error ? error.message : 'Unknown error');
-    }
+    // Verificar que realmente se guardó - con un nuevo query
+    const updatedInstructor = await Instructor.findById(instructorId).lean() as { schedule_driving_test: DrivingTest[] } | null;
+    const updatedTest = updatedInstructor?.schedule_driving_test.find(
+      (test: DrivingTest) => test._id.toString() === testId 
+    );
+    console.log('🔍 Verification - Test status in DB:', updatedTest?.status);
+    console.log('🔍 Full test from DB:', updatedTest);
+
+    // Enviar notificación SSE en tiempo real
+    broadcastNotification('driving_test_update', {
+      action: 'test_accepted',
+      instructorId: instructorId,
+      testId: testId,
+      studentId: instructor.schedule_driving_test[testIndex].studentId
+    });
 
     return NextResponse.json({ 
       message: "Driving test accepted successfully",

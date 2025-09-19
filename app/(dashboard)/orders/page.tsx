@@ -8,6 +8,7 @@ import { Badge } from '@/components/ui/badge'
 import { DollarSign, ShoppingCart, Clock, CheckCircle, AlertCircle, TrendingUp } from 'lucide-react'
 import { unstable_noStore as noStore } from 'next/cache'
 import DashboardHeader from '@/components/layout/DashboardHeader'
+import RangeFilter from '@/components/RangeFilter'
 
 export const dynamic = 'force-dynamic'
 export const revalidate = 0
@@ -140,20 +141,7 @@ const Page = async ({ searchParams }: { searchParams?: any }) => {
       {/* Header with range filter */}
       <DashboardHeader title="Orders Management">
         <div className="flex items-center gap-4">
-          <span className="text-xs text-gray-300">Range: {range === 'all' ? 'All time' : range === 'day' || range === 'today' ? 'Today' : range === 'month' ? 'This month' : 'This year'}</span>
-          <form className="flex items-center gap-2" method="get">
-            <select
-              name="range"
-              defaultValue={range}
-              className="text-black rounded-md px-2 py-1 text-sm"
-            >
-              <option value="all">All</option>
-              <option value="day">Today</option>
-              <option value="month">This Month</option>
-              <option value="year">This Year</option>
-            </select>
-            <button className="bg-white text-black px-3 py-1 rounded-md text-sm" type="submit">Apply</button>
-          </form>
+          <RangeFilter currentRange={range} />
           <div className="px-4 py-2 rounded-lg hover:bg-gray-700">
             <span className="text-sm">Revenue: ${totalRevenue.toFixed(2)}</span>
           </div>

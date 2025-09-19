@@ -2,7 +2,7 @@
 
 import { useState, useEffect } from "react";
 import { Car } from "lucide-react";
-import { useNotificationContext } from "@/contexts/NotificationContext";
+import { useRouter } from "next/navigation";
 
 interface DrivingTestNotification {
   id: string;
@@ -48,10 +48,14 @@ interface DrivingTestNotificationsProps {
 export default function DrivingTestNotifications({ isOpen }: DrivingTestNotificationsProps) {
   const [notifications, setNotifications] = useState<DrivingTestNotification[]>([]);
   const [loading, setLoading] = useState(false);
-  const { refreshNotifications } = useNotificationContext();
+  const [processingId, setProcessingId] = useState<string | null>(null);
+  const router = useRouter();
 
   const handleAccept = async (notification: DrivingTestNotification) => {
+    if (processingId) return; // Prevenir múltiples clicks
+    
     try {
+      setProcessingId(notification.id);
       console.log('✅ Accepting driving test:', notification.id);
       
       const response = await fetch(`/api/instructors/${notification.instructorId}/schedule/driving-test/${notification.id}/accept`, {
@@ -67,20 +71,32 @@ export default function DrivingTestNotifications({ isOpen }: DrivingTestNotifica
 
       if (response.ok) {
         console.log('✅ Driving test accepted successfully');
-        // Refrescar las notificaciones
-        fetchDrivingTestNotifications();
-        // Disparar evento global de actualización
-        window.dispatchEvent(new CustomEvent('notificationRefresh'));
+        
+        // Actualizar inmediatamente la lista filtrando el item aceptado
+        setNotifications(prev => prev.filter(n => n.id !== notification.id));
+        
+        // Agregar delay más largo para asegurar que la DB se actualice completamente
+        setTimeout(() => {
+          console.log('🔄 Refreshing driving test notifications after accept...');
+          fetchDrivingTestNotifications();
+          // Disparar evento global de actualización
+          window.dispatchEvent(new CustomEvent('notificationRefresh'));
+        }, 2000);
       } else {
         console.error('❌ Error accepting driving test:', response.statusText);
       }
     } catch (error) {
       console.error('❌ Error accepting driving test:', error);
+    } finally {
+      setProcessingId(null);
     }
   };
 
   const handleReject = async (notification: DrivingTestNotification) => {
+    if (processingId) return; // Prevenir múltiples clicks
+    
     try {
+      setProcessingId(notification.id);
       console.log('❌ Rejecting driving test:', notification.id);
       
       const response = await fetch(`/api/instructors/${notification.instructorId}/schedule/driving-test/${notification.id}/reject`, {
@@ -98,16 +114,32 @@ export default function DrivingTestNotifications({ isOpen }: DrivingTestNotifica
 
       if (response.ok) {
         console.log('✅ Driving test rejected successfully');
-        // Refrescar las notificaciones
-        fetchDrivingTestNotifications();
-        // Disparar evento global de actualización
-        window.dispatchEvent(new CustomEvent('notificationRefresh'));
+        
+        // Actualizar inmediatamente la lista filtrando el item rechazado
+        setNotifications(prev => prev.filter(n => n.id !== notification.id));
+        
+        // Agregar delay más largo para asegurar que la DB se actualice completamente
+        setTimeout(() => {
+          console.log('🔄 Refreshing driving test notifications after reject...');
+          fetchDrivingTestNotifications();
+          // Disparar evento global de actualización
+          window.dispatchEvent(new CustomEvent('notificationRefresh'));
+        }, 2000);
       } else {
         console.error('❌ Error rejecting driving test:', response.statusText);
       }
     } catch (error) {
       console.error('❌ Error rejecting driving test:', error);
+    } finally {
+      setProcessingId(null);
     }
+  };
+
+  const handleCardClick = (notification: DrivingTestNotification) => {
+    // Navigate to driving-test-lessons page and focus on the specific instructor and date
+    const date = new Date(notification.date);
+    const dateParam = date.toISOString().split('T')[0]; // YYYY-MM-DD format
+    router.push(`/driving-test-lessons?instructorId=${notification.instructorId}&date=${dateParam}&type=driving-test`);
   };
 
   const fetchDrivingTestNotifications = async () => {
@@ -118,7 +150,7 @@ export default function DrivingTestNotifications({ isOpen }: DrivingTestNotifica
       const response = await fetch('/api/instructors');
       const instructors: Instructor[] = await response.json();
       
-      console.log('📥 Instructors response:', instructors);
+      console.log('📥 Instructors response:', instructors.length, 'instructors');
       
       if (Array.isArray(instructors)) {
         
@@ -128,28 +160,29 @@ export default function DrivingTestNotifications({ isOpen }: DrivingTestNotifica
         );
         
         console.log('🚗 Instructors with driving tests:', drivingTestInstructors.length);
-        console.log('🔍 All instructors data:', instructors.map(i => ({
-          name: i.name,
-          hasSchedule: !!i.schedule_driving_test,
-          scheduleLength: i.schedule_driving_test?.length || 0,
-          schedule: i.schedule_driving_test
-        })));
+        
+        // Log detallado de cada instructor y sus tests
+        drivingTestInstructors.forEach(instructor => {
+          console.log(`📋 Instructor: ${instructor.name} has ${instructor.schedule_driving_test?.length || 0} tests`);
+          instructor.schedule_driving_test?.forEach((test, index) => {
+            console.log(`  Test ${index + 1}:`, {
+              id: test._id,
+              status: test.status,
+              paymentMethod: test.paymentMethod,
+              studentName: test.studentName,
+              date: test.date
+            });
+          });
+        });
         
         // Crear notificaciones para cada driving test pendiente con paymentMethod local
         const drivingTestNotifications: DrivingTestNotification[] = [];
         
         drivingTestInstructors.forEach(instructor => {
-          console.log(`🔍 Processing instructor: ${instructor.name}`);
           instructor.schedule_driving_test.forEach(test => {
-            console.log(`🔍 Test details:`, {
-              status: test.status,
-              paymentMethod: test.paymentMethod,
-              studentName: test.studentName,
-              classType: test.classType
-            });
-            
             if (test.status === 'pending' && test.paymentMethod === 'local') {
               console.log(`✅ Found pending local driving test for ${test.studentName}`);
+              console.log(`💰 Test amount: ${test.amount}`);
               drivingTestNotifications.push({
                 id: test._id,
                 title: 'New Driving Test Request',
@@ -168,12 +201,23 @@ export default function DrivingTestNotifications({ isOpen }: DrivingTestNotifica
                 paid: test.paid
               });
             } else {
-              console.log(`❌ Test filtered out: status=${test.status}, paymentMethod=${test.paymentMethod}`);
+              console.log(`❌ Test filtered out:`, {
+                id: test._id,
+                status: test.status,
+                paymentMethod: test.paymentMethod,
+                reason: test.status !== 'pending' ? 'status not pending' : 'payment method not local'
+              });
             }
           });
         });
         
         console.log('✅ Created driving test notifications:', drivingTestNotifications.length);
+        console.log('🔍 Notifications details:', drivingTestNotifications.map(n => ({
+          id: n.id,
+          studentName: n.studentName,
+          status: n.status,
+          date: n.date
+        })));
         setNotifications(drivingTestNotifications);
       } else {
         console.log('❌ API response is not an array:', instructors);
@@ -192,10 +236,7 @@ export default function DrivingTestNotifications({ isOpen }: DrivingTestNotifica
       fetchDrivingTestNotifications();
       
       const timeout = setTimeout(() => {
-        if (loading) {
-          console.log('⏰ Loading timeout reached, stopping loading state');
-          setLoading(false);
-        }
+        setLoading(false);
       }, 10000); // 10 segundos timeout
       
       return () => clearTimeout(timeout);
@@ -227,14 +268,7 @@ export default function DrivingTestNotifications({ isOpen }: DrivingTestNotifica
   };
 
   return (
-    <div className="border-b border-gray-100">
-      <div className="p-3 bg-green-50 flex items-center gap-2">
-        <Car size={16} className="text-green-600" />
-        <span className="font-medium text-green-900">
-          Driving Test ({notifications.length})
-        </span>
-      </div>
-      <div className="max-h-40 overflow-y-auto">
+    <div className="p-3">
         {loading ? (
           <div className="text-center py-4">
             <div className="inline-flex items-center gap-2 text-gray-500 text-sm">
@@ -249,63 +283,84 @@ export default function DrivingTestNotifications({ isOpen }: DrivingTestNotifica
             </button>
           </div>
         ) : notifications.length > 0 ? (
-          notifications.map((notification) => (
-            <div key={notification.id} className="p-4 border-b border-gray-100 hover:bg-gray-50 transition-colors">
-              <div className="flex justify-between items-start mb-3">
-                <div className="flex items-center gap-2">
-                  <div className="w-2 h-2 bg-blue-500 rounded-full"></div>
-                  <span className="text-sm font-medium text-gray-900">New Request</span>
+          <div className="space-y-2">
+            {notifications.map((notification) => (
+              <div key={notification.id} className="bg-white rounded-lg border border-gray-200 shadow-sm hover:shadow-md transition-all duration-200 overflow-hidden cursor-pointer"
+                   onClick={() => handleCardClick(notification)}>
+                {/* Header compacto */}
+                <div className="bg-gradient-to-r from-green-50 to-green-100 px-3 py-1.5 border-b border-green-200">
+                  <div className="flex items-center justify-between">
+                    <div className="flex items-center gap-2">
+                      <div className="w-1.5 h-1.5 bg-green-500 rounded-full"></div>
+                      <span className="text-green-900 font-medium text-xs">New Request</span>
+                    </div>
+                    <span className="text-green-600 text-xs">
+                      {formatTime(notification.timestamp)}
+                    </span>
+                  </div>
                 </div>
-                <span className="text-xs text-blue-600 font-medium">
-                  {formatTime(notification.timestamp)}
-                </span>
+
+                {/* Contenido principal */}
+                <div className="p-3">
+                  {/* Student Info */}
+                  <div className="mb-2">
+                    <h4 className="font-semibold text-gray-900 text-sm">
+                      {notification.studentName}
+                    </h4>
+                    <div className="flex items-center gap-3 text-xs text-gray-600 mt-0.5">
+                      <span>{notification.testType}</span>
+                      <span>{notification.instructorName}</span>
+                    </div>
+                  </div>
+
+                  {/* Class Info */}
+                  <div className="flex items-center justify-between bg-gray-50 rounded p-2">
+                    <div className="flex items-center gap-3">
+                      <div>
+                        <p className="text-gray-900 font-semibold text-sm">{new Date(notification.date).toLocaleDateString()}</p>
+                        <p className="text-gray-600 text-xs">{notification.start} - {notification.end}</p>
+                      </div>
+                      <div className="flex items-center gap-1.5">
+                        <span className="bg-green-100 text-green-800 px-2 py-0.5 rounded text-xs font-medium">
+                          ${notification.amount || '0'}
+                        </span>
+                        <div className="flex items-center gap-1">
+                          <button 
+                            onClick={(e) => {
+                              e.stopPropagation();
+                              handleAccept(notification);
+                            }}
+                            disabled={processingId === notification.id}
+                            className="bg-green-500 hover:bg-green-600 disabled:bg-gray-300 text-white px-2 py-0.5 rounded text-xs font-medium transition-colors">
+                            {processingId === notification.id ? 'Processing...' : 'Accept'}
+                          </button>
+                          <button 
+                            onClick={(e) => {
+                              e.stopPropagation();
+                              handleReject(notification);
+                            }}
+                            disabled={processingId === notification.id}
+                            className="bg-red-500 hover:bg-red-600 disabled:bg-gray-300 text-white px-2 py-0.5 rounded text-xs font-medium transition-colors">
+                            {processingId === notification.id ? 'Processing...' : 'Reject'}
+                          </button>
+                        </div>
+                      </div>
+                    </div>
+                    <div className="text-gray-400 text-xs">
+                      Click to view
+                    </div>
+                  </div>
+                </div>
               </div>
-              
-              <div className="space-y-1 mb-4">
-                <div className="text-sm">
-                  <span className="font-medium text-gray-900">{notification.studentName}</span>
-                </div>
-                <div className="text-sm text-gray-600">
-                  {notification.studentId} {notification.instructorName}
-                </div>
-                <div className="text-sm font-medium text-gray-900">
-                  {new Date(notification.date).toLocaleDateString('en-US', { 
-                    month: 'short', 
-                    day: 'numeric', 
-                    year: 'numeric' 
-                  })}
-                </div>
-                <div className="text-sm text-gray-600">
-                  {notification.start} - {notification.end}
-                </div>
-              </div>
-              
-              <div className="flex gap-2 items-center">
-                <button className="px-3 py-1.5 bg-blue-100 text-blue-700 text-xs rounded hover:bg-blue-200 transition-colors">
-                  DRIVING TEST
-                </button>
-                <button 
-                  onClick={() => handleAccept(notification)}
-                  className="px-3 py-1.5 bg-green-600 text-white text-xs rounded hover:bg-green-700 transition-colors"
-                >
-                  Accept
-                </button>
-                <button 
-                  onClick={() => handleReject(notification)}
-                  className="px-3 py-1.5 bg-red-600 text-white text-xs rounded hover:bg-red-700 transition-colors"
-                >
-                  Reject
-                </button>
-                <span className="text-xs text-gray-500 ml-2">Click to view</span>
-              </div>
-            </div>
-          ))
+            ))}
+          </div>
         ) : (
-          <div className="p-3 text-center text-gray-500 text-sm">
-            No pending tests
+          <div className="text-center py-8">
+            <Car size={32} className="text-green-300 mx-auto mb-3" />
+            <h4 className="text-green-600 font-medium mb-1">No pending tests</h4>
+            <p className="text-green-500 text-sm">New driving test requests will appear here</p>
           </div>
         )}
-      </div>
     </div>
   );
 }
