@@ -2,6 +2,7 @@
 import Calendar from "@/components/driving-test-lessons/Calendar";
 import InstructorsRow, { Instructor } from "@/components/driving-test-lessons/InstructorsRow";
 import { useEffect, useState } from "react";
+import { useSearchParams } from "next/navigation";
 import Loader from "@/components/custom ui/Loader";
 import DashboardHeader from "@/components/layout/DashboardHeader";
 
@@ -26,10 +27,29 @@ export default function DrivingTestLessonsPage() {
   const [selectedInstructor, setSelectedInstructor] = useState<ExtendedInstructor | null>(null);
   const [loading, setLoading] = useState(true);
   const [initializingInstructor, setInitializingInstructor] = useState(false);
+  const searchParams = useSearchParams();
 
   useEffect(() => {
     fetchInstructors();
   }, []);
+
+  // Efecto para auto-seleccionar instructor desde URL params
+  useEffect(() => {
+    const instructorId = searchParams.get('instructorId');
+    const targetDate = searchParams.get('date');
+    const targetType = searchParams.get('type');
+    
+    if (instructorId && instructors.length > 0) {
+      const targetInstructor = instructors.find(inst => inst._id === instructorId);
+      if (targetInstructor && !selectedInstructor) {
+        console.log(`🎯 Auto-selecting instructor from notification: ${targetInstructor.name}`);
+        if (targetDate) {
+          console.log(`📅 Target date: ${targetDate}, type: ${targetType}`);
+        }
+        handleInstructorSelect(targetInstructor);
+      }
+    }
+  }, [instructors, searchParams, selectedInstructor]);
 
   const fetchInstructors = async () => {
     try {
@@ -160,7 +180,11 @@ export default function DrivingTestLessonsPage() {
                 {selectedInstructor.email}
               </p>
             </div>
-            <Calendar selectedInstructor={selectedInstructor} />
+            <Calendar 
+              selectedInstructor={selectedInstructor} 
+              targetDate={searchParams.get('date')}
+              targetType={searchParams.get('type')}
+            />
         </div>
         )}
       </div>

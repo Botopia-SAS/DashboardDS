@@ -2,7 +2,7 @@
 
 import { useState, useEffect } from "react";
 import { GraduationCap } from "lucide-react";
-import { useNotificationContext } from "@/contexts/NotificationContext";
+import { useRouter } from "next/navigation";
 
 interface DrivingLessonNotification {
   id: string;
@@ -48,10 +48,14 @@ interface DrivingLessonsNotificationsProps {
 export default function DrivingLessonsNotifications({ isOpen }: DrivingLessonsNotificationsProps) {
   const [notifications, setNotifications] = useState<DrivingLessonNotification[]>([]);
   const [loading, setLoading] = useState(false);
-  const { refreshNotifications } = useNotificationContext();
+  const [processingId, setProcessingId] = useState<string | null>(null);
+  const router = useRouter();
 
   const handleAccept = async (notification: DrivingLessonNotification) => {
+    if (processingId) return; // Prevenir múltiples clicks
+    
     try {
+      setProcessingId(notification.id);
       console.log('✅ Accepting driving lesson:', notification.id);
       
       const response = await fetch(`/api/instructors/${notification.instructorId}/schedule/driving-lesson/${notification.id}/accept`, {
@@ -67,18 +71,31 @@ export default function DrivingLessonsNotifications({ isOpen }: DrivingLessonsNo
 
       if (response.ok) {
         console.log('✅ Driving lesson accepted successfully');
-        fetchDrivingLessonsNotifications();
-        window.dispatchEvent(new CustomEvent('notificationRefresh'));
+        
+        // Actualizar inmediatamente la lista filtrando el item aceptado
+        setNotifications(prev => prev.filter(n => n.id !== notification.id));
+        
+        // Agregar delay más largo para asegurar que la DB se actualice completamente
+        setTimeout(() => {
+          console.log('🔄 Refreshing driving lesson notifications after accept...');
+          fetchDrivingLessonsNotifications();
+          window.dispatchEvent(new CustomEvent('notificationRefresh'));
+        }, 2000);
       } else {
         console.error('❌ Error accepting driving lesson:', response.statusText);
       }
     } catch (error) {
       console.error('❌ Error accepting driving lesson:', error);
+    } finally {
+      setProcessingId(null);
     }
   };
 
   const handleReject = async (notification: DrivingLessonNotification) => {
+    if (processingId) return; // Prevenir múltiples clicks
+    
     try {
+      setProcessingId(notification.id);
       console.log('❌ Rejecting driving lesson:', notification.id);
       
       const response = await fetch(`/api/instructors/${notification.instructorId}/schedule/driving-lesson/${notification.id}/reject`, {
@@ -96,14 +113,31 @@ export default function DrivingLessonsNotifications({ isOpen }: DrivingLessonsNo
 
       if (response.ok) {
         console.log('✅ Driving lesson rejected successfully');
-        fetchDrivingLessonsNotifications();
-        window.dispatchEvent(new CustomEvent('notificationRefresh'));
+        
+        // Actualizar inmediatamente la lista filtrando el item rechazado
+        setNotifications(prev => prev.filter(n => n.id !== notification.id));
+        
+        // Agregar delay más largo para asegurar que la DB se actualice completamente
+        setTimeout(() => {
+          console.log('🔄 Refreshing driving lesson notifications after reject...');
+          fetchDrivingLessonsNotifications();
+          window.dispatchEvent(new CustomEvent('notificationRefresh'));
+        }, 2000);
       } else {
         console.error('❌ Error rejecting driving lesson:', response.statusText);
       }
     } catch (error) {
       console.error('❌ Error rejecting driving lesson:', error);
+    } finally {
+      setProcessingId(null);
     }
+  };
+
+  const handleCardClick = (notification: DrivingLessonNotification) => {
+    // Navigate to driving-test-lessons page and focus on the specific instructor and date
+    const date = new Date(notification.date);
+    const dateParam = date.toISOString().split('T')[0]; // YYYY-MM-DD format
+    router.push(`/driving-test-lessons?instructorId=${notification.instructorId}&date=${dateParam}&type=driving-lesson`);
   };
 
   const fetchDrivingLessonsNotifications = async () => {
@@ -188,10 +222,7 @@ export default function DrivingLessonsNotifications({ isOpen }: DrivingLessonsNo
       fetchDrivingLessonsNotifications();
       
       const timeout = setTimeout(() => {
-        if (loading) {
-          console.log('⏰ Loading timeout reached, stopping loading state');
-          setLoading(false);
-        }
+        setLoading(false);
       }, 10000); // 10 segundos timeout
       
       return () => clearTimeout(timeout);
@@ -223,14 +254,7 @@ export default function DrivingLessonsNotifications({ isOpen }: DrivingLessonsNo
   };
 
   return (
-    <div className="border-b border-gray-100">
-      <div className="p-3 bg-purple-50 flex items-center gap-2">
-        <GraduationCap size={16} className="text-purple-600" />
-        <span className="font-medium text-purple-900">
-          Driving Lessons ({notifications.length})
-        </span>
-      </div>
-      <div className="max-h-40 overflow-y-auto">
+    <div className="p-3">
         {loading ? (
           <div className="text-center py-4">
             <div className="inline-flex items-center gap-2 text-gray-500 text-sm">
@@ -245,63 +269,81 @@ export default function DrivingLessonsNotifications({ isOpen }: DrivingLessonsNo
             </button>
           </div>
         ) : notifications.length > 0 ? (
-          notifications.map((notification) => (
-            <div key={notification.id} className="p-4 border-b border-gray-100 hover:bg-gray-50 transition-colors">
-              <div className="flex justify-between items-start mb-3">
-                <div className="flex items-center gap-2">
-                  <div className="w-2 h-2 bg-blue-500 rounded-full"></div>
-                  <span className="text-sm font-medium text-gray-900">New Request</span>
+          <div className="space-y-2">
+            {notifications.map((notification) => (
+              <div key={notification.id} className="bg-white rounded-lg border border-gray-200 shadow-sm hover:shadow-md transition-all duration-200 overflow-hidden cursor-pointer"
+                   onClick={() => handleCardClick(notification)}>
+                {/* Header compacto */}
+                <div className="bg-gradient-to-r from-purple-50 to-purple-100 px-3 py-1.5 border-b border-purple-200">
+                  <div className="flex items-center justify-between">
+                    <div className="flex items-center gap-2">
+                      <div className="w-1.5 h-1.5 bg-purple-500 rounded-full"></div>
+                      <span className="text-purple-900 font-medium text-xs">New Request</span>
+                    </div>
+                    <span className="text-purple-600 text-xs">
+                      {formatTime(notification.timestamp)}
+                    </span>
+                  </div>
                 </div>
-                <span className="text-xs text-blue-600 font-medium">
-                  {formatTime(notification.timestamp)}
-                </span>
+
+                {/* Contenido principal */}
+                <div className="p-3">
+                  {/* Student Info */}
+                  <div className="mb-2">
+                    <h4 className="font-semibold text-gray-900 text-sm">
+                      {notification.studentName}
+                    </h4>
+                    <div className="flex items-center gap-3 text-xs text-gray-600 mt-0.5">
+                      <span>{notification.lessonType}</span>
+                      <span>{notification.instructorName}</span>
+                    </div>
+                  </div>
+
+                  {/* Class Info */}
+                  <div className="flex items-center justify-between bg-gray-50 rounded p-2">
+                    <div className="flex items-center gap-3">
+                      <div>
+                        <p className="text-gray-900 font-semibold text-sm">{new Date(notification.date).toLocaleDateString()}</p>
+                        <p className="text-gray-600 text-xs">{notification.start} - {notification.end}</p>
+                      </div>
+                      <div className="flex items-center gap-1.5">
+                        <div className="flex items-center gap-1">
+                          <button 
+                            onClick={(e) => {
+                              e.stopPropagation();
+                              handleAccept(notification);
+                            }}
+                            disabled={processingId === notification.id}
+                            className="bg-green-500 hover:bg-green-600 disabled:bg-gray-300 text-white px-2 py-0.5 rounded text-xs font-medium transition-colors">
+                            {processingId === notification.id ? 'Processing...' : 'Accept'}
+                          </button>
+                          <button 
+                            onClick={(e) => {
+                              e.stopPropagation();
+                              handleReject(notification);
+                            }}
+                            disabled={processingId === notification.id}
+                            className="bg-red-500 hover:bg-red-600 disabled:bg-gray-300 text-white px-2 py-0.5 rounded text-xs font-medium transition-colors">
+                            {processingId === notification.id ? 'Processing...' : 'Reject'}
+                          </button>
+                        </div>
+                      </div>
+                    </div>
+                    <div className="text-gray-400 text-xs">
+                      Click to view
+                    </div>
+                  </div>
+                </div>
               </div>
-              
-              <div className="space-y-1 mb-4">
-                <div className="text-sm">
-                  <span className="font-medium text-gray-900">{notification.studentName}</span>
-                </div>
-                <div className="text-sm text-gray-600">
-                  {notification.studentId} {notification.instructorName}
-                </div>
-                <div className="text-sm font-medium text-gray-900">
-                  {new Date(notification.date).toLocaleDateString('en-US', { 
-                    month: 'short', 
-                    day: 'numeric', 
-                    year: 'numeric' 
-                  })}
-                </div>
-                <div className="text-sm text-gray-600">
-                  {notification.start} - {notification.end}
-                </div>
-              </div>
-              
-              <div className="flex gap-2 items-center">
-                <button className="px-3 py-1.5 bg-blue-100 text-blue-700 text-xs rounded hover:bg-blue-200 transition-colors">
-                  DRIVING LESSON
-                </button>
-                <button 
-                  onClick={() => handleAccept(notification)}
-                  className="px-3 py-1.5 bg-green-600 text-white text-xs rounded hover:bg-green-700 transition-colors"
-                >
-                  Accept
-                </button>
-                <button 
-                  onClick={() => handleReject(notification)}
-                  className="px-3 py-1.5 bg-red-600 text-white text-xs rounded hover:bg-red-700 transition-colors"
-                >
-                  Reject
-                </button>
-                <span className="text-xs text-gray-500 ml-2">Click to view</span>
-              </div>
-            </div>
-          ))
+            ))}
+          </div>
         ) : (
-          <div className="p-3 text-center text-gray-500 text-sm">
-            No pending lessons
+          <div className="text-center py-8">
+            <GraduationCap size={32} className="text-purple-300 mx-auto mb-3" />
+            <h4 className="text-purple-600 font-medium mb-1">No pending lessons</h4>
+            <p className="text-purple-500 text-sm">New driving lesson requests will appear here</p>
           </div>
         )}
-      </div>
     </div>
   );
 }

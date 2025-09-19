@@ -8,9 +8,11 @@ import ScheduleModal from "./ScheduleModal";
 
 interface CalendarProps {
   selectedInstructor?: any;
+  targetDate?: string | null;
+  targetType?: string | null;
 }
 
-const Calendar: React.FC<CalendarProps> = ({ selectedInstructor }) => {
+const Calendar: React.FC<CalendarProps> = ({ selectedInstructor, targetDate, targetType }) => {
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [selectedDate, setSelectedDate] = useState<string>("");
   const [selectedTime, setSelectedTime] = useState<string>("");
@@ -88,6 +90,23 @@ const Calendar: React.FC<CalendarProps> = ({ selectedInstructor }) => {
     // console.log("Calendar component mounted/updated for instructor:", selectedInstructor?._id);
     fetchEvents();
   }, [selectedInstructor?._id]);
+
+  // Efecto para navegar a la fecha objetivo desde notificaciones
+  useEffect(() => {
+    if (targetDate && calendarRef.current) {
+      console.log(`🎯 Navigating to target date: ${targetDate}, type: ${targetType}`);
+      const calendarApi = calendarRef.current.getApi();
+      calendarApi.gotoDate(targetDate);
+      
+      // Opcional: resaltar el día específico o agregar algún indicador visual
+      setTimeout(() => {
+        const targetDateElement = document.querySelector(`[data-date="${targetDate}"]`);
+        if (targetDateElement) {
+          targetDateElement.scrollIntoView({ behavior: 'smooth', block: 'center' });
+        }
+      }, 100);
+    }
+  }, [targetDate, targetType]);
 
 
 

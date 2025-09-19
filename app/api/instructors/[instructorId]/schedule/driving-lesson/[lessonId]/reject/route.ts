@@ -1,6 +1,7 @@
 import { connectToDB } from "@/lib/mongoDB";
 import { NextResponse } from "next/server";
 import Instructor from "@/lib/models/Instructor";
+import { broadcastNotification } from "@/lib/notifications";
 
 export const dynamic = "force-dynamic";
 
@@ -54,23 +55,12 @@ export async function PATCH(
 
     console.log('✅ Driving lesson rejected successfully');
 
-    // Emit SSE notification
-    try {
-      await fetch(`${process.env.NEXT_PUBLIC_BASE_URL || 'http://localhost:3000'}/api/notifications/emit`, {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          type: 'driving_lesson_update',
-          data: { 
-            action: 'lesson_rejected',
-            instructorId: instructorId,
-            lessonId: lessonId
-          }
-        })
-      });
-    } catch (error) {
-      console.log('SSE notification failed:', error instanceof Error ? error.message : 'Unknown error');
-    }
+    // Enviar notificación SSE en tiempo real
+    broadcastNotification('driving_lesson_update', {
+      action: 'lesson_rejected',
+      instructorId: instructorId,
+      lessonId: lessonId
+    });
 
     return NextResponse.json({ 
       message: "Driving lesson rejected successfully",
