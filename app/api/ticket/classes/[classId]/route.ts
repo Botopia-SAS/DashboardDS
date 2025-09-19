@@ -79,6 +79,26 @@ export async function PATCH(req: NextRequest, { params }: { params: Promise<{ cl
       }
 
       await ticketClass.save();
+      
+      // Emit SSE notification for ticket update
+      try {
+        await fetch(`${process.env.NEXT_PUBLIC_BASE_URL || 'http://localhost:3000'}/api/notifications/emit`, {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            type: 'ticket_update',
+            data: { 
+              action: 'request_accepted',
+              classId: classId,
+              studentId: studentId,
+              requestId: requestId
+            }
+          })
+        });
+      } catch (error) {
+        console.log('SSE notification failed:', error instanceof Error ? error.message : 'Unknown error');
+      }
+      
       return NextResponse.json({ message: "Request accepted successfully" });
     }
 
@@ -101,6 +121,25 @@ export async function PATCH(req: NextRequest, { params }: { params: Promise<{ cl
       );
 
       await ticketClass.save();
+      
+      // Emit SSE notification for ticket update
+      try {
+        await fetch(`${process.env.NEXT_PUBLIC_BASE_URL || 'http://localhost:3000'}/api/notifications/emit`, {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            type: 'ticket_update',
+            data: { 
+              action: 'request_rejected',
+              classId: classId,
+              requestId: requestId
+            }
+          })
+        });
+      } catch (error) {
+        console.log('SSE notification failed:', error instanceof Error ? error.message : 'Unknown error');
+      }
+      
       return NextResponse.json({ message: "Request rejected successfully" });
     }
 

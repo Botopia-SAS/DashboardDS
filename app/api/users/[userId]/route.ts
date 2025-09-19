@@ -2,11 +2,11 @@ import { NextRequest, NextResponse } from "next/server";
 import { connectToDB } from "@/lib/mongoDB";
 import User from "@/lib/models/users";
 
-export async function GET(request: NextRequest, { params }: { params: { userId: string } }) {
+export async function GET(request: NextRequest, { params }: { params: Promise<{ userId: string }> }) {
   try {
     await connectToDB();
     
-    const { userId } = params;
+    const { userId } = await params;
     
     const user = await User.findById(userId).select('firstName middleName lastName email phoneNumber');
     

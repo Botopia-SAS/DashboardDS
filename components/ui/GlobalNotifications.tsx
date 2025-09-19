@@ -5,6 +5,7 @@ import { Bell, X, Calendar, Car, GraduationCap } from "lucide-react";
 import TicketNotifications, { useTicketNotificationsCount } from "@/components/ui/notifications/TicketNotifications";
 import DrivingTestNotifications, { useDrivingTestNotificationsCount } from "@/components/ui/notifications/DrivingTestNotifications";
 import DrivingLessonsNotifications, { useDrivingLessonsNotificationsCount } from "@/components/ui/notifications/DrivingLessonsNotifications";
+import { useNotificationContext } from "@/contexts/NotificationContext";
 
 interface GlobalNotificationsProps {
   className?: string;
@@ -22,6 +23,9 @@ export default function GlobalNotifications({ className, iconColor = "text-gray-
   const drivingLessonsCount = useDrivingLessonsNotificationsCount();
   
   const totalNotifications = ticketCount + drivingTestCount + drivingLessonsCount;
+  
+  // Usar el contexto global de notificaciones
+  const { isConnected, connectionError } = useNotificationContext();
 
   const tabs = [
     { id: 'tickets' as TabType, label: 'Tickets', icon: Calendar, count: ticketCount },

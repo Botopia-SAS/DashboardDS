@@ -8,15 +8,52 @@ import TicketCalendar from "@/components/ticket/TicketCalendar";
 import { useState, useEffect } from "react";
 import Loader from "@/components/custom ui/Loader";
 import DashboardHeader from "@/components/layout/DashboardHeader";
+import { useSearchParams } from "next/navigation";
 
 export default function Pages() {
   const { setClassType } = useClassTypeStore();
   const [loading, setLoading] = useState(true);
   const [calendarRefreshKey, setCalendarRefreshKey] = useState(0);
+  const searchParams = useSearchParams();
+  
+  // Get URL parameters
+  const classId = searchParams.get('classId');
+  const week = searchParams.get('week');
+  const year = searchParams.get('year');
 
   useEffect(() => {
     const timer = setTimeout(() => setLoading(false), 1000);
     return () => clearTimeout(timer);
+  }, []);
+
+  // Función para refrescar el calendario
+  const refreshCalendar = () => {
+    setCalendarRefreshKey(prev => prev + 1);
+  };
+
+  // Escuchar eventos de actualización desde otras partes de la app
+  useEffect(() => {
+    const handleCalendarRefresh = () => {
+      refreshCalendar();
+    };
+
+    // Escuchar eventos personalizados
+    window.addEventListener('calendarRefresh', handleCalendarRefresh);
+    
+    // También escuchar cambios en el localStorage como backup
+    const handleStorageChange = (e: StorageEvent) => {
+      if (e.key === 'calendarNeedsRefresh') {
+        refreshCalendar();
+        localStorage.removeItem('calendarNeedsRefresh');
+      }
+    };
+    
+    window.addEventListener('storage', handleStorageChange);
+
+    return () => {
+      window.removeEventListener('calendarRefresh', handleCalendarRefresh);
+      window.removeEventListener('storage', handleStorageChange);
+    };
   }, []);
 
   if (loading) return <Loader />;
@@ -68,7 +105,12 @@ export default function Pages() {
                   />
                 </div>
                 <div className="mt-8">
-                  <TicketCalendar refreshKey={calendarRefreshKey} />
+                  <TicketCalendar 
+                    refreshKey={calendarRefreshKey} 
+                    focusClassId={classId}
+                    focusWeek={week ? parseInt(week) : undefined}
+                    focusYear={year ? parseInt(year) : undefined}
+                  />
                 </div>
               </CardContent>
             </Card>
@@ -90,7 +132,12 @@ export default function Pages() {
                   />
                 </div>
                 <div className="mt-8">
-                  <TicketCalendar refreshKey={calendarRefreshKey} />
+                  <TicketCalendar 
+                    refreshKey={calendarRefreshKey} 
+                    focusClassId={classId}
+                    focusWeek={week ? parseInt(week) : undefined}
+                    focusYear={year ? parseInt(year) : undefined}
+                  />
                 </div>
               </CardContent>
             </Card>
@@ -112,7 +159,12 @@ export default function Pages() {
                   />
                 </div>
                 <div className="mt-8">
-                  <TicketCalendar refreshKey={calendarRefreshKey} />
+                  <TicketCalendar 
+                    refreshKey={calendarRefreshKey} 
+                    focusClassId={classId}
+                    focusWeek={week ? parseInt(week) : undefined}
+                    focusYear={year ? parseInt(year) : undefined}
+                  />
                 </div>
               </CardContent>
             </Card>
