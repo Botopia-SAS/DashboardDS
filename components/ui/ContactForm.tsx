@@ -183,13 +183,13 @@ export default function ContactForm() {
     }
   }, [showScheduleModal]);
 
-  // Actualizar la hora de Miami cada minuto
+  // Actualizar la hora de Miami solo cuando se abra el modal
+  // Eliminado el polling cada minuto para reducir peticiones
   useEffect(() => {
-    const interval = setInterval(() => {
+    if (showScheduleModal) {
       setMiamiNow(toZonedTime(new Date(), "America/New_York"));
-    }, 60000);
-    return () => clearInterval(interval);
-  }, []);
+    }
+  }, [showScheduleModal]);
 
   const handleRecipientChange = (id: string) => {
     if (selectedRecipients.includes(id)) {

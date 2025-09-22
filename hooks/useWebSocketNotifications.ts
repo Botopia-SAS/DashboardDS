@@ -75,9 +75,9 @@ export const useWebSocketNotifications = ({
           setConnectionError(null);
         }
         
-        // Intentar reconectar si no hemos excedido el límite
+        // Intentar reconectar con delay más largo para reducir carga del servidor
         if (reconnectAttempts.current < maxReconnectAttempts) {
-          const delay = Math.min(1000 * Math.pow(2, reconnectAttempts.current), 30000);
+          const delay = Math.min(5000 * Math.pow(2, reconnectAttempts.current), 60000); // Mínimo 5s, máximo 60s
           console.log(`🔄 Reconnecting in ${delay}ms (attempt ${reconnectAttempts.current + 1})`);
           
           reconnectTimeoutRef.current = setTimeout(() => {

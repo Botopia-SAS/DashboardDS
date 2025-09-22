@@ -1,6 +1,6 @@
 "use client";
 
-import React, { createContext, useContext, useState, useEffect, ReactNode } from 'react';
+import React, { createContext, useContext, useState, useEffect, useCallback, ReactNode } from 'react';
 
 interface NotificationData {
   type: 'ticket' | 'driving-test' | 'driving-lessons';
@@ -76,6 +76,18 @@ export function NotificationProvider({ children }: NotificationProviderProps) {
           
           // Solo disparar eventos para notificaciones reales, no para conexión o ping
           if (data.type !== 'connection' && data.type !== 'ping') {
+            // Limpiar notificaciones antiguas solo cuando llegue una nueva
+            setNotifications(prev => {
+              const fiveMinutesAgo = new Date(Date.now() - 5 * 60 * 1000);
+              const cleanedNotifications = prev.filter((notification: NotificationData) => {
+                const notificationTime = new Date(notification.data?.timestamp || 0);
+                return notificationTime > fiveMinutesAgo;
+              });
+              
+              // Agregar la nueva notificación
+              return [...cleanedNotifications, data];
+            });
+            
             window.dispatchEvent(new CustomEvent('notificationRefresh', { detail: data }));
           }
         } catch (error) {
@@ -92,13 +104,14 @@ export function NotificationProvider({ children }: NotificationProviderProps) {
           globalEventSource?.close();
           globalEventSource = null;
           
-          // Reconectar después de 5 segundos (no 1 segundo para evitar spam)
+          // Reconectar después de 2 minutos para minimizar peticiones
+          // Solo reconectar si realmente es necesario
           setTimeout(() => {
-            if (currentConnection === connectionCount) {
-              console.log(`🔄 Reconnecting SSE #${currentConnection}`);
-              setIsConnected(false);
+            if (currentConnection === connectionCount && typeof window !== 'undefined') {
+              console.log(`🔄 Attempting reconnection SSE #${currentConnection}`);
+              // No cambiar isConnected aquí - dejar que onopen lo maneje
             }
-          }, 5000);
+          }, 2 * 60 * 1000); // Cambiado a 2 minutos
         }
       };
 
@@ -114,21 +127,6 @@ export function NotificationProvider({ children }: NotificationProviderProps) {
         globalEventSource = null;
       }
     };
-  }, []);
-
-  // Limpiar notificaciones antiguas cada 5 minutos
-  useEffect(() => {
-    const interval = setInterval(() => {
-      setNotifications(prev => {
-        const fiveMinutesAgo = new Date(Date.now() - 5 * 60 * 1000);
-        return prev.filter((notification: NotificationData) => {
-          const notificationTime = new Date(notification.data?.timestamp || 0);
-          return notificationTime > fiveMinutesAgo;
-        });
-      });
-    }, 5 * 60 * 1000); // 5 minutos
-
-    return () => clearInterval(interval);
   }, []);
 
   const value: NotificationContextType = {

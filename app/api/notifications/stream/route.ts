@@ -21,41 +21,27 @@ export async function GET() {
       
       console.log('✅ SSE connection established');
 
-      // Ping cada 30 segundos para mantener la conexión viva
-      const pingInterval = setInterval(() => {
-        try {
-          const pingMessage = {
-            type: 'ping',
-            data: { timestamp: new Date().toISOString() },
-            timestamp: new Date().toISOString()
-          };
-          controller.enqueue(`data: ${JSON.stringify(pingMessage)}\n\n`);
-        } catch (error) {
-          console.error('❌ Error sending ping:', error);
-          clearInterval(pingInterval);
-          removeConnection(controller);
-        }
-      }, 30000);
+      // No hacer ping automático - solo cuando haya actividad real
+      // Esto reduce significativamente las peticiones innecesarias
+      // La conexión SSE se mantiene viva naturalmente con las notificaciones reales
+      
+      console.log('✅ SSE connection established - no automatic pings');
       
       // Store controller for cleanup
       const controllerWithCleanup = controller as ReadableStreamDefaultController & { 
         _cleanup?: () => void;
-        _pingInterval?: NodeJS.Timeout;
       };
       controllerWithCleanup._cleanup = () => {
-        clearInterval(pingInterval);
         removeConnection(controller);
       };
-      controllerWithCleanup._pingInterval = pingInterval;
     },
     cancel(controller) {
       // Remove connection when client disconnects
       const controllerWithCleanup = controller as ReadableStreamDefaultController & { 
         _cleanup?: () => void;
-        _pingInterval?: NodeJS.Timeout;
       };
-      if (controllerWithCleanup._pingInterval) {
-        clearInterval(controllerWithCleanup._pingInterval);
+      if (controllerWithCleanup._cleanup) {
+        controllerWithCleanup._cleanup();
       }
       removeConnection(controller);
       console.log('🔌 SSE connection closed');

@@ -86,19 +86,12 @@ export async function GET(request: NextRequest) {
           controller.enqueue(new TextEncoder().encode(message));
         });
 
-        // Send keep-alive every 30 seconds
-        const keepAliveInterval = setInterval(() => {
-          try {
-            controller.enqueue(new TextEncoder().encode(': keep-alive\n\n'));
-          } catch (error) {
-            clearInterval(keepAliveInterval);
-            connections.delete(controller);
-          }
-        }, 30000);
+        // No enviar keep-alive automático - solo datos reales cuando cambien
+        // Esto reduce significativamente las peticiones innecesarias
+        console.log('✅ Sessions active stream established - no automatic keep-alive');
 
         // Clean up on close
         request.signal.addEventListener('abort', () => {
-          clearInterval(keepAliveInterval);
           connections.delete(controller);
           changeStream.close();
         });

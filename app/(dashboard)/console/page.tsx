@@ -112,16 +112,23 @@ function ConsolePage() {
     const resizeObserver = new window.ResizeObserver(updateSize);
     resizeObserver.observe(containerRef.current);
 
-    // Detecta cambios de zoom del navegador
-    let lastDevicePixelRatio = window.devicePixelRatio;
-    const checkZoom = () => {
-      if (window.devicePixelRatio !== lastDevicePixelRatio) {
-        lastDevicePixelRatio = window.devicePixelRatio;
-        updateSize();
-      }
+    // Detectar cambios de zoom usando solo eventos automáticos
+    const handleZoomChange = () => {
+      updateSize();
     };
+    
+    // Usar eventos nativos del navegador - sin polling
     window.addEventListener('resize', updateSize);
-    const zoomInterval = setInterval(checkZoom, 200);
+    window.addEventListener('orientationchange', updateSize);
+    
+    // Detectar zoom usando eventos de media query
+    const mediaQuery = window.matchMedia('(min-resolution: 1dppx)');
+    if (mediaQuery.addEventListener) {
+      mediaQuery.addEventListener('change', handleZoomChange);
+    } else {
+      // Fallback para navegadores antiguos
+      mediaQuery.addListener(handleZoomChange);
+    }
 
     // --- NUEVO: Observer para la imagen ---
     let imgResizeObserver: ResizeObserver | null = null;
@@ -143,7 +150,17 @@ function ConsolePage() {
     return () => {
       resizeObserver.disconnect();
       window.removeEventListener('resize', updateSize);
-      clearInterval(zoomInterval);
+      window.removeEventListener('orientationchange', updateSize);
+      
+      // Limpiar el listener de media query
+      const mediaQuery = window.matchMedia('(min-resolution: 1dppx)');
+      if (mediaQuery.removeEventListener) {
+        mediaQuery.removeEventListener('change', handleZoomChange);
+      } else {
+        // Fallback para navegadores antiguos
+        mediaQuery.removeListener(handleZoomChange);
+      }
+      
       if (imgResizeObserver && imgRef.current) imgResizeObserver.disconnect();
     };
   }, [imageNatural, selectedPage]);
