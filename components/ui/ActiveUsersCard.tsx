@@ -34,8 +34,30 @@ export default function ActiveUsersCard({ language = "es" }: { language?: "es" |
   const [loading, setLoading] = useState(true);
   const [view, setView] = useState<'cards' | 'table'>('cards');
   const [carouselIndex, setCarouselIndex] = useState(0);
-  const USERS_PER_PAGE = 4;
+  const [usersPerPage, setUsersPerPage] = useState(4);
   const eventSourceRef = useRef<EventSource | null>(null);
+
+  // Hook para detectar el tamaño de pantalla
+  useEffect(() => {
+    const updateUsersPerPage = () => {
+      const width = window.innerWidth;
+      if (width >= 1536) { // 2xl
+        setUsersPerPage(8);
+      } else if (width >= 1280) { // xl
+        setUsersPerPage(6);
+      } else if (width >= 1024) { // lg
+        setUsersPerPage(5);
+      } else if (width >= 768) { // md
+        setUsersPerPage(4);
+      } else {
+        setUsersPerPage(2);
+      }
+    };
+
+    updateUsersPerPage();
+    window.addEventListener('resize', updateUsersPerPage);
+    return () => window.removeEventListener('resize', updateUsersPerPage);
+  }, []);
 
   useEffect(() => {
     // Create SSE connection
@@ -110,27 +132,28 @@ export default function ActiveUsersCard({ language = "es" }: { language?: "es" |
         ) : view === 'cards' ? (
           <>
             {/* Desktop: carrusel con flechas */}
-            <div className="hidden sm:flex items-center">
+            <div className="w-full flex items-center justify-center gap-6 hidden sm:flex px-1 md:px-2" style={{ maxWidth: '1450px', margin: '0 auto', minHeight: '220px' }}>
               {/* Flecha Izquierda */}
-              <button
-                className={`bg-white rounded-full shadow p-1.5 border border-blue-100 hover:bg-blue-50 transition-all flex items-center justify-center ${carouselIndex === 0 ? 'opacity-30 cursor-not-allowed' : 'hover:scale-110'}`}
-                onClick={() => setCarouselIndex(Math.max(0, carouselIndex - USERS_PER_PAGE))}
-                disabled={carouselIndex === 0}
-                aria-label="Previous"
-                style={{ marginLeft: 8, marginRight: 8 }}
-              >
-                <ArrowLeftCircle size={30} className="text-blue-500" />
-              </button>
+              <div className="flex-shrink-0">
+                <button
+                  className={`bg-green-600 hover:bg-green-700 text-white rounded-full shadow-lg p-3 border-2 border-green-500 transition-all flex items-center justify-center ${carouselIndex === 0 ? 'opacity-40 cursor-not-allowed' : 'hover:scale-110 hover:shadow-xl'}`}
+                  onClick={() => setCarouselIndex(Math.max(0, carouselIndex - usersPerPage))}
+                  disabled={carouselIndex === 0}
+                  aria-label="Previous"
+                >
+                  <ArrowLeftCircle size={24} className="text-white" />
+                </button>
+              </div>
               {/* Cards */}
-              <div className="flex flex-nowrap gap-4 py-2 flex-1 justify-center px-4 md:px-12 lg:px-20">
-                {activeUsers.slice(carouselIndex, carouselIndex + USERS_PER_PAGE).map((user) => {
+              <div className="flex flex-nowrap gap-3 py-4 justify-center overflow-hidden" style={{ minWidth: 0, flex: '1 1 auto' }}>
+                {activeUsers.slice(carouselIndex, carouselIndex + usersPerPage).map((user) => {
                   const start = user.startTimestamp ? new Date(user.startTimestamp).getTime() : 0;
                   const last = user.lastActive ? new Date(user.lastActive).getTime() : 0;
                   const duration = start && last ? formatDuration(last - start) : '-';
                   return (
                     <div
                       key={user._id}
-                      className="bg-gradient-to-br from-green-50 to-white shadow-xl rounded-2xl p-6 min-w-[290px] max-w-[320px] flex flex-col items-center border-2 border-green-200 hover:scale-105 hover:shadow-2xl transition-transform cursor-pointer relative group mx-2"
+                      className="bg-gradient-to-br from-green-50 to-white shadow-lg rounded-xl p-4 min-w-[200px] max-w-[240px] flex flex-col items-center border border-green-200 hover:scale-105 hover:shadow-xl transition-transform cursor-pointer relative group flex-shrink-0"
                       style={{ boxSizing: 'border-box' }}
                     >
                       <span className="text-lg font-mono font-bold text-green-900 mb-1 group-hover:underline">{user.ipAddress || "-"}</span>
@@ -161,21 +184,22 @@ export default function ActiveUsersCard({ language = "es" }: { language?: "es" |
                         </span>
                       </div>
                       {/* Sombra animada al hacer hover */}
-                      <div className="absolute inset-0 rounded-2xl border-2 border-green-300 opacity-0 group-hover:opacity-100 transition-opacity pointer-events-none"></div>
+                      <div className="absolute inset-0 rounded-xl border-2 border-green-300 opacity-0 group-hover:opacity-100 transition-opacity pointer-events-none"></div>
                     </div>
                   );
                 })}
               </div>
-              {/* Flecha Derecha (siempre visible) */}
-              <button
-                className={`bg-white rounded-full shadow p-1.5 border border-blue-100 hover:bg-blue-50 transition-all flex items-center justify-center ${(carouselIndex + USERS_PER_PAGE >= activeUsers.length) ? 'opacity-30 cursor-not-allowed' : 'hover:scale-110'}`}
-                onClick={() => setCarouselIndex(Math.min(carouselIndex + USERS_PER_PAGE, Math.max(0, activeUsers.length - USERS_PER_PAGE)))}
-                disabled={carouselIndex + USERS_PER_PAGE >= activeUsers.length}
-                aria-label="Next"
-                style={{ marginLeft: 8, marginRight: 8 }}
-              >
-                <ArrowRightCircle size={30} className="text-blue-500" />
-              </button>
+              {/* Flecha Derecha */}
+              <div className="flex-shrink-0">
+                <button
+                  className={`bg-green-600 hover:bg-green-700 text-white rounded-full shadow-lg p-3 border-2 border-green-500 transition-all flex items-center justify-center ${(carouselIndex + usersPerPage >= activeUsers.length) ? 'opacity-40 cursor-not-allowed' : 'hover:scale-110 hover:shadow-xl'}`}
+                  onClick={() => setCarouselIndex(Math.min(carouselIndex + usersPerPage, Math.max(0, activeUsers.length - usersPerPage)))}
+                  disabled={carouselIndex + usersPerPage >= activeUsers.length}
+                  aria-label="Next"
+                >
+                  <ArrowRightCircle size={24} className="text-white" />
+                </button>
+              </div>
             </div>
             {/* Mobile: carrusel horizontal, solo una tarjeta visible, centrada, con swipe */}
             <div className="sm:hidden w-full overflow-x-auto snap-x snap-mandatory justify-center gap-2 py-4 px-0" style={{ WebkitOverflowScrolling: 'touch', scrollBehavior: 'smooth' }}>

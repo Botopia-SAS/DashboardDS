@@ -17,7 +17,7 @@ const LeftSideBar = () => {
   };
 
   return (
-    <div className="h-screen overflow-hidden left-0 top-0 sticky flex flex-col bg-gradient-to-b from-gray-900 to-gray-800 shadow-xl shadow-black max-lg:hidden w-64">
+    <div className="h-screen overflow-hidden left-0 top-0 sticky flex flex-col bg-gradient-to-b from-gray-900 to-gray-800 shadow-xl shadow-black hidden lg:flex w-64">
       {/* LOGO */}
       <div className="flex justify-center p-6 h-xs:p-1 h-sm:p-2 h-md:p-4 flex-shrink-0">
         <Image 

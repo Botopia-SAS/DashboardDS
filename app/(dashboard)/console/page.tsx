@@ -166,59 +166,59 @@ function ConsolePage() {
   }, [imageNatural, selectedPage]);
 
   return (
-    <div>
-      <div className="p-6">
-        {/* Mostrar Back to Console solo si NO estamos en /console */}
-        {pathname !== "/console" && (
-          <div className="flex items-center mb-4">
-            <Link href="/console">
-              <Button variant="ghost" size="sm" className="flex items-center gap-1">
-                <ArrowLeft className="w-4 h-4" /> Back to Console
-              </Button>
-            </Link>
-            <h1 className="text-xl font-semibold flex-1 text-center">Console Dashboard</h1>
-          </div>
-        )}
-        
-        <DashboardHeader title="Console Dashboard">
-          <div className="flex gap-6 items-center">
-            <Link
-              href="/console/user"
-              className="px-4 py-2 rounded-lg hover:bg-gray-700"
-            >
-              Users
-            </Link>
-            <Link
-              href="/console/analytics"
-              className="px-4 py-2 rounded-lg hover:bg-gray-700"
-            >
-              Analytics
-            </Link>
-            <Link
-              href="/console/faq"
-              className="px-4 py-2 rounded-lg hover:bg-gray-700"
-            >
-              FAQ
-            </Link>
-            <Link
-              href="/console/contact"
-              className="px-4 py-2 rounded-lg hover:bg-gray-700"
-            >
-              Contact
-            </Link>
-          </div>
-        </DashboardHeader>
-      </div>
+    <div className="w-full">
+      {/* Mostrar Back to Console solo si NO estamos en /console */}
+      {pathname !== "/console" && (
+        <div className="flex items-center mb-4">
+          <Link href="/console">
+            <Button variant="ghost" size="sm" className="flex items-center gap-1">
+              <ArrowLeft className="w-4 h-4" /> Back to Console
+            </Button>
+          </Link>
+          <h1 className="text-xl font-semibold flex-1 text-center">Console Dashboard</h1>
+        </div>
+      )}
+      
+      <DashboardHeader title="Console Dashboard">
+        <div className="flex gap-2 sm:gap-6 items-center flex-wrap">
+          <Link
+            href="/console/user"
+            className="px-2 sm:px-4 py-2 text-sm rounded-lg hover:bg-gray-700"
+          >
+            Users
+          </Link>
+          <Link
+            href="/console/analytics"
+            className="px-2 sm:px-4 py-2 text-sm rounded-lg hover:bg-gray-700"
+          >
+            Analytics
+          </Link>
+          <Link
+            href="/console/faq"
+            className="px-2 sm:px-4 py-2 text-sm rounded-lg hover:bg-gray-700"
+          >
+            FAQ
+          </Link>
+          <Link
+            href="/console/contact"
+            className="px-2 sm:px-4 py-2 text-sm rounded-lg hover:bg-gray-700"
+          >
+            Contact
+          </Link>
+        </div>
+      </DashboardHeader>
+
       {/* Active Users (row 1) */}
-      <div className="p-6">
+      <div className="mb-6">
         <ActiveUsersCard language="en" />
       </div>
+      
       {/* Inactive Users (row 2) */}
-      <div className="p-6">
+      <div className="mb-6">
         <InactiveUsersCard language="en" />
       </div>
       {/* Metrics (row 3, 3 columns) */}
-      <div className="p-6 grid grid-cols-1 md:grid-cols-3 gap-6">
+      <div className="mb-6 grid grid-cols-1 md:grid-cols-3 gap-6">
         <Card>
           <CardContent>
             <h2 className="text-lg font-semibold">Unique Users</h2>
@@ -238,8 +238,9 @@ function ConsolePage() {
           </CardContent>
         </Card>
       </div>
+      
       {/* Stats Section and events by type chart */}
-      <div className="p-6 grid grid-cols-1 lg:grid-cols-3 gap-6">
+      <div className="mb-6 grid grid-cols-1 lg:grid-cols-3 gap-6">
         <Card className="col-span-3">
           <CardContent>
             <h2 className="text-xl font-bold">Events by Type</h2>
@@ -255,7 +256,7 @@ function ConsolePage() {
         </Card>
       </div>
       {/* Page selector and preview with heatmap below everything */}
-      <div className="p-6 grid grid-cols-1 lg:grid-cols-3 gap-6">
+      <div className="mb-6 grid grid-cols-1 lg:grid-cols-3 gap-6">
         <Card className="col-span-3">
           <CardContent>
             <h2 className="text-xl font-bold">Select Page</h2>
