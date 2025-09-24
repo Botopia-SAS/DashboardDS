@@ -32,6 +32,7 @@ interface SerializedOrder {
     firstName: string
     lastName: string
     email: string
+    phoneNumber?: string
   }
   items: SerializedOrderItem[]
   __v: number
@@ -61,9 +62,10 @@ interface UserDocument {
   firstName?: string
   lastName?: string
   email?: string
+  phoneNumber?: string
 }
 
-function serializeOrder(order: OrderDocument, user: UserDocument | null): SerializedOrder {
+function serializeOrder(order: OrderDocument, user: any): SerializedOrder {
   return {
     _id: order._id?.toString?.() ?? '',
     orderNumber: order.orderNumber ?? '',
@@ -75,8 +77,9 @@ function serializeOrder(order: OrderDocument, user: UserDocument | null): Serial
           firstName: user.firstName || '-',
           lastName: user.lastName || '-',
           email: user.email || '-',
+          phoneNumber: user.phoneNumber || undefined,
         }
-      : { firstName: '-', lastName: '-', email: '-' },
+      : { firstName: '-', lastName: '-', email: '-', phoneNumber: undefined },
     items: Array.isArray(order.items)
       ? order.items.map((item): SerializedOrderItem => ({
           id: item.id,
@@ -97,12 +100,14 @@ const Page = async ({ searchParams }: { searchParams?: any }) => {
   // Get all unique userIds
   const userIds = Array.from(new Set(orders.map((o: OrderDocument) => o.userId?.toString?.() ?? o.user_id?.toString?.()))).filter(Boolean)
   // Find all users at once
-  const usersArr = await User.find({ _id: { $in: userIds } }).lean() as UserDocument[]
-  const usersMap = Object.fromEntries(usersArr.map((u: UserDocument) => [u._id.toString(), u]))
+  const usersArr = await User.find({ _id: { $in: userIds } })
+    .select('firstName lastName email phoneNumber')
+    .lean() as any[]
+  const usersMap = Object.fromEntries(usersArr.map((u: any) => [u._id.toString(), u]))
   // Serialize and associate correct user
   const serializedOrders = orders.map((order: OrderDocument) => {
     const userId = order.userId?.toString?.() ?? order.user_id?.toString?.()
-    const user = usersMap[userId]
+    const user = userId ? usersMap[userId] : null
     return serializeOrder(order, user)
   })
 

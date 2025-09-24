@@ -1,7 +1,6 @@
 "use client";
 
 import { Button } from "@/components/ui/button";
-import { Checkbox } from "@/components/ui/checkbox";
 import {
   Form,
   FormControl,
@@ -13,16 +12,13 @@ import {
 import { Input } from "@/components/ui/input";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { useRouter } from "next/navigation";
-import { useEffect, useState } from "react";
 import { useForm } from "react-hook-form";
 import toast from "react-hot-toast";
 import { z } from "zod";
 import { Separator } from "../ui/separator";
-import AddressInformation from "./AddressInformation";
 import ContactInfromation from "./ContactInformation";
 import LiscenseInformation from "./LiscenseInformation";
 import PersonalInformation from "./PersonalInformation";
-import RegisterAndPaymentInformation from "./RegisterAndPaymentInformation";
 import SecurityInformation from "./SecurityInformation";
 
 const formSchema = z
@@ -33,25 +29,18 @@ const formSchema = z
     email: z.string().email("Invalid email"),
     password: z
       .string()
-      .min(8, "Password must be at least 8 characters")
-      .regex(/[A-Z]/, "Password must contain at least one uppercase letter")
-      .regex(/[a-z]/, "Password must contain at least one lowercase letter")
-      .regex(/[0-9]/, "Password must contain at least one number")
-      .regex(
-        /[^A-Za-z0-9]/,
-        "Password must contain at least one special character"
-      )
+      .min(4, "Password must be at least 4 characters")
       .optional()
       .or(z.literal("")),
     ssnLast4: z.string().length(4, "Must be exactly 4 digits"),
     hasLicense: z.boolean(),
     licenseNumber: z.string().optional().or(z.literal("")),
     birthDate: z.string().min(1, "Birth date is required"),
-    streetAddress: z.string().min(1, "Street address is required"),
-    apartmentNumber: z.string().min(1, "Apartment number is required"),
-    city: z.string().min(1, "City is required"),
-    state: z.string().min(1, "State is required"),
-    zipCode: z.string().min(1, "Zip code is required"),
+    streetAddress: z.string().optional().or(z.literal("")),
+    apartmentNumber: z.string().optional().or(z.literal("")),
+    city: z.string().optional().or(z.literal("")),
+    state: z.string().optional().or(z.literal("")),
+    zipCode: z.string().optional().or(z.literal("")),
     phoneNumber: z.string().min(1, "Phone number is required"),
     sex: z.string(),
     registerForCourse: z.boolean().default(false),
@@ -239,23 +228,8 @@ interface CustomersFormProps {
   } | null;
 }
 
-interface Course {
-  _id: string;
-  locationId: string;
-  date: string;
-  hour: string;
-  classId: string;
-  instructorId: string;
-  students: string[];
-  duration: string;
-  type: string;
-  __v: number;
-  locationName: string;
-}
-
 const CustomersForm = ({ initialData }: CustomersFormProps) => {
   const router = useRouter();
-  const [courses, setCourses] = useState<Course[]>([]);
 
   const form = useForm({
     resolver: zodResolver(formSchema),
@@ -293,8 +267,6 @@ const CustomersForm = ({ initialData }: CustomersFormProps) => {
   });
 
   const hasLicense = form.watch("hasLicense");
-  const registerForCourse = form.watch("registerForCourse");
-  const courseType = form.watch("courseType");
 
   const onSubmit = async (values: z.infer<typeof formSchema>) => {
     try {
@@ -335,15 +307,6 @@ const CustomersForm = ({ initialData }: CustomersFormProps) => {
       toast.error("Registration failed");
     }
   };
-
-  useEffect(() => {
-    fetch("/api/ticket/classes")
-      .then((res) => res.json())
-      .then((data) => {
-        setCourses(data);
-      })
-      .catch((error) => console.error("Error fetching classes:", error));
-  }, []);
 
   return (
     <div className="max-w-5xl p-8 mx-auto bg-white rounded-xl shadow-lg">
@@ -391,13 +354,6 @@ const CustomersForm = ({ initialData }: CustomersFormProps) => {
 
           <div className="space-y-6 pt-4">
             <h2 className="text-xl font-semibold text-gray-700">
-              Address Information
-            </h2>
-            <AddressInformation form={form} />
-          </div>
-
-          <div className="space-y-6 pt-4">
-            <h2 className="text-xl font-semibold text-gray-700">
               Contact Information
             </h2>
             <ContactInfromation form={form} initialData={initialData} />
@@ -409,41 +365,6 @@ const CustomersForm = ({ initialData }: CustomersFormProps) => {
             </h2>
             <SecurityInformation form={form} />
             <LiscenseInformation form={form} hasLicense={hasLicense} />
-          </div>
-
-          <div className="space-y-6 pt-4">
-            <h2 className="text-xl font-semibold text-gray-700">
-              Course Registration (Optional)
-            </h2>
-
-            <FormField
-              control={form.control}
-              name="registerForCourse"
-              render={({ field }) => (
-                <FormItem>
-                  <div className="flex items-center gap-2 bg-gray-50 p-3 rounded-lg">
-                    <Checkbox
-                      checked={field.value}
-                      onCheckedChange={(checked: boolean) =>
-                        field.onChange(!!checked)
-                      }
-                      className="border-gray-400"
-                    />
-                    <FormLabel className="text-gray-700 font-medium cursor-pointer">
-                      Register this user for a course
-                    </FormLabel>
-                  </div>
-                </FormItem>
-              )}
-            />
-
-            {registerForCourse && (
-              <RegisterAndPaymentInformation
-                form={form}
-                courses={courses}
-                courseType={courseType}
-              />
-            )}
           </div>
 
           <Separator className="bg-gray-300 my-6" />
