@@ -1,0 +1,187 @@
+/* =====================================================
+   ESTILOS PARA DESTACAR SLOTS DE TICKET CLASS
+   =====================================================
+   Estilos CSS para resaltar slots seleccionados desde notificaciones
+   REGLAS ULTRA AGRESIVAS - NO CAMBIAR TAMAÑO JAMÁS
+*/
+
+/* PREVENIR cualquier cambio de tamaño en elementos del calendario */
+.fc-timegrid-col-events,
+.fc-timegrid-event-harness,
+.fc-timegrid-event,
+.fc-event,
+.fc-event-main,
+.fc-event-main-frame,
+.fc-event-time,
+.fc-event-title,
+.fc-timegrid-slot,
+.fc-timegrid-slot-lane,
+.slot-mega-highlight,
+.slot-final-state,
+.slot-blinking-overlay {
+  transform: none !important;
+  scale: 1 !important;
+  zoom: 1 !important;
+  width: inherit !important;
+  height: inherit !important;
+  min-width: inherit !important;
+  min-height: inherit !important;
+  max-width: none !important;
+  max-height: none !important;
+  flex-shrink: 0 !important;
+  flex-grow: 0 !important;
+  box-sizing: border-box !important;
+  overflow: visible !important;
+}
+
+/* FORZAR tamaño específico para eventos */
+.fc-event {
+  width: 100% !important;
+  height: auto !important;
+  min-height: 20px !important;
+  position: relative !important;
+}
+
+/* PREVENIR cualquier cambio de dimensiones en diferentes estados */
+.fc-event:hover,
+.fc-event:focus,
+.fc-event:active,
+.fc-event.slot-mega-highlight,
+.fc-event.slot-final-state {
+  transform: none !important;
+  scale: 1 !important;
+  zoom: 1 !important;
+  width: inherit !important;
+  height: inherit !important;
+  min-width: inherit !important;
+  min-height: inherit !important;
+  max-width: none !important;
+  max-height: none !important;
+}
+
+/* =====================================================
+   ANIMACIÓN PRINCIPAL DE RESALTADO
+   ===================================================== */
+@keyframes megaHighlight {
+  0% {
+    background: linear-gradient(45deg, #ff8c00, #ffa500) !important;
+    border: 3px solid #ffff00 !important;
+    box-shadow: 0 0 20px rgba(255, 140, 0, 0.8) !important;
+  }
+  25% {
+    background: linear-gradient(45deg, #ff6b35, #ff8844) !important;
+    border: 3px solid #00ffff !important;
+    box-shadow: 0 0 20px rgba(255, 107, 53, 0.8) !important;
+  }
+  50% {
+    background: linear-gradient(45deg, #ffa500, #ffb347) !important;
+    border: 3px solid #ff69b4 !important;
+    box-shadow: 0 0 20px rgba(255, 165, 0, 0.8) !important;
+  }
+  75% {
+    background: linear-gradient(45deg, #ff7f50, #ff9966) !important;
+    border: 3px solid #00ff00 !important;
+    box-shadow: 0 0 20px rgba(255, 127, 80, 0.8) !important;
+  }
+  100% {
+    background: linear-gradient(45deg, #ff8c00, #ffa500) !important;
+    border: 3px solid #ffff00 !important;
+    box-shadow: 0 0 20px rgba(255, 140, 0, 0.8) !important;
+  }
+}
+
+/* =====================================================
+   CLASES PARA APLICAR LOS EFECTOS
+   ===================================================== */
+
+/* Clase para el resaltado animado principal */
+.slot-mega-highlight {
+  animation: megaHighlight 1s ease-in-out infinite !important;
+  z-index: 9999 !important;
+  position: relative !important;
+  border-radius: 6px !important;
+  /* NO scaling or transform to maintain size */
+  transform: none !important;
+  width: auto !important;
+  height: auto !important;
+  min-width: inherit !important;
+  min-height: inherit !important;
+  max-width: inherit !important;
+  max-height: inherit !important;
+}
+
+/* Estilos para el texto dentro del slot resaltado */
+.slot-mega-highlight * {
+  color: white !important;
+  text-shadow: 2px 2px 4px rgba(0,0,0,1) !important;
+  font-weight: bold !important;
+  z-index: 10000 !important;
+}
+
+/* Clase para el estado final del resaltado */
+.slot-final-state {
+  background: linear-gradient(45deg, #ff6b35, #ff8844) !important;
+  border: 3px solid #ffff00 !important;
+  box-shadow: 0 0 15px rgba(255, 107, 53, 0.6) !important;
+  z-index: 999 !important;
+  position: relative !important;
+  border-radius: 6px !important;
+  /* NO scaling or transform to maintain size */
+  transform: none !important;
+  width: auto !important;
+  height: auto !important;
+  min-width: inherit !important;
+  min-height: inherit !important;
+  max-width: inherit !important;
+  max-height: inherit !important;
+}
+
+/* Estilos para el texto en el estado final */
+.slot-final-state * {
+  color: white !important;
+  text-shadow: 2px 2px 4px rgba(0,0,0,1) !important;
+  font-weight: bold !important;
+}
+
+/* =====================================================
+   OVERRIDE AGRESIVO DE FULLCALENDAR
+   ===================================================== */
+
+/* Sobrescribir estilos de FullCalendar manteniendo el tamaño */
+.fc-event.slot-mega-highlight {
+  background: none !important;
+  border: none !important;
+  transform: none !important;
+  width: auto !important;
+  height: auto !important;
+}
+
+.fc-event.slot-final-state {
+  background: none !important;
+  border: none !important;
+  transform: none !important;
+  width: auto !important;
+  height: auto !important;
+}
+
+/* =====================================================
+   ESTILOS PARA OVERLAY (si se usa)
+   ===================================================== */
+.slot-blinking-overlay {
+  animation: megaHighlight 1s ease-in-out infinite !important;
+  border-radius: 6px !important;
+  opacity: 0.9 !important;
+  z-index: 1001 !important;
+  pointer-events: none !important;
+  position: absolute !important;
+  /* Mantener tamaño exacto del slot */
+  transform: none !important;
+  box-sizing: border-box !important;
+}
+
+/* Asegurar que el texto del overlay sea visible */
+.slot-blinking-overlay * {
+  color: white !important;
+  text-shadow: 2px 2px 4px rgba(0,0,0,1) !important;
+  font-weight: bold !important;
+}
