@@ -54,17 +54,36 @@ body,
 
 @keyframes highlightPulse {
   0% {
-    transform: scale(1);
     box-shadow: 0 0 20px rgba(59, 130, 246, 0.8);
   }
   50% {
-    transform: scale(1.05);
     box-shadow: 0 0 30px rgba(59, 130, 246, 1);
   }
   100% {
-    transform: scale(1);
     box-shadow: 0 0 20px rgba(59, 130, 246, 0.8);
   }
+}
+
+/* FullCalendar ticket event fixes */
+.fc-event {
+  overflow: hidden !important;
+  text-overflow: ellipsis !important;
+  white-space: nowrap !important;
+}
+
+.fc-event-main {
+  padding: 2px 4px !important;
+}
+
+.fc-event-title {
+  font-size: 11px !important;
+  line-height: 1.2 !important;
+  font-weight: 500 !important;
+}
+
+.fc-timegrid-event {
+  border-radius: 4px !important;
+  margin: 1px !important;
 }
 
 @media (max-width: 768px) {

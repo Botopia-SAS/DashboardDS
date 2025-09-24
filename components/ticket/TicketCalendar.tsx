@@ -75,9 +75,10 @@ interface TicketCalendarProps {
   focusClassId?: string | null;
   focusWeek?: number;
   focusYear?: number;
+  highlightEventId?: string | null;
 }
 
-const TicketCalendar = ({ className, refreshKey, focusClassId, focusWeek, focusYear }: TicketCalendarProps) => {
+const TicketCalendar = ({ className, refreshKey, focusClassId, focusWeek, focusYear, highlightEventId }: TicketCalendarProps) => {
   // Obtener el tipo de clase del store
   const { classType } = useClassTypeStore();
   
@@ -455,12 +456,13 @@ const TicketCalendar = ({ className, refreshKey, focusClassId, focusWeek, focusY
 
   // Efecto para enfocar automáticamente en un evento específico desde notificaciones
   useEffect(() => {
-    if (focusClassId && calendarEvents.length > 0) {
-      console.log('🎯 Starting focus effect for classId:', focusClassId);
+    const targetId = highlightEventId || focusClassId;
+    if (targetId && calendarEvents.length > 0) {
+      console.log('🎯 Starting highlight effect for eventId:', targetId);
       console.log('📋 Available calendar events:', calendarEvents.map(e => ({ id: e.id, title: e.title })));
 
       // Buscar el evento específico
-      const targetEvent = calendarEvents.find(event => event.id === focusClassId);
+      const targetEvent = calendarEvents.find(event => event.id === targetId);
 
       if (targetEvent) {
         console.log('✅ Target event found:', targetEvent);
@@ -475,9 +477,9 @@ const TicketCalendar = ({ className, refreshKey, focusClassId, focusWeek, focusY
 
           // Intentar múltiples selectores
           const selectors = [
-            `[data-event-id="${focusClassId}"]`,
-            `.fc-event[data-event-id="${focusClassId}"]`,
-            `#${focusClassId}`
+            `[data-event-id="${targetId}"]`,
+            `.fc-event[data-event-id="${targetId}"]`,
+            `#${targetId}`
           ];
 
           let eventElement: Element | null = null;
@@ -498,7 +500,7 @@ const TicketCalendar = ({ className, refreshKey, focusClassId, focusWeek, focusY
 
             for (const event of allEvents) {
               // Buscar el evento que tenga el ID correcto
-              if (event.getAttribute('data-event-id') === focusClassId || event.id === focusClassId) {
+              if (event.getAttribute('data-event-id') === targetId || event.id === targetId) {
                 eventElement = event;
                 console.log('✅ Found element by ID match');
                 break;
@@ -516,9 +518,9 @@ const TicketCalendar = ({ className, refreshKey, focusClassId, focusWeek, focusY
               inline: 'center'
             });
 
-            // Aplicar la clase de mega highlight directamente al elemento
-            console.log('🌟 Adding slot-mega-highlight class to element');
-            eventElement.classList.add('slot-mega-highlight');
+            // Aplicar la clase de resaltado desde notificación
+            console.log('🌟 Adding highlight-notification-event class to element');
+            eventElement.classList.add('highlight-notification-event');
 
             // Guardar las clases originales para restaurar después
             const originalClasses = eventElement.className;
@@ -534,42 +536,27 @@ const TicketCalendar = ({ className, refreshKey, focusClassId, focusWeek, focusY
               height: eventElement.style.height
             };
 
-            // Aplicar estilos inline agresivos con colores naranjas
-            eventElement.style.background = 'linear-gradient(45deg, #ff8c00, #ffa500)';
-            eventElement.style.border = '3px solid #ffff00';
-            eventElement.style.boxShadow = '0 0 20px rgba(255, 140, 0, 0.8)';
-            eventElement.style.zIndex = '9999';
+            // Aplicar estilos inline azules igual que driving test/lesson
+            eventElement.style.background = eventElement.style.background;
+            eventElement.style.border = '2px solid #3B82F6';
+            eventElement.style.boxShadow = '0 0 20px rgba(59, 130, 246, 0.8)';
+            eventElement.style.zIndex = '1000';
             eventElement.style.position = 'relative';
             eventElement.style.borderRadius = '6px';
-            // Asegurar que no cambie el tamaño
+            // Asegurar que NO cambie el tamaño
             eventElement.style.transform = 'none';
             eventElement.style.width = 'auto';
             eventElement.style.height = 'auto';
 
             console.log('Applied inline styles and mega highlight class');
 
-            // Después de 10 segundos, cambiar a estado final
+            // Después de 5 segundos, remover el resaltado
             setTimeout(() => {
-              console.log('✨ Switching to final highlight state');
-              eventElement.classList.remove('slot-mega-highlight');
-              eventElement.classList.add('slot-final-state');
-
-              // Aplicar estilos finales
-              eventElement.style.background = 'linear-gradient(45deg, #ff6b35, #ff8844)';
-              eventElement.style.border = '3px solid #ffff00';
-              eventElement.style.boxShadow = '0 0 15px rgba(255, 107, 53, 0.6)';
-              eventElement.style.transform = 'none';
-              eventElement.style.width = 'auto';
-              eventElement.style.height = 'auto';
-
-              // Después de 10 segundos más, restaurar el estado original
-              setTimeout(() => {
-                console.log('🔄 Restoring original state');
-                eventElement.classList.remove('slot-final-state');
-                // Restaurar estilos originales
-                Object.assign(eventElement.style, originalStyles);
-              }, 10000);
-            }, 10000);
+              console.log('🔄 Removing highlight after 5 seconds');
+              eventElement.classList.remove('highlight-notification-event');
+              // Restaurar estilos originales
+              Object.assign(eventElement.style, originalStyles);
+            }, 5000);
           } else if (attempts < maxAttempts) {
             // Intentar de nuevo después de un delay
             setTimeout(findAndHighlightElement, 1000);
@@ -597,10 +584,10 @@ const TicketCalendar = ({ className, refreshKey, focusClassId, focusWeek, focusY
 
                 const eventElement = event as HTMLElement;
 
-                // Aplicar mega highlight
-                eventElement.classList.add('slot-mega-highlight');
+                // Aplicar resaltado de notificación
+                eventElement.classList.add('highlight-notification-event');
 
-                // Aplicar estilos inline agresivos
+                // Aplicar estilos inline consistentes con driving test/lesson
                 const originalStyles = {
                   background: eventElement.style.background,
                   border: eventElement.style.border,
@@ -611,36 +598,24 @@ const TicketCalendar = ({ className, refreshKey, focusClassId, focusWeek, focusY
                   height: eventElement.style.height
                 };
 
-                eventElement.style.background = 'linear-gradient(45deg, #ff8c00, #ffa500)';
-                eventElement.style.border = '3px solid #ffff00';
-                eventElement.style.boxShadow = '0 0 20px rgba(255, 140, 0, 0.8)';
-                eventElement.style.zIndex = '9999';
+                eventElement.style.background = eventElement.style.background;
+                eventElement.style.border = '2px solid #3B82F6';
+                eventElement.style.boxShadow = '0 0 20px rgba(59, 130, 246, 0.8)';
+                eventElement.style.zIndex = '1000';
                 eventElement.style.position = 'relative';
                 eventElement.style.borderRadius = '6px';
-                // Asegurar que no cambie el tamaño
+                // Asegurar que NO cambie el tamaño
                 eventElement.style.transform = 'none';
                 eventElement.style.width = 'auto';
                 eventElement.style.height = 'auto';
 
-                console.log('Applied mega highlight to content-matched element');
+                console.log('Applied notification highlight to content-matched element');
 
-                // Después de 10 segundos, cambiar a estado final
+                // Después de 5 segundos, remover el resaltado
                 setTimeout(() => {
-                  eventElement.classList.remove('slot-mega-highlight');
-                  eventElement.classList.add('slot-final-state');
-
-                  eventElement.style.background = 'linear-gradient(45deg, #ff6b35, #ff8844)';
-                  eventElement.style.border = '3px solid #ffff00';
-                  eventElement.style.boxShadow = '0 0 15px rgba(255, 107, 53, 0.6)';
-                  eventElement.style.transform = 'none';
-                  eventElement.style.width = 'auto';
-                  eventElement.style.height = 'auto';
-
-                  setTimeout(() => {
-                    eventElement.classList.remove('slot-final-state');
-                    Object.assign(eventElement.style, originalStyles);
-                  }, 10000);
-                }, 10000);
+                  eventElement.classList.remove('highlight-notification-event');
+                  Object.assign(eventElement.style, originalStyles);
+                }, 5000);
 
                 break;
               }
@@ -654,9 +629,9 @@ const TicketCalendar = ({ className, refreshKey, focusClassId, focusWeek, focusY
         console.warn('⚠️ Target event not found in calendar events');
       }
     } else {
-      console.log('ℹ️ Focus effect not triggered:', { focusClassId, eventsCount: calendarEvents.length });
+      console.log('ℹ️ Highlight effect not triggered:', { highlightEventId, focusClassId, eventsCount: calendarEvents.length });
     }
-  }, [focusClassId, calendarEvents]);
+  }, [highlightEventId, focusClassId, calendarEvents]);
 
   // Log para ver qué datos recibe FullCalendar
   console.log("Eventos que recibe FullCalendar:", calendarEvents);

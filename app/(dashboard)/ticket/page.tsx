@@ -20,6 +20,7 @@ export default function Pages() {
   const classId = searchParams.get('classId');
   const week = searchParams.get('week');
   const year = searchParams.get('year');
+  const eventId = searchParams.get('eventId');
 
   useEffect(() => {
     const timer = setTimeout(() => setLoading(false), 1000);
@@ -105,11 +106,12 @@ export default function Pages() {
                   />
                 </div>
                 <div className="mt-8">
-                  <TicketCalendar 
-                    refreshKey={calendarRefreshKey} 
+                  <TicketCalendar
+                    refreshKey={calendarRefreshKey}
                     focusClassId={classId}
                     focusWeek={week ? parseInt(week) : undefined}
                     focusYear={year ? parseInt(year) : undefined}
+                    highlightEventId={eventId}
                   />
                 </div>
               </CardContent>
@@ -132,11 +134,12 @@ export default function Pages() {
                   />
                 </div>
                 <div className="mt-8">
-                  <TicketCalendar 
-                    refreshKey={calendarRefreshKey} 
+                  <TicketCalendar
+                    refreshKey={calendarRefreshKey}
                     focusClassId={classId}
                     focusWeek={week ? parseInt(week) : undefined}
                     focusYear={year ? parseInt(year) : undefined}
+                    highlightEventId={eventId}
                   />
                 </div>
               </CardContent>
@@ -159,11 +162,12 @@ export default function Pages() {
                   />
                 </div>
                 <div className="mt-8">
-                  <TicketCalendar 
-                    refreshKey={calendarRefreshKey} 
+                  <TicketCalendar
+                    refreshKey={calendarRefreshKey}
                     focusClassId={classId}
                     focusWeek={week ? parseInt(week) : undefined}
                     focusYear={year ? parseInt(year) : undefined}
+                    highlightEventId={eventId}
                   />
                 </div>
               </CardContent>

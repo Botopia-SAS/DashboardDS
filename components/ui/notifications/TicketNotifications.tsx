@@ -115,7 +115,7 @@ export default function TicketNotifications({ isOpen }: TicketNotificationsProps
     // Navigate to ticket calendar and focus on the specific week/date
     const date = new Date(notification.classDate);
     const week = getWeekOfYear(date);
-    router.push(`/ticket?week=${week}&year=${date.getFullYear()}&classId=${notification.classId}`);
+    router.push(`/ticket?week=${week}&year=${date.getFullYear()}&classId=${notification.classId}&eventId=${notification.classId}`);
   };
 
   const getWeekOfYear = (date: Date) => {

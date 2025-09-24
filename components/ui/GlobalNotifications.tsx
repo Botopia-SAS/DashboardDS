@@ -98,22 +98,25 @@ export default function GlobalNotifications({ className, iconColor = "text-gray-
                   <button
                     key={tab.id}
                     onClick={() => setActiveTab(tab.id)}
-                    className={`flex-1 flex flex-col sm:flex-row items-center justify-center gap-1 sm:gap-2 px-2 sm:px-4 py-2 sm:py-3 text-xs sm:text-sm font-medium transition-colors ${
+                    className={`flex-1 flex flex-col items-center justify-center gap-1 px-1 py-2 text-xs font-medium transition-colors relative ${
                       isActive
                         ? 'text-blue-600 border-b-2 border-blue-500 bg-white'
                         : 'text-gray-600 hover:text-blue-600 hover:bg-blue-50'
                     }`}
                   >
-                    <Icon size={14} className="sm:w-4 sm:h-4" />
-                    <span className="text-xs sm:text-sm">{tab.label.split(' ')[0]}</span>
-                    <span className="hidden md:inline text-xs sm:text-sm">{tab.label.split(' ').slice(1).join(' ')}</span>
-                    {tab.count > 0 && (
-                      <span className={`px-1.5 sm:px-2 py-0.5 sm:py-1 text-xs rounded-full ${
-                        isActive ? 'bg-blue-100 text-blue-600' : 'bg-gray-200 text-gray-600'
-                      }`}>
-                        {tab.count}
-                      </span>
-                    )}
+                    <div className="flex items-center gap-1">
+                      <Icon size={16} />
+                      {tab.count > 0 && (
+                        <span className={`px-1.5 py-0.5 text-[10px] rounded-full font-bold ${
+                          isActive ? 'bg-blue-100 text-blue-600' : 'bg-red-500 text-white'
+                        }`}>
+                          {tab.count}
+                        </span>
+                      )}
+                    </div>
+                    <span className="text-[10px] leading-tight text-center">
+                      {tab.id === 'driving-lessons' ? 'Driving\nLessons' : tab.label}
+                    </span>
                   </button>
                 );
               })}

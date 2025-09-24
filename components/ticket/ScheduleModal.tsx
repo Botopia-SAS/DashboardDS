@@ -111,16 +111,18 @@ export default function ScheduleModal({
         recurrence,
         recurrenceEndDate: recurrence !== "none" ? recurrenceEndDate : undefined,
       });
-      setEndHourTouched(false);
+      // Si estamos editando un ticket existente (tiene _id), marcar endHour como tocada para evitar recálculo
+      setEndHourTouched(initialData?._id ? true : false);
     }
   }, [isOpen, initialData, recurrence, recurrenceEndDate, selectedLocationId]);
 
   useEffect(() => {
-    if (form.hour && !endHourTouched) {
+    // Solo auto-calcular endHour para nuevos tickets (sin _id) y cuando el usuario no haya tocado la hora final
+    if (form.hour && !endHourTouched && !initialData?._id) {
       const defaultEnd = getDefaultEndHour(form.hour);
       setForm(prev => ({ ...prev, endHour: defaultEnd }));
     }
-  }, [form.hour, endHourTouched]);
+  }, [form.hour, endHourTouched, initialData?._id]);
 
   // Buscadores
   const [instructorSearch, setInstructorSearch] = useState("");
