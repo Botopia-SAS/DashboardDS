@@ -137,7 +137,7 @@ export default function DrivingLessonsNotifications({ isOpen }: DrivingLessonsNo
     // Navigate to driving-test-lessons page and focus on the specific instructor and date
     const date = new Date(notification.date);
     const dateParam = date.toISOString().split('T')[0]; // YYYY-MM-DD format
-    router.push(`/driving-test-lessons?instructorId=${notification.instructorId}&date=${dateParam}&type=driving-lesson`);
+    router.push(`/driving-test-lessons?instructorId=${notification.instructorId}&date=${dateParam}&type=driving-lesson&eventId=${notification.id}`);
   };
 
   const fetchDrivingLessonsNotifications = async () => {
