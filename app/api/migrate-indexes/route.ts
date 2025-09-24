@@ -38,7 +38,7 @@ export async function POST(request: NextRequest) {
       );
       console.log('Created new unique index: date_hour_instructor_unique');
     } catch (error) {
-      console.log('Index might already exist:', error.message);
+      console.log('Index might already exist:', error instanceof Error ? error.message : String(error));
     }
 
     // List final indexes
@@ -57,7 +57,7 @@ export async function POST(request: NextRequest) {
     console.error('Migration error:', error);
     return NextResponse.json({
       success: false,
-      error: error.message
+      error: error instanceof Error ? error.message : String(error)
     }, { status: 500 });
   }
 }
