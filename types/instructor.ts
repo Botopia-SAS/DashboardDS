@@ -2,7 +2,6 @@ export interface InstructorData {
   _id?: string;
   username: string;
   name: string;
-  dni: string;
   email: string;
   password?: string;
   photo: string;

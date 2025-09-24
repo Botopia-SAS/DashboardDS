@@ -8,7 +8,6 @@ const InstructorSchema = new mongoose.Schema(
     experience: { type: String, default: "" },
     email: { type: String, required: true, unique: true },
     password: { type: String, required: true },
-    dni: { type: String, required: true },
     canTeachTicketClass: { type: Boolean, default: false },
     canTeachDrivingTest: { type: Boolean, default: false },
     canTeachDrivingLesson: { type: Boolean, default: false },

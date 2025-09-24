@@ -2,10 +2,9 @@ import { z } from "zod";
 
 export const instructorFormSchema = z.object({
   name: z.string().min(2, "Name is required"),
-  dni: z.string().min(2, "DNI is required"),
   email: z.string().email("Invalid email format"),
   password: z.string().optional(),
-  photo: z.union([z.string().url("Valid photo URL required"), z.array(z.string())]),
+  photo: z.union([z.string().url().optional(), z.array(z.string()).optional()]).optional(),
   certifications: z.string().optional(),
   experience: z.string().optional(),
   canTeachTicketClass: z.boolean().default(false),

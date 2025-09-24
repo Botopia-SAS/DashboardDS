@@ -7,6 +7,7 @@ interface ImageUploadProps {
   value: string[];
   onChange: (value: string) => void;
   onRemove: (value: string) => void;
+  defaultImageUrl?: string; // Nueva prop para la URL de imagen por defecto
 }
 
 // Definir el tipo esperado del resultado de Cloudinary
@@ -17,7 +18,7 @@ interface CloudinaryUploadResult {
   };
 }
 
-const ImageUpload: React.FC<ImageUploadProps> = ({ onChange, onRemove, value }) => {
+const ImageUpload: React.FC<ImageUploadProps> = ({ onChange, onRemove, value, defaultImageUrl }) => {
   const onUpload = (result: CloudinaryUploadResult) => {
     if (typeof result.info === 'object' && result.info?.secure_url) {
       onChange(result.info.secure_url);
@@ -29,21 +30,28 @@ const ImageUpload: React.FC<ImageUploadProps> = ({ onChange, onRemove, value }) 
   return (
     <div>
       <div className="mb-4 flex flex-wrap items-center gap-4">
-        {value.map((url) => (
-          <div key={url} className="relative w-[200px] h-[200px]">
-            <div className="absolute top-0 right-0 z-10">
-              <Button
-                type="button"
-                onClick={() => onRemove(url)}
-                size="sm"
-                className="bg-red-500 text-white"
-              >
-                <Trash className="h-4 w-4" />
-              </Button>
+        {value.map((url) => {
+          // No mostrar la caneca si es la imagen por defecto
+          const isDefaultImage = defaultImageUrl && url === defaultImageUrl;
+          
+          return (
+            <div key={url} className="relative w-[200px] h-[200px]">
+              {!isDefaultImage && (
+                <div className="absolute top-0 right-0 z-10">
+                  <Button
+                    type="button"
+                    onClick={() => onRemove(url)}
+                    size="sm"
+                    className="bg-red-500 text-white"
+                  >
+                    <Trash className="h-4 w-4" />
+                  </Button>
+                </div>
+              )}
+              <Image src={url} alt="uploaded" className="object-cover rounded-lg" fill />
             </div>
-            <Image src={url} alt="uploaded" className="object-cover rounded-lg" fill />
-          </div>
-        ))}
+          );
+        })}
       </div>
 
       {/* ✅ Verificación antes de ejecutar `open` */}
