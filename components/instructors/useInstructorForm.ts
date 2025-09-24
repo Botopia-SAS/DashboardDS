@@ -19,7 +19,6 @@ export const useInstructorForm = (initialData?: InstructorData) => {
     resolver: zodResolver(instructorFormSchema),
     defaultValues: {
       name: initialData?.name || "",
-      dni: initialData?.dni || "",
       email: initialData?.email || "",
       password: "", // Siempre vacío para edición, no mostrar contraseña encriptada
       photo: initialData?.photo || "",
@@ -103,7 +102,6 @@ export const useInstructorForm = (initialData?: InstructorData) => {
         ? { instructorId: initialData._id, ...bodyData }
         : bodyData;
 
-      // console.log("📤 Enviando datos:", { method, url, body });
 
       const response = await fetch(url, {
         method,
@@ -120,7 +118,6 @@ export const useInstructorForm = (initialData?: InstructorData) => {
       }
 
       const data = await response.json();
-      // console.log("✅ Respuesta exitosa:", data);
       
       // Mostrar mensaje específico si se eliminaron ticket classes
       if (data.ticketClassesDeleted !== undefined) {

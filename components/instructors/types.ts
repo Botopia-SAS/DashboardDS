@@ -14,7 +14,6 @@ export interface User {
 export interface InstructorData {
   _id?: string;
   name?: string;
-  dni?: string;
   username?: string;
   email?: string;
   password?: string;

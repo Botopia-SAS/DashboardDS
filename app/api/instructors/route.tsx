@@ -22,7 +22,6 @@ export async function POST(req: Request) {
       experience,
       email,
       password,
-      dni,
       canTeachTicketClass,
       canTeachDrivingTest,
       canTeachDrivingLesson,
@@ -45,7 +44,6 @@ export async function POST(req: Request) {
       experience,
       email,
       password: hashedPassword,
-      dni,
       canTeachTicketClass: canTeachTicketClass || false,
       canTeachDrivingTest: canTeachDrivingTest || false,
       canTeachDrivingLesson: canTeachDrivingLesson || false,
@@ -113,7 +111,6 @@ export async function PATCH(req: Request) {
       instructorId,
       password,
       email,
-      dni,
       canTeachTicketClass,
       canTeachDrivingTest,
       canTeachDrivingLesson,
@@ -126,9 +123,9 @@ export async function PATCH(req: Request) {
         { status: 400 }
       );
     }
-    if (!email || !dni) {
+    if (!email) {
       return NextResponse.json(
-        { message: "Email and DNI are required" },
+        { message: "Email is required" },
         { status: 400 }
       );
     }
@@ -147,7 +144,6 @@ export async function PATCH(req: Request) {
       ...updates,
       email: email ? email.trim() : undefined,
       name: updates.name,
-      dni,
       canTeachTicketClass: canTeachTicketClass || false,
       canTeachDrivingTest: canTeachDrivingTest || false,
       canTeachDrivingLesson: canTeachDrivingLesson || false,
@@ -178,8 +174,10 @@ export async function PATCH(req: Request) {
         { $set: updateFields },
         { new: true, runValidators: true }
       );
-    } catch (err: any) {
-      if (err.code === 11000 && err.keyPattern && err.keyPattern.email) {
+    } catch (err: unknown) {
+      // Verificar si es un error de duplicado de email
+      const mongoError = err as { code?: number; keyPattern?: { email?: number } };
+      if (mongoError.code === 11000 && mongoError.keyPattern?.email) {
         return NextResponse.json(
           { message: "Email already exists" },
           { status: 409 }

@@ -8,9 +8,13 @@ import { Checkbox } from "../ui/checkbox";
 import ImageUpload from "../custom ui/ImageUpload";
 import { Button } from "@/components/ui/button";
 import { UseFormReturn } from "react-hook-form";
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { Eye, EyeOff } from "lucide-react";
+import Image from "next/image";
 import type { FieldValues } from "react-hook-form";
+
+// URL de la imagen por defecto
+const DEFAULT_AVATAR_URL = "https://res.cloudinary.com/dukysmhpu/image/upload/v1758735081/avatar_dknrvq.png";
 
 interface InstructorBasicInfoProps {
   form: UseFormReturn<FieldValues>;
@@ -21,6 +25,14 @@ const InstructorBasicInfo = ({ form, generatePassword }: InstructorBasicInfoProp
   // Estado para mostrar/ocultar contraseña
   const [showPassword, setShowPassword] = useState(false);
 
+  // Efecto para asignar imagen por defecto si no hay imagen
+  useEffect(() => {
+    const currentPhoto = form.getValues('photo');
+    if (!currentPhoto || (Array.isArray(currentPhoto) && currentPhoto.length === 0)) {
+      form.setValue('photo', DEFAULT_AVATAR_URL);
+    }
+  }, [form]);
+
   return (
     <div className="space-y-6">
       {/* Photo - Centered at top */}
@@ -30,13 +42,29 @@ const InstructorBasicInfo = ({ form, generatePassword }: InstructorBasicInfoProp
           name="photo"
           render={({ field }) => (
             <FormItem className="w-full max-w-sm">
-              <FormLabel className="text-center block">Photo</FormLabel>
+              <FormLabel className="text-center block">Photo (Optional)</FormLabel>
               <FormControl>
-                <div className="flex justify-center">
+                <div className="flex justify-center flex-col items-center gap-4">
+                  {!field.value || (Array.isArray(field.value) && field.value.length === 0) ? (
+                    <div className="w-[200px] h-[200px] bg-gray-100 rounded-lg flex items-center justify-center">
+                      <div className="text-center">
+                        <div className="w-20 h-20 mx-auto mb-2 flex items-center justify-center relative">
+                          <Image 
+                            src={DEFAULT_AVATAR_URL}
+                            alt="Default Avatar" 
+                            fill
+                            className="object-contain"
+                          />
+                        </div>
+                        <p className="text-sm text-gray-500">Default Avatar</p>
+                      </div>
+                    </div>
+                  ) : null}
                   <ImageUpload
                     value={Array.isArray(field.value) ? field.value : field.value ? [field.value] : []}
-                    onChange={(url) => field.onChange(url)}
-                    onRemove={() => field.onChange("")}
+                    onChange={(url) => field.onChange(url || DEFAULT_AVATAR_URL)}
+                    onRemove={() => field.onChange(DEFAULT_AVATAR_URL)}
+                    defaultImageUrl={DEFAULT_AVATAR_URL}
                   />
                 </div>
               </FormControl>
@@ -114,8 +142,8 @@ const InstructorBasicInfo = ({ form, generatePassword }: InstructorBasicInfoProp
         </div>
       </div>
 
-      {/* Name and DNI */}
-      <div className="grid grid-cols-2 gap-6">
+      {/* Name */}
+      <div className="max-w-md mx-auto">
         <FormField
           control={form.control}
           name="name"
@@ -124,20 +152,6 @@ const InstructorBasicInfo = ({ form, generatePassword }: InstructorBasicInfoProp
               <FormLabel>Name</FormLabel>
               <FormControl>
                 <Input placeholder="Instructor Name" {...field} />
-              </FormControl>
-              <FormMessage />
-            </FormItem>
-          )}
-        />
-
-        <FormField
-          control={form.control}
-          name="dni"
-          render={({ field }) => (
-            <FormItem>
-              <FormLabel>DNI</FormLabel>
-              <FormControl>
-                <Input placeholder="DNI" {...field} />
               </FormControl>
               <FormMessage />
             </FormItem>
