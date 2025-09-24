@@ -340,7 +340,38 @@ const TicketCalendar = ({ className, refreshKey, focusClassId, focusWeek, focusY
         
         // Verificar que tengamos hora
         const hour = tc.hour || "00:00";
-        const endHour = tc.endHour || "00:00";
+        
+        // Calcular endHour si no está definido o es vacío
+        let endHour = tc.endHour;
+        console.log(`🔍 Debug endHour - Original: "${tc.endHour}", Hour: "${hour}", ClassType: "${classType}"`);
+        
+        if (!endHour || endHour.trim() === "") {
+          // Si no hay endHour definido, calcular basado en la duración típica
+          // Parsear la hora de inicio
+          const [startHour, startMinute] = hour.split(':').map(num => parseInt(num, 10));
+          
+          // Duración por defecto: 2 horas
+          let durationHours = 2;
+          if (tc.duration) {
+            // Intentar extraer las horas de la duración (formato "2h", "1.5h", etc.)
+            const durationMatch = tc.duration.match(/(\d+(?:\.\d+)?)/);
+            if (durationMatch) {
+              durationHours = parseFloat(durationMatch[1]);
+            }
+          }
+          
+          // Calcular la hora de fin
+          const endHourNumber = startHour + durationHours;
+          const endMinuteNumber = startMinute;
+          
+          // Asegurarse de que no pase de 24 horas
+          const finalEndHour = Math.min(endHourNumber, 23);
+          
+          // Formatear como HH:MM
+          endHour = `${finalEndHour.toString().padStart(2, '0')}:${endMinuteNumber.toString().padStart(2, '0')}`;
+          
+          console.log(`⏰ Calculated endHour for ${classType}: ${hour} -> ${endHour} (duration: ${durationHours}h)`);
+        }
         
         // Determinar color según estado
         let backgroundColor = "#6b7280"; // gris por defecto
@@ -745,11 +776,23 @@ const TicketCalendar = ({ className, refreshKey, focusClassId, focusWeek, focusY
         borderColor = "#059669";
       }
       
+      // Calcular endHour correctamente
+      let calculatedEndHour = tc.endHour;
+      if (!calculatedEndHour || calculatedEndHour.trim() === "" || calculatedEndHour === "00:00") {
+        // Calcular endHour basado en hour + duration
+        const [startHour, startMinute] = (tc.hour || "00:00").split(':').map(num => parseInt(num, 10));
+        const durationHours = tc.duration ? parseFloat(tc.duration.match(/(\d+(?:\.\d+)?)/)?.[1] || "2") : 2;
+        const endHourNumber = Math.min(startHour + durationHours, 23);
+        calculatedEndHour = `${endHourNumber.toString().padStart(2, '0')}:${startMinute.toString().padStart(2, '0')}`;
+      }
+      
+      console.log(`🕐 Clase ${tc._id}: ${tc.hour} -> ${calculatedEndHour} (original endHour: ${tc.endHour})`);
+      
       return {
         id: tc._id,
         title: `${classType} - ${instructorName} - ${status} (${studentCount}/${totalSpots})`,
         start: `${dateStr}T${tc.hour || "00:00"}`,
-        end: `${dateStr}T${tc.endHour || "00:00"}`,
+        end: `${dateStr}T${calculatedEndHour}`,
         backgroundColor,
         borderColor,
         textColor: "#ffffff",

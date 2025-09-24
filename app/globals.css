@@ -1,9 +1,7 @@
-/* stylelint-disable at-rule-no-unknown */
-@import '../styles/ticket-slot-highlight.css';
 @tailwind base;
 @tailwind components;
 @tailwind utilities;
-
+ 
 html,
 body,
 :root {
