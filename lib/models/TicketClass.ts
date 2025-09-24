@@ -59,12 +59,12 @@ const TicketClassSchema = new mongoose.Schema({
   },
 });
 
+// Index to prevent the same instructor from having multiple classes at the same date/hour
+// This allows different instructors to teach at the same time
 TicketClassSchema.index(
-  { date: 1, hour: 1 },
+  { date: 1, hour: 1, instructorId: 1 },
   { unique: true }
 );
-
-TicketClassSchema.index({ date: 1, hour: 1, students: 1 }, { unique: true });
 
 // Indexes para evitar duplicados por fecha y clase
 TicketClassSchema.index({ date: 1, classId: 1 });
