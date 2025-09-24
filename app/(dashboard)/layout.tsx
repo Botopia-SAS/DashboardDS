@@ -9,10 +9,20 @@ export default function DashboardLayout({
 }>) {
   return (
     <ProtectedRoute>
-      <div className="flex max-lg:flex-col text-grey-1">
+      <div className="flex text-grey-1 min-h-screen">
+        {/* Desktop Sidebar */}
         <LeftSideBar />
-        <TopBar />
-        <div className="flex-1">{children}</div>
+        
+        {/* Main Content Area */}
+        <div className="flex-1 flex flex-col w-full overflow-x-hidden">
+          {/* Mobile TopBar */}
+          <TopBar />
+          
+          {/* Page Content */}
+          <div className="flex-1 p-4 lg:p-6 pt-4 lg:pt-6">
+            {children}
+          </div>
+        </div>
       </div>
     </ProtectedRoute>
   );

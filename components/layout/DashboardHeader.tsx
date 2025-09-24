@@ -13,9 +13,9 @@ export default function DashboardHeader({ title, children, variant = "dark" }: D
   const iconColor = variant === "dark" ? "text-white" : "text-gray-600";
   
   return (
-    <div className={`flex justify-between items-center px-4 py-2 rounded-lg shadow-md mb-4 ${bgColor}`}>
-      <h1 className="text-xl font-semibold">{title}</h1>
-      <div className="flex items-center gap-4">
+    <div className={`flex flex-col sm:flex-row sm:justify-between sm:items-center px-3 sm:px-4 py-3 rounded-lg shadow-md mb-4 gap-3 sm:gap-4 ${bgColor}`}>
+      <h1 className="text-lg sm:text-xl font-semibold">{title}</h1>
+      <div className="flex items-center gap-2 sm:gap-4 flex-wrap">
         {children}
         <GlobalNotifications iconColor={iconColor} />
       </div>
