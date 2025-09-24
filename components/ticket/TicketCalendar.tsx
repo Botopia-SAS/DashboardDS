@@ -193,6 +193,17 @@ const TicketCalendar = ({ className, refreshKey, focusClassId, focusWeek, focusY
         const studentCount = Array.isArray(tc.students) ? tc.students.length : 0;
         const totalSpots = tc.spots || 30;
         
+        // Obtener nombre del instructor
+        let instructorName = "Sin Asignar";
+        if (tc.instructorId) {
+          if (typeof tc.instructorId === 'object' && tc.instructorId.name) {
+            instructorName = tc.instructorId.name;
+          } else if (typeof tc.instructorId === 'string') {
+            instructorName = tc.instructorId;
+          }
+        }
+        console.log('👨‍🏫 Instructor name for this class:', instructorName);
+        
         // Determinar tipo de clase
         let classType = "Class";
         if (tc.type === "date") classType = "D.A.T.E";
@@ -243,7 +254,7 @@ const TicketCalendar = ({ className, refreshKey, focusClassId, focusWeek, focusY
         
         const event: TicketCalendarEvent = {
           id: tc._id || `ticket-${index}`,
-          title: `${classType} - ${status} (${studentCount}/${totalSpots})`,
+          title: `${classType} - ${instructorName} - ${status} (${studentCount}/${totalSpots})`,
           start: `${dateStr}T${hour}`,
           end: `${dateStr}T${endHour}`,
           backgroundColor,
@@ -414,17 +425,32 @@ const TicketCalendar = ({ className, refreshKey, focusClassId, focusWeek, focusY
       const tc = ticketClass as TicketClassResponse;
       const studentCount = Array.isArray(tc.students) ? tc.students.length : 0;
       const totalSpots = tc.spots || 30;
+      
       let classType = "Class";
       if (tc.type === "date") classType = "D.A.T.E";
       else if (tc.type === "bdi") classType = "B.D.I";
       else if (tc.type === "adi") classType = "A.D.I";
+      
       let status = "Available";
       if (tc.status === "full") status = "Full";
       else if (tc.status === "cancel") status = "Cancelled";
       else if (tc.status === "expired") status = "Expired";
+      
+      // Get instructor name
+      let instructorName = "Unknown";
+      if (typeof tc.instructorId === 'object' && tc.instructorId?.name) {
+        instructorName = tc.instructorId.name;
+      } else if (typeof tc.instructorId === 'string') {
+        // Try to find instructor name from loaded instructors
+        const instructor = instructors.find(inst => inst._id === tc.instructorId);
+        instructorName = instructor?.name || "Unknown";
+      }
+      
       const dateStr = tc.date?.slice(0, 10) || "";
+      
       let backgroundColor = "#6b7280";
       let borderColor = "#4b5563";
+      
       if (status === "Full") {
         backgroundColor = "#7c3aed";
         borderColor = "#6d28d9";
@@ -435,9 +461,10 @@ const TicketCalendar = ({ className, refreshKey, focusClassId, focusWeek, focusY
         backgroundColor = "#10b981";
         borderColor = "#059669";
       }
+      
       return {
         id: tc._id,
-        title: `${classType} - ${status} (${studentCount}/${totalSpots})`,
+        title: `${classType} - ${instructorName} - ${status} (${studentCount}/${totalSpots})`,
         start: `${dateStr}T${tc.hour || "00:00"}`,
         end: `${dateStr}T${tc.endHour || "00:00"}`,
         backgroundColor,
@@ -448,7 +475,8 @@ const TicketCalendar = ({ className, refreshKey, focusClassId, focusWeek, focusY
           classType,
           status,
           studentCount,
-          totalSpots
+          totalSpots,
+          instructorName
         }
       } as TicketCalendarEvent;
     });
@@ -534,73 +562,12 @@ const TicketCalendar = ({ className, refreshKey, focusClassId, focusWeek, focusY
       setIsModalOpen(false);
       
       // Recargar los eventos del calendario
-      const updatedResponse = await fetch("/api/ticket/calendar");
-      
-      if (!updatedResponse.ok) {
-        throw new Error(`Failed to refresh calendar: ${updatedResponse.status}`);
-      }
-      
-      const updatedData = await updatedResponse.json();
-      
-      if (!Array.isArray(updatedData)) {
-        console.error('❌ Expected array but got:', typeof updatedData);
-        return;
-      }
-      
-      const events = updatedData.map((ticketClass: unknown) => {
-        const tc = ticketClass as TicketClassResponse;
-        const studentCount = Array.isArray(tc.students) ? tc.students.length : 0;
-        const totalSpots = tc.spots || 30;
-        
-        let classType = "Class";
-        if (tc.type === "date") classType = "D.A.T.E";
-        else if (tc.type === "bdi") classType = "B.D.I";
-        else if (tc.type === "adi") classType = "A.D.I";
-        
-        let status = "Available";
-        if (tc.status === "full") status = "Full";
-        else if (tc.status === "cancel") status = "Cancelled";
-        else if (tc.status === "expired") status = "Expired";
-        
-        const dateStr = tc.date?.slice(0, 10) || "";
-        
-        let backgroundColor = "#6b7280";
-        let borderColor = "#4b5563";
-        
-        if (status === "Full") {
-          backgroundColor = "#7c3aed";
-          borderColor = "#6d28d9";
-        } else if (status === "Cancelled") {
-          backgroundColor = "#ef4444";
-          borderColor = "#dc2626";
-        } else if (status === "Available") {
-          backgroundColor = "#10b981";
-          borderColor = "#059669";
-        }
-        
-        return {
-          id: tc._id,
-          title: `${classType} - ${status} (${studentCount}/${totalSpots})`,
-          start: `${dateStr}T${tc.hour || "00:00"}`,
-          end: `${dateStr}T${tc.endHour || "00:00"}`,
-          backgroundColor,
-          borderColor,
-          textColor: "#ffffff",
-          extendedProps: {
-            ticketClass: tc,
-            classType,
-            status,
-            studentCount,
-            totalSpots
-          }
-        } as TicketCalendarEvent;
-      });
-      
-      setCalendarEvents(events);
+      await refreshCalendar();
       
     } catch (error) {
       console.error('❌ Error creating TicketClass:', error);
-      alert(`❌ Error creating TicketClass: ${error instanceof Error ? error.message : 'Unknown error'}`);
+      // Re-throw the error so the modal can handle it
+      throw error;
     }
   };
 
