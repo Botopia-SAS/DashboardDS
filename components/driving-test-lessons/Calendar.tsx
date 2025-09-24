@@ -10,9 +10,10 @@ interface CalendarProps {
   selectedInstructor?: any;
   targetDate?: string | null;
   targetType?: string | null;
+  targetEventId?: string | null;
 }
 
-const Calendar: React.FC<CalendarProps> = ({ selectedInstructor, targetDate, targetType }) => {
+const Calendar: React.FC<CalendarProps> = ({ selectedInstructor, targetDate, targetType, targetEventId }) => {
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [selectedDate, setSelectedDate] = useState<string>("");
   const [selectedTime, setSelectedTime] = useState<string>("");
@@ -91,22 +92,50 @@ const Calendar: React.FC<CalendarProps> = ({ selectedInstructor, targetDate, tar
     fetchEvents();
   }, [selectedInstructor?._id]);
 
-  // Efecto para navegar a la fecha objetivo desde notificaciones
+  // Efecto para navegar a la fecha objetivo desde notificaciones y resaltar evento específico
   useEffect(() => {
     if (targetDate && calendarRef.current) {
-      console.log(`🎯 Navigating to target date: ${targetDate}, type: ${targetType}`);
+      console.log(`🎯 Navigating to target date: ${targetDate}, type: ${targetType}, eventId: ${targetEventId}`);
       const calendarApi = calendarRef.current.getApi();
       calendarApi.gotoDate(targetDate);
-      
-      // Opcional: resaltar el día específico o agregar algún indicador visual
-      setTimeout(() => {
-        const targetDateElement = document.querySelector(`[data-date="${targetDate}"]`);
-        if (targetDateElement) {
-          targetDateElement.scrollIntoView({ behavior: 'smooth', block: 'center' });
-        }
-      }, 100);
+
+      // Resaltar el evento específico si se proporciona el eventId
+      if (targetEventId) {
+        setTimeout(() => {
+          const targetEventElement = document.querySelector(`[data-event-id="${targetEventId}"]`) ||
+                                  document.querySelector(`a[href*="${targetEventId}"]`) ||
+                                  document.querySelector(`.fc-event[data-event-id="${targetEventId}"]`);
+
+          if (targetEventElement) {
+            // Scroll al evento específico
+            targetEventElement.scrollIntoView({ behavior: 'smooth', block: 'center' });
+
+            // Añadir clase de resaltado
+            targetEventElement.classList.add('highlight-notification-event');
+
+            // Remover el resaltado después de 5 segundos
+            setTimeout(() => {
+              targetEventElement.classList.remove('highlight-notification-event');
+            }, 5000);
+          } else {
+            // Si no encontramos el elemento específico, al menos hacemos scroll a la fecha
+            const targetDateElement = document.querySelector(`[data-date="${targetDate}"]`);
+            if (targetDateElement) {
+              targetDateElement.scrollIntoView({ behavior: 'smooth', block: 'center' });
+            }
+          }
+        }, 500); // Aumentamos el delay para asegurar que los eventos se hayan renderizado
+      } else {
+        // Si no hay eventId específico, solo navegamos a la fecha
+        setTimeout(() => {
+          const targetDateElement = document.querySelector(`[data-date="${targetDate}"]`);
+          if (targetDateElement) {
+            targetDateElement.scrollIntoView({ behavior: 'smooth', block: 'center' });
+          }
+        }, 100);
+      }
     }
-  }, [targetDate, targetType]);
+  }, [targetDate, targetType, targetEventId, events]); // Añadimos events como dependencia
 
 
 
@@ -315,7 +344,7 @@ const Calendar: React.FC<CalendarProps> = ({ selectedInstructor, targetDate, tar
 
   const renderEventContent = (eventInfo: any) => {
     return (
-      <div className="cursor-pointer">
+      <div className="cursor-pointer" data-event-id={eventInfo.event.id}>
         {eventInfo.event.title}
       </div>
     );
@@ -347,12 +376,33 @@ const Calendar: React.FC<CalendarProps> = ({ selectedInstructor, targetDate, tar
 
   return (
     <div className="w-full">
-      <style jsx>{`
+      <style jsx global>{`
         .fc-event {
           cursor: pointer !important;
         }
         .fc-event:hover {
           opacity: 0.8;
+        }
+        .highlight-notification-event {
+          animation: highlightPulse 2s ease-in-out 3;
+          box-shadow: 0 0 20px rgba(59, 130, 246, 0.8) !important;
+          border: 2px solid #3B82F6 !important;
+          z-index: 1000 !important;
+          position: relative !important;
+        }
+        @keyframes highlightPulse {
+          0% {
+            transform: scale(1);
+            box-shadow: 0 0 20px rgba(59, 130, 246, 0.8);
+          }
+          50% {
+            transform: scale(1.05);
+            box-shadow: 0 0 30px rgba(59, 130, 246, 1);
+          }
+          100% {
+            transform: scale(1);
+            box-shadow: 0 0 20px rgba(59, 130, 246, 0.8);
+          }
         }
       `}</style>
       

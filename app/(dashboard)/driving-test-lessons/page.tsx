@@ -38,13 +38,14 @@ export default function DrivingTestLessonsPage() {
     const instructorId = searchParams.get('instructorId');
     const targetDate = searchParams.get('date');
     const targetType = searchParams.get('type');
-    
+    const eventId = searchParams.get('eventId');
+
     if (instructorId && instructors.length > 0) {
       const targetInstructor = instructors.find(inst => inst._id === instructorId);
       if (targetInstructor && !selectedInstructor) {
         console.log(`🎯 Auto-selecting instructor from notification: ${targetInstructor.name}`);
         if (targetDate) {
-          console.log(`📅 Target date: ${targetDate}, type: ${targetType}`);
+          console.log(`📅 Target date: ${targetDate}, type: ${targetType}, eventId: ${eventId}`);
         }
         handleInstructorSelect(targetInstructor);
       }
@@ -180,10 +181,11 @@ export default function DrivingTestLessonsPage() {
                 {selectedInstructor.email}
               </p>
             </div>
-            <Calendar 
-              selectedInstructor={selectedInstructor} 
+            <Calendar
+              selectedInstructor={selectedInstructor}
               targetDate={searchParams.get('date')}
               targetType={searchParams.get('type')}
+              targetEventId={searchParams.get('eventId')}
             />
         </div>
         )}
