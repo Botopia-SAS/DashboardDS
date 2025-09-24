@@ -7,7 +7,9 @@ export async function GET() {
   try {
     const orders = await Order.find({}).lean();
     const userIds = Array.from(new Set(orders.map((o) => o.userId?.toString?.() ?? o.user_id?.toString?.()))).filter(Boolean);
-    const usersArr = await User.find({ _id: { $in: userIds } }).lean();
+    const usersArr = await User.find({ _id: { $in: userIds } })
+      .select('firstName lastName email phoneNumber')
+      .lean();
     const usersMap = Object.fromEntries(usersArr.map((u) => [u._id.toString(), u]));
 
     const serialized = orders.map((order) => {
@@ -24,8 +26,9 @@ export async function GET() {
               firstName: user.firstName || '-',
               lastName: user.lastName || '-',
               email: user.email || '-',
+              phoneNumber: user.phoneNumber || undefined,
             }
-          : { firstName: '-', lastName: '-', email: '-' },
+          : { firstName: '-', lastName: '-', email: '-', phoneNumber: undefined },
         items: Array.isArray(order.items)
           ? order.items.map((item) => ({
               id: item.id,

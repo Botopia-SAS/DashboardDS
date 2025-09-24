@@ -182,12 +182,6 @@ function ConsolePage() {
       <DashboardHeader title="Console Dashboard">
         <div className="flex gap-2 sm:gap-6 items-center flex-wrap">
           <Link
-            href="/console/user"
-            className="px-2 sm:px-4 py-2 text-sm rounded-lg hover:bg-gray-700"
-          >
-            Users
-          </Link>
-          <Link
             href="/console/analytics"
             className="px-2 sm:px-4 py-2 text-sm rounded-lg hover:bg-gray-700"
           >

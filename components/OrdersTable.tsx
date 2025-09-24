@@ -4,10 +4,10 @@ import useSWR from 'swr'
 import { Table, TableHeader, TableBody, TableHead, TableRow, TableCell } from './ui/table'
 import { Badge } from './ui/badge'
 import { Button } from './ui/button'
-import { Card, CardContent } from './ui/card'
-import { Eye, Package, User, Calendar, DollarSign, Filter } from 'lucide-react'
+import { Eye, Package, Calendar, DollarSign } from 'lucide-react'
+import { Order } from '@/types/order'
 
-function filterOrders(orders: any[], query: string, status: string) {
+function filterOrders(orders: Order[], query: string, status: string) {
   if (!query && !status) return orders
   return orders.filter(order => {
     const name = `${order.user?.firstName ?? ''} ${order.user?.lastName ?? ''}`.toLowerCase()
@@ -45,14 +45,14 @@ function getStatusBadge(status: string) {
   }
 }
 
-export default function OrdersTable({ orders: initialOrders }: { orders: any[] }) {
+export default function OrdersTable({ orders: initialOrders }: { orders: Order[] }) {
   const { data: orders = initialOrders } = useSWR('/api/orders', fetcher, { refreshInterval: 5000, fallbackData: initialOrders })
   const [query, setQuery] = useState('')
   const [status, setStatus] = useState('')
   const [expandedOrder, setExpandedOrder] = useState<string | null>(null)
   
   const filtered = filterOrders(orders, query, status)
-  const uniqueStatuses = Array.from(new Set(orders.map((o: any) => o.estado || o.status)))
+  const uniqueStatuses = Array.from(new Set(orders.map((o: Order) => o.estado || o.status)))
 
   const toggleOrderDetails = (orderId: string) => {
     setExpandedOrder(expandedOrder === orderId ? null : orderId)
@@ -106,7 +106,7 @@ export default function OrdersTable({ orders: initialOrders }: { orders: any[] }
                 </TableCell>
             </TableRow>
           )}
-          {filtered.map((order: any) => (
+          {filtered.map((order: Order) => (
               <React.Fragment key={order._id}>
                 <TableRow className="hover:bg-muted/50 transition-colors">
                   <TableCell>
@@ -119,23 +119,27 @@ export default function OrdersTable({ orders: initialOrders }: { orders: any[] }
                   </TableCell>
                   
                   <TableCell>
-                    <div className="flex items-center gap-2">
-                      <div className="flex h-8 w-8 items-center justify-center rounded-full bg-muted">
-                        <User className="h-4 w-4" />
+                    <div>
+                      <div className="font-medium">
+                        {order.user?.firstName} {order.user?.lastName}
                       </div>
-                      <div>
-                        <div className="font-medium">
-                          {order.user?.firstName} {order.user?.lastName}
-                        </div>
+                      <div className="text-sm text-muted-foreground">
+                        {order.user?.email}
+                      </div>
+                      {order.user?.phoneNumber ? (
                         <div className="text-sm text-muted-foreground">
-                          {order.user?.email}
+                          {order.user.phoneNumber}
                         </div>
-                      </div>
+                      ) : (
+                        <div className="text-xs text-gray-400">
+                          No phone number
+                        </div>
+                      )}
                     </div>
                   </TableCell>
                   
                   <TableCell>
-                    {getStatusBadge(order.estado || order.status)}
+                    {getStatusBadge(order.estado || order.status || 'unknown')}
                   </TableCell>
                   
                   <TableCell>
@@ -156,7 +160,7 @@ export default function OrdersTable({ orders: initialOrders }: { orders: any[] }
                     <div className="flex items-center gap-1">
                       <DollarSign className="h-4 w-4 text-green-600" />
                       <span className="font-bold text-green-600">
-                        ${order.total?.toFixed(2) ?? '0.00'}
+                        {order.total?.toFixed(2) ?? '0.00'}
                       </span>
                     </div>
                   </TableCell>
@@ -192,8 +196,8 @@ export default function OrdersTable({ orders: initialOrders }: { orders: any[] }
                           Order Items
                         </h4>
                         <div className="grid gap-3">
-                          {order.items?.length > 0 ? (
-                            order.items.map((item: any, idx: number) => (
+                          {order.items && order.items.length > 0 ? (
+                            order.items.map((item, idx: number) => (
                               <div key={order._id + '-item-' + idx} className="flex items-center justify-between p-3 bg-background rounded-lg border">
                                 <div className="flex-1">
                                   <div className="font-medium">{item.title}</div>
@@ -202,9 +206,12 @@ export default function OrdersTable({ orders: initialOrders }: { orders: any[] }
                                   </div>
                                 </div>
                                 <div className="text-right">
-                                  <div className="font-bold">${item.price?.toFixed(2)}</div>
+                                  <div className="font-bold flex items-center gap-1">
+                                    <DollarSign className="h-3 w-3 text-green-600" />
+                                    {(item.price * item.quantity).toFixed(2)}
+                                  </div>
                                   <div className="text-sm text-muted-foreground">
-                                    ${(item.price * item.quantity).toFixed(2)} total
+                                    {item.price?.toFixed(2)} each
                                   </div>
                                 </div>
                               </div>
