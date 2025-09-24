@@ -244,6 +244,9 @@ export default function DrivingLessonsNotifications({ isOpen }: DrivingLessonsNo
   }, []);
 
   const formatTime = (timestamp: string) => {
+    if (!timestamp || isNaN(new Date(timestamp).getTime())) {
+      return '';
+    }
     return new Date(timestamp).toLocaleString('en-US', {
       day: '2-digit',
       month: '2-digit',
@@ -303,7 +306,11 @@ export default function DrivingLessonsNotifications({ isOpen }: DrivingLessonsNo
                   <div className="flex items-center justify-between bg-gray-50 rounded p-2">
                     <div className="flex items-center gap-3">
                       <div>
-                        <p className="text-gray-900 font-semibold text-sm">{new Date(notification.date).toLocaleDateString()}</p>
+                        <p className="text-gray-900 font-semibold text-sm">
+                          {notification.date && !isNaN(new Date(notification.date).getTime()) 
+                            ? new Date(notification.date).toLocaleDateString() 
+                            : ''}
+                        </p>
                         <p className="text-gray-600 text-xs">{notification.start} - {notification.end}</p>
                       </div>
                       <div className="flex items-center gap-1.5">
