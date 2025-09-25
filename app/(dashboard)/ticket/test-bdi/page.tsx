@@ -56,6 +56,16 @@ export default function BdiCertificateGenerator() {
   const [studentSearchTerm, setStudentSearchTerm] = useState<string>("");
   const [loading, setLoading] = useState(false);
 
+  // School information fields
+  const [schoolName, setSchoolName] = useState<string>("AFFORDABLE DRIVING TRAFFIC SCHOOL");
+  const [schoolPhone, setSchoolPhone] = useState<string>("5619690150");
+  const [schoolLocation, setSchoolLocation] = useState<string>("Florida");
+  const [courseProvider, setCourseProvider] = useState<string>("DRIVESAFELY");
+  const [providerPhone, setProviderPhone] = useState<string>("7024857907");
+
+  // Driver's license number override
+  const [driversLicenseNumber, setDriversLicenseNumber] = useState<string>("");
+
   const { downloadBdiCertificate } = useBdiCertificateDownloader();
 
   // Fetch BDI-type classes
@@ -176,11 +186,12 @@ export default function BdiCertificateGenerator() {
         }),
         citationNumber: "",
         citationCounty: "",
-        courseProvider: "DRIVESAFELY",
-        providerPhone: "7024857907",
-        schoolName: "AFFORDABLE DRIVING TRAFFIC SCHOOL",
-        schoolPhone: "5619690150",
-        driversLicenseNumber: selectedStudentData.licenseNumber || "",
+        courseProvider: courseProvider,
+        providerPhone: providerPhone,
+        schoolName: schoolName,
+        schoolPhone: schoolPhone,
+        schoolLocation: schoolLocation,
+        driversLicenseNumber: driversLicenseNumber || selectedStudentData.licenseNumber || "",
         studentName: `${selectedStudentData.lastName?.toUpperCase() || ''}, ${selectedStudentData.firstName?.toUpperCase() || ''}`,
         dateOfBirth: selectedStudentData.birthDate ? new Date(selectedStudentData.birthDate).toLocaleDateString('en-US') : "",
         reasonAttending: "BDI Course Completion"
@@ -225,6 +236,7 @@ export default function BdiCertificateGenerator() {
         setSelectedStudent("");
         setCertificateNumber("");
         setStudentSearchTerm("");
+        setDriversLicenseNumber("");
       } else {
         alert('Failed to generate certificate. Please try again.');
       }
@@ -395,6 +407,89 @@ export default function BdiCertificateGenerator() {
             />
           </div>
 
+          {/* Driver's License Number Override */}
+          <div className="space-y-2">
+            <Label htmlFor="license-number" className="text-sm font-medium">
+              Driver's License Number
+            </Label>
+            <Input
+              id="license-number"
+              placeholder="Enter driver's license number (optional - overrides student record)"
+              value={driversLicenseNumber}
+              onChange={(e) => setDriversLicenseNumber(e.target.value)}
+            />
+            <p className="text-xs text-gray-500">
+              Leave empty to use the license number from student record
+            </p>
+          </div>
+
+          {/* School Information Section */}
+          <div className="space-y-4">
+            <h4 className="font-medium text-gray-800 border-b pb-2">School Information</h4>
+
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+              <div className="space-y-2">
+                <Label htmlFor="school-name" className="text-sm font-medium">
+                  School Name
+                </Label>
+                <Input
+                  id="school-name"
+                  placeholder="Enter school name"
+                  value={schoolName}
+                  onChange={(e) => setSchoolName(e.target.value)}
+                />
+              </div>
+
+              <div className="space-y-2">
+                <Label htmlFor="school-phone" className="text-sm font-medium">
+                  School Phone
+                </Label>
+                <Input
+                  id="school-phone"
+                  placeholder="Enter school phone number"
+                  value={schoolPhone}
+                  onChange={(e) => setSchoolPhone(e.target.value)}
+                />
+              </div>
+
+              <div className="space-y-2">
+                <Label htmlFor="school-location" className="text-sm font-medium">
+                  School Location
+                </Label>
+                <Input
+                  id="school-location"
+                  placeholder="Enter school location"
+                  value={schoolLocation}
+                  onChange={(e) => setSchoolLocation(e.target.value)}
+                />
+              </div>
+
+              <div className="space-y-2">
+                <Label htmlFor="course-provider" className="text-sm font-medium">
+                  Course Provider
+                </Label>
+                <Input
+                  id="course-provider"
+                  placeholder="Enter course provider name"
+                  value={courseProvider}
+                  onChange={(e) => setCourseProvider(e.target.value)}
+                />
+              </div>
+
+              <div className="space-y-2">
+                <Label htmlFor="provider-phone" className="text-sm font-medium">
+                  Provider Phone
+                </Label>
+                <Input
+                  id="provider-phone"
+                  placeholder="Enter provider phone number"
+                  value={providerPhone}
+                  onChange={(e) => setProviderPhone(e.target.value)}
+                />
+              </div>
+            </div>
+          </div>
+
           {/* Class and Student Info Summary */}
           {selectedClassData && selectedStudentData && certificateNumber && (
             <Card className="bg-blue-50 border-blue-200">
@@ -448,6 +543,30 @@ export default function BdiCertificateGenerator() {
                           month: 'long',
                           day: 'numeric'
                         })}
+                      </div>
+                      {(driversLicenseNumber || selectedStudentData.licenseNumber) && (
+                        <div className="text-sm text-gray-600">
+                          License Number: {driversLicenseNumber || selectedStudentData.licenseNumber}
+                        </div>
+                      )}
+                    </div>
+                  </div>
+
+                  {/* School Info */}
+                  <div className="bg-white p-3 rounded border">
+                    <h5 className="font-medium text-gray-800 mb-2 text-center">School Information</h5>
+                    <div className="text-center space-y-1">
+                      <div className="font-semibold text-gray-900">
+                        {schoolName}
+                      </div>
+                      <div className="text-sm text-gray-600">
+                        Phone: {schoolPhone}
+                      </div>
+                      <div className="text-sm text-gray-600">
+                        Location: {schoolLocation}
+                      </div>
+                      <div className="text-sm text-gray-600">
+                        Provider: {courseProvider} ({providerPhone})
                       </div>
                     </div>
                   </div>
