@@ -31,6 +31,7 @@ export async function POST(req: Request) {
       buttonLabel: body.buttonLabel,
       image: body.image,
       headquarters: body.headquarters, // 🚀 Se almacena en MongoDB
+      classType: body.classType, // 🚀 Tipo de clase
     });
 
     await newClass.save();

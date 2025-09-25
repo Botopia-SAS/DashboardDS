@@ -104,6 +104,11 @@ export default function Pages() {
                     title="Utilities / Records"
                     description="Access common utilities and records"
                   />
+                  <Navigation
+                    href="/ticket/test-date"
+                    title="📄 Test D.A.T.E. Certificate"
+                    description="Test and generate D.A.T.E. certificates"
+                  />
                 </div>
                 <div className="mt-8">
                   <TicketCalendar

@@ -98,6 +98,22 @@ body,
   }
 }
 
+/* Ensure modal dialogs are not transparent */
+[data-radix-dialog-content] {
+  background-color: white !important;
+  opacity: 1 !important;
+}
+
+[data-radix-dialog-overlay] {
+  background-color: rgba(0, 0, 0, 0.5) !important;
+}
+
+/* Fix modal dialog transparency issues */
+.dialog-content {
+  background-color: white !important;
+  backdrop-filter: none !important;
+}
+
 @media (max-width: 640px) {
   /* Small mobile adjustments */
   .mobile-nav-dropdown {

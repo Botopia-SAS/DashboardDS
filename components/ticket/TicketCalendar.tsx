@@ -286,10 +286,10 @@ const TicketCalendar = ({ className, refreshKey, focusClassId, focusWeek, focusY
         return;
       }
       
-      // No filtrar - mostrar todas las clases de todos los tipos
+      // Mostrar todas las clases sin filtrar - el calendario debe mostrar todo
       const filteredData = data;
       
-      console.log(`🔍 Showing all ticket classes:`, filteredData.length);
+      console.log(`🔍 Showing ALL ticket classes:`, filteredData.length);
       
       // Convertir ticketClasses a eventos del calendario
       const events = filteredData.map((ticketClass: unknown, index: number) => {
@@ -434,22 +434,36 @@ const TicketCalendar = ({ className, refreshKey, focusClassId, focusWeek, focusY
       fetchTicketClasses();
     };
 
+    const handleStudentUpdate = () => {
+      console.log('🔄 Calendar refresh triggered from student update');
+      fetchTicketClasses();
+    };
+
+    const handleTicketUpdate = () => {
+      console.log('🔄 Calendar refresh triggered from ticket update');
+      fetchTicketClasses();
+    };
+
     // Escuchar eventos personalizados
     window.addEventListener('calendarRefresh', handleCalendarRefresh);
-    
+    window.addEventListener('studentRequestUpdate', handleStudentUpdate);
+    window.addEventListener('ticketClassUpdate', handleTicketUpdate);
+
     // También escuchar cambios en el localStorage como backup
     const handleStorageChange = (e: StorageEvent) => {
-      if (e.key === 'calendarNeedsRefresh') {
-        console.log('🔄 Calendar refresh triggered from localStorage');
+      if (e.key === 'calendarNeedsRefresh' || e.key === 'studentRequestUpdate' || e.key === 'ticketUpdate') {
+        console.log('🔄 Calendar refresh triggered from localStorage:', e.key);
         fetchTicketClasses();
-        localStorage.removeItem('calendarNeedsRefresh');
+        localStorage.removeItem(e.key);
       }
     };
-    
+
     window.addEventListener('storage', handleStorageChange);
 
     return () => {
       window.removeEventListener('calendarRefresh', handleCalendarRefresh);
+      window.removeEventListener('studentRequestUpdate', handleStudentUpdate);
+      window.removeEventListener('ticketClassUpdate', handleTicketUpdate);
       window.removeEventListener('storage', handleStorageChange);
     };
   }, []);
@@ -707,7 +721,7 @@ const TicketCalendar = ({ className, refreshKey, focusClassId, focusWeek, focusY
       return;
     }
     
-    // No filtrar - mostrar todas las clases de todos los tipos
+    // Mostrar todas las clases sin filtrar - el calendario debe mostrar todo
     const filteredData = updatedData;
     
     const events = filteredData.map((ticketClass: unknown) => {
@@ -792,13 +806,10 @@ const TicketCalendar = ({ className, refreshKey, focusClassId, focusWeek, focusY
         throw new Error(data.error || 'Failed to delete TicketClass');
       }
       setIsModalOpen(false);
-      
-      // Solo recargar el calendario si NO estamos dentro de un ticket específico
-      if (!focusClassId) {
-        await refreshCalendar();
-      } else {
-        console.log('Ticket eliminado dentro de clase específica, manteniendo estado');
-      }
+
+      // SIEMPRE actualizar el calendario después de eliminar un ticket
+      console.log('🔄 Updating calendar after ticket deletion');
+      await refreshCalendar();
     } catch (error) {
       console.error('❌ Error deleting TicketClass:', error);
       alert(`❌ Error deleting TicketClass: ${error instanceof Error ? error.message : 'Unknown error'}`);
@@ -867,16 +878,11 @@ const TicketCalendar = ({ className, refreshKey, focusClassId, focusWeek, focusY
         }
       }
       setIsModalOpen(false);
-      
-      // Solo recargar el calendario si NO estamos dentro de un ticket específico
-      // Si focusClassId existe, significa que estamos dentro de un ticket específico
-      if (!focusClassId) {
-        await refreshCalendar();
-      } else {
-        // Si estamos dentro de un ticket específico, mantener el slot seleccionado visualmente
-        console.log('Ticket creado dentro de clase específica, manteniendo selección visual');
-      }
-      
+
+      // SIEMPRE actualizar el calendario después de crear un ticket
+      console.log('🔄 Updating calendar after ticket creation');
+      await refreshCalendar();
+
     } catch (error) {
       console.error('❌ Error creating TicketClass:', error);
       // Re-throw the error so the modal can handle it

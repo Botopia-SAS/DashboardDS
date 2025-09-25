@@ -176,14 +176,9 @@ export async function PATCH(req: NextRequest) {
           );
         }
 
-        // Create an order for this payment
-        const order = await Order.create({
-          user_id: user._id,
-          course_id: classId,
-          fee: payedAmount,
-          status: "paid",
-        });
-
+        // Para pagos de certificados, NO creamos una orden automáticamente
+        // Solo creamos el registro de pago sin asociarlo a ninguna orden
+        
         // Check if there's an existing payment record to update
         const payment = await Payment.findOne({ user_id: user._id }).exec();
         if (payment) {
@@ -195,12 +190,12 @@ export async function PATCH(req: NextRequest) {
         } else {
           // If no payment method is provided, use a default
           const method = paymentMethod || "Other";
-          // Create a new payment record
+          // Create a new payment record WITHOUT creating an order
           await Payment.create({
             user_id: user._id,
             amount: payedAmount,
             method: method,
-            order: order._id,
+            // No incluimos order: order._id para evitar crear la relación con una orden
           });
         }
       }
@@ -233,8 +228,14 @@ export async function PATCH(req: NextRequest) {
         await cert.save();
       } else {
         // Verificar si existe un pago válido antes de crear un certificado
+        // Buscar pago válido directamente en la tabla Payment
+        const existingPayment = await Payment.findOne({
+          user_id: user._id,
+          amount: requiredAmount,
+        }).exec();
+        
         if (
-          !existingOrder &&
+          !existingPayment &&
           (!payedAmount || payedAmount !== requiredAmount)
         ) {
           return NextResponse.json(

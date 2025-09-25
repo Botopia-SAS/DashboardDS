@@ -5,6 +5,7 @@ import { Calendar } from "lucide-react";
 import { useRouter } from "next/navigation";
 import { useCalendarRefresh } from "@/hooks/useCalendarRefresh";
 import { useNotificationContext } from "@/contexts/NotificationContext";
+import { triggerStudentRequestUpdate, refreshTicketCalendar } from "@/lib/calendarEvents";
 
 interface StudentRequest {
   _id: string;
@@ -79,9 +80,13 @@ export default function TicketNotifications({ isOpen }: TicketNotificationsProps
       if (response.ok) {
         // Refresh notifications
         fetchTicketNotifications();
-        
+
         // Trigger calendar refresh
         refreshCalendar();
+
+        // Trigger global calendar refresh events
+        refreshTicketCalendar();
+        triggerStudentRequestUpdate();
       }
     } catch (error) {
       console.error('Error accepting request:', error);
@@ -102,9 +107,13 @@ export default function TicketNotifications({ isOpen }: TicketNotificationsProps
       if (response.ok) {
         // Refresh notifications
         fetchTicketNotifications();
-        
+
         // Trigger calendar refresh
         refreshCalendar();
+
+        // Trigger global calendar refresh events
+        refreshTicketCalendar();
+        triggerStudentRequestUpdate();
       }
     } catch (error) {
       console.error('Error rejecting request:', error);
