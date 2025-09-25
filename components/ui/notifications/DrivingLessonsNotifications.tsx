@@ -3,6 +3,7 @@
 import { useState, useEffect } from "react";
 import { GraduationCap } from "lucide-react";
 import { useRouter } from "next/navigation";
+import { useNotificationContext } from "@/contexts/NotificationContext";
 
 interface DrivingLessonNotification {
   id: string;
@@ -357,6 +358,7 @@ export default function DrivingLessonsNotifications({ isOpen }: DrivingLessonsNo
 
 export function useDrivingLessonsNotificationsCount() {
   const [count, setCount] = useState(0);
+  const { notifications } = useNotificationContext();
 
   const fetchCount = async () => {
     try {
@@ -388,7 +390,18 @@ export function useDrivingLessonsNotificationsCount() {
     }
   };
 
-  // Escuchar eventos de actualización global
+  // Actualizar automáticamente cuando lleguen notificaciones SSE
+  useEffect(() => {
+    if (notifications.length > 0) {
+      const latestNotification = notifications[notifications.length - 1];
+      if (latestNotification.type === 'driving-lessons') {
+        console.log('🎓 Driving lesson notification received, updating count');
+        fetchCount();
+      }
+    }
+  }, [notifications]);
+
+  // Escuchar eventos de actualización global (mantener compatibilidad)
   useEffect(() => {
     const handleGlobalRefresh = () => {
       console.log('🔄 Global driving lessons count refresh received');
