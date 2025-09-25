@@ -5,7 +5,7 @@ const PaymentsSchema = new Schema({
   order : {
     type: Schema.Types.ObjectId,
     ref: "Order",
-    required: true,
+    required: false, // Hacerlo opcional para permitir pagos de certificados sin orden
   },
   user_id: {
     type: Schema.Types.ObjectId,

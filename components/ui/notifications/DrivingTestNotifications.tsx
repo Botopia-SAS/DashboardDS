@@ -3,6 +3,7 @@
 import { useState, useEffect } from "react";
 import { Car } from "lucide-react";
 import { useRouter } from "next/navigation";
+import { useNotificationContext } from "@/contexts/NotificationContext";
 
 interface DrivingTestNotification {
   id: string;
@@ -374,6 +375,7 @@ export default function DrivingTestNotifications({ isOpen }: DrivingTestNotifica
 
 export function useDrivingTestNotificationsCount() {
   const [count, setCount] = useState(0);
+  const { notifications } = useNotificationContext();
 
   const fetchCount = async () => {
     try {
@@ -405,7 +407,18 @@ export function useDrivingTestNotificationsCount() {
     }
   };
 
-  // Escuchar eventos de actualización global
+  // Actualizar automáticamente cuando lleguen notificaciones SSE
+  useEffect(() => {
+    if (notifications.length > 0) {
+      const latestNotification = notifications[notifications.length - 1];
+      if (latestNotification.type === 'driving-test') {
+        console.log('🚗 Driving test notification received, updating count');
+        fetchCount();
+      }
+    }
+  }, [notifications]);
+
+  // Escuchar eventos de actualización global (mantener compatibilidad)
   useEffect(() => {
     const handleGlobalRefresh = () => {
       console.log('🔄 Global driving test count refresh received');
@@ -413,7 +426,7 @@ export function useDrivingTestNotificationsCount() {
     };
 
     window.addEventListener('notificationRefresh', handleGlobalRefresh);
-    
+
     return () => {
       window.removeEventListener('notificationRefresh', handleGlobalRefresh);
     };

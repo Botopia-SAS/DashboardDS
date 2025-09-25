@@ -32,6 +32,7 @@ const formSchema = z.object({
   buttonLabel: z.string().min(1).max(20),
   image: z.string().optional(),
   headquarters: z.array(z.string()).min(1, "Please select at least one headquarters"),
+  classType: z.enum(["date", "bdi", "adi"]).default("date"),
 });
 
 interface FormProps {
@@ -47,6 +48,7 @@ interface FormProps {
     buttonLabel: string;
     image?: string;
     headquarters?: string[];
+    classType?: string;
   } | null;
 }
 
@@ -116,6 +118,7 @@ const CustomForm: React.FC<FormProps> = ({ initialData }) => {
       buttonLabel: initialData?.buttonLabel || "",
       image: initialData?.image || "",
       headquarters: initialData?.headquarters ?? [], // ✅ Asegura que sea un array
+      classType: (initialData?.classType as "date" | "bdi" | "adi") ?? "date",
     },
   });
 
@@ -181,6 +184,28 @@ const CustomForm: React.FC<FormProps> = ({ initialData }) => {
                 <FormLabel>Title</FormLabel>
                 <FormControl>
                   <Input {...field} placeholder="Enter title" />
+                </FormControl>
+                <FormMessage />
+              </FormItem>
+            )}
+          />
+
+          {/* 🔹 CLASS TYPE */}
+          <FormField
+            control={form.control}
+            name="classType"
+            render={({ field }) => (
+              <FormItem>
+                <FormLabel>Class Type</FormLabel>
+                <FormControl>
+                  <select
+                    {...field}
+                    className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
+                  >
+                    <option value="date">D.A.T.E.</option>
+                    <option value="bdi">B.D.I.</option>
+                    <option value="adi">A.D.I.</option>
+                  </select>
                 </FormControl>
                 <FormMessage />
               </FormItem>
