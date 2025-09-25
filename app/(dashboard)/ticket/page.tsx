@@ -132,6 +132,11 @@ export default function Pages() {
                     title="Utilities / Records"
                     description="Access common utilities and records"
                   />
+                  <Navigation
+                    href="/ticket/test-bdi"
+                    title="🧪 Test BDI Certificate"
+                    description="Test and generate BDI certificates"
+                  />
                 </div>
                 <div className="mt-8">
                   <TicketCalendar
