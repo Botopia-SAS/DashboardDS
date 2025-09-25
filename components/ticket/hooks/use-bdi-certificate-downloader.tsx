@@ -13,6 +13,7 @@ export interface BdiCertificateData {
   providerPhone: string;
   schoolName: string;
   schoolPhone: string;
+  schoolLocation: string;
   driversLicenseNumber: string;
   studentName: string;
   dateOfBirth: string;
@@ -89,6 +90,7 @@ export function useBdiCertificateDownloader() {
         { label: "Provider Phone:", value: data.providerPhone },
         { label: "Name of School:", value: data.schoolName },
         { label: "School Phone:", value: data.schoolPhone },
+        { label: "School Location:", value: data.schoolLocation },
       ];
 
       // Left column
