@@ -171,7 +171,7 @@ export default function BdiCertificateTestPage() {
                 <li>• Verificar la vista previa en tiempo real</li>
                 <li>• Descargar el PDF y revisar el contenido</li>
                 <li>• Probar con diferentes navegadores</li>
-                <li>• Verificar que no aparezca "Main Menu"</li>
+                <li>• Verificar que no aparezca &ldquo;Main Menu&rdquo;</li>
               </ul>
             </div>
             <div>

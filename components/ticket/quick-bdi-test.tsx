@@ -68,7 +68,7 @@ export default function QuickBdiTest() {
             <li>• Los campos se pueden editar</li>
             <li>• La vista previa se actualiza en tiempo real</li>
             <li>• El PDF se descarga correctamente</li>
-            <li>• No aparece "Main Menu" en el certificado</li>
+            <li>• No aparece &ldquo;Main Menu&rdquo; en el certificado</li>
             <li>• El formato coincide con la imagen de referencia</li>
           </ul>
         </div>
@@ -76,7 +76,7 @@ export default function QuickBdiTest() {
         <div className="bg-green-50 p-4 rounded-lg">
           <h3 className="font-semibold text-green-800 mb-2">📱 Acceso rápido:</h3>
           <p className="text-sm text-green-700">
-            Visita: <code className="bg-white px-2 py-1 rounded">/ticket</code> → pestaña "B.D.I." → "🧪 Test BDI Certificate"
+            Visita: <code className="bg-white px-2 py-1 rounded">/ticket</code> → pestaña &ldquo;B.D.I.&rdquo; → &ldquo;🧪 Test BDI Certificate&rdquo;
           </p>
         </div>
       </CardContent>
