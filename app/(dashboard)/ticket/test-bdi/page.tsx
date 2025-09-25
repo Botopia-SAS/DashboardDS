@@ -7,8 +7,9 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Separator } from "@/components/ui/separator";
-import { FileText, Users, Calendar, Download } from "lucide-react";
+import { FileText, Users, Calendar, Download, ArrowLeft } from "lucide-react";
 import { useBdiCertificateDownloader } from "@/components/ticket/hooks/use-bdi-certificate-downloader";
+import Link from "next/link";
 
 interface TicketClass {
   _id: string;
@@ -237,6 +238,17 @@ export default function BdiCertificateGenerator() {
 
   return (
     <div className="container mx-auto p-6 max-w-4xl">
+      {/* Navigation Header */}
+      <div className="mb-6">
+        <Link
+          href="/ticket"
+          className="inline-flex items-center gap-2 text-blue-600 hover:text-blue-800 transition-colors"
+        >
+          <ArrowLeft className="w-4 h-4" />
+          Back to Ticket Calendar
+        </Link>
+      </div>
+
       {/* Header */}
       <div className="text-center space-y-2 mb-8">
         <h1 className="text-3xl font-bold flex items-center justify-center gap-2">
