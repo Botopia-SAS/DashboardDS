@@ -8,7 +8,6 @@ import { Label } from "@/components/ui/label";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Separator } from "@/components/ui/separator";
 import { FileText, Users, Calendar, Download } from "lucide-react";
-import { useBdiCertificateDownloader } from "@/components/ticket/hooks/use-bdi-certificate-downloader";
 
 interface TicketClass {
   _id: string;
@@ -45,19 +44,19 @@ interface Student {
   createdAt?: string;
 }
 
-export default function BdiCertificateGenerator() {
+export default function AdiCertificateGenerator() {
   const [classes, setClasses] = useState<TicketClass[]>([]);
   const [students, setStudents] = useState<Student[]>([]);
   const [filteredStudents, setFilteredStudents] = useState<Student[]>([]);
   const [selectedClass, setSelectedClass] = useState<string>("");
   const [selectedStudent, setSelectedStudent] = useState<string>("");
   const [certificateNumber, setCertificateNumber] = useState<string>("");
+  const [citationNumber, setCitationNumber] = useState<string>("");
+  const [citationCounty, setCitationCounty] = useState<string>("");
   const [studentSearchTerm, setStudentSearchTerm] = useState<string>("");
   const [loading, setLoading] = useState(false);
 
-  const { downloadBdiCertificate } = useBdiCertificateDownloader();
-
-  // Fetch BDI-type classes
+  // Fetch ADI-type classes
   useEffect(() => {
     const fetchClasses = async () => {
       try {
@@ -65,9 +64,9 @@ export default function BdiCertificateGenerator() {
         const data = await response.json();
         if (data.success || Array.isArray(data)) {
           const allClasses = data.success ? data.data : data;
-          // Filter only 'bdi' type classes
-          const bdiClasses = allClasses.filter((cls: TicketClass) => cls.classType === 'bdi');
-          setClasses(bdiClasses);
+          // Filter only 'adi' type classes
+          const adiClasses = allClasses.filter((cls: TicketClass) => cls.classType === 'adi');
+          setClasses(adiClasses);
         }
       } catch (error) {
         console.error('Error fetching classes:', error);
@@ -143,6 +142,38 @@ export default function BdiCertificateGenerator() {
   const selectedClassData = classes.find(cls => cls._id === selectedClass);
   const selectedStudentData = students.find(student => student._id === selectedStudent);
 
+  const downloadAdiCertificate = async (certificateData: any) => {
+    try {
+      const response = await fetch('/api/generate-adi-certificate', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify(certificateData),
+      });
+
+      if (response.ok) {
+        const blob = await response.blob();
+        const url = window.URL.createObjectURL(blob);
+        const a = document.createElement('a');
+        a.style.display = 'none';
+        a.href = url;
+        a.download = `ADI_Certificate_${certificateData.studentName}_${certificateData.certificateNumber}.pdf`;
+        document.body.appendChild(a);
+        a.click();
+        window.URL.revokeObjectURL(url);
+        document.body.removeChild(a);
+        return true;
+      } else {
+        console.error('Failed to generate certificate');
+        return false;
+      }
+    } catch (error) {
+      console.error('Error downloading certificate:', error);
+      return false;
+    }
+  };
+
   const handleGeneratePDF = async () => {
     if (!selectedClass || !selectedStudent || !certificateNumber.trim()) {
       alert('Please fill in all required fields.');
@@ -173,19 +204,19 @@ export default function BdiCertificateGenerator() {
           month: 'short',
           day: 'numeric'
         }),
-        citationNumber: "",
-        citationCounty: "",
-        courseProvider: "DRIVESAFELY",
-        providerPhone: "7024857907",
-        schoolName: "AFFORDABLE DRIVING TRAFFIC SCHOOL",
+        citationNumber: citationNumber.trim(),
+        citationCounty: citationCounty.trim(),
+        courseProvider: "DRIVER TRAINING ASSOCIATES",
+        providerPhone: "8636169894",
+        schoolName: "AFFORDABLE DRIVING AND TRAFFIC SCHOOL",
         schoolPhone: "5619690150",
         driversLicenseNumber: selectedStudentData.licenseNumber || "",
         studentName: `${selectedStudentData.lastName?.toUpperCase() || ''}, ${selectedStudentData.firstName?.toUpperCase() || ''}`,
         dateOfBirth: selectedStudentData.birthDate ? new Date(selectedStudentData.birthDate).toLocaleDateString('en-US') : "",
-        reasonAttending: "BDI Course Completion"
+        reasonAttending: "ADI ADI for HTO"
       };
 
-      const success = await downloadBdiCertificate(certificateData);
+      const success = await downloadAdiCertificate(certificateData);
 
       if (success) {
         // Save certificate to database
@@ -194,12 +225,14 @@ export default function BdiCertificateGenerator() {
           studentId: selectedStudent,
           studentName: certificateData.studentName,
           classId: selectedClass,
-          className: selectedClassData.title || 'BDI Course',
+          className: selectedClassData.title || 'ADI Course',
           classDate: selectedClassData.date,
           issueDate: certificateData.printDate,
           courseCompletionDate: certificateData.courseCompletionDate,
           studentEmail: selectedStudentData.email,
-          studentBirthDate: selectedStudentData.birthDate
+          studentBirthDate: selectedStudentData.birthDate,
+          citationNumber: certificateData.citationNumber,
+          citationCounty: certificateData.citationCounty
         };
 
         try {
@@ -210,7 +243,7 @@ export default function BdiCertificateGenerator() {
           });
 
           if (saveResponse.ok) {
-            console.log('BDI Certificate saved to database');
+            console.log('ADI Certificate saved to database');
           } else {
             console.warn('Certificate generated but failed to save to database');
           }
@@ -218,11 +251,13 @@ export default function BdiCertificateGenerator() {
           console.error('Error saving certificate:', saveError);
         }
 
-        alert(`BDI Certificate generated successfully for ${selectedStudentData.firstName} ${selectedStudentData.lastName}`);
+        alert(`ADI Certificate generated successfully for ${selectedStudentData.firstName} ${selectedStudentData.lastName}`);
         // Clear form
         setSelectedClass("");
         setSelectedStudent("");
         setCertificateNumber("");
+        setCitationNumber("");
+        setCitationCounty("");
         setStudentSearchTerm("");
       } else {
         alert('Failed to generate certificate. Please try again.');
@@ -241,10 +276,10 @@ export default function BdiCertificateGenerator() {
       <div className="text-center space-y-2 mb-8">
         <h1 className="text-3xl font-bold flex items-center justify-center gap-2">
           <FileText className="w-8 h-8" />
-          BDI Certificate Generator
+          ADI Certificate Generator
         </h1>
         <p className="text-gray-600">
-          Generate BDI certificates for course completions
+          Generate ADI certificates for course completions
         </p>
       </div>
 
@@ -263,11 +298,11 @@ export default function BdiCertificateGenerator() {
           {/* Class Selection */}
           <div className="space-y-2">
             <Label htmlFor="class-select" className="text-sm font-medium">
-              Select Class (BDI type only) *
+              Select Class (ADI type only) *
             </Label>
             <Select value={selectedClass} onValueChange={setSelectedClass}>
               <SelectTrigger id="class-select" className="bg-white border-gray-300">
-                <SelectValue placeholder="Choose a BDI class..." />
+                <SelectValue placeholder="Choose an ADI class..." />
               </SelectTrigger>
               <SelectContent className="bg-white border border-gray-300 shadow-lg">
                 {classes.map((cls) => (
@@ -289,7 +324,7 @@ export default function BdiCertificateGenerator() {
               </SelectContent>
             </Select>
             {classes.length === 0 && (
-              <p className="text-sm text-gray-500">No BDI type classes found.</p>
+              <p className="text-sm text-gray-500">No ADI type classes found.</p>
             )}
           </div>
 
@@ -377,9 +412,35 @@ export default function BdiCertificateGenerator() {
             </Label>
             <Input
               id="cert-number"
-              placeholder="Enter certificate number (e.g., BDI001234)"
+              placeholder="Enter certificate number (e.g., 47560595)"
               value={certificateNumber}
               onChange={(e) => setCertificateNumber(e.target.value)}
+            />
+          </div>
+
+          {/* Citation Number */}
+          <div className="space-y-2">
+            <Label htmlFor="citation-number" className="text-sm font-medium">
+              Citation Number
+            </Label>
+            <Input
+              id="citation-number"
+              placeholder="Enter citation number (e.g., AC02JQE)"
+              value={citationNumber}
+              onChange={(e) => setCitationNumber(e.target.value)}
+            />
+          </div>
+
+          {/* Citation County */}
+          <div className="space-y-2">
+            <Label htmlFor="citation-county" className="text-sm font-medium">
+              Citation County
+            </Label>
+            <Input
+              id="citation-county"
+              placeholder="Enter citation county (e.g., PALM BEACH)"
+              value={citationCounty}
+              onChange={(e) => setCitationCounty(e.target.value)}
             />
           </div>
 
@@ -403,6 +464,9 @@ export default function BdiCertificateGenerator() {
                           day: 'numeric'
                         }) : 'Not provided'}
                       </div>
+                      <div className="text-sm text-gray-600">
+                        License Number: {selectedStudentData.licenseNumber || 'Not provided'}
+                      </div>
                     </div>
                   </div>
 
@@ -411,7 +475,7 @@ export default function BdiCertificateGenerator() {
                     <h5 className="font-medium text-gray-800 mb-2 text-center">Course Information</h5>
                     <div className="text-center space-y-1">
                       <div className="font-semibold text-gray-900">
-                        {selectedClassData.title || 'BDI Course'}
+                        {selectedClassData.title || 'ADI Course'}
                       </div>
                       <div className="text-sm text-gray-600">
                         Class Date: {selectedClassData.date ? new Date(selectedClassData.date).toLocaleDateString('en-US', {
@@ -437,6 +501,16 @@ export default function BdiCertificateGenerator() {
                           day: 'numeric'
                         })}
                       </div>
+                      {citationNumber && (
+                        <div className="text-sm text-gray-600">
+                          Citation Number: {citationNumber}
+                        </div>
+                      )}
+                      {citationCounty && (
+                        <div className="text-sm text-gray-600">
+                          Citation County: {citationCounty}
+                        </div>
+                      )}
                     </div>
                   </div>
                 </div>
@@ -476,11 +550,12 @@ export default function BdiCertificateGenerator() {
         </CardHeader>
         <CardContent>
           <div className="space-y-3 text-sm text-gray-600">
-            <p><strong>1. Select Class:</strong> Choose a BDI type class from the dropdown. Only active classes are shown.</p>
+            <p><strong>1. Select Class:</strong> Choose an ADI type class from the dropdown. Only active classes are shown.</p>
             <p><strong>2. Search Student:</strong> Use the search box to filter students by name or email. Type &apos;A&apos; to see all students starting with A.</p>
             <p><strong>3. Select Student:</strong> Choose a student from the filtered dropdown list. Name and email are shown for easy identification.</p>
-            <p><strong>4. Certificate Number:</strong> Enter a unique certificate number for tracking purposes.</p>
-            <p><strong>5. Generate PDF:</strong> Click the button to download the BDI certificate and save it to the database.</p>
+            <p><strong>4. Certificate Number:</strong> Enter a unique certificate number for tracking purposes (e.g., 47560595).</p>
+            <p><strong>5. Citation Info (Optional):</strong> Enter citation number and county if applicable.</p>
+            <p><strong>6. Generate PDF:</strong> Click the button to download the ADI certificate and save it to the database.</p>
           </div>
         </CardContent>
       </Card>

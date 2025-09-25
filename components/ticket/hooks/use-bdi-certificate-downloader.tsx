@@ -114,16 +114,26 @@ export function useBdiCertificateDownloader() {
       rightColumnFields.forEach((field, index) => {
         const y = yPosition - (index * 25);
         page.drawText(field.label, {
-          x: 320,
+          x: 300, // Moved left from 320 to give more space for values
           y,
           size: 10,
           font: boldFont,
           color: rgb(0, 0, 0),
         });
+        
+        // Special handling for school name - if it's too long, use smaller font and adjust position
+        let fontSize = 10;
+        let xPosition = 430; // Adjusted from 450 to 430
+        
+        if (field.label === "Name of School:" && field.value.length > 25) {
+          fontSize = 8; // Smaller font for long school names
+          xPosition = 425; // Slightly adjust position for long names
+        }
+        
         page.drawText(field.value, {
-          x: 450,
+          x: xPosition,
           y,
-          size: 10,
+          size: fontSize,
           font,
           color: rgb(0, 0, 0),
         });

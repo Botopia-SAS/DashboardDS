@@ -9,7 +9,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { Separator } from "@/components/ui/separator";
 import { FileText, Users, Calendar, Download } from "lucide-react";
 
-// Custom DATE certificate generator function using PDF template
+// Custom Certificate generator function using PDF template
 const generateDateCertificate = async (certificateData: {
   studentName: string;
   dateOfBirth: string;
@@ -78,7 +78,7 @@ const generateDateCertificate = async (certificateData: {
     const url = URL.createObjectURL(blob);
     const link = document.createElement('a');
     link.href = url;
-    link.download = `DATE_Certificate_${certificateData.certificateNumber}.pdf`;
+    link.download = `Certificate_${certificateData.certificateNumber}.pdf`;
     document.body.appendChild(link);
     link.click();
     document.body.removeChild(link);
@@ -120,7 +120,7 @@ interface Student {
   createdAt?: string;
 }
 
-export default function DateCertificateGenerator() {
+export default function CertificateGenerator() {
   const [classes, setClasses] = useState<TicketClass[]>([]);
   const [students, setStudents] = useState<Student[]>([]);
   const [filteredStudents, setFilteredStudents] = useState<Student[]>([]);
@@ -272,7 +272,7 @@ export default function DateCertificateGenerator() {
           studentId: selectedStudent,
           studentName: certificateData.studentName,
           classId: selectedClass,
-          className: selectedClassData.title || 'D.A.T.E. Course',
+          className: selectedClassData.title || 'Certificate Course',
           classDate: selectedClassData.date,
           issueDate: certificateData.printDate,
           courseCompletionDate: certificateData.courseCompletionDate,
@@ -319,10 +319,10 @@ export default function DateCertificateGenerator() {
       <div className="text-center space-y-2 mb-8">
         <h1 className="text-3xl font-bold flex items-center justify-center gap-2">
           <FileText className="w-8 h-8" />
-          DATE Certificate Generator
+          Certificate Generator
         </h1>
         <p className="text-gray-600">
-          Generate DATE certificates for course completions
+          Generate certificates for course completions
         </p>
       </div>
 
@@ -341,11 +341,11 @@ export default function DateCertificateGenerator() {
           {/* Class Selection */}
           <div className="space-y-2">
             <Label htmlFor="class-select" className="text-sm font-medium">
-              Select Class (DATE type only) *
+              Select Class (Certificate type only) *
             </Label>
             <Select value={selectedClass} onValueChange={setSelectedClass}>
               <SelectTrigger id="class-select" className="bg-white border-gray-300">
-                <SelectValue placeholder="Choose a DATE class..." />
+                <SelectValue placeholder="Choose a certificate class..." />
               </SelectTrigger>
               <SelectContent className="bg-white border border-gray-300 shadow-lg">
                 {classes.map((cls) => (
@@ -367,7 +367,7 @@ export default function DateCertificateGenerator() {
               </SelectContent>
             </Select>
             {classes.length === 0 && (
-              <p className="text-sm text-gray-500">No DATE type classes found.</p>
+              <p className="text-sm text-gray-500">No certificate type classes found.</p>
             )}
           </div>
 
@@ -455,7 +455,7 @@ export default function DateCertificateGenerator() {
             </Label>
             <Input
               id="cert-number"
-              placeholder="Enter certificate number (e.g., DATE001234)"
+              placeholder="Enter certificate number (e.g., CERT001234)"
               value={certificateNumber}
               onChange={(e) => setCertificateNumber(e.target.value)}
             />
@@ -489,7 +489,7 @@ export default function DateCertificateGenerator() {
                     <h5 className="font-medium text-gray-800 mb-2 text-center">Course Information</h5>
                     <div className="text-center space-y-1">
                       <div className="font-semibold text-gray-900">
-                        {selectedClassData.title || 'D.A.T.E. Course'}
+                        {selectedClassData.title || 'Certificate Course'}
                       </div>
                       <div className="text-sm text-gray-600">
                         Class Date: {selectedClassData.date ? new Date(selectedClassData.date).toLocaleDateString('en-US', {
@@ -554,13 +554,11 @@ export default function DateCertificateGenerator() {
         </CardHeader>
         <CardContent>
           <div className="space-y-3 text-sm text-gray-600">
-            <p><strong>1. Select Class:</strong> Choose a DATE type class from the dropdown. Only active classes are shown.</p>
+            <p><strong>1. Select Class:</strong> Choose a certificate type class from the dropdown. Only active classes are shown.</p>
             <p><strong>2. Search Student:</strong> Use the search box to filter students by name or email. Type &apos;A&apos; to see all students starting with A.</p>
             <p><strong>3. Select Student:</strong> Choose a student from the filtered dropdown list. Name and email are shown for easy identification.</p>
             <p><strong>4. Certificate Number:</strong> Enter a unique certificate number for tracking purposes.</p>
-            <p><strong>5. Generate PDF:</strong> Click the button to download the DATE certificate and save it to the database.</p>
-            <p className="text-blue-600"><strong>Database:</strong> All generated certificates are automatically saved to the &apos;certificados_date&apos; collection for tracking.</p>
-            <p className="text-green-600"><strong>Search Tips:</strong> Search works with partial matches - try typing just the first letter or part of the name!</p>
+            <p><strong>5. Generate PDF:</strong> Click the button to download the certificate and save it to the database.</p>
           </div>
         </CardContent>
       </Card>
