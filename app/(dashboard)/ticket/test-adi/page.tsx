@@ -476,7 +476,7 @@ export default function AdiCertificateGenerator() {
                 setLicenseOverride(e.target.value);
               }}
             />
-            <p className="text-xs text-gray-500">Leave empty to use student's license number</p>
+            <p className="text-xs text-gray-500">Leave empty to use student&apos;s license number</p>
           </div>
 
           {/* Class and Student Info Summary */}
