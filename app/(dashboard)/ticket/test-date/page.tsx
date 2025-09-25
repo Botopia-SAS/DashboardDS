@@ -32,38 +32,40 @@ const generateDateCertificate = async (certificateData: {
     const { width, height } = firstPage.getSize();
     console.log('Page dimensions:', width, height);
     
-    // Embed font
+    // Embed fonts - Use Times-Roman for a more formal serif look like the original
+    const timesFont = await pdfDoc.embedFont('Times-Roman');
     const helveticaFont = await pdfDoc.embedFont('Helvetica');
     
     // Helper function to draw centered text
-    const drawCenteredText = (text: string, x: number, y: number, size: number = 12) => {
-      const textWidth = helveticaFont.widthOfTextAtSize(text, size);
+    const drawCenteredText = (text: string, x: number, y: number, size: number = 12, useSerif: boolean = true) => {
+      const font = useSerif ? timesFont : helveticaFont;
+      const textWidth = font.widthOfTextAtSize(text, size);
       firstPage.drawText(text, {
         x: x - (textWidth / 2), // Center horizontally
         y: height - y, // PDF coordinates are from bottom, so we subtract from height
         size: size,
-        font: helveticaFont,
+        font: font,
         color: rgb(0, 0, 0)
       });
     };
     
     // Add text at your specified coordinates (centered)
-    // Nombre + Apellido: x=390, y=242 (center)
-    drawCenteredText(certificateData.studentName, 390, 242, 12);
+    // Nombre + Apellido: x=390, y=242 (center) - keeping original position
+    drawCenteredText(certificateData.studentName, 390, 242, 14, true);
 
-    // Cumpleaños: x=390, y=284 (center)
+    // Cumpleaños: x=390, y=284 (center) - moving down a bit more
     if (certificateData.dateOfBirth) {
-      drawCenteredText(certificateData.dateOfBirth, 390, 284, 12);
+      drawCenteredText(certificateData.dateOfBirth, 390, 295, 12, true);
     }
 
-    // Nombre de la Clase: x=390, y=410 (center)
-    drawCenteredText(certificateData.className, 390, 410, 12);
+    // Nombre de la Clase: x=390, y=410 (center) - moving down a bit more
+    drawCenteredText(certificateData.className, 390, 425, 12, true);
 
-    // Número de Certificado: x=163, y=394 (center)
-    drawCenteredText(certificateData.certificateNumber, 163, 394, 12);
+    // Número de Certificado: x=163, y=394 (center) - keeping original position
+    drawCenteredText(certificateData.certificateNumber, 163, 394, 12, true);
 
-    // Fecha de Generación: x=390, y=484 (center)
-    drawCenteredText(certificateData.printDate, 390, 484, 12);
+    // Fecha de Generación: x=390, y=484 (center) - moving down a bit more
+    drawCenteredText(certificateData.printDate, 390, 495, 12, true);
 
     // Serialize the PDF
     const pdfBytes = await pdfDoc.save();
