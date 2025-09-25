@@ -106,8 +106,8 @@ export default function Pages() {
                   />
                   <Navigation
                     href="/ticket/test-date"
-                    title="📄 Test D.A.T.E. Certificate"
-                    description="Test and generate D.A.T.E. certificates"
+                    title="📄 Certificate"
+                    description="Generate certificates"
                   />
                 </div>
                 <div className="mt-8">
@@ -139,8 +139,8 @@ export default function Pages() {
                   />
                   <Navigation
                     href="/ticket/test-bdi"
-                    title="🧪 Test BDI Certificate"
-                    description="Test and generate BDI certificates"
+                    title="📄 BDI Certificate"
+                    description="Generate BDI certificates"
                   />
                 </div>
                 <div className="mt-8">
@@ -169,6 +169,11 @@ export default function Pages() {
                     href="/ticket/utilities"
                     title="Utilities / Records"
                     description="Access common utilities and records"
+                  />
+                  <Navigation
+                    href="/ticket/test-adi"
+                    title="📄 ADI Certificate"
+                    description="Generate ADI certificates"
                   />
                 </div>
                 <div className="mt-8">
