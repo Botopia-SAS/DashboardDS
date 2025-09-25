@@ -7,7 +7,9 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Separator } from "@/components/ui/separator";
-import { FileText, Users, Calendar, Download } from "lucide-react";
+import { FileText, Users, Calendar, Download, ArrowLeft } from "lucide-react";
+import { useAdiCertificateDownloader } from "@/components/ticket/hooks/use-adi-certificate-downloader";
+import Link from "next/link";
 
 interface TicketClass {
   _id: string;
@@ -53,8 +55,12 @@ export default function AdiCertificateGenerator() {
   const [certificateNumber, setCertificateNumber] = useState<string>("");
   const [citationNumber, setCitationNumber] = useState<string>("");
   const [citationCounty, setCitationCounty] = useState<string>("");
+  const [courseCompletionDate, setCourseCompletionDate] = useState<string>("");
+  const [licenseOverride, setLicenseOverride] = useState<string>("");
   const [studentSearchTerm, setStudentSearchTerm] = useState<string>("");
   const [loading, setLoading] = useState(false);
+
+  const { downloadAdiCertificate } = useAdiCertificateDownloader();
 
   // Fetch ADI-type classes
   useEffect(() => {
@@ -142,38 +148,6 @@ export default function AdiCertificateGenerator() {
   const selectedClassData = classes.find(cls => cls._id === selectedClass);
   const selectedStudentData = students.find(student => student._id === selectedStudent);
 
-  const downloadAdiCertificate = async (certificateData: any) => {
-    try {
-      const response = await fetch('/api/generate-adi-certificate', {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-        },
-        body: JSON.stringify(certificateData),
-      });
-
-      if (response.ok) {
-        const blob = await response.blob();
-        const url = window.URL.createObjectURL(blob);
-        const a = document.createElement('a');
-        a.style.display = 'none';
-        a.href = url;
-        a.download = `ADI_Certificate_${certificateData.studentName}_${certificateData.certificateNumber}.pdf`;
-        document.body.appendChild(a);
-        a.click();
-        window.URL.revokeObjectURL(url);
-        document.body.removeChild(a);
-        return true;
-      } else {
-        console.error('Failed to generate certificate');
-        return false;
-      }
-    } catch (error) {
-      console.error('Error downloading certificate:', error);
-      return false;
-    }
-  };
-
   const handleGeneratePDF = async () => {
     if (!selectedClass || !selectedStudent || !certificateNumber.trim()) {
       alert('Please fill in all required fields.');
@@ -191,6 +165,25 @@ export default function AdiCertificateGenerator() {
       const classDate = new Date(selectedClassData.date);
       const currentDate = new Date();
 
+      // Use override date if provided, otherwise use class date
+      let completionDate;
+      if (courseCompletionDate) {
+        completionDate = new Date(courseCompletionDate).toLocaleDateString('en-US', {
+          year: 'numeric',
+          month: 'short',
+          day: 'numeric'
+        });
+      } else {
+        completionDate = classDate.toLocaleDateString('en-US', {
+          year: 'numeric',
+          month: 'short',
+          day: 'numeric'
+        });
+      }
+
+      // Use license override if provided, otherwise use student's license
+      const licenseNumber = licenseOverride.trim() || selectedStudentData.licenseNumber || "";
+
       const certificateData = {
         certificateNumber: certificateNumber.trim(),
         printDate: currentDate.toLocaleDateString('en-US', {
@@ -199,18 +192,14 @@ export default function AdiCertificateGenerator() {
           day: 'numeric',
           timeZone: 'America/New_York'
         }),
-        courseCompletionDate: classDate.toLocaleDateString('en-US', {
-          year: 'numeric',
-          month: 'short',
-          day: 'numeric'
-        }),
+        courseCompletionDate: completionDate,
         citationNumber: citationNumber.trim(),
         citationCounty: citationCounty.trim(),
         courseProvider: "DRIVER TRAINING ASSOCIATES",
         providerPhone: "8636169894",
         schoolName: "AFFORDABLE DRIVING AND TRAFFIC SCHOOL",
         schoolPhone: "5619690150",
-        driversLicenseNumber: selectedStudentData.licenseNumber || "",
+        driversLicenseNumber: licenseNumber,
         studentName: `${selectedStudentData.lastName?.toUpperCase() || ''}, ${selectedStudentData.firstName?.toUpperCase() || ''}`,
         dateOfBirth: selectedStudentData.birthDate ? new Date(selectedStudentData.birthDate).toLocaleDateString('en-US') : "",
         reasonAttending: "ADI ADI for HTO"
@@ -258,6 +247,8 @@ export default function AdiCertificateGenerator() {
         setCertificateNumber("");
         setCitationNumber("");
         setCitationCounty("");
+        setCourseCompletionDate("");
+        setLicenseOverride("");
         setStudentSearchTerm("");
       } else {
         alert('Failed to generate certificate. Please try again.');
@@ -272,6 +263,17 @@ export default function AdiCertificateGenerator() {
 
   return (
     <div className="container mx-auto p-6 max-w-4xl">
+      {/* Navigation Header */}
+      <div className="mb-6">
+        <Link
+          href="/ticket"
+          className="inline-flex items-center gap-2 text-blue-600 hover:text-blue-800 transition-colors"
+        >
+          <ArrowLeft className="w-4 h-4" />
+          Back to Ticket Calendar
+        </Link>
+      </div>
+
       {/* Header */}
       <div className="text-center space-y-2 mb-8">
         <h1 className="text-3xl font-bold flex items-center justify-center gap-2">
@@ -444,6 +446,39 @@ export default function AdiCertificateGenerator() {
             />
           </div>
 
+          {/* Course Completion Date Override */}
+          <div className="space-y-2">
+            <Label htmlFor="course-completion-date" className="text-sm font-medium">
+              Course Completion Date (Optional)
+            </Label>
+            <Input
+              id="course-completion-date"
+              type="date"
+              placeholder="Override completion date"
+              onChange={(e) => {
+                // This will be handled in the certificate generation
+                setCourseCompletionDate(e.target.value);
+              }}
+            />
+            <p className="text-xs text-gray-500">Leave empty to use class date automatically</p>
+          </div>
+
+          {/* Driver License Number Override */}
+          <div className="space-y-2">
+            <Label htmlFor="license-override" className="text-sm font-medium">
+              Driver License Number (Optional)
+            </Label>
+            <Input
+              id="license-override"
+              placeholder="Override license number if needed"
+              onChange={(e) => {
+                // This will be handled in the certificate generation
+                setLicenseOverride(e.target.value);
+              }}
+            />
+            <p className="text-xs text-gray-500">Leave empty to use student's license number</p>
+          </div>
+
           {/* Class and Student Info Summary */}
           {selectedClassData && selectedStudentData && certificateNumber && (
             <Card className="bg-blue-50 border-blue-200">
@@ -466,6 +501,11 @@ export default function AdiCertificateGenerator() {
                       </div>
                       <div className="text-sm text-gray-600">
                         License Number: {selectedStudentData.licenseNumber || 'Not provided'}
+                        {licenseOverride && (
+                          <div className="text-xs text-blue-600 mt-1">
+                            Override License: {licenseOverride}
+                          </div>
+                        )}
                       </div>
                     </div>
                   </div>
@@ -483,6 +523,15 @@ export default function AdiCertificateGenerator() {
                           month: 'long',
                           day: 'numeric'
                         }) : 'Not specified'}
+                        {courseCompletionDate && (
+                          <div className="text-xs text-blue-600 mt-1">
+                            Override Completion Date: {new Date(courseCompletionDate).toLocaleDateString('en-US', {
+                              year: 'numeric',
+                              month: 'long',
+                              day: 'numeric'
+                            })}
+                          </div>
+                        )}
                       </div>
                     </div>
                   </div>
@@ -555,7 +604,9 @@ export default function AdiCertificateGenerator() {
             <p><strong>3. Select Student:</strong> Choose a student from the filtered dropdown list. Name and email are shown for easy identification.</p>
             <p><strong>4. Certificate Number:</strong> Enter a unique certificate number for tracking purposes (e.g., 47560595).</p>
             <p><strong>5. Citation Info (Optional):</strong> Enter citation number and county if applicable.</p>
-            <p><strong>6. Generate PDF:</strong> Click the button to download the ADI certificate and save it to the database.</p>
+            <p><strong>6. Course Completion Date (Optional):</strong> Override the completion date if different from class date.</p>
+            <p><strong>7. Driver License Override (Optional):</strong> Enter a different license number if needed.</p>
+            <p><strong>8. Generate PDF:</strong> Click the button to download the ADI certificate and save it to the database.</p>
           </div>
         </CardContent>
       </Card>
