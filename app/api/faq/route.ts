@@ -9,12 +9,26 @@ export async function GET() {
   await connectToDB();
   const doc = await Faq.findOne();
   if (!doc) {
-    return NextResponse.json({ drivinglessons: [], advancedDrivingImprovementCourse: [] });
+    return NextResponse.json({
+      sections: {
+        drivinglessons: { label: "Driving Lessons", questions: [] },
+        advancedDrivingImprovementCourse: { label: "Advanced Driving Improvement Course", questions: [] }
+      }
+    });
   }
-  return NextResponse.json({
-    drivinglessons: doc.drivingLessons || [],
-    advancedDrivingImprovementCourse: doc.advancedDrivingImprovementCourse || [],
-  });
+
+  // Migrar datos legacy si existen
+  const sections = doc.sections || {};
+
+  // Manejar migración de datos legacy
+  if (doc.drivingLessons && !sections.drivinglessons) {
+    sections.drivinglessons = { label: "Driving Lessons", questions: doc.drivingLessons };
+  }
+  if (doc.advancedDrivingImprovementCourse && !sections.advancedDrivingImprovementCourse) {
+    sections.advancedDrivingImprovementCourse = { label: "Advanced Driving Improvement Course", questions: doc.advancedDrivingImprovementCourse };
+  }
+
+  return NextResponse.json({ sections });
 }
 
 export async function PUT(req: Request) {
@@ -26,10 +40,14 @@ export async function PUT(req: Request) {
     {},
     {
       $set: {
-        drivingLessons: data.drivinglessons || [],
-        advancedDrivingImprovementCourse: data.advancedDrivingImprovementCourse || [],
+        sections: data.sections || {}
       },
-      $unset: { drivinglessons: "" }, // Elimina el campo viejo si existe
+      // Limpiar campos legacy
+      $unset: {
+        drivinglessons: "",
+        drivingLessons: "",
+        advancedDrivingImprovementCourse: ""
+      }
     },
     { new: true, upsert: true }
   );

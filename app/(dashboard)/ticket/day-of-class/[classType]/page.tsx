@@ -13,38 +13,52 @@ import {
   SelectValue,
 } from "@/components/ui/select";
 import { ArrowLeftIcon } from "lucide-react";
-import { useRouter } from "next/navigation";
+import { useRouter, useParams } from "next/navigation";
 import { useEffect, useState } from "react";
 
 interface Class {
   _id: string;
-  locationId: string;
+  locationId: string | { _id: string; title: string };
   date: string;
   hour: string;
-  classId: string;
-  instructorId: string;
+  endHour?: string;
+  classId: string | { _id: string; title: string };
+  instructorId: string | { _id: string; name: string };
   students: string[];
+  type: string;
+  spots: number;
+  status: string;
   __v: number;
-  locationName: string;
+  locationName?: string;
 }
 
 export default function Page() {
   const [classes, setClasses] = useState<Class[]>([]);
   const [loading, setLoading] = useState(false);
+  const [selectedClassText, setSelectedClassText] = useState<string>("");
   const { setClassId, classId } = useClassStore();
   const router = useRouter();
+  const params = useParams();
+  const classType = params.classType as string;
+
   useEffect(() => {
     setLoading(true);
     setClassId("");
-    // Fetch all classes without filtering by type
-    fetch(`/api/ticket/classes`)
+    setSelectedClassText(""); // Reset selected text when class type changes
+    // Fetch classes from the calendar API to get populated data
+    fetch(`/api/ticket/calendar`)
       .then((res) => res.json())
       .then((data) => {
-        setClasses(data);
+        // Filter classes by the current class type
+        const filteredClasses = data.filter((c: Class) => c.type === classType);
+        setClasses(filteredClasses);
         setLoading(false);
       })
-      .catch((error) => console.error("Error fetching classes:", error));
-  }, [setClassId]);
+      .catch((error) => {
+        console.error("Error fetching classes:", error);
+        setLoading(false);
+      });
+  }, [setClassId, classType]);
   if (loading) {
     return <Loader />;
   }
@@ -57,51 +71,117 @@ export default function Page() {
   const navigate = () => {
     router.back();
   };
+
+  // Handler para cuando se selecciona una clase
+  const handleClassSelect = (value: string) => {
+    setClassId(value);
+
+    // Encontrar la clase seleccionada y formatear el texto
+    const selectedClass = classes.find(c => c._id === value);
+    if (selectedClass) {
+      const studentCount = Array.isArray(selectedClass.students) ? selectedClass.students.length : 0;
+      const totalSpots = selectedClass.spots || 30;
+      const formatTime = (hour: string) => {
+        const [h] = hour.split(':');
+        const hourNum = parseInt(h);
+        return hourNum > 11 ? `${hour} PM` : `${hour} AM`;
+      };
+
+      const formattedText = `${getClassName(selectedClass)} - ${new Date(selectedClass.date).toLocaleDateString("en-US", {
+        weekday: "short",
+        month: "short",
+        day: "numeric"
+      })} at ${formatTime(selectedClass.hour)} (${studentCount}/${totalSpots})`;
+
+      setSelectedClassText(formattedText);
+    }
+  };
+
+  // Helper function to get class name
+  const getClassName = (c: Class) => {
+    if (typeof c.classId === 'object' && c.classId.title) {
+      return c.classId.title;
+    }
+    return `${classType.toUpperCase()} Class`;
+  };
+
+  // Helper function to get location name
+  const getLocationName = (c: Class) => {
+    if (typeof c.locationId === 'object' && c.locationId.title) {
+      return c.locationId.title;
+    }
+    return c.locationName || 'Unknown Location';
+  };
+
   return (
     <>
       <div className="p-6">
         <div className="flex justify-between items-center bg-gray-800 text-white px-5 py-3 rounded-lg shadow-md">
-          <h1 className="text-xl font-semibold">Tickets</h1>
+          <h1 className="text-xl font-semibold">
+            {classType.toUpperCase()} Classes - Day of Class
+          </h1>
           <Button onClick={navigate} className="hover:scale-110">
             <ArrowLeftIcon size={16} />
           </Button>
         </div>
       </div>
       <div className="p-6">
-        <Select onValueChange={(value) => setClassId(value)}>
+        <Select onValueChange={handleClassSelect}>
           <SelectTrigger>
-            <SelectValue placeholder="Select a class" />
+            <SelectValue
+              placeholder={`Select a ${classType.toUpperCase()} class`}
+            >
+              {selectedClassText || `Select a ${classType.toUpperCase()} class`}
+            </SelectValue>
           </SelectTrigger>
           <SelectContent className="bg-white">
-            {classes.map((c) => (
-              <SelectItem
-                key={c?._id}
-                value={c?._id}
-                className="hover:bg-gray-100 cursor-pointer"
-              >
-                {new Date(c?.date).toLocaleString("en-US", {
-                  weekday: "long",
-                  timeZone: "UTC",
-                })}
-                , {new Date(c?.date).getUTCDate()}{" "}
-                {new Date(c?.date).toLocaleString("en-US", {
-                  month: "short",
-                  timeZone: "UTC",
-                })}{" "}
-                {new Date(c?.date).getUTCFullYear()}{" "}
-                {parseInt(c?.hour.split(":")[0]) > 11
-                  ? `${c?.hour} p.m.`
-                  : `${c?.hour} a.m.`}{" "}
-                | {c?.locationName}
+            {classes.length === 0 ? (
+              <SelectItem value="no-classes" disabled>
+                No {classType.toUpperCase()} classes available
               </SelectItem>
-            ))}
+            ) : (
+              classes.map((c) => {
+                const studentCount = Array.isArray(c.students) ? c.students.length : 0;
+                const totalSpots = c.spots || 30;
+                const formatTime = (hour: string) => {
+                  const [h, m] = hour.split(':');
+                  const hourNum = parseInt(h);
+                  return hourNum > 11 ? `${hour} PM` : `${hour} AM`;
+                };
+
+                return (
+                  <SelectItem
+                    key={c?._id}
+                    value={c?._id}
+                    className="hover:bg-gray-100 cursor-pointer p-3"
+                  >
+                    <div className="w-full">
+                      <div className="font-medium text-gray-900 mb-1">
+                        {getClassName(c)}
+                      </div>
+                      <div className="text-sm text-gray-600 mb-1">
+                        {new Date(c?.date).toLocaleDateString("en-US", {
+                          weekday: "long",
+                          year: "numeric",
+                          month: "short",
+                          day: "numeric",
+                        })} at {formatTime(c?.hour)}
+                      </div>
+                      <div className="text-xs text-gray-500">
+                        📍 {getLocationName(c)} | 👥 {studentCount}/{totalSpots} students
+                      </div>
+                    </div>
+                  </SelectItem>
+                );
+              })
+            )}
           </SelectContent>
         </Select>
         <Card className="mt-4">
           <CardContent>
             <div className="grid grid-cols-1 md:grid-cols-2 gap-4 py-2">
               <Navigation
-                href={`/ticket/date/class-records/${classId}`}
+                href={`/ticket/${classType}/class-records/${classId}`}
                 title="View the Class Records"
                 description="View the records of the selected class."
                 onClick={handleClick}

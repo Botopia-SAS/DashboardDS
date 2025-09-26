@@ -38,14 +38,13 @@ export default function SecurityInformation({ form }: { form: any }) {
           render={({ field }) => (
             <FormItem>
               <FormLabel className="text-gray-700 font-medium">
-                Last 4 Digits of SSN
+                Last 4 Digits of SSN (Optional)
               </FormLabel>
               <FormControl>
                 <Input
                   {...field}
                   type="text"
-                  placeholder="Enter last 4 digits"
-                  maxLength={4}
+                  placeholder="Enter last 4 digits (optional)"
                   className="border-gray-300 focus:ring-blue-500 focus:border-blue-500"
                 />
               </FormControl>

@@ -24,7 +24,7 @@ const UserSchema = new Schema({
   },
   ssnLast4: {
     type: String,
-    required: true,
+    required: false,
   },
   hasLicense: {
     type: Boolean,

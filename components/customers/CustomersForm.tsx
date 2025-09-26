@@ -32,7 +32,7 @@ const formSchema = z
       .min(4, "Password must be at least 4 characters")
       .optional()
       .or(z.literal("")),
-    ssnLast4: z.string().length(4, "Must be exactly 4 digits"),
+    ssnLast4: z.string().optional(),
     hasLicense: z.boolean(),
     licenseNumber: z.string().optional().or(z.literal("")),
     birthDate: z.string().min(1, "Birth date is required"),
