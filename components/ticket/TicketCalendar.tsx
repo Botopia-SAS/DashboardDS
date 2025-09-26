@@ -286,10 +286,10 @@ const TicketCalendar = ({ className, refreshKey, focusClassId, focusWeek, focusY
         return;
       }
       
-      // Mostrar todas las clases sin filtrar - el calendario debe mostrar todo
-      const filteredData = data;
-      
-      console.log(`🔍 Showing ALL ticket classes:`, filteredData.length);
+      // Filtrar clases por el tipo actualmente seleccionado
+      const filteredData = data.filter((tc: TicketClassResponse) => tc.type === classType);
+
+      console.log(`🔍 Filtering for classType "${classType}": ${filteredData.length} of ${data.length} classes`);
       
       // Convertir ticketClasses a eventos del calendario
       const events = filteredData.map((ticketClass: unknown, index: number) => {
@@ -425,7 +425,7 @@ const TicketCalendar = ({ className, refreshKey, focusClassId, focusWeek, focusY
   // Cargar todos los TicketClass reales desde la API
   useEffect(() => {
     fetchTicketClasses();
-  }, [refreshKey]);
+  }, [refreshKey, classType]); // Agregar classType para recargar cuando cambie el tipo
 
   // Escuchar eventos de actualización en tiempo real
   useEffect(() => {

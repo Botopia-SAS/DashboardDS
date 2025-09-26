@@ -404,10 +404,10 @@ export default function ScheduleModal({
                 <div>
                   <label className="block text-xs font-medium mb-0.5">Class type <span className="text-red-500">*</span></label>
                   <select
-                    className="w-full border rounded px-1.5 py-1 text-xs focus:outline-none focus:ring-1 focus:ring-blue-500"
+                    className="w-full border rounded px-1.5 py-1 text-xs focus:outline-none focus:ring-1 focus:ring-blue-500 bg-gray-100"
                     name="type"
                     value={form.type}
-                    onChange={handleChange}
+                    disabled={true}
                     required
                   >
                     <option value="date">D.A.T.E</option>
