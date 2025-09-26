@@ -410,7 +410,7 @@ export default function BdiCertificateGenerator() {
           {/* Driver's License Number Override */}
           <div className="space-y-2">
             <Label htmlFor="license-number" className="text-sm font-medium">
-              Driver's License Number
+              Driver&apos;s License Number
             </Label>
             <Input
               id="license-number"
