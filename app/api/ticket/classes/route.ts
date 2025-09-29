@@ -19,7 +19,7 @@ const ticketClassSchema = Joi.object({
     .pattern(/^([01]\d|2[0-3]):([0-5]\d)$/)
     .optional(),
   classId: Joi.string().required(),
-  type: Joi.string().valid("date", "bdi", "adi").required(),
+  type: Joi.string().lowercase().required(), // Acepta cualquier tipo de clase en minúsculas
   duration: Joi.string().valid("2h", "4h", "8h", "12h").required(),
   instructorId: Joi.string().required(),
   students: Joi.array().items(Joi.string()).default([]),

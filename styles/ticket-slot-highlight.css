@@ -18,6 +18,19 @@
 .fc-timegrid-slot-lane,
 .slot-mega-highlight,
 .slot-final-state,
+
+/* MEJORAR VISUALIZACIÓN DEL TEXTO EN EVENTOS */
+.fc-event-title,
+.fc-event-main {
+  white-space: pre-line !important;
+  overflow: visible !important;
+  text-overflow: clip !important;
+  font-size: 10px !important;
+  line-height: 1.1 !important;
+  padding: 2px !important;
+  word-wrap: break-word !important;
+  hyphens: auto !important;
+}
 .slot-blinking-overlay {
   transform: none !important;
   scale: 1 !important;
