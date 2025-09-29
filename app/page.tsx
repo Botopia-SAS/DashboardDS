@@ -12,7 +12,7 @@ export default function HomePage() {
   useEffect(() => {
     if (!isLoading) {
       if (isAuthenticated) {
-        router.push("/classes"); // Redirect to dashboard main page
+        router.push("/console"); // Redirect to console page
       } else {
         router.push("/sign-in");
       }
