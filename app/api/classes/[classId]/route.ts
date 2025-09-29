@@ -35,20 +35,26 @@ export async function PATCH(req: NextRequest, context: { params: Promise<{ class
     const { classId } = await context.params; // ✅ Usar `await` en `params`
 
     if (!classId) {
+      console.error("[PATCH_CLASS_ERROR] Missing classId");
       return NextResponse.json({ message: "Missing classId" }, { status: 400 });
     }
 
     const body = await req.json();
+    console.log("[PATCH_CLASS_DEBUG] classId:", classId);
+    console.log("[PATCH_CLASS_DEBUG] Request body:", body);
+
     const updatedClass = await DrivingClass.findByIdAndUpdate(classId, body, { new: true });
 
     if (!updatedClass) {
+      console.error("[PATCH_CLASS_ERROR] Class not found for ID:", classId);
       return NextResponse.json({ message: "Class not found" }, { status: 404 });
     }
 
+    console.log("[PATCH_CLASS_SUCCESS] Updated class:", updatedClass);
     return NextResponse.json(updatedClass, { status: 200 });
   } catch (error) {
     console.error("[PATCH_CLASS_ERROR]", error);
-    return NextResponse.json({ message: "Failed to update class" }, { status: 500 });
+    return NextResponse.json({ message: "Failed to update class", error: error.message }, { status: 500 });
   }
 }
 

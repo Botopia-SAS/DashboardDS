@@ -72,15 +72,19 @@ interface TicketCalendarEvent {
 interface TicketCalendarProps {
   className?: string;
   refreshKey?: number;
+  classType?: string;
   focusClassId?: string | null;
   focusWeek?: number;
   focusYear?: number;
   highlightEventId?: string | null;
 }
 
-const TicketCalendar = ({ className, refreshKey, focusClassId, focusWeek, focusYear, highlightEventId }: TicketCalendarProps) => {
-  // Obtener el tipo de clase del store
-  const { classType } = useClassTypeStore();
+const TicketCalendar = ({ className, refreshKey, classType: propClassType, focusClassId, focusWeek, focusYear, highlightEventId }: TicketCalendarProps) => {
+  // Obtener el tipo de clase del store como fallback
+  const { classType: storeClassType } = useClassTypeStore();
+  
+  // Use prop classType if provided, otherwise use store classType
+  const classType = propClassType || storeClassType;
   
   // Estado para el modal
   const [isModalOpen, setIsModalOpen] = useState(false);
@@ -286,8 +290,18 @@ const TicketCalendar = ({ className, refreshKey, focusClassId, focusWeek, focusY
         return;
       }
       
-      // Filtrar clases por el tipo actualmente seleccionado
-      const filteredData = data.filter((tc: TicketClassResponse) => tc.type === classType);
+      // Filtrar clases por el tipo actualmente seleccionado (case-insensitive)
+      const normalizedClassType = classType.toLowerCase();
+      console.log('🔍 Current classType for filtering:', classType, '| Normalized:', normalizedClassType);
+      console.log('📊 All ticket classes types:', data.map((tc: TicketClassResponse) => tc.type));
+
+      const filteredData = data.filter((tc: TicketClassResponse) => {
+        const matches = tc.type.toLowerCase() === normalizedClassType;
+        if (matches) {
+          console.log(`✅ Class matched: ${tc._id} (type: ${tc.type})`);
+        }
+        return matches;
+      });
 
       console.log(`🔍 Filtering for classType "${classType}": ${filteredData.length} of ${data.length} classes`);
       
@@ -424,6 +438,7 @@ const TicketCalendar = ({ className, refreshKey, focusClassId, focusWeek, focusY
 
   // Cargar todos los TicketClass reales desde la API
   useEffect(() => {
+    console.log('🔄 TicketCalendar useEffect triggered - classType:', classType, 'refreshKey:', refreshKey);
     fetchTicketClasses();
   }, [refreshKey, classType]); // Agregar classType para recargar cuando cambie el tipo
 
@@ -669,7 +684,7 @@ const TicketCalendar = ({ className, refreshKey, focusClassId, focusWeek, focusY
       date: formattedDate,
       hour: formattedStartTime,
       endHour: formattedEndTime,
-      type: "date",
+      type: classType, // Usar el tipo de clase actual del filtro
       status: "available",
       instructorId: "",
       students: [],
@@ -901,9 +916,12 @@ const TicketCalendar = ({ className, refreshKey, focusClassId, focusWeek, focusY
         <CardHeader>
           <div className="flex justify-between items-center">
             <div>
-              <CardTitle>🗓️ Ticket Classes Calendar - All Types</CardTitle>
+              <CardTitle>🗓️ {classType.toUpperCase()} Classes Calendar</CardTitle>
               <p className="text-sm text-gray-600">
-                Showing {calendarEvents.length} ticket classes
+                {calendarEvents.length === 0
+                  ? `No ${classType.toUpperCase()} classes found`
+                  : `Showing ${calendarEvents.length} ${classType.toUpperCase()} class${calendarEvents.length !== 1 ? 'es' : ''}`
+                }
               </p>
             </div>
             <div className="flex items-center gap-2">
@@ -928,15 +946,6 @@ const TicketCalendar = ({ className, refreshKey, focusClassId, focusWeek, focusY
             <div className="text-center">
               <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-gray-900 mx-auto"></div>
               <p className="mt-2 text-gray-600">Loading ticket classes...</p>
-            </div>
-          </div>
-        )}
-        
-        {!isLoading && calendarEvents.length === 0 && (
-          <div className="flex items-center justify-center h-64">
-            <div className="text-center">
-              <p className="text-gray-500">No ticket classes found</p>
-              <p className="text-sm text-gray-400 mt-1">Click on a time slot to create a new ticket class</p>
             </div>
           </div>
         )}

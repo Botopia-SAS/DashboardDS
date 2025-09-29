@@ -25,9 +25,9 @@ const TicketClassSchema = new mongoose.Schema({
   },
   type: {
     type: String,
-    enum: ["date", "bdi", "adi"],
     default: "date",
     required: true,
+    lowercase: true
   },
   duration: {
     type: String,

@@ -49,8 +49,9 @@ export default function Page() {
     fetch(`/api/ticket/calendar`)
       .then((res) => res.json())
       .then((data) => {
-        // Filter classes by the current class type
-        const filteredClasses = data.filter((c: Class) => c.type === classType);
+        // Filter classes by the current class type (case-insensitive)
+        const normalizedClassType = classType.toLowerCase();
+        const filteredClasses = data.filter((c: Class) => c.type.toLowerCase() === normalizedClassType);
         setClasses(filteredClasses);
         setLoading(false);
       })
