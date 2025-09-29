@@ -35,7 +35,7 @@ const formSchema = z.object({
   classId: z.string().min(1, "Class is required"),
   instructorId: z.string().min(1, "Instructor is required"),
   duration: z.string(),
-  type: z.enum(["date", "bdi", "adi"]).default("date"),
+  type: z.string().default("date"),
   cupos: z.number().min(1, "Cupos must be at least 1").default(30),
 });
 

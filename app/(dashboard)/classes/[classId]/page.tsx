@@ -18,6 +18,7 @@ type DrivingClassType = {
   buttonLabel: string;
   image?: string;
   headquarters?: string[];
+  classType?: string;
 };
 
 const ClassDetails = () => {

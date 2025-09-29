@@ -48,7 +48,7 @@ const formSchema = z
     method: z.string().optional(),
     courseId: z.string().optional(),
     fee: z.number().default(50),
-    courseType: z.enum(["date", "bdi", "adi"]).optional(),
+    courseType: z.string().optional(),
     country_ticket: z.string().optional(),
     course_country: z.string().optional(),
     bdi_subtype: z
@@ -196,7 +196,7 @@ interface CustomersFormProps {
     howDidYouHear: string;
     payedAmount: number;
     method: string;
-    courseType?: "date" | "bdi" | "adi";
+    courseType?: string;
     country_ticket?: string;
     course_country?: string;
     bdi_subtype?:

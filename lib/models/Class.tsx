@@ -11,7 +11,11 @@ const classSchema = new mongoose.Schema({
   buttonLabel: { type: String, required: true },
   image: { type: String, default: "" },
   headquarters: { type: [String], required: true },
-  classType: { type: String, enum: ["date", "bdi", "adi"], default: "date" },
+  classType: {
+    type: String,
+    default: "date",
+    lowercase: true
+  },
   duration: {
     type: String,
     enum: ["standard", "4h", "8h", "agressive", "12h"],

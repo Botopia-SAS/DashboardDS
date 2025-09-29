@@ -343,9 +343,31 @@ const Calendar: React.FC<CalendarProps> = ({ selectedInstructor, targetDate, tar
   };
 
   const renderEventContent = (eventInfo: any) => {
+    const event = eventInfo.event;
+    const extendedProps = event.extendedProps;
+    
+    // Formatear el título con líneas separadas para mejor legibilidad
+    const classType = extendedProps?.classType === 'driving test' ? 'Driving Test' : 'Driving Lesson';
+    const status = extendedProps?.status || 'available';
+    
     return (
-      <div className="cursor-pointer" data-event-id={eventInfo.event.id}>
-        {eventInfo.event.title}
+      <div className="w-full h-full flex flex-col justify-start" data-event-id={event.id} data-status={status}>
+        <div className="font-medium text-xs leading-tight">
+          {classType}
+        </div>
+        <div className="text-xs opacity-90 capitalize">
+          {status}
+        </div>
+        {(status === 'booked' || status === 'pending') && extendedProps?.studentName && (
+          <div className="text-xs mt-1 leading-tight">
+            👤 {extendedProps.studentName}
+          </div>
+        )}
+        {extendedProps?.classType === 'driving test' && extendedProps?.amount && (
+          <div className="font-semibold text-xs mt-1">
+            💰 ${extendedProps.amount}
+          </div>
+        )}
       </div>
     );
   };
@@ -377,12 +399,105 @@ const Calendar: React.FC<CalendarProps> = ({ selectedInstructor, targetDate, tar
   return (
     <div className="w-full">
       <style jsx global>{`
-        .fc-event {
+        /* Estilos principales para eventos */
+        .fc .fc-timegrid-event .fc-event-main {
+          padding: 6px 8px !important;
+          font-size: 11px !important;
+          line-height: 1.3 !important;
+          white-space: normal !important;
+          overflow: visible !important;
+          word-wrap: break-word !important;
+          height: auto !important;
+        }
+        
+        .fc .fc-timegrid-event {
+          min-height: 45px !important;
+          max-height: none !important;
+          border-radius: 4px !important;
+          overflow: visible !important;
+        }
+        
+        .fc .fc-timegrid-event-harness {
+          min-height: 45px !important;
+          overflow: visible !important;
+        }
+        
+        .fc .fc-event {
           cursor: pointer !important;
+          border-width: 1px !important;
+          box-shadow: 0 1px 3px rgba(0,0,0,0.1) !important;
         }
-        .fc-event:hover {
-          opacity: 0.8;
+        
+        .fc .fc-event-title {
+          white-space: normal !important;
+          overflow: visible !important;
+          text-overflow: clip !important;
+          word-wrap: break-word !important;
+          line-height: 1.3 !important;
+          font-weight: 500 !important;
         }
+        
+        /* Estilos específicos por estado */
+        .fc .fc-event[data-status="booked"] .fc-event-main {
+          padding: 8px 10px !important;
+          min-height: 50px !important;
+        }
+        
+        .fc .fc-event[data-status="booked"] {
+          min-height: 50px !important;
+        }
+        
+        .fc .fc-event[data-status="pending"] .fc-event-main {
+          padding: 8px 10px !important;
+          min-height: 50px !important;
+        }
+        
+        .fc .fc-event[data-status="pending"] {
+          min-height: 50px !important;
+        }
+        
+        .fc .fc-event[data-status="cancelled"] .fc-event-main {
+          padding: 6px 8px !important;
+          min-height: 40px !important;
+        }
+        
+        /* Hover effects */
+        .fc .fc-event:hover {
+          opacity: 0.9 !important;
+          transform: scale(1.02) !important;
+          z-index: 10 !important;
+          box-shadow: 0 4px 8px rgba(0,0,0,0.15) !important;
+          transition: all 0.2s ease !important;
+        }
+        
+        /* Texto dentro de eventos */
+        .fc .fc-event-main div {
+          margin: 0 !important;
+          padding: 0 !important;
+        }
+        
+        .fc .fc-event-main .font-medium {
+          font-weight: 600 !important;
+          margin-bottom: 2px !important;
+        }
+        
+        .fc .fc-event-main .font-semibold {
+          font-weight: 700 !important;
+          margin-top: 2px !important;
+        }
+        
+        .fc .fc-event-main .truncate {
+          white-space: nowrap !important;
+          overflow: hidden !important;
+          text-overflow: ellipsis !important;
+          max-width: 100% !important;
+        }
+        
+        /* Asegurar que los eventos largos se vean completos */
+        .fc .fc-timegrid-event.fc-event-mirror {
+          min-height: 45px !important;
+        }
+        
         .highlight-notification-event {
           animation: highlightPulse 2s ease-in-out 3;
           box-shadow: 0 0 20px rgba(59, 130, 246, 0.8) !important;
@@ -390,6 +505,7 @@ const Calendar: React.FC<CalendarProps> = ({ selectedInstructor, targetDate, tar
           z-index: 1000 !important;
           position: relative !important;
         }
+        
         @keyframes highlightPulse {
           0% {
             transform: scale(1);
@@ -402,6 +518,18 @@ const Calendar: React.FC<CalendarProps> = ({ selectedInstructor, targetDate, tar
           100% {
             transform: scale(1);
             box-shadow: 0 0 20px rgba(59, 130, 246, 0.8);
+          }
+        }
+        
+        /* Responsive adjustments */
+        @media (max-width: 768px) {
+          .fc .fc-timegrid-event .fc-event-main {
+            padding: 4px 6px !important;
+            font-size: 10px !important;
+          }
+          
+          .fc .fc-timegrid-event {
+            min-height: 35px !important;
           }
         }
       `}</style>

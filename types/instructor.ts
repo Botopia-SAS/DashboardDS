@@ -14,7 +14,7 @@ export interface InstructorData {
     booked?: boolean;
     studentId?: string | null;
     status?: "available" | "cancelled" | "scheduled";
-    classType?: "D.A.T.E" | "B.D.I" | "A.D.I" | "driving test";
+    classType?: string;
     amount?: number;
     paid?: boolean;
     pickupLocation?: string;

@@ -20,6 +20,7 @@ import ImageUpload from "../custom ui/ImageUpload";
 import toast from "react-hot-toast";
 import { useEffect, useState } from "react";
 import Select, { MultiValue, ActionMeta } from "react-select";
+import useClassTypeStore from "@/app/store/classTypeStore";
 
 const formSchema = z.object({
   title: z.string().min(2).max(500),
@@ -32,7 +33,7 @@ const formSchema = z.object({
   buttonLabel: z.string().min(1).max(20),
   image: z.string().optional(),
   headquarters: z.array(z.string()).min(1, "Please select at least one headquarters"),
-  classType: z.enum(["date", "bdi", "adi"]).default("date"),
+  classType: z.string().default("date"),
 });
 
 interface FormProps {
@@ -53,36 +54,49 @@ interface FormProps {
 }
 
 const CustomForm: React.FC<FormProps> = ({ initialData }) => {
-
+  const { availableClassTypes, setAvailableClassTypes, addClassType } = useClassTypeStore();
   const [headquartersOptions, setHeadquartersOptions] = useState<{ label: string; value: string }[]>([]);
   const [selectedHeadquarters, setSelectedHeadquarters] = useState<{ label: string; value: string }[]>([]);
   const [selectAll, setSelectAll] = useState(false);
+  const [showNewClassTypeForm, setShowNewClassTypeForm] = useState(false);
+  const [newClassTypeName, setNewClassTypeName] = useState("");
+  const [isLoading, setIsLoading] = useState(false);
+  const [hasChanges, setHasChanges] = useState(false);
+  const [originalData, setOriginalData] = useState<any>(null);
 
   useEffect(() => {
-    const fetchLocations = async () => {
+    const fetchData = async () => {
       try {
-        const res = await fetch("/api/locations"); // 🚀 Petición a Locations
-        if (!res.ok) throw new Error("Failed to fetch locations");
+        // Fetch locations
+        const locationsRes = await fetch("/api/locations");
+        if (!locationsRes.ok) throw new Error("Failed to fetch locations");
 
-        const data = await res.json();
+        const locationsData = await locationsRes.json();
 
         interface Location {
           zone: string;
         }
-        
-        const zones = data.map((location: Location) => ({
+
+        const zones = locationsData.map((location: Location) => ({
           label: location.zone,
           value: location.zone,
-        }));        
+        }));
 
         setHeadquartersOptions(zones);
+
+        // Fetch class types
+        const classTypesRes = await fetch("/api/classtypes");
+        if (!classTypesRes.ok) throw new Error("Failed to fetch class types");
+
+        const classTypesData = await classTypesRes.json();
+        setAvailableClassTypes(classTypesData);
       } catch (error) {
-        console.error("Failed to fetch locations:", error);
+        console.error("Failed to fetch data:", error);
       }
     };
 
-    fetchLocations();
-  }, []);
+    fetchData();
+  }, [setAvailableClassTypes]);
 
   // ✅ Función para manejar selección en el dropdown
   const handleSelectChange = (newValue: MultiValue<{ label: string; value: string }>, actionMeta: ActionMeta<{ label: string; value: string }>) => {
@@ -105,6 +119,42 @@ const CustomForm: React.FC<FormProps> = ({ initialData }) => {
     setSelectAll(!selectAll);
   };
 
+  // ✅ Función para agregar nuevo classType
+  const handleAddNewClassType = async () => {
+    try {
+      if (!newClassTypeName.trim()) {
+        toast.error("Class type name is required");
+        return;
+      }
+
+      const res = await fetch("/api/classtypes", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ name: newClassTypeName.trim() }),
+      });
+
+      if (res.ok) {
+        const createdClassType = await res.json();
+        addClassType(createdClassType);
+        setNewClassTypeName("");
+        setShowNewClassTypeForm(false);
+        toast.success("Class type added successfully");
+      } else {
+        const error = await res.json();
+        toast.error(error.error || "Failed to add class type");
+      }
+    } catch (error) {
+      console.error("Error adding class type:", error);
+      toast.error("Something went wrong!");
+    }
+  };
+
+  // ✅ Función para obtener el ID mostrado según classType
+  const getDisplayId = (classType: string) => {
+    const type = availableClassTypes.find(ct => ct.name === classType);
+    return type ? type.name.toUpperCase() : classType.toUpperCase();
+  };
+
   const form = useForm<z.infer<typeof formSchema>>({
     resolver: zodResolver(formSchema),
     defaultValues: {
@@ -118,7 +168,7 @@ const CustomForm: React.FC<FormProps> = ({ initialData }) => {
       buttonLabel: initialData?.buttonLabel || "",
       image: initialData?.image || "",
       headquarters: initialData?.headquarters ?? [], // ✅ Asegura que sea un array
-      classType: (initialData?.classType as "date" | "bdi" | "adi") ?? "date",
+      classType: initialData?.classType ?? "date",
     },
   });
 
@@ -133,35 +183,169 @@ const CustomForm: React.FC<FormProps> = ({ initialData }) => {
     }
   }, [initialData, headquartersOptions, form]); // 🚀 Se ejecuta cuando `initialData` y `headquartersOptions` cambian
 
+  // 📌 Sincronizar classType cuando se cargan los datos
+  useEffect(() => {
+    if (initialData?.classType && availableClassTypes.length > 0) {
+      // Buscar el classType que coincida
+      const matchingType = availableClassTypes.find(ct =>
+        ct.name === initialData.classType
+      );
+
+      if (matchingType) {
+        form.setValue("classType", matchingType.name);
+      } else {
+        // Si no existe, usar el primer disponible
+        if (availableClassTypes.length > 0) {
+          form.setValue("classType", availableClassTypes[0].name);
+        }
+      }
+    }
+  }, [initialData, availableClassTypes, form]);
+
+  // 📌 Guardar datos originales para comparación
+  useEffect(() => {
+    if (initialData && !originalData) {
+      setOriginalData({
+        title: initialData.title || "",
+        alsoKnownAs: initialData.alsoKnownAs || [],
+        length: initialData.length || 1,
+        price: initialData.price || 0.1,
+        overview: initialData.overview || "",
+        objectives: initialData.objectives || [],
+        contact: initialData.contact || "",
+        buttonLabel: initialData.buttonLabel || "",
+        image: initialData.image || "",
+        headquarters: initialData.headquarters || [],
+        classType: initialData.classType || "date",
+      });
+    }
+  }, [initialData, originalData]);
+
+  // 📌 Detectar cambios en tiempo real
+  const currentValues = form.watch();
+  useEffect(() => {
+    if (initialData && originalData) {
+      const currentData = {
+        ...currentValues,
+        headquarters: form.getValues("headquarters"),
+      };
+
+      const hasChanged = JSON.stringify(originalData) !== JSON.stringify(currentData);
+      setHasChanges(hasChanged);
+
+      if (hasChanged) {
+        console.log("[DEBUG] Changes detected:", {
+          original: originalData,
+          current: currentData
+        });
+      }
+    }
+  }, [currentValues, originalData, initialData, form]);
+
   const router = useRouter();
+
+  // 📌 Función para guardar directamente
+  const handleSave = async () => {
+    if (!hasChanges || !initialData) {
+      toast.info("No changes to save");
+      return;
+    }
+
+    try {
+      setIsLoading(true);
+      const currentValues = form.getValues();
+
+      console.log("[SAVE_DEBUG] Current form values:", currentValues);
+      console.log("[SAVE_DEBUG] Saving to ID:", initialData._id);
+
+      const payload = {
+        ...currentValues,
+        headquarters: form.getValues("headquarters"),
+        classType: currentValues.classType || "date",
+      };
+
+      console.log("[SAVE_DEBUG] Final payload:", payload);
+
+      const res = await fetch(`/api/classes/${initialData._id}`, {
+        method: "PATCH",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify(payload),
+      });
+
+      console.log("[SAVE_DEBUG] Response status:", res.status);
+
+      if (res.ok) {
+        const updatedData = await res.json();
+        console.log("[SAVE_DEBUG] Updated successfully:", updatedData);
+        toast.success("Class updated successfully!");
+        setHasChanges(false);
+        // Actualizar originalData
+        setOriginalData({
+          ...currentValues,
+          headquarters: form.getValues("headquarters"),
+        });
+
+        // Redirigir a la lista de clases después de 1 segundo
+        setTimeout(() => {
+          router.push("/classes");
+        }, 1000);
+      } else {
+        const errorData = await res.json();
+        console.error("[SAVE_DEBUG] Error response:", errorData);
+        toast.error(errorData.message || "Failed to save changes");
+      }
+    } catch (error) {
+      console.error("[SAVE_DEBUG] Save error:", error);
+      toast.error("Failed to save changes");
+    } finally {
+      setIsLoading(false);
+    }
+  };
 
   const onSubmit = async (values: z.infer<typeof formSchema>) => {
     try {
+      setIsLoading(true);
+
+      console.log("[DEBUG] Form values recibidos:", values);
+      console.log("[DEBUG] Current classType in form:", form.getValues("classType"));
+      console.log("[DEBUG] initialData:", initialData);
+
       const url = initialData ? `/api/classes/${initialData._id}` : "/api/classes";
       const method = initialData ? "PATCH" : "POST";
-  
+
       const payload = {
         ...values,
         headquarters: form.getValues("headquarters"), // ✅ Envía como array
+        classType: values.classType || "date", // ✅ Asegurar formato correcto con fallback
       };
 
-      console.log("[DEBUG] Enviando datos al backend:", payload);
-  
+      console.log("[DEBUG] Payload final:", payload);
+      console.log("[DEBUG] URL:", url);
+      console.log("[DEBUG] Method:", method);
+
       const res = await fetch(url, {
         method,
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify(payload),
       });
-  
+
+      console.log("[DEBUG] Response status:", res.status);
+
       if (res.ok) {
+        const responseData = await res.json();
+        console.log("[DEBUG] Response data:", responseData);
         toast.success(`Class ${initialData ? "updated" : "created"} successfully`);
         router.push("/classes");
       } else {
-        toast.error("Failed to submit form");
+        const errorData = await res.json();
+        console.error("[DEBUG] Error response:", errorData);
+        toast.error(errorData.message || "Failed to submit form");
       }
     } catch (error) {
-      console.error(error);
+      console.error("[DEBUG] Fetch error:", error);
       toast.error("Something went wrong!");
+    } finally {
+      setIsLoading(false);
     }
   };
   
@@ -198,14 +382,73 @@ const CustomForm: React.FC<FormProps> = ({ initialData }) => {
               <FormItem>
                 <FormLabel>Class Type</FormLabel>
                 <FormControl>
-                  <select
-                    {...field}
-                    className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
-                  >
-                    <option value="date">D.A.T.E.</option>
-                    <option value="bdi">B.D.I.</option>
-                    <option value="adi">A.D.I.</option>
-                  </select>
+                  <div className="space-y-2">
+                    <select
+                      {...field}
+                      onChange={(e) => {
+                        console.log("[DEBUG] ClassType changed to:", e.target.value);
+                        field.onChange(e);
+                      }}
+                      className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
+                    >
+                      {availableClassTypes.map((classType) => (
+                        <option key={classType._id} value={classType.name}>
+                          {classType.name.toUpperCase()}
+                        </option>
+                      ))}
+                      {availableClassTypes.length === 0 && (
+                        <option value="date">Loading...</option>
+                      )}
+                    </select>
+
+                    {/* Mostrar ID correspondiente */}
+                    <div className="text-sm text-gray-600">
+                      <strong>ID:</strong> {getDisplayId(field.value)}
+                    </div>
+
+                    {/* Botón para agregar nuevo classType */}
+                    <Button
+                      type="button"
+                      variant="outline"
+                      onClick={() => setShowNewClassTypeForm(!showNewClassTypeForm)}
+                      className="w-full"
+                    >
+                      {showNewClassTypeForm ? "Cancel" : "+ Add New Class Type"}
+                    </Button>
+
+                    {/* Formulario para nuevo classType */}
+                    {showNewClassTypeForm && (
+                      <div className="border p-4 rounded-md bg-gray-50 space-y-3">
+                        <div>
+                          <label className="block text-sm font-medium">New Class Type</label>
+                          <Input
+                            placeholder="e.g. CDA"
+                            value={newClassTypeName}
+                            onChange={(e) => setNewClassTypeName(e.target.value)}
+                          />
+                        </div>
+                        <div className="flex gap-2">
+                          <Button
+                            type="button"
+                            onClick={handleAddNewClassType}
+                            className="bg-green-600 text-white"
+                          >
+                            Add Class Type
+                          </Button>
+                          <Button
+                            type="button"
+                            variant="outline"
+                            onClick={() => {
+                              setShowNewClassTypeForm(false);
+                              setNewClassTypeName("");
+                            }}
+                          >
+                            Cancel
+                          </Button>
+                        </div>
+                      </div>
+                    )}
+                  </div>
                 </FormControl>
                 <FormMessage />
               </FormItem>
@@ -403,11 +646,64 @@ const CustomForm: React.FC<FormProps> = ({ initialData }) => {
 
           {/* 🔹 BUTTONS */}
           <div className="flex gap-4">
-            <Button type="submit" className="bg-blue-600 text-white">Submit</Button>
-            <Button type="button" onClick={() => router.push("/classes")} className="bg-gray-500 text-white">
-              Discard
+            {/* Botón Save solo para edición */}
+            {initialData && (
+              <Button
+                type="button"
+                onClick={handleSave}
+                className={`${hasChanges ? 'bg-green-600 hover:bg-green-700' : 'bg-gray-400'} text-white transition-colors`}
+                disabled={isLoading || !hasChanges}
+              >
+                {isLoading ? (
+                  <div className="flex items-center gap-2">
+                    <div className="animate-spin rounded-full h-4 w-4 border-2 border-white border-t-transparent"></div>
+                    Saving...
+                  </div>
+                ) : (
+                  <div className="flex items-center gap-2">
+                    💾 Save Changes
+                    {hasChanges && <span className="w-2 h-2 bg-white rounded-full animate-pulse"></span>}
+                  </div>
+                )}
+              </Button>
+            )}
+
+            {/* Botón Submit original para creación */}
+            {!initialData && (
+              <Button
+                type="submit"
+                className="bg-blue-600 text-white"
+                disabled={isLoading}
+              >
+                {isLoading ? (
+                  <div className="flex items-center gap-2">
+                    <div className="animate-spin rounded-full h-4 w-4 border-2 border-white border-t-transparent"></div>
+                    Creating...
+                  </div>
+                ) : (
+                  "Create Class"
+                )}
+              </Button>
+            )}
+
+            <Button
+              type="button"
+              onClick={() => router.push("/classes")}
+              className="bg-gray-500 text-white"
+              disabled={isLoading}
+            >
+              {hasChanges ? "Discard Changes" : "Back to Classes"}
             </Button>
           </div>
+
+          {/* Indicador de cambios */}
+          {initialData && hasChanges && (
+            <div className="mt-2 p-2 bg-yellow-50 border border-yellow-200 rounded-md">
+              <p className="text-sm text-yellow-800 flex items-center gap-2">
+                ⚠️ You have unsaved changes
+              </p>
+            </div>
+          )}
         </form>
       </Form>
     </div>
