@@ -512,8 +512,9 @@ const ScheduleModal: React.FC<ScheduleModalProps> = ({
       newErrors.push("Student is required for booked/pending driving lessons");
     }
     
-    // Validate product selection for students with booked/pending status
-    if (formData.studentId && 
+    // Validate product selection for students with booked/pending status (only for driving lesson)
+    if (formData.classType === "driving lesson" &&
+        formData.studentId && 
         (formData.status === "booked" || formData.status === "pending") && 
         !formData.selectedProduct) {
       newErrors.push("Product selection is required when a student is assigned");
@@ -955,22 +956,8 @@ const ScheduleModal: React.FC<ScheduleModalProps> = ({
             </div>
           </div>
 
-          {/* Show Amount for Driving Test, Location fields for Driving Lesson */}
-          {formData.classType === "driving test" ? (
-            <div>
-              <Label className="text-sm font-medium">Amount ($) <span className="text-red-500">*</span></Label>
-              <Input
-                type="number"
-                value={formData.amount}
-                onChange={(e) => handleInputChange("amount", e.target.value)}
-                placeholder="0.00"
-                min="0"
-                step="0.01"
-                className="w-full"
-                required
-              />
-            </div>
-          ) : formData.classType === "driving lesson" && showDrivingLessonLocationFields ? (
+          {/* Show Location fields for Driving Lesson */}
+          {formData.classType === "driving lesson" && showDrivingLessonLocationFields ? (
             <div className="grid grid-cols-2 gap-4">
               <div>
                 <Label className="text-sm font-medium">Pickup Location <span className="text-red-500">*</span></Label>
@@ -1103,37 +1090,7 @@ const ScheduleModal: React.FC<ScheduleModalProps> = ({
                 </div>
               </div>
 
-              <div>
-                <Label>Payment Status</Label>
-                <div className="flex space-x-4 mt-2">
-                  <div className="flex items-center space-x-2">
-                    <input
-                      type="radio"
-                      id="paid-true"
-                      name="paid"
-                      checked={formData.paid === true}
-                      onChange={() => handleInputChange("paid", true)}
-                      className="w-4 h-4"
-                    />
-                    <label htmlFor="paid-true" className="text-sm cursor-pointer">
-                      Paid
-                    </label>
-                  </div>
-                  <div className="flex items-center space-x-2">
-                    <input
-                      type="radio"
-                      id="paid-false"
-                      name="paid"
-                      checked={formData.paid === false}
-                      onChange={() => handleInputChange("paid", false)}
-                      className="w-4 h-4"
-                    />
-                    <label htmlFor="paid-false" className="text-sm cursor-pointer">
-                      Not Paid
-                    </label>
-                  </div>
-                </div>
-              </div>
+
             </>
           )}
 
