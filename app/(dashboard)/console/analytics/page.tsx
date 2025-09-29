@@ -381,8 +381,8 @@ export default function AnalyticsPage() {
               {data?.countries?.slice(0, 5).map((country: AnalyticsCountry, index: number) => (
                 <div key={index} className="flex items-center justify-between">
                   <div className="flex items-center gap-2">
-                    <span className="text-xl">{getCountryFlag(country.country)}</span>
-                    <span>{country.country}</span>
+                    <span className="text-xl">{getCountryFlag(country.country || 'Other')}</span>
+                    <span>{country.country || 'Other'}</span>
                   </div>
                   <span className="font-medium">{country.count}</span>
                 </div>
@@ -397,7 +397,7 @@ export default function AnalyticsPage() {
             <div className="space-y-4">
               {data?.cities?.slice(0, 5).map((city: AnalyticsCity, index: number) => (
                 <div key={index} className="flex items-center justify-between">
-                  <span>{city.city}</span>
+                  <span>{city.city || 'Other'}</span>
                   <span className="font-medium">{city.count}</span>
                 </div>
               ))}
@@ -417,6 +417,7 @@ function getCountryFlag(country: string) {
     'Argentina': '🇦🇷',
     'Spain': '🇪🇸',
     'United States': '🇺🇸',
+    'Other': '🌎',
     // Add more countries as needed
   };
   return flags[country] || '🌎';
