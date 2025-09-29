@@ -62,7 +62,7 @@ const CustomForm: React.FC<FormProps> = ({ initialData }) => {
   const [newClassTypeName, setNewClassTypeName] = useState("");
   const [isLoading, setIsLoading] = useState(false);
   const [hasChanges, setHasChanges] = useState(false);
-  const [originalData, setOriginalData] = useState<any>(null);
+  const [originalData, setOriginalData] = useState<Record<string, unknown> | null>(null);
 
   useEffect(() => {
     const fetchData = async () => {
@@ -247,7 +247,7 @@ const CustomForm: React.FC<FormProps> = ({ initialData }) => {
   // 📌 Función para guardar directamente
   const handleSave = async () => {
     if (!hasChanges || !initialData) {
-      toast.info("No changes to save");
+      toast.success("No changes to save");
       return;
     }
 

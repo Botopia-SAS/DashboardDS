@@ -2,15 +2,16 @@
 
 import { useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
-import { Plus, Menu } from "lucide-react";
+import { Plus, Menu, Settings } from "lucide-react";
 
 import { columns as classesColumns } from "@/components/classes/ClassesColumns";
-import { columns as onlineCoursesColumns } from "@/components/online-courses/OnlineCoursesColumns"; 
+import { columns as onlineCoursesColumns } from "@/components/online-courses/OnlineCoursesColumns";
 import { DataTable } from "@/components/custom ui/DataTable";
 import { Button } from "@/components/ui/button";
 import { Separator } from "@/components/ui/separator";
 import Loader from "@/components/custom ui/Loader";
 import DashboardHeader from "@/components/layout/DashboardHeader";
+import ClassTypeManager from "@/components/classes/ClassTypeManager";
 
 const DrivingClassesDashboard = () => {
   const router = useRouter();
@@ -19,6 +20,7 @@ const DrivingClassesDashboard = () => {
   const [menuOpen, setMenuOpen] = useState(false);
   const [classes, setClasses] = useState([]);
   const [onlineCourses, setOnlineCourses] = useState([]);
+  const [isClassTypeManagerOpen, setIsClassTypeManagerOpen] = useState(false);
 
   // 🔹 Obtener clases
   const getClasses = async () => {
@@ -116,13 +118,22 @@ const DrivingClassesDashboard = () => {
             <>
               <div className="flex items-center justify-between">
                 <p className="text-lg font-bold text-gray-800">Driving Classes</p>
-                <Button
-                  className="bg-blue-500 text-white"
-                  onClick={() => router.push("/classes/new")}
-                >
-                  <Plus className="h-4 w-4 mr-2" />
-                  Create Class
-                </Button>
+                <div className="flex gap-2">
+                  <Button
+                    className="bg-purple-600 hover:bg-purple-700 text-white"
+                    onClick={() => setIsClassTypeManagerOpen(true)}
+                  >
+                    <Settings className="h-4 w-4 mr-2" />
+                    Manage Types
+                  </Button>
+                  <Button
+                    className="bg-blue-500 text-white"
+                    onClick={() => router.push("/classes/new")}
+                  >
+                    <Plus className="h-4 w-4 mr-2" />
+                    Create Class
+                  </Button>
+                </div>
               </div>
               <Separator className="bg-gray-400 my-4" />
               <DataTable columns={classesColumns} data={classes} searchKey="title" />
@@ -149,6 +160,12 @@ const DrivingClassesDashboard = () => {
           )}
         </div>
       )}
+
+      {/* Class Type Manager Modal */}
+      <ClassTypeManager
+        isOpen={isClassTypeManagerOpen}
+        onClose={() => setIsClassTypeManagerOpen(false)}
+      />
     </div>
   );
 };

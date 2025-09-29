@@ -207,8 +207,18 @@ export default function ScheduleModal({
     }
   };
 
-  // Filter classes based on the selected type in the form
-  const filteredClasses = classes.filter(cls => cls.classType === form.type);
+  // Filter classes based on the selected type in the form (case-insensitive)
+  const filteredClasses = classes.filter(cls => {
+    const clsType = cls.classType?.toLowerCase() || '';
+    const formType = form.type?.toLowerCase() || '';
+    const matches = clsType === formType;
+    if (matches) {
+      console.log(`✅ Class matched: "${cls.title}" (classType: "${cls.classType}") matches form.type: "${form.type}"`);
+    }
+    return matches;
+  });
+
+  console.log(`🔍 ScheduleModal - Filtering classes: form.type="${form.type}", total classes=${classes.length}, filtered=${filteredClasses.length}`);
 
   // Función para verificar si el formulario es válido
   const isFormValid = () => {
@@ -403,17 +413,13 @@ export default function ScheduleModal({
               <div className="grid grid-cols-4 gap-2">
                 <div>
                   <label className="block text-xs font-medium mb-0.5">Class type <span className="text-red-500">*</span></label>
-                  <select
-                    className="w-full border rounded px-1.5 py-1 text-xs focus:outline-none focus:ring-1 focus:ring-blue-500 bg-gray-100"
-                    name="type"
+                  <input
+                    type="text"
+                    className="w-full border rounded px-1.5 py-1 text-xs focus:outline-none bg-gray-100 text-gray-700 font-semibold uppercase"
                     value={form.type}
                     disabled={true}
-                    required
-                  >
-                    <option value="date">D.A.T.E</option>
-                    <option value="bdi">B.D.I</option>
-                    <option value="adi">A.D.I</option>
-                  </select>
+                    readOnly
+                  />
                 </div>
                 <div>
                   <label className="block text-xs font-medium mb-0.5">Spots</label>
