@@ -4,12 +4,12 @@ import ClassType from "@/lib/models/ClassType";
 
 export async function PATCH(
   req: NextRequest,
-  { params }: { params: { classtypeId: string } }
+  { params }: { params: Promise<{ classtypeId: string }> }
 ) {
   try {
     await connectToDB();
 
-    const { classtypeId } = params;
+    const { classtypeId } = await params;
     const { name } = await req.json();
 
     if (!name || name.trim() === "") {
@@ -62,12 +62,12 @@ export async function PATCH(
 
 export async function DELETE(
   req: NextRequest,
-  { params }: { params: { classtypeId: string } }
+  { params }: { params: Promise<{ classtypeId: string }> }
 ) {
   try {
     await connectToDB();
 
-    const { classtypeId } = params;
+    const { classtypeId } = await params;
 
     // Buscar el classType por ID
     const classType = await ClassType.findById(classtypeId);
