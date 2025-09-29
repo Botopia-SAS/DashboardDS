@@ -324,11 +324,8 @@ const TicketCalendar = ({ className, refreshKey, classType: propClassType, focus
         }
         console.log('👨‍🏫 Instructor name for this class:', instructorName);
         
-        // Determinar tipo de clase
-        let classType = "Class";
-        if (tc.type === "date") classType = "D.A.T.E";
-        else if (tc.type === "bdi") classType = "B.D.I";
-        else if (tc.type === "adi") classType = "A.D.I";
+        // Determinar tipo de clase - usar el tipo directamente en mayúsculas
+        const displayClassType = tc.type.toUpperCase();
         
         // Determinar estado
         let status = "Available";
@@ -405,7 +402,7 @@ const TicketCalendar = ({ className, refreshKey, classType: propClassType, focus
         
         const event: TicketCalendarEvent = {
           id: tc._id || `ticket-${index}`,
-          title: `${classType} - ${instructorName} - ${status} (${studentCount}/${totalSpots})`,
+          title: `${displayClassType}\n${instructorName}\n${status} (${studentCount}/${totalSpots})`,
           start: `${dateStr}T${hour}`,
           end: `${dateStr}T${endHour}`,
           backgroundColor,
@@ -413,7 +410,7 @@ const TicketCalendar = ({ className, refreshKey, classType: propClassType, focus
           textColor: "#ffffff",
           extendedProps: {
             ticketClass: tc,
-            classType,
+            classType: displayClassType,
             status,
             studentCount,
             totalSpots
@@ -744,10 +741,8 @@ const TicketCalendar = ({ className, refreshKey, classType: propClassType, focus
       const studentCount = Array.isArray(tc.students) ? tc.students.length : 0;
       const totalSpots = tc.spots || 30;
       
-      let classType = "Class";
-      if (tc.type === "date") classType = "D.A.T.E";
-      else if (tc.type === "bdi") classType = "B.D.I";
-      else if (tc.type === "adi") classType = "A.D.I";
+      // Usar el tipo directamente en mayúsculas
+      const classType = tc.type.toUpperCase();
       
       let status = "Available";
       if (tc.status === "full") status = "Full";
@@ -794,7 +789,7 @@ const TicketCalendar = ({ className, refreshKey, classType: propClassType, focus
       
       return {
         id: tc._id,
-        title: `${classType} - ${instructorName} - ${status} (${studentCount}/${totalSpots})`,
+        title: `${classType}\n${instructorName}\n${status} (${studentCount}/${totalSpots})`,
         start: `${dateStr}T${tc.hour || "00:00"}`,
         end: `${dateStr}T${calculatedEndHour}`,
         backgroundColor,
@@ -962,6 +957,8 @@ const TicketCalendar = ({ className, refreshKey, classType: propClassType, focus
             height="850px"
             events={calendarEvents}
             select={handleDateSelect}
+            eventMinHeight={60}
+            eventShortHeight={45}
             unselect={() => {
               // Deseleccionar slot cuando se hace clic fuera
               console.log('Slot deseleccionado');
@@ -998,13 +995,35 @@ const TicketCalendar = ({ className, refreshKey, classType: propClassType, focus
               const slotId = `slot-${dateStr}-${timeStr}`;
               info.el.id = slotId;
               
+              // Aplicar estilos para mostrar texto en múltiples líneas
+              const titleEl = info.el.querySelector('.fc-event-title') || info.el.querySelector('.fc-event-title-container') || info.el.querySelector('.fc-event-main');
+              
+              if (titleEl) {
+                const htmlTitleEl = titleEl as HTMLElement;
+                htmlTitleEl.style.whiteSpace = 'pre-line';
+                htmlTitleEl.style.overflow = 'visible';
+                htmlTitleEl.style.textOverflow = 'clip';
+                htmlTitleEl.style.fontSize = '10px';
+                htmlTitleEl.style.lineHeight = '1.1';
+                htmlTitleEl.style.padding = '2px';
+                htmlTitleEl.style.wordWrap = 'break-word';
+                htmlTitleEl.style.hyphens = 'auto';
+              }
+              
+              // Aplicar estilos al contenedor del evento
+              info.el.style.padding = '2px';
+              info.el.style.fontSize = '10px';
+              info.el.style.lineHeight = '1.1';
+              info.el.style.overflow = 'visible';
+              info.el.style.whiteSpace = 'pre-line';
+              info.el.style.wordWrap = 'break-word';
+              
               // Add hover effects
               info.el.style.cursor = 'pointer';
               info.el.style.transition = 'all 0.2s ease';
               
               // Store original colors
               const originalBg = info.el.style.backgroundColor;
-              const originalBorder = info.el.style.borderColor;
               
               // Add hover event listeners (SIN TRANSFORMACIONES)
               info.el.addEventListener('mouseenter', () => {
