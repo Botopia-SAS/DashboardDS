@@ -54,7 +54,8 @@ export async function PATCH(req: NextRequest, context: { params: Promise<{ class
     return NextResponse.json(updatedClass, { status: 200 });
   } catch (error) {
     console.error("[PATCH_CLASS_ERROR]", error);
-    return NextResponse.json({ message: "Failed to update class", error: error.message }, { status: 500 });
+    const errorMessage = error instanceof Error ? error.message : "Unknown error";
+    return NextResponse.json({ message: "Failed to update class", error: errorMessage }, { status: 500 });
   }
 }
 
