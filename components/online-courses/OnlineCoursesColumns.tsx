@@ -10,7 +10,6 @@ import { ArrowUpRight } from "lucide-react";
 export type OnlineCourseType = {
   _id: string;
   title: string;
-  price: number;
   image: string; // ✅ Agregar la imagen
 };
 
@@ -27,13 +26,6 @@ export const columns: ColumnDef<OnlineCourseType>[] = [
         {row.original.title}
         <ArrowUpRight size={16} className="opacity-75" />
       </Link>
-    ),
-  },
-  {
-    accessorKey: "price",
-    header: "Price ($)",
-    cell: ({ row }) => (
-      <p className="font-medium text-gray-700">${(row.original.price ?? 0).toFixed(2)}</p>
     ),
   },
   {
