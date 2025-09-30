@@ -9,6 +9,9 @@ import { useState, useEffect } from "react";
 import Loader from "@/components/custom ui/Loader";
 import DashboardHeader from "@/components/layout/DashboardHeader";
 import { useSearchParams, useRouter, useParams } from "next/navigation";
+import { GovCertificateDialog } from "@/components/ticket/gov-certificate-dialog";
+import { Button } from "@/components/ui/button";
+import { FileText } from "lucide-react";
 
 export default function TicketClassTypePage() {
   const params = useParams();
@@ -22,6 +25,7 @@ export default function TicketClassTypePage() {
   const [calendarRefreshKey, setCalendarRefreshKey] = useState(0);
   const [classTypes, setClassTypes] = useState<ClassTypeOption[]>([]);
   const [currentClassType, setCurrentClassType] = useState(classtype?.toLowerCase() || 'date');
+  const [isGovCertDialogOpen, setIsGovCertDialogOpen] = useState(false);
   const searchParams = useSearchParams();
 
   // Get URL parameters
@@ -169,7 +173,16 @@ export default function TicketClassTypePage() {
       )}
       
       <div className="p-6">
-        <DashboardHeader title="Tickets" />
+        <DashboardHeader title="Tickets">
+          <Button
+            onClick={() => setIsGovCertDialogOpen(true)}
+            className="flex items-center gap-2"
+            variant="outline"
+          >
+            <FileText className="h-4 w-4" />
+            Government Certificate
+          </Button>
+        </DashboardHeader>
       </div>
       <div className="p-6">
         <Tabs className="w-full" value={currentClassType} onValueChange={handleTabChange}>
@@ -223,6 +236,11 @@ export default function TicketClassTypePage() {
           ))}
         </Tabs>
       </div>
+
+      <GovCertificateDialog
+        open={isGovCertDialogOpen}
+        onOpenChange={setIsGovCertDialogOpen}
+      />
     </>
   );
 }
