@@ -4,7 +4,6 @@ import { zodResolver } from "@hookform/resolvers/zod";
 import { useForm } from "react-hook-form";
 import { z } from "zod";
 import { useRouter } from "next/navigation";
-import { useState } from "react";
 import { Separator } from "@/components/ui/separator";
 import { Button } from "@/components/ui/button";
 import {
@@ -17,7 +16,6 @@ import {
 } from "@/components/ui/form";
 import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
-import { Checkbox } from "@/components/ui/checkbox";
 import { Combobox } from "@/components/ui/combobox";
 import ImageUpload from "@/components/custom ui/ImageUpload";
 import toast from "react-hot-toast";
@@ -27,8 +25,6 @@ export const onlineCourseSchema = z.object({
   title: z.string().min(2).max(75),
   description: z.string().min(2).max(2000).trim(),
   image: z.string().optional(), // ✅ Campo para la imagen
-  hasPrice: z.boolean().default(false),
-  price: z.coerce.number().min(0).optional(),
   type: z.enum(["Book", "Buy"]),
   buttonLabel: z.string().min(1).max(20),
 });
@@ -42,9 +38,6 @@ interface OnlineCourseFormProps {
 
 const OnlineCourseForm: React.FC<OnlineCourseFormProps> = ({ initialData }) => {
   const router = useRouter();
-  const [isPriceEnabled, setIsPriceEnabled] = useState(
-    initialData?.hasPrice || false
-  );
 
   const form = useForm<z.infer<typeof onlineCourseSchema>>({
     resolver: zodResolver(onlineCourseSchema),
@@ -52,8 +45,6 @@ const OnlineCourseForm: React.FC<OnlineCourseFormProps> = ({ initialData }) => {
       title: initialData?.title || "",
       description: initialData?.description || "",
       image: initialData?.image || "",
-      hasPrice: initialData?.hasPrice || false,
-      price: initialData?.price ?? 0,
       type: initialData?.type || "Book",
       buttonLabel: initialData?.buttonLabel || "",
     },
@@ -87,7 +78,7 @@ const OnlineCourseForm: React.FC<OnlineCourseFormProps> = ({ initialData }) => {
   };
 
   return (
-    <div className="min-h-screen flex flex-col bg-gray-100 p-10">
+    <div className="min-h-screen flex flex-col bg-white p-10">
       {/* 🔹 HEADER */}
       <div className="flex justify-between items-center mb-6">
         <h1 className="text-3xl font-semibold text-gray-800">
@@ -163,51 +154,7 @@ const OnlineCourseForm: React.FC<OnlineCourseFormProps> = ({ initialData }) => {
             )}
           />
 
-          {/* 🔹 HAS PRICE CHECKBOX */}
-          <FormField
-            control={form.control}
-            name="hasPrice"
-            render={({ field }) => (
-              <FormItem className="flex items-center gap-2">
-                <FormControl>
-                  <Checkbox
-                    checked={field.value}
-                    onCheckedChange={(checked: boolean) => {
-                      field.onChange(checked);
-                      setIsPriceEnabled(checked);
-                    }}
-                  />
-                </FormControl>
-                <FormLabel className="font-medium">
-                  This course has a price
-                </FormLabel>
-                <FormMessage />
-              </FormItem>
-            )}
-          />
 
-          {/* 🔹 PRICE (Solo habilitado si `hasPrice` es true) */}
-          {isPriceEnabled && (
-            <FormField
-              control={form.control}
-              name="price"
-              render={({ field }) => (
-                <FormItem>
-                  <FormLabel className="font-medium">Price ($)</FormLabel>
-                  <FormControl>
-                    <Input
-                      type="number"
-                      step="0.01"
-                      {...field}
-                      placeholder="Enter price"
-                      className="w-full"
-                    />
-                  </FormControl>
-                  <FormMessage />
-                </FormItem>
-              )}
-            />
-          )}
 
           {/* 🔹 TYPE */}
           <FormField

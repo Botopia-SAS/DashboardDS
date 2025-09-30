@@ -1,6 +1,21 @@
 @tailwind base;
 @tailwind components;
 @tailwind utilities;
+
+/* Schedule Modal Responsive Styles */
+@media screen and (max-height: 600px) {
+  .schedule-modal-container {
+    max-height: 90vh !important;
+    padding: 12px !important;
+  }
+}
+
+@media screen and (max-width: 640px) {
+  .schedule-modal-container {
+    width: 95vw !important;
+    margin: 8px !important;
+  }
+}
  
 html,
 body,
@@ -98,6 +113,22 @@ body,
   }
 }
 
+/* Ensure modal dialogs are not transparent */
+[data-radix-dialog-content] {
+  background-color: white !important;
+  opacity: 1 !important;
+}
+
+[data-radix-dialog-overlay] {
+  background-color: rgba(0, 0, 0, 0.5) !important;
+}
+
+/* Fix modal dialog transparency issues */
+.dialog-content {
+  background-color: white !important;
+  backdrop-filter: none !important;
+}
+
 @media (max-width: 640px) {
   /* Small mobile adjustments */
   .mobile-nav-dropdown {
@@ -169,3 +200,4 @@ body,
     height: 36px !important;
   }
 }
+

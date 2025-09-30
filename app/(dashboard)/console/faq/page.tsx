@@ -11,9 +11,13 @@ interface FaqItem {
   answer: string;
 }
 
+interface FaqSection {
+  label: string;
+  questions: FaqItem[];
+}
+
 interface FaqData {
-  drivinglessons: FaqItem[];
-  advancedDrivingImprovementCourse: FaqItem[];
+  sections: Record<string, FaqSection>;
 }
 
 const fetchFaq = async (): Promise<FaqData> => {
@@ -54,6 +58,8 @@ export default function FaqAdminPage() {
   const [editLinkText, setEditLinkText] = useState("");
   const [editLinkUrl, setEditLinkUrl] = useState("");
   const [loading, setLoading] = useState(false);
+  const [showAddSection, setShowAddSection] = useState(false);
+  const [newSectionLabel, setNewSectionLabel] = useState("");
 
   useEffect(() => {
     fetchFaq().then(data => {
@@ -64,8 +70,8 @@ export default function FaqAdminPage() {
 
   const handleEdit = (section: string, idx: number) => {
     setEditIndex({ section, idx });
-    setEditItem(faq![section as keyof FaqData][idx]);
-    const match = faq![section as keyof FaqData][idx].answer.match(/<a [^>]*href=["']([^"']+)["'][^>]*>([^<]+)<\/a>/);
+    setEditItem(faq!.sections[section].questions[idx]);
+    const match = faq!.sections[section].questions[idx].answer.match(/<a [^>]*href=["']([^"']+)["'][^>]*>([^<]+)<\/a>/);
     setEditLinkUrl(match ? match[1] : "");
     setEditLinkText(match ? match[2] : "");
   };
@@ -79,8 +85,17 @@ export default function FaqAdminPage() {
       answer = answer.replace(/<a [^>]*href=["']([^"']+)["'][^>]*>([^<]+)<\/a>/, "");
       answer = answer.trim() + ` <a href=\"${editLinkUrl}\" class=\"text-blue-600 font-semibold\" rel=\"noopener noreferrer\">${editLinkText}</a>`;
     }
-    const updated = { ...faq };
-    updated[editIndex.section as keyof FaqData][editIndex.idx] = { ...editItem, answer };
+    const updated = {
+      sections: {
+        ...faq.sections,
+        [editIndex.section]: {
+          ...faq.sections[editIndex.section],
+          questions: faq.sections[editIndex.section].questions.map((item, idx) =>
+            idx === editIndex.idx ? { ...editItem, answer } : item
+          )
+        }
+      }
+    };
     setLoading(true);
     await updateFaq(updated);
     const fresh = await fetchFaq();
@@ -92,8 +107,15 @@ export default function FaqAdminPage() {
 
   const handleDelete = async (section: string, idx: number) => {
     if (!faq) return;
-    const updated = { ...faq };
-    updated[section as keyof FaqData] = updated[section as keyof FaqData].filter((_, i) => i !== idx);
+    const updated = {
+      sections: {
+        ...faq.sections,
+        [section]: {
+          ...faq.sections[section],
+          questions: faq.sections[section].questions.filter((_, i) => i !== idx)
+        }
+      }
+    };
     setLoading(true);
     await updateFaq(updated);
     const fresh = await fetchFaq();
@@ -108,11 +130,18 @@ export default function FaqAdminPage() {
     if (addLinkText && addLinkUrl) {
       answer = answer.trim() + ` <a href=\"${addLinkUrl}\" class=\"text-blue-600 font-semibold\" rel=\"noopener noreferrer\">${addLinkText}</a>`;
     }
-    const updated = { ...faq };
-    updated[addSection as keyof FaqData] = [
-      { ...addItem, answer },
-      ...updated[addSection as keyof FaqData],
-    ];
+    const updated = {
+      sections: {
+        ...faq.sections,
+        [addSection]: {
+          ...faq.sections[addSection],
+          questions: [
+            { ...addItem, answer },
+            ...faq.sections[addSection].questions
+          ]
+        }
+      }
+    };
     setLoading(true);
     await updateFaq(updated);
     const fresh = await fetchFaq();
@@ -125,18 +154,71 @@ export default function FaqAdminPage() {
     showToast("Question added to database!");
   };
 
-  const sections = [
-    {
-      key: "drivinglessons",
-      label: "Driving Lessons",
-      color: "bg-blue-100 text-blue-800",
-    },
-    {
-      key: "advancedDrivingImprovementCourse",
-      label: "Advanced Driving Improvement Course",
-      color: "bg-green-100 text-green-800",
-    },
-  ];
+  const handleAddNewSection = async () => {
+    if (!faq || !newSectionLabel) return;
+
+    // Generar automáticamente el key basado en el label
+    const sectionKey = newSectionLabel.toLowerCase()
+      .replace(/\s+/g, '')
+      .replace(/[^a-z0-9]/g, '')
+      .substring(0, 30); // Limitar longitud
+
+    if (faq.sections[sectionKey]) {
+      alert("A section with this name already exists!");
+      return;
+    }
+
+    const updated = {
+      sections: {
+        ...faq.sections,
+        [sectionKey]: {
+          label: newSectionLabel,
+          questions: []
+        }
+      }
+    };
+
+    setLoading(true);
+    await updateFaq(updated);
+    const fresh = await fetchFaq();
+    setFaq(fresh);
+    setShowAddSection(false);
+    setNewSectionLabel("");
+    setLoading(false);
+    showToast("New section created!");
+  };
+
+  const handleDeleteSection = async (sectionKey: string) => {
+    if (!faq) return;
+
+    if (!confirm("Are you sure you want to delete this entire section and all its questions?")) {
+      return;
+    }
+
+    const updated = {
+      sections: { ...faq.sections }
+    };
+    delete updated.sections[sectionKey];
+
+    setLoading(true);
+    await updateFaq(updated);
+    const fresh = await fetchFaq();
+    setFaq(fresh);
+    setLoading(false);
+    showToast("Section deleted!");
+  };
+
+  const getRandomColor = () => {
+    const colors = [
+      "bg-blue-100 text-blue-800",
+      "bg-green-100 text-green-800",
+      "bg-purple-100 text-purple-800",
+      "bg-orange-100 text-orange-800",
+      "bg-pink-100 text-pink-800",
+      "bg-indigo-100 text-indigo-800"
+    ];
+    return colors[Math.floor(Math.random() * colors.length)];
+  };
 
   return (
     <div className="p-8 w-full max-w-full mx-auto">
@@ -150,29 +232,78 @@ export default function FaqAdminPage() {
         </div>
       </div>
       <h1 className="text-3xl font-bold text-left md:text-center mb-4">FAQ Admin</h1>
+
+      {/* Botón para agregar nueva sección */}
+      <div className="mb-6">
+        {!showAddSection ? (
+          <Button onClick={() => setShowAddSection(true)} className="mb-4">
+            <Plus className="w-4 h-4 mr-2" /> Add New Section
+          </Button>
+        ) : (
+          <Card className="p-4 mb-4 bg-gray-50">
+            <div className="space-y-3">
+              <input
+                className="w-full p-2 border rounded"
+                placeholder="Section name (e.g., 'Motorcycle Lessons', 'Safety Rules')"
+                value={newSectionLabel}
+                onChange={(e) => setNewSectionLabel(e.target.value)}
+              />
+              <div className="flex gap-2">
+                <Button
+                  onClick={handleAddNewSection}
+                  disabled={loading || !newSectionLabel}
+                >
+                  <Save className="w-4 h-4 mr-1" /> Create Section
+                </Button>
+                <Button
+                  variant="outline"
+                  onClick={() => {
+                    setShowAddSection(false);
+                    setNewSectionLabel("");
+                  }}
+                >
+                  <X className="w-4 h-4 mr-1" /> Cancel
+                </Button>
+              </div>
+            </div>
+          </Card>
+        )}
+      </div>
+
       {faq ? (
         <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
-          {sections.map((section) => (
-            <Card key={section.key} className="shadow-lg">
+          {Object.entries(faq.sections).map(([sectionKey, section]) => (
+            <Card key={sectionKey} className="shadow-lg">
               <CardContent>
                 <div className="flex justify-between items-center mb-4">
                   <div className="flex items-center gap-2">
                     <h2 className="text-xl font-semibold capitalize">{section.label}</h2>
-                    <span className={`rounded-full px-2 py-0.5 text-xs font-bold ${section.color}`}>{faq[section.key as keyof FaqData].length}</span>
+                    <span className={`rounded-full px-2 py-0.5 text-xs font-bold ${getRandomColor()}`}>{section.questions.length}</span>
                   </div>
-                  {addSection === section.key ? null : (
+                  <div className="flex gap-2">
+                    {addSection === sectionKey ? null : (
+                      <Button
+                        variant="outline"
+                        size="icon"
+                        onClick={() => setAddSection(sectionKey)}
+                        title="Add Question"
+                      >
+                        <Plus />
+                      </Button>
+                    )}
                     <Button
                       variant="outline"
                       size="icon"
-                      onClick={() => setAddSection(section.key)}
-                      title="Add Question"
+                      onClick={() => handleDeleteSection(sectionKey)}
+                      title="Delete Section"
+                      className="text-red-500 hover:text-red-700"
                     >
-                      <Plus />
+                      <Trash2 className="w-4 h-4" />
                     </Button>
-                  )}
+                  </div>
                 </div>
                 {/* Add new question */}
-                {addSection === section.key && (
+                {addSection === sectionKey && (
                   <div className="mb-4 border rounded p-3 bg-gray-50">
                     <input
                       className="w-full mb-2 p-2 border rounded"
@@ -213,19 +344,19 @@ export default function FaqAdminPage() {
                 )}
                 {/* Question list */}
                 <div className="space-y-6 min-h-[120px]">
-                  {faq[section.key as keyof FaqData].length === 0 ? (
+                  {section.questions.length === 0 ? (
                     <div className="text-gray-400 text-center italic py-8">No questions yet. Click + to add one.</div>
                   ) : (
-                    faq[section.key as keyof FaqData].map((item, idx) => {
+                    section.questions.map((item, idx) => {
                       const link = extractFirstLink(item.answer);
                       return (
                         <div key={idx} className="border rounded-lg p-2 bg-gray-50 shadow-sm relative flex flex-col gap-0">
                           {/* Fila de iconos arriba */}
                           <div className="flex justify-end gap-2 mb-0">
-                            <Button size="icon" variant="ghost" onClick={() => handleEdit(section.key, idx)} title="Edit">
+                            <Button size="icon" variant="ghost" onClick={() => handleEdit(sectionKey, idx)} title="Edit">
                               <Pencil className="w-4 h-4" />
                             </Button>
-                            <Button size="icon" variant="ghost" onClick={() => handleDelete(section.key, idx)} title="Delete">
+                            <Button size="icon" variant="ghost" onClick={() => handleDelete(sectionKey, idx)} title="Delete">
                               <Trash2 className="w-4 h-4 text-red-500" />
                             </Button>
                             {link && (
@@ -236,7 +367,7 @@ export default function FaqAdminPage() {
                               </a>
                             )}
                           </div>
-                          {editIndex && editIndex.section === section.key && editIndex.idx === idx ? (
+                          {editIndex && editIndex.section === sectionKey && editIndex.idx === idx ? (
                             <>
                               <input
                                 className="w-full mb-2 p-2 border rounded"

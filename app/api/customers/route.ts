@@ -20,6 +20,10 @@ export async function GET() {
           role: "user",
           name: `${user.firstName} ${user.middleName ?? ""} ${user.lastName}`,
           midl: user.middleName,
+          birthDate: user.birthDate,
+          firstName: user.firstName,
+          lastName: user.lastName,
+          middleName: user.middleName,
           createdAt: user.createdAt, // Asegurando que la fecha de registro se envía en la respuesta
         };
       });

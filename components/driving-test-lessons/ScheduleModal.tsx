@@ -106,7 +106,7 @@ const ScheduleModal: React.FC<ScheduleModalProps> = ({
 }) => {
   const [loading, setLoading] = useState(false);
   const [errors, setErrors] = useState<string[]>([]);
-  const [durationType, setDurationType] = useState("2"); // 1, 2, 3, or "custom"
+  const [durationType, setDurationType] = useState("0.5"); // 0.5, 1, 2, 3, or "custom"
   const [users, setUsers] = useState<User[]>([]);
   const [products, setProducts] = useState<any[]>([]);
   const [searchTerm, setSearchTerm] = useState("");
@@ -128,7 +128,7 @@ const ScheduleModal: React.FC<ScheduleModalProps> = ({
     time: string;
     message?: string;
   } | null>(null);
-  const [showCopyModal, setShowCopyModal] = useState(false);
+
   
   const [formData, setFormData] = useState({
     classType: "driving lesson",
@@ -210,7 +210,7 @@ const ScheduleModal: React.FC<ScheduleModalProps> = ({
       setFormData(prev => ({
         ...prev,
         start: selectedTime,
-        end: getDefaultEndTime(selectedTime, 2)
+        end: getDefaultEndTime(selectedTime, 0.5)
       }));
     }
   }, [isOpen, selectedTime]);
@@ -227,7 +227,7 @@ const ScheduleModal: React.FC<ScheduleModalProps> = ({
           setFormData({
             classType: pastedData.classType || "driving lesson",
             start: pastedData.start || selectedTime || "",
-            end: pastedData.end || getDefaultEndTime(selectedTime || "", 2),
+            end: pastedData.end || getDefaultEndTime(selectedTime || "", 0.5),
             status: pastedData.status || "available",
             amount: pastedData.amount ? pastedData.amount.toString() : "",
             pickupLocation: pastedData.pickupLocation || "",
@@ -358,7 +358,7 @@ const ScheduleModal: React.FC<ScheduleModalProps> = ({
         setFormData({
           classType: defaultClassType,
           start: selectedTime || "",
-          end: getDefaultEndTime(selectedTime || "", 2),
+          end: getDefaultEndTime(selectedTime || "", 0.5),
           status: "available",
           amount: "",
           pickupLocation: "",
@@ -427,19 +427,24 @@ const ScheduleModal: React.FC<ScheduleModalProps> = ({
     }
   }, [isEditMode, eventData, products]);
 
-  const getDefaultEndTime = (startTime: string, hours: number) => {
+  const getDefaultEndTime = (startTime: string, duration: number) => {
     if (!startTime) return "";
-    const [hoursStart, minutes] = startTime.split(":").map(Number);
-    let endHours = hoursStart + hours;
-    if (endHours >= 24) endHours = 23;
-    return `${endHours.toString().padStart(2, "0")}:${minutes.toString().padStart(2, "0")}`;
+    const [hoursStart, minutesStart] = startTime.split(":").map(Number);
+    const totalMinutes = hoursStart * 60 + minutesStart + (duration * 60);
+    let endHours = Math.floor(totalMinutes / 60);
+    let endMinutes = totalMinutes % 60;
+    if (endHours >= 24) {
+      endHours = 23;
+      endMinutes = 59;
+    }
+    return `${endHours.toString().padStart(2, "0")}:${endMinutes.toString().padStart(2, "0")}`;
   };
 
   const handleDurationChange = (value: string) => {
     setDurationType(value);
     if (value !== "custom" && formData.start) {
-      const hours = parseInt(value);
-      const newEndTime = getDefaultEndTime(formData.start, hours);
+      const duration = parseFloat(value);
+      const newEndTime = getDefaultEndTime(formData.start, duration);
       setFormData(prev => ({
         ...prev,
         end: newEndTime
@@ -455,8 +460,8 @@ const ScheduleModal: React.FC<ScheduleModalProps> = ({
 
     if (field === "start") {
       if (durationType !== "custom") {
-        const hours = parseInt(durationType);
-        const newEndTime = getDefaultEndTime(value as string, hours);
+        const duration = parseFloat(durationType);
+        const newEndTime = getDefaultEndTime(value as string, duration);
         setFormData(prev => ({
           ...prev,
           end: newEndTime
@@ -507,8 +512,9 @@ const ScheduleModal: React.FC<ScheduleModalProps> = ({
       newErrors.push("Student is required for booked/pending driving lessons");
     }
     
-    // Validate product selection for students with booked/pending status
-    if (formData.studentId && 
+    // Validate product selection for students with booked/pending status (only for driving lesson)
+    if (formData.classType === "driving lesson" &&
+        formData.studentId && 
         (formData.status === "booked" || formData.status === "pending") && 
         !formData.selectedProduct) {
       newErrors.push("Product selection is required when a student is assigned");
@@ -754,65 +760,21 @@ const ScheduleModal: React.FC<ScheduleModalProps> = ({
     }
   };
 
-  // Copy (guarda en clipboard global)
-  const handleCopy = () => {
-    const copyData = {
-      instructorId: selectedInstructor?._id,
-      classType: formData.classType,
-      date: selectedDate,
-      start: formData.start,
-      end: formData.end,
-      status: formData.status,
-      recurrence: formData.recurrence,
-      recurrenceEndDate: formData.recurrenceEndDate,
-      ...(formData.classType === "driving test" && { 
-        amount: formData.amount ? parseFloat(formData.amount) : null,
-        studentId: formData.studentId || null,
-        paid: formData.paid,
-      }),
-      ...(formData.classType === "driving lesson" && { 
-        pickupLocation: formData.pickupLocation,
-        dropoffLocation: formData.dropoffLocation,
-        selectedProduct: formData.selectedProduct,
-        studentId: formData.studentId || null,
-        paid: formData.paid,
-      }),
-      studentName: formData.studentId ? users.find(user => user._id === formData.studentId)?.firstName + " " + users.find(user => user._id === formData.studentId)?.lastName : null,
-    };
-    window.localStorage.setItem('driving_schedule_clipboard', JSON.stringify(copyData));
-    setShowCopyModal(true);
-    onClose();
-  };
 
-  // Forzar que el modal aparezca después de cerrar el modal principal
-  useEffect(() => {
-    if (showCopyModal) {
-      // Pequeño delay para asegurar que el modal principal se cierre primero
-      const timer = setTimeout(() => {
-        setShowCopyModal(true);
-      }, 100);
-      return () => clearTimeout(timer);
-    }
-  }, [showCopyModal]);
 
   // Check if we should show additional fields for driving test
   const showDrivingTestFields = (formData.classType === "driving test" && 
-    (formData.status === "booked" || formData.status === "pending")) || 
+    (formData.status === "booked" || formData.status === "pending" || formData.status === "cancelled")) || 
     (isEditMode && eventData?.extendedProps?.classType === "driving test" && 
-     (eventData.extendedProps?.status === "booked" || eventData.extendedProps?.status === "pending"));
+     (eventData.extendedProps?.status === "booked" || eventData.extendedProps?.status === "pending" || eventData.extendedProps?.status === "cancelled"));
 
   // Check if we should show location fields for driving lesson
   const showDrivingLessonLocationFields = (formData.classType === "driving lesson" && 
-    (formData.status === "booked" || formData.status === "pending")) || 
+    (formData.status === "booked" || formData.status === "pending" || formData.status === "cancelled")) || 
     (isEditMode && eventData?.extendedProps?.classType === "driving lesson" && 
-     (eventData.extendedProps?.status === "booked" || eventData.extendedProps?.status === "pending"));
+     (eventData.extendedProps?.status === "booked" || eventData.extendedProps?.status === "pending" || eventData.extendedProps?.status === "cancelled"));
 
-  // Check if we should show product selection for students
-  // Product selection applies only to driving tests
-  const showProductSelection = (formData.classType === "driving test") && (
-    (formData.studentId && (formData.status === "booked" || formData.status === "pending")) ||
-    (isEditMode && eventData?.extendedProps?.studentId && (eventData.extendedProps?.status === "booked" || eventData.extendedProps?.status === "pending"))
-  );
+
 
   // Filter users based on search term
   const filteredUsers = users.filter(user => 
@@ -827,10 +789,10 @@ const ScheduleModal: React.FC<ScheduleModalProps> = ({
   if (!isOpen) return null;
 
   return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center">
-      <div className="bg-white rounded-lg shadow-lg border p-6 w-full max-w-2xl mx-4">
-        <div className="flex justify-between items-center mb-4">
-          <h2 className="text-lg font-semibold">
+    <div className="fixed inset-0 z-50 flex items-center justify-center overflow-y-auto py-2">
+      <div className="schedule-modal-container bg-white rounded-lg shadow-lg border p-3 w-full max-w-2xl mx-2 max-h-[95vh] overflow-y-auto">
+        <div className="flex justify-between items-center mb-3">
+          <h2 className="text-base font-semibold">
             {isEditMode ? "Edit Schedule" : "Configure Schedule"}
           </h2>
           <button
@@ -842,13 +804,13 @@ const ScheduleModal: React.FC<ScheduleModalProps> = ({
         </div>
         
         {selectedDate && selectedTime && (
-          <div className="text-sm text-gray-600 mb-4">
+          <div className="text-sm text-gray-600 mb-2">
             Date: {selectedDate} Time: {selectedTime}
           </div>
         )}
         
         {errors.length > 0 && (
-          <div className="mb-4 p-3 bg-red-50 border border-red-200 rounded">
+          <div className="mb-3 p-2 bg-red-50 border border-red-200 rounded">
             <ul className="text-sm text-red-700 space-y-1">
               {errors.map((error, index) => (
                 <li key={index}>• {error}</li>
@@ -858,16 +820,16 @@ const ScheduleModal: React.FC<ScheduleModalProps> = ({
         )}
 
         {selectedInstructor && (
-          <div className="mb-4 p-2 bg-gray-50 rounded">
+          <div className="mb-3 p-2 bg-gray-50 rounded">
             <div className="text-sm">
               {selectedInstructor.name} {selectedInstructor.email}
             </div>
           </div>
         )}
         
-        <form onSubmit={handleSubmit} className="space-y-4">
+        <form onSubmit={handleSubmit} className="space-y-3">
           <div>
-            <Label>Class type <span className="text-red-500">*</span></Label>
+            <Label className="text-sm font-medium">Class type <span className="text-red-500">*</span></Label>
             <Select
               value={formData.classType || (isEditMode && eventData ? (eventData.extendedProps?.classType || (eventData.title?.includes("Driving Test") ? "driving test" : "driving lesson")) : "")}
               onValueChange={(value) => handleInputChange("classType", value)}
@@ -884,9 +846,10 @@ const ScheduleModal: React.FC<ScheduleModalProps> = ({
           </div>
 
           <div>
-            <Label>Duration</Label>
-            <div className="flex space-x-2 mt-1">
+            <Label className="text-sm font-medium">Duration</Label>
+            <div className="flex flex-wrap gap-2 mt-2">
               {[
+                { value: "0.5", label: "30 Min" },
                 { value: "1", label: "1 Hour" },
                 { value: "2", label: "2 Hours" },
                 { value: "3", label: "3 Hours" },
@@ -898,7 +861,7 @@ const ScheduleModal: React.FC<ScheduleModalProps> = ({
                   key={duration.value}
                   type="button"
                   onClick={() => handleDurationChange(duration.value)}
-                  className={`px-3 py-1 text-sm border rounded ${
+                  className={`px-3 py-2 text-sm border rounded ${
                     durationType === duration.value
                       ? "bg-blue-500 text-white border-blue-500"
                       : "bg-white text-gray-700 border-gray-300 hover:bg-gray-50"
@@ -912,7 +875,7 @@ const ScheduleModal: React.FC<ScheduleModalProps> = ({
 
           <div className="grid grid-cols-2 gap-4">
             <div>
-              <Label>Start Time *</Label>
+              <Label className="text-sm font-medium">Start Time *</Label>
               <Input
                 type="time"
                 value={formData.start}
@@ -922,7 +885,7 @@ const ScheduleModal: React.FC<ScheduleModalProps> = ({
               />
             </div>
             <div>
-              <Label>End Time *</Label>
+              <Label className="text-sm font-medium">End Time *</Label>
               <Input
                 type="time"
                 value={formData.end}
@@ -935,7 +898,7 @@ const ScheduleModal: React.FC<ScheduleModalProps> = ({
           </div>
 
           <div>
-            <Label>Recurrence</Label>
+            <Label className="text-sm font-medium">Recurrence</Label>
             <Select 
               value={formData.recurrence} 
               onValueChange={(value) => handleInputChange("recurrence", value)}
@@ -966,8 +929,8 @@ const ScheduleModal: React.FC<ScheduleModalProps> = ({
           )}
 
           <div>
-            <Label>Status</Label>
-            <div className="flex space-x-4 mt-2">
+            <Label className="text-sm font-medium">Status</Label>
+            <div className="flex flex-wrap gap-4 mt-2">
               {[
                 { value: "available", label: "Available" },
                 { value: "booked", label: "Booked" },
@@ -996,7 +959,7 @@ const ScheduleModal: React.FC<ScheduleModalProps> = ({
           {/* Show Amount for Driving Test, Location fields for Driving Lesson */}
           {formData.classType === "driving test" ? (
             <div>
-              <Label>Amount ($) <span className="text-red-500">*</span></Label>
+              <Label className="text-sm font-medium">Amount ($) <span className="text-red-500">*</span></Label>
               <Input
                 type="number"
                 value={formData.amount}
@@ -1011,7 +974,7 @@ const ScheduleModal: React.FC<ScheduleModalProps> = ({
           ) : formData.classType === "driving lesson" && showDrivingLessonLocationFields ? (
             <div className="grid grid-cols-2 gap-4">
               <div>
-                <Label>Pickup Location <span className="text-red-500">*</span></Label>
+                <Label className="text-sm font-medium">Pickup Location <span className="text-red-500">*</span></Label>
                 {isLoaded ? (
                   <Autocomplete
                     onLoad={onPickupLoad}
@@ -1039,7 +1002,7 @@ const ScheduleModal: React.FC<ScheduleModalProps> = ({
                 )}
               </div>
               <div>
-                <Label>Dropoff Location <span className="text-red-500">*</span></Label>
+                <Label className="text-sm font-medium">Dropoff Location <span className="text-red-500">*</span></Label>
                 {isLoaded ? (
                   <Autocomplete
                     onLoad={onDropoffLoad}
@@ -1079,13 +1042,13 @@ const ScheduleModal: React.FC<ScheduleModalProps> = ({
                     value={searchTerm}
                     onChange={(e) => setSearchTerm(e.target.value)}
                     placeholder="Search student..."
-                    className="w-full mb-2"
+                    className="w-full mb-1.5"
                   />
                   <div className="max-h-20 overflow-y-auto border border-gray-200 rounded bg-white">
                     {filteredUsers.map((user) => (
                       <div
                         key={user._id}
-                        className="flex items-center space-x-2 p-2 hover:bg-gray-50"
+                        className="flex items-center space-x-2 p-1.5 hover:bg-gray-50"
                       >
                         <input
                           type="checkbox"
@@ -1176,7 +1139,7 @@ const ScheduleModal: React.FC<ScheduleModalProps> = ({
           )}
 
           {/* Student and Product Selection for Driving Lesson */}
-          {formData.classType === "driving lesson" && (formData.status === "booked" || formData.status === "pending") && (
+          {formData.classType === "driving lesson" && (formData.status === "booked" || formData.status === "pending" || formData.status === "cancelled") && (
             <>
               <div>
                 <Label>Students</Label>
@@ -1186,13 +1149,13 @@ const ScheduleModal: React.FC<ScheduleModalProps> = ({
                     value={searchTerm}
                     onChange={(e) => setSearchTerm(e.target.value)}
                     placeholder="Search student..."
-                    className="w-full mb-2"
+                    className="w-full mb-1.5"
                   />
                   <div className="max-h-20 overflow-y-auto border border-gray-200 rounded bg-white">
                     {filteredUsers.map((user) => (
                       <div
                         key={user._id}
-                        className="flex items-center space-x-2 p-2 hover:bg-gray-50"
+                        className="flex items-center space-x-2 p-1.5 hover:bg-gray-50"
                       >
                         <input
                           type="checkbox"
@@ -1317,28 +1280,7 @@ const ScheduleModal: React.FC<ScheduleModalProps> = ({
             </>
           )}
 
-          {/* Product Selection for Students (for driving test) */}
-          {showProductSelection && formData.classType === "driving test" && (
-            <div>
-              <Label>Selected Product <span className="text-red-500">*</span></Label>
-              <Select
-                value={formData.selectedProduct}
-                onValueChange={(value) => handleInputChange("selectedProduct", value)}
-                required
-              >
-                <SelectTrigger className="w-full">
-                  <SelectValue placeholder="Select a product" />
-                </SelectTrigger>
-                <SelectContent className="bg-white border border-gray-200 shadow-lg">
-                  {products.map((product) => (
-                    <SelectItem key={product._id} value={product._id} className="hover:bg-gray-100">
-                      {product.title} - ${product.price} ({product.duration} hrs)
-                    </SelectItem>
-                  ))}
-                </SelectContent>
-              </Select>
-            </div>
-          )}
+
 
           <div className="flex justify-end space-x-2 pt-4">
             <Button type="button" variant="outline" onClick={onClose} disabled={loading}>
@@ -1347,14 +1289,7 @@ const ScheduleModal: React.FC<ScheduleModalProps> = ({
             
             {isEditMode ? (
               <>
-                <Button 
-                  type="button" 
-                  onClick={handleCopy}
-                  disabled={loading}
-                  className="bg-gray-600 hover:bg-gray-700 text-white"
-                >
-                  Copy
-                </Button>
+
                 <Button 
                   type="button" 
                   onClick={handleUpdate}
@@ -1373,7 +1308,11 @@ const ScheduleModal: React.FC<ScheduleModalProps> = ({
                 </Button>
               </>
             ) : (
-              <Button type="submit" disabled={loading}>
+              <Button 
+                type="submit" 
+                disabled={loading}
+                className="bg-blue-600 hover:bg-blue-700 text-white disabled:bg-gray-400"
+              >
                 {loading ? "Creating..." : "Create Schedule"}
               </Button>
             )}
@@ -1422,29 +1361,7 @@ const ScheduleModal: React.FC<ScheduleModalProps> = ({
           </div>
         </div>
       )}
-      
-      {/* Modal bonito para copy - FUERA del modal principal */}
-      {showCopyModal && (
-        <div className="fixed inset-0 z-[9999] flex items-center justify-center bg-black bg-opacity-50">
-          <div className="bg-white p-8 rounded-xl shadow-2xl max-w-md w-full mx-4 text-center border border-gray-100">
-            <div className="mb-6">
-              <div className="w-16 h-16 bg-green-100 rounded-full flex items-center justify-center mx-auto mb-4">
-                <svg className="w-8 h-8 text-green-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 13l4 4L19 7" />
-                </svg>
-              </div>
-              <h2 className="text-2xl font-bold text-gray-800 mb-2">Schedule copied!</h2>
-              <p className="text-gray-600 text-lg">Go to the calendar and press <span className="bg-gray-100 px-2 py-1 rounded font-mono text-sm font-bold">Ctrl+V</span> on a slot to paste it.</p>
-            </div>
-            <Button 
-              onClick={() => setShowCopyModal(false)} 
-              className="bg-gradient-to-r from-blue-600 to-blue-700 hover:from-blue-700 hover:to-blue-800 text-white px-8 py-3 rounded-lg font-semibold text-lg shadow-lg hover:shadow-xl transition-all duration-200"
-            >
-              Got it!
-            </Button>
-          </div>
-        </div>
-      )}
+
     </div>
   );
 };

@@ -3,7 +3,7 @@
 import { useCallback } from "react";
 import { PDFDocument, rgb, StandardFonts } from "pdf-lib";
 
-export interface BdiCertificateData {
+export interface AdiCertificateData {
   certificateNumber: string;
   printDate: string;
   courseCompletionDate: string;
@@ -13,15 +13,14 @@ export interface BdiCertificateData {
   providerPhone: string;
   schoolName: string;
   schoolPhone: string;
-  schoolLocation: string;
   driversLicenseNumber: string;
   studentName: string;
   dateOfBirth: string;
   reasonAttending: string;
 }
 
-export function useBdiCertificateDownloader() {
-  const downloadBdiCertificate = useCallback(async (data: BdiCertificateData) => {
+export function useAdiCertificateDownloader() {
+  const downloadAdiCertificate = useCallback(async (data: AdiCertificateData) => {
     try {
       const pdfDoc = await PDFDocument.create();
       const page = pdfDoc.addPage([612, 792]); // Standard US Letter size
@@ -30,20 +29,20 @@ export function useBdiCertificateDownloader() {
       const font = await pdfDoc.embedFont(StandardFonts.Helvetica);
       const boldFont = await pdfDoc.embedFont(StandardFonts.HelveticaBold);
 
-      // Header - State of Florida
-      page.drawText("State of Florida", {
-        x: width / 2 - 60,
+      // Header - Florida Department
+      page.drawText("FLORIDA DEPARTMENT OF HIGHWAY SAFETY", {
+        x: width / 2 - 140,
         y: height - 50,
-        size: 16,
+        size: 14,
         font: boldFont,
         color: rgb(0, 0, 0),
       });
 
-      page.drawText("Department of Highway Safety and Motor Vehicles", {
-        x: width / 2 - 150,
+      page.drawText("AND MOTOR VEHICLES", {
+        x: width / 2 - 70,
         y: height - 70,
-        size: 12,
-        font,
+        size: 14,
+        font: boldFont,
         color: rgb(0, 0, 0),
       });
 
@@ -52,48 +51,36 @@ export function useBdiCertificateDownloader() {
         x: 40,
         y: height - 110,
         width: width - 80,
-        height: 25,
-        color: rgb(0.8, 0.8, 0.8),
+        height: 30,
+        color: rgb(0.9, 0.9, 0.9),
         borderColor: rgb(0, 0, 0),
         borderWidth: 1,
       });
 
-      page.drawText("Course Completion Receipt", {
-        x: width / 2 - 90,
-        y: height - 105,
+      page.drawText("ADI COURSE COMPLETION CERTIFICATE", {
+        x: width / 2 - 120,
+        y: height - 102,
         size: 14,
         font: boldFont,
         color: rgb(0, 0, 0),
       });
 
-      // Horizontal line
-      page.drawLine({
-        start: { x: 40, y: height - 130 },
-        end: { x: width - 40, y: height - 130 },
-        thickness: 2,
-        color: rgb(0, 0, 0),
-      });
+      let yPosition = height - 150;
 
-      let yPosition = height - 160;
-
-      // Certificate information section
+      // Certificate information - Left Column
       const leftColumnFields = [
         { label: "Certificate Number:", value: data.certificateNumber },
         { label: "Print Date:", value: data.printDate },
         { label: "Course Completion Date:", value: data.courseCompletionDate },
+      ];
+
+      // Right Column
+      const rightColumnFields = [
         { label: "Citation Number:", value: data.citationNumber },
         { label: "Citation County:", value: data.citationCounty },
       ];
 
-      const rightColumnFields = [
-        { label: "Name of Course Provider:", value: data.courseProvider },
-        { label: "Provider Phone:", value: data.providerPhone },
-        { label: "Name of School:", value: data.schoolName },
-        { label: "School Phone:", value: data.schoolPhone },
-        { label: "School Location:", value: data.schoolLocation },
-      ];
-
-      // Left column
+      // Draw left column
       leftColumnFields.forEach((field, index) => {
         const y = yPosition - (index * 25);
         page.drawText(field.label, {
@@ -112,26 +99,54 @@ export function useBdiCertificateDownloader() {
         });
       });
 
-      // Right column
+      // Draw right column
       rightColumnFields.forEach((field, index) => {
         const y = yPosition - (index * 25);
         page.drawText(field.label, {
-          x: 300, // Moved left from 320 to give more space for values
+          x: 320,
           y,
           size: 10,
           font: boldFont,
           color: rgb(0, 0, 0),
         });
-        
-        // Special handling for school name - if it's too long, use smaller font and adjust position
+        page.drawText(field.value, {
+          x: 450,
+          y,
+          size: 10,
+          font,
+          color: rgb(0, 0, 0),
+        });
+      });
+
+      yPosition -= 100;
+
+      // Provider information
+      const providerFields = [
+        { label: "Name of Course Provider:", value: data.courseProvider },
+        { label: "Provider Phone:", value: data.providerPhone },
+        { label: "Name of School:", value: data.schoolName },
+        { label: "School Phone:", value: data.schoolPhone },
+      ];
+
+      providerFields.forEach((field, index) => {
+        const y = yPosition - (index * 25);
+        page.drawText(field.label, {
+          x: 50,
+          y,
+          size: 10,
+          font: boldFont,
+          color: rgb(0, 0, 0),
+        });
+
+        // Special handling for long text
         let fontSize = 10;
-        let xPosition = 430; // Adjusted from 450 to 430
-        
-        if (field.label === "Name of School:" && field.value.length > 25) {
-          fontSize = 8; // Smaller font for long school names
-          xPosition = 425; // Slightly adjust position for long names
+        let xPosition = 180;
+
+        if (field.value.length > 30) {
+          fontSize = 9;
+          xPosition = 175;
         }
-        
+
         page.drawText(field.value, {
           x: xPosition,
           y,
@@ -141,15 +156,7 @@ export function useBdiCertificateDownloader() {
         });
       });
 
-      // Horizontal line separator
-      page.drawLine({
-        start: { x: 40, y: yPosition - 140 },
-        end: { x: width - 40, y: yPosition - 140 },
-        thickness: 1,
-        color: rgb(0, 0, 0),
-      });
-
-      yPosition -= 170;
+      yPosition -= 130;
 
       // Student information section
       const studentFields = [
@@ -177,53 +184,27 @@ export function useBdiCertificateDownloader() {
         });
       });
 
-      // Bottom section
-      yPosition -= 150;
-
-      page.drawText("State of Florida", {
-        x: width / 2 - 50,
-        y: yPosition,
-        size: 12,
-        font: boldFont,
-        color: rgb(0, 0, 0),
-      });
-
-      page.drawText("Department of Highway Safety and Motor Vehicles", {
-        x: width / 2 - 120,
-        y: yPosition - 20,
-        size: 10,
-        font,
-        color: rgb(0, 0, 0),
-      });
-
-      page.drawText("Driver School Inquiry:", {
-        x: width / 2 - 70,
-        y: yPosition - 40,
-        size: 10,
-        font,
-        color: rgb(0, 0, 0),
-      });
 
       // Convert PDF to bytes
       const pdfBytes = await pdfDoc.save();
-      
+
       // Create download
       const blob = new Blob([new Uint8Array(pdfBytes)], { type: 'application/pdf' });
       const url = URL.createObjectURL(blob);
       const link = document.createElement('a');
       link.href = url;
-      link.download = `BDI_Certificate_${data.certificateNumber}.pdf`;
+      link.download = `ADI_Certificate_${data.certificateNumber}.pdf`;
       document.body.appendChild(link);
       link.click();
       document.body.removeChild(link);
       URL.revokeObjectURL(url);
-      
+
       return true;
     } catch (error) {
-      console.error('Error generating BDI certificate PDF:', error);
+      console.error('Error generating ADI certificate PDF:', error);
       return false;
     }
   }, []);
 
-  return { downloadBdiCertificate };
+  return { downloadAdiCertificate };
 }

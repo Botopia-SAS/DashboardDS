@@ -5,7 +5,15 @@ import { NextRequest, NextResponse } from "next/server";
 
 export async function GET() {
   try {
-    const orders = await Order.find({}).lean();
+    // Filtrar órdenes que no son de certificados/tickets
+    // Excluir órdenes que solo tienen user_id, course_id, fee y status (órdenes de certificados)
+    const orders = await Order.find({
+      $or: [
+        { orderType: { $exists: true, $ne: "ticket_class" } }, // Órdenes con orderType diferente a ticket_class
+        { items: { $exists: true, $ne: [] } }, // Órdenes que tienen items
+        { orderNumber: { $exists: true, $ne: "" } } // Órdenes con número de orden válido
+      ]
+    }).lean();
     const userIds = Array.from(new Set(orders.map((o) => o.userId?.toString?.() ?? o.user_id?.toString?.()))).filter(Boolean);
     const usersArr = await User.find({ _id: { $in: userIds } })
       .select('firstName lastName email phoneNumber')

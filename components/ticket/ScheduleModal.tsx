@@ -1,6 +1,8 @@
 import { Dialog } from "@headlessui/react";
 import { Button } from "@/components/ui/button";
 import { useState, useEffect } from "react";
+import useClassTypeStore from "@/app/store/classTypeStore";
+import { refreshTicketCalendar } from "@/lib/calendarEvents";
 
 interface Instructor {
   _id: string;
@@ -40,7 +42,7 @@ interface ScheduleModalProps {
   initialData?: Partial<TicketFormData>;
   instructors: Instructor[];
   locations: { _id: string; title: string }[];
-  classes: { _id: string; title: string }[];
+  classes: { _id: string; title: string; classType?: string }[];
   students?: Student[];
   selectedLocationId?: string;
 }
@@ -57,6 +59,9 @@ export default function ScheduleModal({
   students = [],
   selectedLocationId,
 }: ScheduleModalProps) {
+  // Get the current class type from the store
+  const { classType } = useClassTypeStore();
+
   // Calcular hora final por defecto (2 horas después de la inicial)
   function getDefaultEndHour(hour: string) {
     if (!hour) return "";
@@ -78,7 +83,7 @@ export default function ScheduleModal({
     hour: initialData?.hour || "",
     endHour: initialData?.endHour || getDefaultEndHour(initialData?.hour || ""),
     classId: initialData?.classId || "",
-    type: initialData?.type || "date",
+    type: initialData?.type || classType,
     duration: initialData?.duration || "2h",
     locationId: initialData?.locationId || selectedLocationId || "",
     instructorId: initialData?.instructorId || "",
@@ -100,7 +105,7 @@ export default function ScheduleModal({
         hour: initialData?.hour || "",
         endHour: initialData?.endHour || getDefaultEndHour(initialData?.hour || ""),
         classId: initialData?.classId || "",
-        type: initialData?.type || "date",
+        type: initialData?.type || classType,
         duration: initialData?.duration || "2h",
         locationId: initialData?.locationId || selectedLocationId || "",
         instructorId: initialData?.instructorId || "",
@@ -114,7 +119,18 @@ export default function ScheduleModal({
       // Si estamos editando un ticket existente (tiene _id), marcar endHour como tocada para evitar recálculo
       setEndHourTouched(initialData?._id ? true : false);
     }
-  }, [isOpen, initialData, recurrence, recurrenceEndDate, selectedLocationId]);
+  }, [isOpen, initialData, recurrence, recurrenceEndDate, selectedLocationId, classType]);
+
+  // Efecto separado para actualizar el tipo de clase cuando cambie la pestaña activa
+  useEffect(() => {
+    // Actualizar el tipo de clase cuando cambie la pestaña, excepto si estamos editando un ticket existente
+    if (isOpen && !initialData?._id) {
+      setForm(prev => ({
+        ...prev,
+        type: classType
+      }));
+    }
+  }, [classType, isOpen, initialData?._id]);
 
   useEffect(() => {
     // Solo auto-calcular endHour para nuevos tickets (sin _id) y cuando el usuario no haya tocado la hora final
@@ -176,8 +192,33 @@ export default function ScheduleModal({
       if (name === "hour") {
         setEndHourTouched(false);
       }
+      // Si el usuario cambia el tipo de clase, limpiar la clase seleccionada si no es válida para el nuevo tipo
+      if (name === "type") {
+        const selectedClass = classes.find(cls => cls._id === form.classId);
+        if (selectedClass && selectedClass.classType !== value) {
+          setForm((prev) => ({
+            ...prev,
+            type: value,
+            classId: "" // Limpiar la clase seleccionada
+          }));
+          return; // Evitar el setForm duplicado
+        }
+      }
     }
   };
+
+  // Filter classes based on the selected type in the form (case-insensitive)
+  const filteredClasses = classes.filter(cls => {
+    const clsType = cls.classType?.toLowerCase() || '';
+    const formType = form.type?.toLowerCase() || '';
+    const matches = clsType === formType;
+    if (matches) {
+      console.log(`✅ Class matched: "${cls.title}" (classType: "${cls.classType}") matches form.type: "${form.type}"`);
+    }
+    return matches;
+  });
+
+  console.log(`🔍 ScheduleModal - Filtering classes: form.type="${form.type}", total classes=${classes.length}, filtered=${filteredClasses.length}`);
 
   // Función para verificar si el formulario es válido
   const isFormValid = () => {
@@ -215,6 +256,9 @@ export default function ScheduleModal({
         recurrence,
         recurrenceEndDate: recurrence !== "none" ? recurrenceEndDate : undefined
       });
+
+      // Disparar evento global de actualización del calendario
+      refreshTicketCalendar();
     } catch (error: unknown) {
       // Handle API errors (like instructor conflicts)
       if (error instanceof Error && error.message) {
@@ -282,6 +326,9 @@ export default function ScheduleModal({
       // Cerrar el modal y refrescar el calendario sin alerts de éxito
       onClose();
       if (onUpdate) onUpdate();
+
+      // Disparar evento global de actualización del calendario
+      refreshTicketCalendar();
     } catch (err) {
       console.error('Update error:', err);
       alert(`Error updating TicketClass: ${err instanceof Error ? err.message : 'Unknown error'}`);
@@ -366,17 +413,13 @@ export default function ScheduleModal({
               <div className="grid grid-cols-4 gap-2">
                 <div>
                   <label className="block text-xs font-medium mb-0.5">Class type <span className="text-red-500">*</span></label>
-                  <select
-                    className="w-full border rounded px-1.5 py-1 text-xs focus:outline-none focus:ring-1 focus:ring-blue-500"
-                    name="type"
+                  <input
+                    type="text"
+                    className="w-full border rounded px-1.5 py-1 text-xs focus:outline-none bg-gray-100 text-gray-700 font-semibold uppercase"
                     value={form.type}
-                    onChange={handleChange}
-                    required
-                  >
-                    <option value="date">D.A.T.E</option>
-                    <option value="bdi">B.D.I</option>
-                    <option value="adi">A.D.I</option>
-                  </select>
+                    disabled={true}
+                    readOnly
+                  />
                 </div>
                 <div>
                   <label className="block text-xs font-medium mb-0.5">Spots</label>
@@ -424,7 +467,7 @@ export default function ScheduleModal({
                     required
                   >
                     <option value="">Select class</option>
-                    {classes.map((c) => <option key={c._id} value={c._id}>{c.title}</option>)}
+                    {filteredClasses.map((c) => <option key={c._id} value={c._id}>{c.title}</option>)}
                   </select>
                 </div>
                 <div>

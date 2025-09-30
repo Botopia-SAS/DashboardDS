@@ -8,8 +8,90 @@ import { Label } from "@/components/ui/label";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Separator } from "@/components/ui/separator";
 import { FileText, Users, Calendar, Download, ArrowLeft } from "lucide-react";
-import { useBdiCertificateDownloader } from "@/components/ticket/hooks/use-bdi-certificate-downloader";
 import Link from "next/link";
+
+// Custom Certificate generator function using PDF template
+const generateDateCertificate = async (certificateData: {
+  studentName: string;
+  dateOfBirth: string;
+  className: string;
+  certificateNumber: string;
+  printDate: string;
+  courseCompletionDate: string;
+}) => {
+  try {
+    // Import pdf-lib for PDF manipulation
+    const { PDFDocument, rgb } = await import('pdf-lib');
+
+    // Load the existing PDF template
+    const existingPdfBytes = await fetch('/date_data.pdf').then(res => res.arrayBuffer());
+    const pdfDoc = await PDFDocument.load(existingPdfBytes);
+    const pages = pdfDoc.getPages();
+    const firstPage = pages[0];
+    
+    // Get page dimensions
+    const { width, height } = firstPage.getSize();
+    console.log('Page dimensions:', width, height);
+    
+    // Embed fonts - Use Times-Roman for a more formal serif look like the original
+    const timesFont = await pdfDoc.embedFont('Times-Roman');
+    const helveticaFont = await pdfDoc.embedFont('Helvetica');
+    
+    // Helper function to draw centered text
+    const drawCenteredText = (text: string, x: number, y: number, size: number = 12, useSerif: boolean = true) => {
+      const font = useSerif ? timesFont : helveticaFont;
+      const textWidth = font.widthOfTextAtSize(text, size);
+      firstPage.drawText(text, {
+        x: x - (textWidth / 2), // Center horizontally
+        y: height - y, // PDF coordinates are from bottom, so we subtract from height
+        size: size,
+        font: font,
+        color: rgb(0, 0, 0)
+      });
+    };
+    
+    // Add text at your specified coordinates (centered)
+    // Nombre + Apellido: x=390, y=242 (center) - keeping original position
+    drawCenteredText(certificateData.studentName, 390, 242, 14, true);
+
+    // Cumpleaños: x=390, y=284 (center) - moving down a bit more
+    if (certificateData.dateOfBirth) {
+      drawCenteredText(certificateData.dateOfBirth, 390, 295, 12, true);
+    }
+
+    // Nombre de la Clase: x=390, y=410 (center) - moving down a bit more
+    drawCenteredText(certificateData.className, 390, 425, 12, true);
+
+    // Número de Certificado: x=163, y=394 (center) - keeping original position
+    drawCenteredText(certificateData.certificateNumber, 163, 394, 12, true);
+
+    // Fecha de Generación: x=390, y=484 (center) - moving down a bit more
+    drawCenteredText(certificateData.printDate, 390, 495, 12, true);
+
+    // Serialize the PDF
+    const pdfBytes = await pdfDoc.save();
+
+    // Create download link - Convert Uint8Array to ArrayBuffer
+    const arrayBuffer = new ArrayBuffer(pdfBytes.length);
+    const view = new Uint8Array(arrayBuffer);
+    view.set(pdfBytes);
+    const blob = new Blob([arrayBuffer], { type: 'application/pdf' });
+    const url = URL.createObjectURL(blob);
+    const link = document.createElement('a');
+    link.href = url;
+    link.download = `Certificate_${certificateData.certificateNumber}.pdf`;
+    document.body.appendChild(link);
+    link.click();
+    document.body.removeChild(link);
+    URL.revokeObjectURL(url);
+
+    return true;
+
+  } catch (error) {
+    console.error('Error generating certificate with PDF template:', error);
+    return false;
+  }
+};
 
 interface TicketClass {
   _id: string;
@@ -29,24 +111,17 @@ interface Student {
   firstName?: string;
   middleName?: string;
   lastName?: string;
+  name?: string;
+  midl?: string;
   email: string;
   phoneNumber?: string;
   birthDate?: string;
   dni?: string;
-  ssnLast4?: string;
-  hasLicense?: boolean;
-  licenseNumber?: string;
-  streetAddress?: string;
-  apartmentNumber?: string;
-  city?: string;
-  state?: string;
-  zipCode?: string;
-  sex?: string;
   role?: string;
   createdAt?: string;
 }
 
-export default function BdiCertificateGenerator() {
+export default function CertificateGenerator() {
   const [classes, setClasses] = useState<TicketClass[]>([]);
   const [students, setStudents] = useState<Student[]>([]);
   const [filteredStudents, setFilteredStudents] = useState<Student[]>([]);
@@ -56,19 +131,7 @@ export default function BdiCertificateGenerator() {
   const [studentSearchTerm, setStudentSearchTerm] = useState<string>("");
   const [loading, setLoading] = useState(false);
 
-  // School information fields
-  const [schoolName, setSchoolName] = useState<string>("AFFORDABLE DRIVING TRAFFIC SCHOOL");
-  const [schoolPhone, setSchoolPhone] = useState<string>("5619690150");
-  const [schoolLocation, setSchoolLocation] = useState<string>("Florida");
-  const [courseProvider, setCourseProvider] = useState<string>("DRIVESAFELY");
-  const [providerPhone, setProviderPhone] = useState<string>("7024857907");
-
-  // Driver's license number override
-  const [driversLicenseNumber, setDriversLicenseNumber] = useState<string>("");
-
-  const { downloadBdiCertificate } = useBdiCertificateDownloader();
-
-  // Fetch BDI-type classes
+  // Fetch date-type classes with detailed information
   useEffect(() => {
     const fetchClasses = async () => {
       try {
@@ -76,9 +139,9 @@ export default function BdiCertificateGenerator() {
         const data = await response.json();
         if (data.success || Array.isArray(data)) {
           const allClasses = data.success ? data.data : data;
-          // Filter only 'bdi' type classes
-          const bdiClasses = allClasses.filter((cls: TicketClass) => cls.classType === 'bdi');
-          setClasses(bdiClasses);
+          // Filter only 'date' type classes
+          const dateClasses = allClasses.filter((cls: TicketClass) => cls.classType === 'date');
+          setClasses(dateClasses);
         }
       } catch (error) {
         console.error('Error fetching classes:', error);
@@ -94,38 +157,50 @@ export default function BdiCertificateGenerator() {
       try {
         const response = await fetch('/api/customers');
         const data = await response.json();
-        console.log('Students data received:', data);
+        console.log('Students data received:', data); // Debug log
         if (Array.isArray(data)) {
+          // Map the data to match our interface
           const mappedStudents: Student[] = data.map((student: Record<string, unknown>) => ({
             _id: String(student.id || student._id || ''),
-            firstName: String(student.firstName || ''),
-            middleName: String(student.middleName || ''),
+            firstName: String(student.firstName || student.name || ''),
+            middleName: String(student.middleName || student.midl || ''),
             lastName: String(student.lastName || ''),
             email: String(student.email || ''),
             birthDate: student.birthDate ? String(student.birthDate) : undefined,
             phoneNumber: student.phoneNumber ? String(student.phoneNumber) : undefined,
             dni: student.dni ? String(student.dni) : undefined,
-            ssnLast4: student.ssnLast4 ? String(student.ssnLast4) : undefined,
-            hasLicense: Boolean(student.hasLicense),
-            licenseNumber: student.licenseNumber ? String(student.licenseNumber) : undefined,
-            streetAddress: student.streetAddress ? String(student.streetAddress) : undefined,
-            apartmentNumber: student.apartmentNumber ? String(student.apartmentNumber) : undefined,
-            city: student.city ? String(student.city) : undefined,
-            state: student.state ? String(student.state) : undefined,
-            zipCode: student.zipCode ? String(student.zipCode) : undefined,
-            sex: student.sex ? String(student.sex) : undefined,
             role: student.role ? String(student.role) : undefined,
             createdAt: student.createdAt ? String(student.createdAt) : undefined
           }));
 
           setStudents(mappedStudents);
           setFilteredStudents(mappedStudents);
-          console.log('Students loaded:', mappedStudents.length);
+          console.log('Students loaded:', mappedStudents.length); // Debug log
+        } else if (data.success && Array.isArray(data.data)) {
+          const mappedStudents: Student[] = data.data.map((student: Record<string, unknown>) => ({
+            _id: String(student.id || student._id || ''),
+            firstName: String(student.firstName || student.name || ''),
+            middleName: String(student.middleName || student.midl || ''),
+            lastName: String(student.lastName || ''),
+            email: String(student.email || ''),
+            birthDate: student.birthDate ? String(student.birthDate) : undefined,
+            phoneNumber: student.phoneNumber ? String(student.phoneNumber) : undefined,
+            dni: student.dni ? String(student.dni) : undefined,
+            role: student.role ? String(student.role) : undefined,
+            createdAt: student.createdAt ? String(student.createdAt) : undefined
+          }));
+
+          setStudents(mappedStudents);
+          setFilteredStudents(mappedStudents);
+          console.log('Students loaded:', mappedStudents.length); // Debug log
+        } else {
+          console.error('Unexpected data format:', data);
+          setStudents([]);
+          setFilteredStudents([]);
         }
       } catch (error) {
         console.error('Error fetching students:', error);
         setStudents([]);
-        setFilteredStudents([]);
       }
     };
 
@@ -168,12 +243,12 @@ export default function BdiCertificateGenerator() {
     setLoading(true);
 
     try {
+      // Format dates
       const classDate = new Date(selectedClassData.date);
-      const currentDate = new Date();
 
       const certificateData = {
         certificateNumber: certificateNumber.trim(),
-        printDate: currentDate.toLocaleDateString('en-US', {
+        printDate: new Date().toLocaleDateString('en-US', {
           year: 'numeric',
           month: 'short',
           day: 'numeric',
@@ -184,20 +259,12 @@ export default function BdiCertificateGenerator() {
           month: 'short',
           day: 'numeric'
         }),
-        citationNumber: "",
-        citationCounty: "",
-        courseProvider: courseProvider,
-        providerPhone: providerPhone,
-        schoolName: schoolName,
-        schoolPhone: schoolPhone,
-        schoolLocation: schoolLocation,
-        driversLicenseNumber: driversLicenseNumber || selectedStudentData.licenseNumber || "",
-        studentName: `${selectedStudentData.lastName?.toUpperCase() || ''}, ${selectedStudentData.firstName?.toUpperCase() || ''}`,
+        studentName: `${(selectedStudentData.firstName || selectedStudentData.name || '').toUpperCase()} ${(selectedStudentData.lastName || selectedStudentData.midl || '').toUpperCase()}`,
         dateOfBirth: selectedStudentData.birthDate ? new Date(selectedStudentData.birthDate).toLocaleDateString('en-US') : "",
-        reasonAttending: "BDI Course Completion"
+        className: selectedClassData.title || 'D.A.T.E. Course'
       };
 
-      const success = await downloadBdiCertificate(certificateData);
+      const success = await generateDateCertificate(certificateData);
 
       if (success) {
         // Save certificate to database
@@ -206,7 +273,7 @@ export default function BdiCertificateGenerator() {
           studentId: selectedStudent,
           studentName: certificateData.studentName,
           classId: selectedClass,
-          className: selectedClassData.title || 'BDI Course',
+          className: selectedClassData.title || 'Certificate Course',
           classDate: selectedClassData.date,
           issueDate: certificateData.printDate,
           courseCompletionDate: certificateData.courseCompletionDate,
@@ -222,7 +289,7 @@ export default function BdiCertificateGenerator() {
           });
 
           if (saveResponse.ok) {
-            console.log('BDI Certificate saved to database');
+            console.log('Certificate saved to database');
           } else {
             console.warn('Certificate generated but failed to save to database');
           }
@@ -230,13 +297,12 @@ export default function BdiCertificateGenerator() {
           console.error('Error saving certificate:', saveError);
         }
 
-        alert(`BDI Certificate generated successfully for ${selectedStudentData.firstName} ${selectedStudentData.lastName}`);
+        alert(`Certificate generated successfully for ${selectedStudentData.firstName || selectedStudentData.name || ''} ${selectedStudentData.lastName || selectedStudentData.midl || ''}`);
         // Clear form
         setSelectedClass("");
         setSelectedStudent("");
         setCertificateNumber("");
         setStudentSearchTerm("");
-        setDriversLicenseNumber("");
       } else {
         alert('Failed to generate certificate. Please try again.');
       }
@@ -265,10 +331,10 @@ export default function BdiCertificateGenerator() {
       <div className="text-center space-y-2 mb-8">
         <h1 className="text-3xl font-bold flex items-center justify-center gap-2">
           <FileText className="w-8 h-8" />
-          BDI Certificate Generator
+          Certificate Generator
         </h1>
         <p className="text-gray-600">
-          Generate BDI certificates for course completions
+          Generate certificates for course completions
         </p>
       </div>
 
@@ -287,11 +353,11 @@ export default function BdiCertificateGenerator() {
           {/* Class Selection */}
           <div className="space-y-2">
             <Label htmlFor="class-select" className="text-sm font-medium">
-              Select Class (BDI type only) *
+              Select Class (Certificate type only) *
             </Label>
             <Select value={selectedClass} onValueChange={setSelectedClass}>
               <SelectTrigger id="class-select" className="bg-white border-gray-300">
-                <SelectValue placeholder="Choose a BDI class..." />
+                <SelectValue placeholder="Choose a certificate class..." />
               </SelectTrigger>
               <SelectContent className="bg-white border border-gray-300 shadow-lg">
                 {classes.map((cls) => (
@@ -313,14 +379,14 @@ export default function BdiCertificateGenerator() {
               </SelectContent>
             </Select>
             {classes.length === 0 && (
-              <p className="text-sm text-gray-500">No BDI type classes found.</p>
+              <p className="text-sm text-gray-500">No certificate type classes found.</p>
             )}
           </div>
 
-          {/* Student Search and Selection */}
+          {/* Student Selection */}
           <div className="space-y-2">
             <Label htmlFor="student-search" className="text-sm font-medium">
-              Search & Select Student *
+              Select Student *
             </Label>
 
             {/* Search Input */}
@@ -351,7 +417,7 @@ export default function BdiCertificateGenerator() {
                       }`}
                     >
                       <div className="font-medium text-gray-900">
-                        {student.firstName || ''} {student.lastName || ''}
+                        {student.firstName || ''} {student.middleName || ''} {student.lastName || ''}
                       </div>
                       <div className="text-sm text-gray-500">({student.email})</div>
                     </button>
@@ -401,93 +467,10 @@ export default function BdiCertificateGenerator() {
             </Label>
             <Input
               id="cert-number"
-              placeholder="Enter certificate number (e.g., BDI001234)"
+              placeholder="Enter certificate number (e.g., CERT001234)"
               value={certificateNumber}
               onChange={(e) => setCertificateNumber(e.target.value)}
             />
-          </div>
-
-          {/* Driver's License Number Override */}
-          <div className="space-y-2">
-            <Label htmlFor="license-number" className="text-sm font-medium">
-              Driver&apos;s License Number
-            </Label>
-            <Input
-              id="license-number"
-              placeholder="Enter driver's license number (optional - overrides student record)"
-              value={driversLicenseNumber}
-              onChange={(e) => setDriversLicenseNumber(e.target.value)}
-            />
-            <p className="text-xs text-gray-500">
-              Leave empty to use the license number from student record
-            </p>
-          </div>
-
-          {/* School Information Section */}
-          <div className="space-y-4">
-            <h4 className="font-medium text-gray-800 border-b pb-2">School Information</h4>
-
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-              <div className="space-y-2">
-                <Label htmlFor="school-name" className="text-sm font-medium">
-                  School Name
-                </Label>
-                <Input
-                  id="school-name"
-                  placeholder="Enter school name"
-                  value={schoolName}
-                  onChange={(e) => setSchoolName(e.target.value)}
-                />
-              </div>
-
-              <div className="space-y-2">
-                <Label htmlFor="school-phone" className="text-sm font-medium">
-                  School Phone
-                </Label>
-                <Input
-                  id="school-phone"
-                  placeholder="Enter school phone number"
-                  value={schoolPhone}
-                  onChange={(e) => setSchoolPhone(e.target.value)}
-                />
-              </div>
-
-              <div className="space-y-2">
-                <Label htmlFor="school-location" className="text-sm font-medium">
-                  School Location
-                </Label>
-                <Input
-                  id="school-location"
-                  placeholder="Enter school location"
-                  value={schoolLocation}
-                  onChange={(e) => setSchoolLocation(e.target.value)}
-                />
-              </div>
-
-              <div className="space-y-2">
-                <Label htmlFor="course-provider" className="text-sm font-medium">
-                  Course Provider
-                </Label>
-                <Input
-                  id="course-provider"
-                  placeholder="Enter course provider name"
-                  value={courseProvider}
-                  onChange={(e) => setCourseProvider(e.target.value)}
-                />
-              </div>
-
-              <div className="space-y-2">
-                <Label htmlFor="provider-phone" className="text-sm font-medium">
-                  Provider Phone
-                </Label>
-                <Input
-                  id="provider-phone"
-                  placeholder="Enter provider phone number"
-                  value={providerPhone}
-                  onChange={(e) => setProviderPhone(e.target.value)}
-                />
-              </div>
-            </div>
           </div>
 
           {/* Class and Student Info Summary */}
@@ -512,13 +495,13 @@ export default function BdiCertificateGenerator() {
                       </div>
                     </div>
                   </div>
-
+                  
                   {/* Class Info */}
                   <div className="bg-white p-3 rounded border">
                     <h5 className="font-medium text-gray-800 mb-2 text-center">Course Information</h5>
                     <div className="text-center space-y-1">
                       <div className="font-semibold text-gray-900">
-                        {selectedClassData.title || 'BDI Course'}
+                        {selectedClassData.title || 'Certificate Course'}
                       </div>
                       <div className="text-sm text-gray-600">
                         Class Date: {selectedClassData.date ? new Date(selectedClassData.date).toLocaleDateString('en-US', {
@@ -529,7 +512,7 @@ export default function BdiCertificateGenerator() {
                       </div>
                     </div>
                   </div>
-
+                  
                   {/* Certificate Info */}
                   <div className="bg-white p-3 rounded border">
                     <h5 className="font-medium text-gray-800 mb-2 text-center">Certificate Details</h5>
@@ -543,30 +526,6 @@ export default function BdiCertificateGenerator() {
                           month: 'long',
                           day: 'numeric'
                         })}
-                      </div>
-                      {(driversLicenseNumber || selectedStudentData.licenseNumber) && (
-                        <div className="text-sm text-gray-600">
-                          License Number: {driversLicenseNumber || selectedStudentData.licenseNumber}
-                        </div>
-                      )}
-                    </div>
-                  </div>
-
-                  {/* School Info */}
-                  <div className="bg-white p-3 rounded border">
-                    <h5 className="font-medium text-gray-800 mb-2 text-center">School Information</h5>
-                    <div className="text-center space-y-1">
-                      <div className="font-semibold text-gray-900">
-                        {schoolName}
-                      </div>
-                      <div className="text-sm text-gray-600">
-                        Phone: {schoolPhone}
-                      </div>
-                      <div className="text-sm text-gray-600">
-                        Location: {schoolLocation}
-                      </div>
-                      <div className="text-sm text-gray-600">
-                        Provider: {courseProvider} ({providerPhone})
                       </div>
                     </div>
                   </div>
@@ -607,11 +566,11 @@ export default function BdiCertificateGenerator() {
         </CardHeader>
         <CardContent>
           <div className="space-y-3 text-sm text-gray-600">
-            <p><strong>1. Select Class:</strong> Choose a BDI type class from the dropdown. Only active classes are shown.</p>
+            <p><strong>1. Select Class:</strong> Choose a certificate type class from the dropdown. Only active classes are shown.</p>
             <p><strong>2. Search Student:</strong> Use the search box to filter students by name or email. Type &apos;A&apos; to see all students starting with A.</p>
             <p><strong>3. Select Student:</strong> Choose a student from the filtered dropdown list. Name and email are shown for easy identification.</p>
             <p><strong>4. Certificate Number:</strong> Enter a unique certificate number for tracking purposes.</p>
-            <p><strong>5. Generate PDF:</strong> Click the button to download the BDI certificate and save it to the database.</p>
+            <p><strong>5. Generate PDF:</strong> Click the button to download the certificate and save it to the database.</p>
           </div>
         </CardContent>
       </Card>

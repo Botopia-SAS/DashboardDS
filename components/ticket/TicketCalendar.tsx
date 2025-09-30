@@ -72,15 +72,19 @@ interface TicketCalendarEvent {
 interface TicketCalendarProps {
   className?: string;
   refreshKey?: number;
+  classType?: string;
   focusClassId?: string | null;
   focusWeek?: number;
   focusYear?: number;
   highlightEventId?: string | null;
 }
 
-const TicketCalendar = ({ className, refreshKey, focusClassId, focusWeek, focusYear, highlightEventId }: TicketCalendarProps) => {
-  // Obtener el tipo de clase del store
-  const { classType } = useClassTypeStore();
+const TicketCalendar = ({ className, refreshKey, classType: propClassType, focusClassId, focusWeek, focusYear, highlightEventId }: TicketCalendarProps) => {
+  // Obtener el tipo de clase del store como fallback
+  const { classType: storeClassType } = useClassTypeStore();
+  
+  // Use prop classType if provided, otherwise use store classType
+  const classType = propClassType || storeClassType;
   
   // Estado para el modal
   const [isModalOpen, setIsModalOpen] = useState(false);
@@ -286,10 +290,20 @@ const TicketCalendar = ({ className, refreshKey, focusClassId, focusWeek, focusY
         return;
       }
       
-      // No filtrar - mostrar todas las clases de todos los tipos
-      const filteredData = data;
-      
-      console.log(`🔍 Showing all ticket classes:`, filteredData.length);
+      // Filtrar clases por el tipo actualmente seleccionado (case-insensitive)
+      const normalizedClassType = classType.toLowerCase();
+      console.log('🔍 Current classType for filtering:', classType, '| Normalized:', normalizedClassType);
+      console.log('📊 All ticket classes types:', data.map((tc: TicketClassResponse) => tc.type));
+
+      const filteredData = data.filter((tc: TicketClassResponse) => {
+        const matches = tc.type.toLowerCase() === normalizedClassType;
+        if (matches) {
+          console.log(`✅ Class matched: ${tc._id} (type: ${tc.type})`);
+        }
+        return matches;
+      });
+
+      console.log(`🔍 Filtering for classType "${classType}": ${filteredData.length} of ${data.length} classes`);
       
       // Convertir ticketClasses a eventos del calendario
       const events = filteredData.map((ticketClass: unknown, index: number) => {
@@ -310,11 +324,8 @@ const TicketCalendar = ({ className, refreshKey, focusClassId, focusWeek, focusY
         }
         console.log('👨‍🏫 Instructor name for this class:', instructorName);
         
-        // Determinar tipo de clase
-        let classType = "Class";
-        if (tc.type === "date") classType = "D.A.T.E";
-        else if (tc.type === "bdi") classType = "B.D.I";
-        else if (tc.type === "adi") classType = "A.D.I";
+        // Determinar tipo de clase - usar el tipo directamente en mayúsculas
+        const displayClassType = tc.type.toUpperCase();
         
         // Determinar estado
         let status = "Available";
@@ -391,7 +402,7 @@ const TicketCalendar = ({ className, refreshKey, focusClassId, focusWeek, focusY
         
         const event: TicketCalendarEvent = {
           id: tc._id || `ticket-${index}`,
-          title: `${classType} - ${instructorName} - ${status} (${studentCount}/${totalSpots})`,
+          title: `${displayClassType}\n${instructorName}\n${status} (${studentCount}/${totalSpots})`,
           start: `${dateStr}T${hour}`,
           end: `${dateStr}T${endHour}`,
           backgroundColor,
@@ -399,7 +410,7 @@ const TicketCalendar = ({ className, refreshKey, focusClassId, focusWeek, focusY
           textColor: "#ffffff",
           extendedProps: {
             ticketClass: tc,
-            classType,
+            classType: displayClassType,
             status,
             studentCount,
             totalSpots
@@ -424,8 +435,9 @@ const TicketCalendar = ({ className, refreshKey, focusClassId, focusWeek, focusY
 
   // Cargar todos los TicketClass reales desde la API
   useEffect(() => {
+    console.log('🔄 TicketCalendar useEffect triggered - classType:', classType, 'refreshKey:', refreshKey);
     fetchTicketClasses();
-  }, [refreshKey]);
+  }, [refreshKey, classType]); // Agregar classType para recargar cuando cambie el tipo
 
   // Escuchar eventos de actualización en tiempo real
   useEffect(() => {
@@ -434,22 +446,36 @@ const TicketCalendar = ({ className, refreshKey, focusClassId, focusWeek, focusY
       fetchTicketClasses();
     };
 
+    const handleStudentUpdate = () => {
+      console.log('🔄 Calendar refresh triggered from student update');
+      fetchTicketClasses();
+    };
+
+    const handleTicketUpdate = () => {
+      console.log('🔄 Calendar refresh triggered from ticket update');
+      fetchTicketClasses();
+    };
+
     // Escuchar eventos personalizados
     window.addEventListener('calendarRefresh', handleCalendarRefresh);
-    
+    window.addEventListener('studentRequestUpdate', handleStudentUpdate);
+    window.addEventListener('ticketClassUpdate', handleTicketUpdate);
+
     // También escuchar cambios en el localStorage como backup
     const handleStorageChange = (e: StorageEvent) => {
-      if (e.key === 'calendarNeedsRefresh') {
-        console.log('🔄 Calendar refresh triggered from localStorage');
+      if (e.key === 'calendarNeedsRefresh' || e.key === 'studentRequestUpdate' || e.key === 'ticketUpdate') {
+        console.log('🔄 Calendar refresh triggered from localStorage:', e.key);
         fetchTicketClasses();
-        localStorage.removeItem('calendarNeedsRefresh');
+        localStorage.removeItem(e.key);
       }
     };
-    
+
     window.addEventListener('storage', handleStorageChange);
 
     return () => {
       window.removeEventListener('calendarRefresh', handleCalendarRefresh);
+      window.removeEventListener('studentRequestUpdate', handleStudentUpdate);
+      window.removeEventListener('ticketClassUpdate', handleTicketUpdate);
       window.removeEventListener('storage', handleStorageChange);
     };
   }, []);
@@ -655,7 +681,7 @@ const TicketCalendar = ({ className, refreshKey, focusClassId, focusWeek, focusY
       date: formattedDate,
       hour: formattedStartTime,
       endHour: formattedEndTime,
-      type: "date",
+      type: classType, // Usar el tipo de clase actual del filtro
       status: "available",
       instructorId: "",
       students: [],
@@ -707,7 +733,7 @@ const TicketCalendar = ({ className, refreshKey, focusClassId, focusWeek, focusY
       return;
     }
     
-    // No filtrar - mostrar todas las clases de todos los tipos
+    // Mostrar todas las clases sin filtrar - el calendario debe mostrar todo
     const filteredData = updatedData;
     
     const events = filteredData.map((ticketClass: unknown) => {
@@ -715,10 +741,8 @@ const TicketCalendar = ({ className, refreshKey, focusClassId, focusWeek, focusY
       const studentCount = Array.isArray(tc.students) ? tc.students.length : 0;
       const totalSpots = tc.spots || 30;
       
-      let classType = "Class";
-      if (tc.type === "date") classType = "D.A.T.E";
-      else if (tc.type === "bdi") classType = "B.D.I";
-      else if (tc.type === "adi") classType = "A.D.I";
+      // Usar el tipo directamente en mayúsculas
+      const classType = tc.type.toUpperCase();
       
       let status = "Available";
       if (tc.status === "full") status = "Full";
@@ -765,7 +789,7 @@ const TicketCalendar = ({ className, refreshKey, focusClassId, focusWeek, focusY
       
       return {
         id: tc._id,
-        title: `${classType} - ${instructorName} - ${status} (${studentCount}/${totalSpots})`,
+        title: `${classType}\n${instructorName}\n${status} (${studentCount}/${totalSpots})`,
         start: `${dateStr}T${tc.hour || "00:00"}`,
         end: `${dateStr}T${calculatedEndHour}`,
         backgroundColor,
@@ -792,13 +816,10 @@ const TicketCalendar = ({ className, refreshKey, focusClassId, focusWeek, focusY
         throw new Error(data.error || 'Failed to delete TicketClass');
       }
       setIsModalOpen(false);
-      
-      // Solo recargar el calendario si NO estamos dentro de un ticket específico
-      if (!focusClassId) {
-        await refreshCalendar();
-      } else {
-        console.log('Ticket eliminado dentro de clase específica, manteniendo estado');
-      }
+
+      // SIEMPRE actualizar el calendario después de eliminar un ticket
+      console.log('🔄 Updating calendar after ticket deletion');
+      await refreshCalendar();
     } catch (error) {
       console.error('❌ Error deleting TicketClass:', error);
       alert(`❌ Error deleting TicketClass: ${error instanceof Error ? error.message : 'Unknown error'}`);
@@ -867,16 +888,11 @@ const TicketCalendar = ({ className, refreshKey, focusClassId, focusWeek, focusY
         }
       }
       setIsModalOpen(false);
-      
-      // Solo recargar el calendario si NO estamos dentro de un ticket específico
-      // Si focusClassId existe, significa que estamos dentro de un ticket específico
-      if (!focusClassId) {
-        await refreshCalendar();
-      } else {
-        // Si estamos dentro de un ticket específico, mantener el slot seleccionado visualmente
-        console.log('Ticket creado dentro de clase específica, manteniendo selección visual');
-      }
-      
+
+      // SIEMPRE actualizar el calendario después de crear un ticket
+      console.log('🔄 Updating calendar after ticket creation');
+      await refreshCalendar();
+
     } catch (error) {
       console.error('❌ Error creating TicketClass:', error);
       // Re-throw the error so the modal can handle it
@@ -895,9 +911,12 @@ const TicketCalendar = ({ className, refreshKey, focusClassId, focusWeek, focusY
         <CardHeader>
           <div className="flex justify-between items-center">
             <div>
-              <CardTitle>🗓️ Ticket Classes Calendar - All Types</CardTitle>
+              <CardTitle>🗓️ {classType.toUpperCase()} Classes Calendar</CardTitle>
               <p className="text-sm text-gray-600">
-                Showing {calendarEvents.length} ticket classes
+                {calendarEvents.length === 0
+                  ? `No ${classType.toUpperCase()} classes found`
+                  : `Showing ${calendarEvents.length} ${classType.toUpperCase()} class${calendarEvents.length !== 1 ? 'es' : ''}`
+                }
               </p>
             </div>
             <div className="flex items-center gap-2">
@@ -926,15 +945,6 @@ const TicketCalendar = ({ className, refreshKey, focusClassId, focusWeek, focusY
           </div>
         )}
         
-        {!isLoading && calendarEvents.length === 0 && (
-          <div className="flex items-center justify-center h-64">
-            <div className="text-center">
-              <p className="text-gray-500">No ticket classes found</p>
-              <p className="text-sm text-gray-400 mt-1">Click on a time slot to create a new ticket class</p>
-            </div>
-          </div>
-        )}
-        
         <div className="calendar-container" style={{ minHeight: '850px' }}>
           <FullCalendar
             plugins={[timeGridPlugin, interactionPlugin]}
@@ -947,6 +957,8 @@ const TicketCalendar = ({ className, refreshKey, focusClassId, focusWeek, focusY
             height="850px"
             events={calendarEvents}
             select={handleDateSelect}
+            eventMinHeight={60}
+            eventShortHeight={45}
             unselect={() => {
               // Deseleccionar slot cuando se hace clic fuera
               console.log('Slot deseleccionado');
@@ -983,13 +995,35 @@ const TicketCalendar = ({ className, refreshKey, focusClassId, focusWeek, focusY
               const slotId = `slot-${dateStr}-${timeStr}`;
               info.el.id = slotId;
               
+              // Aplicar estilos para mostrar texto en múltiples líneas
+              const titleEl = info.el.querySelector('.fc-event-title') || info.el.querySelector('.fc-event-title-container') || info.el.querySelector('.fc-event-main');
+              
+              if (titleEl) {
+                const htmlTitleEl = titleEl as HTMLElement;
+                htmlTitleEl.style.whiteSpace = 'pre-line';
+                htmlTitleEl.style.overflow = 'visible';
+                htmlTitleEl.style.textOverflow = 'clip';
+                htmlTitleEl.style.fontSize = '10px';
+                htmlTitleEl.style.lineHeight = '1.1';
+                htmlTitleEl.style.padding = '2px';
+                htmlTitleEl.style.wordWrap = 'break-word';
+                htmlTitleEl.style.hyphens = 'auto';
+              }
+              
+              // Aplicar estilos al contenedor del evento
+              info.el.style.padding = '2px';
+              info.el.style.fontSize = '10px';
+              info.el.style.lineHeight = '1.1';
+              info.el.style.overflow = 'visible';
+              info.el.style.whiteSpace = 'pre-line';
+              info.el.style.wordWrap = 'break-word';
+              
               // Add hover effects
               info.el.style.cursor = 'pointer';
               info.el.style.transition = 'all 0.2s ease';
               
               // Store original colors
               const originalBg = info.el.style.backgroundColor;
-              const originalBorder = info.el.style.borderColor;
               
               // Add hover event listeners (SIN TRANSFORMACIONES)
               info.el.addEventListener('mouseenter', () => {

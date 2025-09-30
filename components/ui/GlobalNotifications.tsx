@@ -1,6 +1,6 @@
 ﻿"use client";
 
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { Bell, X, Calendar, Car, GraduationCap } from "lucide-react";
 import TicketNotifications, { useTicketNotificationsCount } from "@/components/ui/notifications/TicketNotifications";
 import DrivingTestNotifications, { useDrivingTestNotificationsCount } from "@/components/ui/notifications/DrivingTestNotifications";
@@ -17,15 +17,27 @@ type TabType = 'tickets' | 'driving-test' | 'driving-lessons';
 export default function GlobalNotifications({ className, iconColor = "text-gray-600" }: GlobalNotificationsProps) {
   const [isOpen, setIsOpen] = useState(false);
   const [activeTab, setActiveTab] = useState<TabType>('tickets');
-  
+  const [refreshTrigger, setRefreshTrigger] = useState(0);
+
   const ticketCount = useTicketNotificationsCount();
   const drivingTestCount = useDrivingTestNotificationsCount();
   const drivingLessonsCount = useDrivingLessonsNotificationsCount();
-  
+
   const totalNotifications = ticketCount + drivingTestCount + drivingLessonsCount;
-  
+
   // Usar el contexto global de notificaciones
-  const { isConnected, connectionError } = useNotificationContext();
+  const { isConnected, connectionError, notifications } = useNotificationContext();
+
+  // Actualizar cuando lleguen nuevas notificaciones por SSE
+  useEffect(() => {
+    if (notifications.length > 0) {
+      const latestNotification = notifications[notifications.length - 1];
+      console.log('🔔 Nueva notificación recibida en GlobalNotifications:', latestNotification);
+
+      // Forzar actualización de contadores
+      setRefreshTrigger(prev => prev + 1);
+    }
+  }, [notifications]);
 
   const tabs = [
     { id: 'tickets' as TabType, label: 'Tickets', icon: Calendar, count: ticketCount },

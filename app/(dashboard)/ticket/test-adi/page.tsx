@@ -8,7 +8,7 @@ import { Label } from "@/components/ui/label";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Separator } from "@/components/ui/separator";
 import { FileText, Users, Calendar, Download, ArrowLeft } from "lucide-react";
-import { useBdiCertificateDownloader } from "@/components/ticket/hooks/use-bdi-certificate-downloader";
+import { useAdiCertificateDownloader } from "@/components/ticket/hooks/use-adi-certificate-downloader";
 import Link from "next/link";
 
 interface TicketClass {
@@ -46,29 +46,23 @@ interface Student {
   createdAt?: string;
 }
 
-export default function BdiCertificateGenerator() {
+export default function AdiCertificateGenerator() {
   const [classes, setClasses] = useState<TicketClass[]>([]);
   const [students, setStudents] = useState<Student[]>([]);
   const [filteredStudents, setFilteredStudents] = useState<Student[]>([]);
   const [selectedClass, setSelectedClass] = useState<string>("");
   const [selectedStudent, setSelectedStudent] = useState<string>("");
   const [certificateNumber, setCertificateNumber] = useState<string>("");
+  const [citationNumber, setCitationNumber] = useState<string>("");
+  const [citationCounty, setCitationCounty] = useState<string>("");
+  const [courseCompletionDate, setCourseCompletionDate] = useState<string>("");
+  const [licenseOverride, setLicenseOverride] = useState<string>("");
   const [studentSearchTerm, setStudentSearchTerm] = useState<string>("");
   const [loading, setLoading] = useState(false);
 
-  // School information fields
-  const [schoolName, setSchoolName] = useState<string>("AFFORDABLE DRIVING TRAFFIC SCHOOL");
-  const [schoolPhone, setSchoolPhone] = useState<string>("5619690150");
-  const [schoolLocation, setSchoolLocation] = useState<string>("Florida");
-  const [courseProvider, setCourseProvider] = useState<string>("DRIVESAFELY");
-  const [providerPhone, setProviderPhone] = useState<string>("7024857907");
+  const { downloadAdiCertificate } = useAdiCertificateDownloader();
 
-  // Driver's license number override
-  const [driversLicenseNumber, setDriversLicenseNumber] = useState<string>("");
-
-  const { downloadBdiCertificate } = useBdiCertificateDownloader();
-
-  // Fetch BDI-type classes
+  // Fetch ADI-type classes
   useEffect(() => {
     const fetchClasses = async () => {
       try {
@@ -76,9 +70,9 @@ export default function BdiCertificateGenerator() {
         const data = await response.json();
         if (data.success || Array.isArray(data)) {
           const allClasses = data.success ? data.data : data;
-          // Filter only 'bdi' type classes
-          const bdiClasses = allClasses.filter((cls: TicketClass) => cls.classType === 'bdi');
-          setClasses(bdiClasses);
+          // Filter only 'adi' type classes
+          const adiClasses = allClasses.filter((cls: TicketClass) => cls.classType === 'adi');
+          setClasses(adiClasses);
         }
       } catch (error) {
         console.error('Error fetching classes:', error);
@@ -171,6 +165,25 @@ export default function BdiCertificateGenerator() {
       const classDate = new Date(selectedClassData.date);
       const currentDate = new Date();
 
+      // Use override date if provided, otherwise use class date
+      let completionDate;
+      if (courseCompletionDate) {
+        completionDate = new Date(courseCompletionDate).toLocaleDateString('en-US', {
+          year: 'numeric',
+          month: 'short',
+          day: 'numeric'
+        });
+      } else {
+        completionDate = classDate.toLocaleDateString('en-US', {
+          year: 'numeric',
+          month: 'short',
+          day: 'numeric'
+        });
+      }
+
+      // Use license override if provided, otherwise use student's license
+      const licenseNumber = licenseOverride.trim() || selectedStudentData.licenseNumber || "";
+
       const certificateData = {
         certificateNumber: certificateNumber.trim(),
         printDate: currentDate.toLocaleDateString('en-US', {
@@ -179,25 +192,20 @@ export default function BdiCertificateGenerator() {
           day: 'numeric',
           timeZone: 'America/New_York'
         }),
-        courseCompletionDate: classDate.toLocaleDateString('en-US', {
-          year: 'numeric',
-          month: 'short',
-          day: 'numeric'
-        }),
-        citationNumber: "",
-        citationCounty: "",
-        courseProvider: courseProvider,
-        providerPhone: providerPhone,
-        schoolName: schoolName,
-        schoolPhone: schoolPhone,
-        schoolLocation: schoolLocation,
-        driversLicenseNumber: driversLicenseNumber || selectedStudentData.licenseNumber || "",
+        courseCompletionDate: completionDate,
+        citationNumber: citationNumber.trim(),
+        citationCounty: citationCounty.trim(),
+        courseProvider: "DRIVER TRAINING ASSOCIATES",
+        providerPhone: "8636169894",
+        schoolName: "AFFORDABLE DRIVING AND TRAFFIC SCHOOL",
+        schoolPhone: "5619690150",
+        driversLicenseNumber: licenseNumber,
         studentName: `${selectedStudentData.lastName?.toUpperCase() || ''}, ${selectedStudentData.firstName?.toUpperCase() || ''}`,
         dateOfBirth: selectedStudentData.birthDate ? new Date(selectedStudentData.birthDate).toLocaleDateString('en-US') : "",
-        reasonAttending: "BDI Course Completion"
+        reasonAttending: "ADI ADI for HTO"
       };
 
-      const success = await downloadBdiCertificate(certificateData);
+      const success = await downloadAdiCertificate(certificateData);
 
       if (success) {
         // Save certificate to database
@@ -206,12 +214,14 @@ export default function BdiCertificateGenerator() {
           studentId: selectedStudent,
           studentName: certificateData.studentName,
           classId: selectedClass,
-          className: selectedClassData.title || 'BDI Course',
+          className: selectedClassData.title || 'ADI Course',
           classDate: selectedClassData.date,
           issueDate: certificateData.printDate,
           courseCompletionDate: certificateData.courseCompletionDate,
           studentEmail: selectedStudentData.email,
-          studentBirthDate: selectedStudentData.birthDate
+          studentBirthDate: selectedStudentData.birthDate,
+          citationNumber: certificateData.citationNumber,
+          citationCounty: certificateData.citationCounty
         };
 
         try {
@@ -222,7 +232,7 @@ export default function BdiCertificateGenerator() {
           });
 
           if (saveResponse.ok) {
-            console.log('BDI Certificate saved to database');
+            console.log('ADI Certificate saved to database');
           } else {
             console.warn('Certificate generated but failed to save to database');
           }
@@ -230,13 +240,16 @@ export default function BdiCertificateGenerator() {
           console.error('Error saving certificate:', saveError);
         }
 
-        alert(`BDI Certificate generated successfully for ${selectedStudentData.firstName} ${selectedStudentData.lastName}`);
+        alert(`ADI Certificate generated successfully for ${selectedStudentData.firstName} ${selectedStudentData.lastName}`);
         // Clear form
         setSelectedClass("");
         setSelectedStudent("");
         setCertificateNumber("");
+        setCitationNumber("");
+        setCitationCounty("");
+        setCourseCompletionDate("");
+        setLicenseOverride("");
         setStudentSearchTerm("");
-        setDriversLicenseNumber("");
       } else {
         alert('Failed to generate certificate. Please try again.');
       }
@@ -265,10 +278,10 @@ export default function BdiCertificateGenerator() {
       <div className="text-center space-y-2 mb-8">
         <h1 className="text-3xl font-bold flex items-center justify-center gap-2">
           <FileText className="w-8 h-8" />
-          BDI Certificate Generator
+          ADI Certificate Generator
         </h1>
         <p className="text-gray-600">
-          Generate BDI certificates for course completions
+          Generate ADI certificates for course completions
         </p>
       </div>
 
@@ -287,11 +300,11 @@ export default function BdiCertificateGenerator() {
           {/* Class Selection */}
           <div className="space-y-2">
             <Label htmlFor="class-select" className="text-sm font-medium">
-              Select Class (BDI type only) *
+              Select Class (ADI type only) *
             </Label>
             <Select value={selectedClass} onValueChange={setSelectedClass}>
               <SelectTrigger id="class-select" className="bg-white border-gray-300">
-                <SelectValue placeholder="Choose a BDI class..." />
+                <SelectValue placeholder="Choose an ADI class..." />
               </SelectTrigger>
               <SelectContent className="bg-white border border-gray-300 shadow-lg">
                 {classes.map((cls) => (
@@ -313,7 +326,7 @@ export default function BdiCertificateGenerator() {
               </SelectContent>
             </Select>
             {classes.length === 0 && (
-              <p className="text-sm text-gray-500">No BDI type classes found.</p>
+              <p className="text-sm text-gray-500">No ADI type classes found.</p>
             )}
           </div>
 
@@ -401,93 +414,69 @@ export default function BdiCertificateGenerator() {
             </Label>
             <Input
               id="cert-number"
-              placeholder="Enter certificate number (e.g., BDI001234)"
+              placeholder="Enter certificate number (e.g., 47560595)"
               value={certificateNumber}
               onChange={(e) => setCertificateNumber(e.target.value)}
             />
           </div>
 
-          {/* Driver's License Number Override */}
+          {/* Citation Number */}
           <div className="space-y-2">
-            <Label htmlFor="license-number" className="text-sm font-medium">
-              Driver&apos;s License Number
+            <Label htmlFor="citation-number" className="text-sm font-medium">
+              Citation Number
             </Label>
             <Input
-              id="license-number"
-              placeholder="Enter driver's license number (optional - overrides student record)"
-              value={driversLicenseNumber}
-              onChange={(e) => setDriversLicenseNumber(e.target.value)}
+              id="citation-number"
+              placeholder="Enter citation number (e.g., AC02JQE)"
+              value={citationNumber}
+              onChange={(e) => setCitationNumber(e.target.value)}
             />
-            <p className="text-xs text-gray-500">
-              Leave empty to use the license number from student record
-            </p>
           </div>
 
-          {/* School Information Section */}
-          <div className="space-y-4">
-            <h4 className="font-medium text-gray-800 border-b pb-2">School Information</h4>
+          {/* Citation County */}
+          <div className="space-y-2">
+            <Label htmlFor="citation-county" className="text-sm font-medium">
+              Citation County
+            </Label>
+            <Input
+              id="citation-county"
+              placeholder="Enter citation county (e.g., PALM BEACH)"
+              value={citationCounty}
+              onChange={(e) => setCitationCounty(e.target.value)}
+            />
+          </div>
 
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-              <div className="space-y-2">
-                <Label htmlFor="school-name" className="text-sm font-medium">
-                  School Name
-                </Label>
-                <Input
-                  id="school-name"
-                  placeholder="Enter school name"
-                  value={schoolName}
-                  onChange={(e) => setSchoolName(e.target.value)}
-                />
-              </div>
+          {/* Course Completion Date Override */}
+          <div className="space-y-2">
+            <Label htmlFor="course-completion-date" className="text-sm font-medium">
+              Course Completion Date (Optional)
+            </Label>
+            <Input
+              id="course-completion-date"
+              type="date"
+              placeholder="Override completion date"
+              onChange={(e) => {
+                // This will be handled in the certificate generation
+                setCourseCompletionDate(e.target.value);
+              }}
+            />
+            <p className="text-xs text-gray-500">Leave empty to use class date automatically</p>
+          </div>
 
-              <div className="space-y-2">
-                <Label htmlFor="school-phone" className="text-sm font-medium">
-                  School Phone
-                </Label>
-                <Input
-                  id="school-phone"
-                  placeholder="Enter school phone number"
-                  value={schoolPhone}
-                  onChange={(e) => setSchoolPhone(e.target.value)}
-                />
-              </div>
-
-              <div className="space-y-2">
-                <Label htmlFor="school-location" className="text-sm font-medium">
-                  School Location
-                </Label>
-                <Input
-                  id="school-location"
-                  placeholder="Enter school location"
-                  value={schoolLocation}
-                  onChange={(e) => setSchoolLocation(e.target.value)}
-                />
-              </div>
-
-              <div className="space-y-2">
-                <Label htmlFor="course-provider" className="text-sm font-medium">
-                  Course Provider
-                </Label>
-                <Input
-                  id="course-provider"
-                  placeholder="Enter course provider name"
-                  value={courseProvider}
-                  onChange={(e) => setCourseProvider(e.target.value)}
-                />
-              </div>
-
-              <div className="space-y-2">
-                <Label htmlFor="provider-phone" className="text-sm font-medium">
-                  Provider Phone
-                </Label>
-                <Input
-                  id="provider-phone"
-                  placeholder="Enter provider phone number"
-                  value={providerPhone}
-                  onChange={(e) => setProviderPhone(e.target.value)}
-                />
-              </div>
-            </div>
+          {/* Driver License Number Override */}
+          <div className="space-y-2">
+            <Label htmlFor="license-override" className="text-sm font-medium">
+              Driver License Number (Optional)
+            </Label>
+            <Input
+              id="license-override"
+              placeholder="Override license number if needed"
+              onChange={(e) => {
+                // This will be handled in the certificate generation
+                setLicenseOverride(e.target.value);
+              }}
+            />
+            <p className="text-xs text-gray-500">Leave empty to use student&apos;s license number</p>
           </div>
 
           {/* Class and Student Info Summary */}
@@ -510,6 +499,14 @@ export default function BdiCertificateGenerator() {
                           day: 'numeric'
                         }) : 'Not provided'}
                       </div>
+                      <div className="text-sm text-gray-600">
+                        License Number: {selectedStudentData.licenseNumber || 'Not provided'}
+                        {licenseOverride && (
+                          <div className="text-xs text-blue-600 mt-1">
+                            Override License: {licenseOverride}
+                          </div>
+                        )}
+                      </div>
                     </div>
                   </div>
 
@@ -518,7 +515,7 @@ export default function BdiCertificateGenerator() {
                     <h5 className="font-medium text-gray-800 mb-2 text-center">Course Information</h5>
                     <div className="text-center space-y-1">
                       <div className="font-semibold text-gray-900">
-                        {selectedClassData.title || 'BDI Course'}
+                        {selectedClassData.title || 'ADI Course'}
                       </div>
                       <div className="text-sm text-gray-600">
                         Class Date: {selectedClassData.date ? new Date(selectedClassData.date).toLocaleDateString('en-US', {
@@ -526,6 +523,15 @@ export default function BdiCertificateGenerator() {
                           month: 'long',
                           day: 'numeric'
                         }) : 'Not specified'}
+                        {courseCompletionDate && (
+                          <div className="text-xs text-blue-600 mt-1">
+                            Override Completion Date: {new Date(courseCompletionDate).toLocaleDateString('en-US', {
+                              year: 'numeric',
+                              month: 'long',
+                              day: 'numeric'
+                            })}
+                          </div>
+                        )}
                       </div>
                     </div>
                   </div>
@@ -544,30 +550,16 @@ export default function BdiCertificateGenerator() {
                           day: 'numeric'
                         })}
                       </div>
-                      {(driversLicenseNumber || selectedStudentData.licenseNumber) && (
+                      {citationNumber && (
                         <div className="text-sm text-gray-600">
-                          License Number: {driversLicenseNumber || selectedStudentData.licenseNumber}
+                          Citation Number: {citationNumber}
                         </div>
                       )}
-                    </div>
-                  </div>
-
-                  {/* School Info */}
-                  <div className="bg-white p-3 rounded border">
-                    <h5 className="font-medium text-gray-800 mb-2 text-center">School Information</h5>
-                    <div className="text-center space-y-1">
-                      <div className="font-semibold text-gray-900">
-                        {schoolName}
-                      </div>
-                      <div className="text-sm text-gray-600">
-                        Phone: {schoolPhone}
-                      </div>
-                      <div className="text-sm text-gray-600">
-                        Location: {schoolLocation}
-                      </div>
-                      <div className="text-sm text-gray-600">
-                        Provider: {courseProvider} ({providerPhone})
-                      </div>
+                      {citationCounty && (
+                        <div className="text-sm text-gray-600">
+                          Citation County: {citationCounty}
+                        </div>
+                      )}
                     </div>
                   </div>
                 </div>
@@ -607,11 +599,14 @@ export default function BdiCertificateGenerator() {
         </CardHeader>
         <CardContent>
           <div className="space-y-3 text-sm text-gray-600">
-            <p><strong>1. Select Class:</strong> Choose a BDI type class from the dropdown. Only active classes are shown.</p>
+            <p><strong>1. Select Class:</strong> Choose an ADI type class from the dropdown. Only active classes are shown.</p>
             <p><strong>2. Search Student:</strong> Use the search box to filter students by name or email. Type &apos;A&apos; to see all students starting with A.</p>
             <p><strong>3. Select Student:</strong> Choose a student from the filtered dropdown list. Name and email are shown for easy identification.</p>
-            <p><strong>4. Certificate Number:</strong> Enter a unique certificate number for tracking purposes.</p>
-            <p><strong>5. Generate PDF:</strong> Click the button to download the BDI certificate and save it to the database.</p>
+            <p><strong>4. Certificate Number:</strong> Enter a unique certificate number for tracking purposes (e.g., 47560595).</p>
+            <p><strong>5. Citation Info (Optional):</strong> Enter citation number and county if applicable.</p>
+            <p><strong>6. Course Completion Date (Optional):</strong> Override the completion date if different from class date.</p>
+            <p><strong>7. Driver License Override (Optional):</strong> Enter a different license number if needed.</p>
+            <p><strong>8. Generate PDF:</strong> Click the button to download the ADI certificate and save it to the database.</p>
           </div>
         </CardContent>
       </Card>

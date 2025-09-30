@@ -41,6 +41,7 @@ export default function BdiCertificateModal({
     providerPhone: initialData.providerPhone || "7024857907",
     schoolName: initialData.schoolName || "AFFORDABLE DRIVING TRAFFIC SCHOOL",
     schoolPhone: initialData.schoolPhone || "5619690150",
+    schoolLocation: initialData.schoolLocation || "WEST PALM BEACH, FL",
     driversLicenseNumber: initialData.driversLicenseNumber || "C21472038S000",
     studentName: initialData.studentName || "CALDERON, ROMELIA",
     dateOfBirth: initialData.dateOfBirth || "4/4/1974",
@@ -170,6 +171,15 @@ export default function BdiCertificateModal({
                 id="schoolPhone"
                 value={formData.schoolPhone}
                 onChange={(e) => handleInputChange('schoolPhone', e.target.value)}
+              />
+            </div>
+
+            <div className="space-y-2">
+              <Label htmlFor="schoolLocation">School Location</Label>
+              <Input
+                id="schoolLocation"
+                value={formData.schoolLocation}
+                onChange={(e) => handleInputChange('schoolLocation', e.target.value)}
               />
             </div>
 

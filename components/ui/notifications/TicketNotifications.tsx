@@ -5,6 +5,7 @@ import { Calendar } from "lucide-react";
 import { useRouter } from "next/navigation";
 import { useCalendarRefresh } from "@/hooks/useCalendarRefresh";
 import { useNotificationContext } from "@/contexts/NotificationContext";
+import { triggerStudentRequestUpdate, refreshTicketCalendar } from "@/lib/calendarEvents";
 
 interface StudentRequest {
   _id: string;
@@ -79,9 +80,13 @@ export default function TicketNotifications({ isOpen }: TicketNotificationsProps
       if (response.ok) {
         // Refresh notifications
         fetchTicketNotifications();
-        
+
         // Trigger calendar refresh
         refreshCalendar();
+
+        // Trigger global calendar refresh events
+        refreshTicketCalendar();
+        triggerStudentRequestUpdate();
       }
     } catch (error) {
       console.error('Error accepting request:', error);
@@ -102,9 +107,13 @@ export default function TicketNotifications({ isOpen }: TicketNotificationsProps
       if (response.ok) {
         // Refresh notifications
         fetchTicketNotifications();
-        
+
         // Trigger calendar refresh
         refreshCalendar();
+
+        // Trigger global calendar refresh events
+        refreshTicketCalendar();
+        triggerStudentRequestUpdate();
       }
     } catch (error) {
       console.error('Error rejecting request:', error);
@@ -363,21 +372,22 @@ export default function TicketNotifications({ isOpen }: TicketNotificationsProps
 // Hook personalizado para obtener el contador de notificaciones
 export function useTicketNotificationsCount() {
   const [count, setCount] = useState(0);
+  const { notifications } = useNotificationContext();
 
   const fetchCount = async () => {
     try {
       const response = await fetch('/api/ticketclasses');
       const data = await response.json();
-      
+
       if (data.success) {
-        const classesWithRequests = data.data.filter((ticketClass: TicketClass) => 
+        const classesWithRequests = data.data.filter((ticketClass: TicketClass) =>
           ticketClass.studentRequests && ticketClass.studentRequests.length > 0
         );
-        
-        const totalRequests = classesWithRequests.reduce((total: number, ticketClass: TicketClass) => 
+
+        const totalRequests = classesWithRequests.reduce((total: number, ticketClass: TicketClass) =>
           total + ticketClass.studentRequests.filter((request: StudentRequest) => request.paymentMethod === "local").length, 0
         );
-        
+
         setCount(totalRequests);
       }
     } catch (error) {
@@ -386,7 +396,18 @@ export function useTicketNotificationsCount() {
     }
   };
 
-  // Escuchar eventos de actualización global
+  // Actualizar automáticamente cuando lleguen notificaciones SSE
+  useEffect(() => {
+    if (notifications.length > 0) {
+      const latestNotification = notifications[notifications.length - 1];
+      if (latestNotification.type === 'ticket') {
+        console.log('🎫 Ticket notification received, updating count');
+        fetchCount();
+      }
+    }
+  }, [notifications]);
+
+  // Escuchar eventos de actualización global (mantener compatibilidad)
   useEffect(() => {
     const handleGlobalRefresh = () => {
       console.log('🔄 Global count refresh received');
@@ -394,7 +415,7 @@ export function useTicketNotificationsCount() {
     };
 
     window.addEventListener('notificationRefresh', handleGlobalRefresh);
-    
+
     return () => {
       window.removeEventListener('notificationRefresh', handleGlobalRefresh);
     };
