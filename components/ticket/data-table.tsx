@@ -89,7 +89,14 @@ export function DataTable({ columns, data, onUpdate }: DataTableProps) {
     }
 
     if (invalidStudents.length > 0) {
-      toast.warning(`${invalidStudents.length} estudiante(s) fueron omitidos por no cumplir los requisitos (pago o número de certificado).`);
+      toast(`${invalidStudents.length} estudiante(s) fueron omitidos por no cumplir los requisitos (pago o número de certificado).`, {
+        icon: '⚠️',
+        style: {
+          background: '#fff3cd',
+          color: '#856404',
+          border: '1px solid #ffeaa7'
+        }
+      });
     }
 
     const loadingToast = toast.loading(`Generando ${validStudents.length} certificado(s)...`);
