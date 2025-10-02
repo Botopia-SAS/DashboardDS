@@ -5,6 +5,23 @@ import { generateEventId } from "@/lib/utils";
 
 export const dynamic = "force-dynamic";
 
+interface AvailableSlot {
+  _id: string;
+  date: string;
+  start: string;
+  end: string;
+  status: string;
+  classType: string;
+  amount?: number | null;
+  studentId?: string | null;
+  studentName?: string | null;
+  paid: boolean;
+  pickupLocation?: string;
+  dropoffLocation?: string;
+  instructorId?: string;
+  booked?: boolean;
+}
+
 export async function PUT(req: NextRequest) {
   try {
     await connectToDB();
@@ -39,6 +56,21 @@ export async function PUT(req: NextRequest) {
         { message: "Instructor not found" },
         { status: 404 }
       );
+    }
+
+    // Obtener el evento original ANTES de actualizarlo para verificar si se está cancelando
+    let originalEvent: any | null = null;
+    if (instructor.schedule_driving_test) {
+      originalEvent = 
+        instructor.schedule_driving_test.find((e: any) => e._id === eventId) ||
+        instructor.schedule_driving_test.find((e: any, idx: number) => `driving_test_${instructor._id}_${e.date}_${e.start}_${idx}` === eventId) ||
+        null;
+    }
+    if (!originalEvent && instructor.schedule_driving_lesson) {
+      originalEvent = 
+        instructor.schedule_driving_lesson.find((e: any) => e._id === eventId) ||
+        instructor.schedule_driving_lesson.find((e: any, idx: number) => `driving_lesson_${instructor._id}_${e.date}_${e.start}_${idx}` === eventId) ||
+        null;
     }
 
     // Verificar que el evento existe en alguna de las colecciones
@@ -89,21 +121,6 @@ export async function PUT(req: NextRequest) {
     let finalEventId = eventId;
     if (originalClassType && originalClassType !== classType) {
       console.log(`Moving event from ${originalClassType} to ${classType}`);
-      
-      // Buscar el evento original para heredar campos si no vienen en el body
-      let originalEvent: any | null = null;
-      if (instructor.schedule_driving_test) {
-        originalEvent =
-          instructor.schedule_driving_test.find((e: any) => e._id === eventId) ||
-          instructor.schedule_driving_test.find((e: any, idx: number) => `driving_test_${instructor._id}_${e.date}_${e.start}_${idx}` === eventId) ||
-          null;
-      }
-      if (!originalEvent && instructor.schedule_driving_lesson) {
-        originalEvent =
-          instructor.schedule_driving_lesson.find((e: any) => e._id === eventId) ||
-          instructor.schedule_driving_lesson.find((e: any, idx: number) => `driving_lesson_${instructor._id}_${e.date}_${e.start}_${idx}` === eventId) ||
-          null;
-      }
 
       // Primero, eliminar de ambas colecciones para asegurar limpieza
       await Instructor.updateOne(
@@ -186,6 +203,53 @@ export async function PUT(req: NextRequest) {
       }
     }
 
+    // Si se está cancelando un evento que previamente no estaba cancelado, crear un slot disponible
+    const isBeingCancelled = originalEvent && originalEvent.status !== "cancelled" && status === "cancelled";
+    let newAvailableSlotId = null;
+
+    if (isBeingCancelled && originalEvent) {
+      console.log(`Creating available slot for cancelled event: ${eventId}`);
+      
+      // Crear un nuevo evento "available" con las mismas características
+      const availableSlotId = generateEventId(originalEvent.classType, instructorId, originalEvent.date, originalEvent.start);
+      const availableSlot: AvailableSlot = {
+        _id: availableSlotId,
+        date: originalEvent.date,
+        start: originalEvent.start,
+        end: originalEvent.end,
+        status: "available",
+        classType: originalEvent.classType,
+        amount: originalEvent.classType === "driving test" ? originalEvent.amount : null,
+        studentId: null,
+        studentName: null,
+        paid: false,
+      };
+
+      // Agregar campos específicos según el tipo de clase
+      if (originalEvent.classType === "driving lesson") {
+        availableSlot.pickupLocation = "";
+        availableSlot.dropoffLocation = "";
+        availableSlot.instructorId = instructorId;
+        availableSlot.booked = false;
+      }
+
+      // Insertar el nuevo slot disponible en la colección apropiada
+      if (originalEvent.classType === "driving test") {
+        await Instructor.updateOne(
+          { _id: instructorId },
+          { $push: { schedule_driving_test: availableSlot } }
+        );
+      } else if (originalEvent.classType === "driving lesson") {
+        await Instructor.updateOne(
+          { _id: instructorId },
+          { $push: { schedule_driving_lesson: availableSlot } }
+        );
+      }
+
+      newAvailableSlotId = availableSlotId;
+      console.log(`✅ Created available slot ${availableSlotId} for cancelled event`);
+    }
+
     // Verificar que el evento se actualizó correctamente
     const updatedInstructor = await Instructor.findById(instructorId);
     const targetEventId = finalEventId;
@@ -200,8 +264,17 @@ export async function PUT(req: NextRequest) {
       );
     }
 
+    const responseMessage = isBeingCancelled 
+      ? `Event cancelled and new available slot created successfully` 
+      : "Event updated successfully";
+
     return NextResponse.json(
-      { message: "Event updated successfully", eventId: targetEventId, moved: movedToDifferentCollection },
+      { 
+        message: responseMessage, 
+        eventId: targetEventId, 
+        moved: movedToDifferentCollection,
+        newAvailableSlotId: newAvailableSlotId
+      },
       { status: 200 }
     );
 

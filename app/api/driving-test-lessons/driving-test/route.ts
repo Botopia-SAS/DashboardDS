@@ -39,15 +39,6 @@ export async function POST(req: NextRequest) {
       );
     }
 
-    // Validar conflictos de horarios
-    const hasConflict = await validateScheduleConflict(instructor, date, start, end);
-    if (hasConflict) {
-      return NextResponse.json(
-        { message: "Schedule conflict detected. There's already a class scheduled during this time." },
-        { status: 409 }
-      );
-    }
-
     // Función para generar fechas recurrentes
     const generateRecurrenceDates = (startDate: string, recurrence: string, endDate: string) => {
       const dates = [];
@@ -76,14 +67,41 @@ export async function POST(req: NextRequest) {
     };
 
     // Generar eventos recurrentes si es necesario
-    let eventsToCreate = [{ date, start, end }];
+    let eventsToCreate = [];
     
     if (recurrence && recurrence !== 'none' && recurrenceEndDate) {
       const dates = generateRecurrenceDates(date, recurrence, recurrenceEndDate);
-      eventsToCreate = dates.map(d => ({ date: d, start, end }));
+      
+      // Filtrar fechas que no tienen conflictos
+      for (const dateToCheck of dates) {
+        const hasConflict = await validateScheduleConflict(instructor, dateToCheck, start, end);
+        if (!hasConflict) {
+          eventsToCreate.push({ date: dateToCheck, start, end });
+        } else {
+          console.log(`⚠️ Skipping date ${dateToCheck} due to schedule conflict`);
+        }
+      }
+    } else {
+      // Para eventos únicos (sin recurrencia), validar conflicto y fallar si existe
+      const hasConflict = await validateScheduleConflict(instructor, date, start, end);
+      if (hasConflict) {
+        return NextResponse.json(
+          { message: "Schedule conflict detected. There's already a class scheduled during this time." },
+          { status: 409 }
+        );
+      }
+      eventsToCreate = [{ date, start, end }];
     }
 
-    // Crear todos los eventos
+    // Si no hay eventos para crear (todos tenían conflictos), informar
+    if (eventsToCreate.length === 0) {
+      return NextResponse.json(
+        { message: "No events could be created. All dates in the recurrence had schedule conflicts." },
+        { status: 409 }
+      );
+    }
+
+    // Crear todos los eventos válidos
     const createdEvents = [];
     for (const eventData of eventsToCreate) {
       const eventId = generateEventId("driving_test", instructorId, eventData.date, start);
@@ -112,9 +130,24 @@ export async function POST(req: NextRequest) {
       { new: true }
     );
 
+    // Preparar mensaje de respuesta
+    let message = "Driving test schedule slot added successfully";
+    if (recurrence && recurrence !== 'none' && recurrenceEndDate) {
+      const totalRequestedDates = generateRecurrenceDates(date, recurrence, recurrenceEndDate);
+      const createdDates = createdEvents.length;
+      const skippedDates = totalRequestedDates.length - createdDates;
+      
+      if (skippedDates > 0) {
+        message += `. ${createdDates} events created, ${skippedDates} dates skipped due to conflicts.`;
+      } else {
+        message += `. All ${createdDates} recurring events created successfully.`;
+      }
+    }
+
     return NextResponse.json({
-      message: "Driving test schedule slot added successfully",
-      instructor: updatedInstructor
+      message,
+      instructor: updatedInstructor,
+      eventsCreated: createdEvents.length
     }, { status: 201 });
 
   } catch (error) {
