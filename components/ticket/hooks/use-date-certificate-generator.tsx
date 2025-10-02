@@ -2,185 +2,114 @@
 
 import { Student } from "../columns";
 import { useCallback } from "react";
-import { PDFDocument, rgb, StandardFonts } from "pdf-lib";
 
 export function useDateCertificateGenerator() {
   const generateDateCertificatePDF = useCallback(async (user: Student) => {
-    const { last_name, first_name, midl, birthDate, certn, courseDate } = user;
+    const { last_name, first_name, midl, birthDate, certn, courseDate, classTitle, classType } = user;
 
-    const pdfDoc = await PDFDocument.create();
-    const page = pdfDoc.addPage([842, 595]); // Landscape A4 dimensions in points
-    const { width, height } = page.getSize();
+    // Debug logs
+    console.log('Generating certificate for:', {
+      studentName: `${first_name} ${last_name}`,
+      classTitle,
+      classType,
+      certn
+    });
 
-    const font = await pdfDoc.embedFont(StandardFonts.Helvetica);
-    const boldFont = await pdfDoc.embedFont(StandardFonts.HelveticaBold);
+    try {
+      // Import pdf-lib for PDF manipulation
+      const { PDFDocument, rgb } = await import('pdf-lib');
 
-    // Draw outer borders
-    const borderWidths = [6, 4, 2];
-    borderWidths.forEach((borderWidth, index) => {
-      page.drawRectangle({
-        x: 20 + index * 10,
-        y: 20 + index * 10,
-        width: width - 40 - index * 20,
-        height: height - 40 - index * 20,
-        borderColor: rgb(0, 0, 0),
-        borderWidth,
+      // Load the existing PDF template (same as test-date page)
+      const existingPdfBytes = await fetch('/date_data.pdf').then(res => res.arrayBuffer());
+      const pdfDoc = await PDFDocument.load(existingPdfBytes);
+      const pages = pdfDoc.getPages();
+      const firstPage = pages[0];
+      
+      // Get page dimensions
+      const { width, height } = firstPage.getSize();
+      
+      // Embed fonts - Use Times-Roman for a more formal serif look like the original
+      const timesFont = await pdfDoc.embedFont('Times-Roman');
+      const helveticaFont = await pdfDoc.embedFont('Helvetica');
+      
+      // Helper function to draw centered text
+      const drawCenteredText = (text: string, x: number, y: number, size: number = 12, useSerif: boolean = true) => {
+        const font = useSerif ? timesFont : helveticaFont;
+        const textWidth = font.widthOfTextAtSize(text, size);
+        const textHeight = font.heightAtSize(size);
+        
+        firstPage.drawText(text, {
+          x: x - (textWidth / 2), // Center horizontally - x coordinate is now the true center
+          y: height - y - (textHeight / 2), // Center vertically - y coordinate is now the true center
+          size: size,
+          font: font,
+          color: rgb(0, 0, 0)
+        });
+      };
+      
+      // Format student name (same as test-date)
+      const studentName = `${(first_name || '').toUpperCase()} ${(last_name || '').toUpperCase()}`;
+      
+      // Format birth date
+      const formattedBirthDate = birthDate ? new Date(birthDate).toLocaleDateString('en-US') : "";
+      
+      // Format course completion date
+      const formattedCourseDate = courseDate ? new Date(courseDate).toLocaleDateString('en-US', {
+        year: 'numeric',
+        month: 'short',
+        day: 'numeric'
+      }) : new Date().toLocaleDateString('en-US', {
+        year: 'numeric',
+        month: 'short',
+        day: 'numeric'
       });
-    });
+      
+      // Format print date
+      const printDate = new Date().toLocaleDateString('en-US', {
+        year: 'numeric',
+        month: 'short',
+        day: 'numeric',
+        timeZone: 'America/New_York'
+      });
+      
+      // Add text at the same coordinates as test-date page
+      // Nombre + Apellido: x=390, y=242 (center)
+      drawCenteredText(studentName, 390, 242, 14, true);
 
-    // Add title
-    page.drawText("AFFORDABLE DRIVING TRAFFIC SCHOOL", {
-      x: width / 2 - 250,
-      y: height - 70,
-      size: 24,
-      font: boldFont,
-      color: rgb(0, 0, 0),
-    });
-
-    page.drawText("CERTIFICATE OF COMPLETION", {
-      x: width / 2 - 150,
-      y: height - 100,
-      size: 18,
-      font: boldFont,
-      color: rgb(0, 0, 0),
-    });
-
-    page.drawText("3167 FOREST HILL BLVD. WEST PALM BEACH, FL 33406", {
-      x: width / 2 - 180,
-      y: height - 130,
-      size: 14,
-      font,
-      color: rgb(0, 0, 0),
-    });
-
-    page.drawText("561-969-0150 / 561-330-7007", {
-      x: width / 2 - 90,
-      y: height - 150,
-      size: 14,
-      font,
-      color: rgb(0, 0, 0),
-    });
-
-    // Add "This Certifies That"
-    page.drawText(
-      "This Certifies that the person named below has successfully completed the Florida Dept.",
-      {
-        x: width / 2 - 300,
-        y: height - 180,
-        size: 14,
-        font,
-        color: rgb(0, 0, 0),
+      // Cumpleaños: x=390, y=284 (center)
+      if (formattedBirthDate) {
+        drawCenteredText(formattedBirthDate, 390, 295, 12, true);
       }
-    );
 
-    // Tipo de certificado DATE específico
-    page.drawText(
-      'Highway Safety and Motor Vehicles "Driver Education Program Course"',
-      {
-        x: width / 2 - 270,
-        y: height - 200,
-        size: 14,
-        font,
-        color: rgb(0, 0, 0),
-      }
-    );
+      // Class Type: x=390, y=385 (center) - More prominent, larger, uppercase, lowered position
+      const displayClassType = (classType || 'DATE').toUpperCase();
+      drawCenteredText(displayClassType, 390, 385, 18, true);
 
-    // DATE certificate - Centered course completion date
-    page.drawText(`Course Completion Date: ${courseDate}`, {
-      x: width / 2 - 100,
-      y: height - 240,
-      size: 14,
-      font,
-      color: rgb(0, 0, 0),
-    });
+      // Class Title: x=390, y=410 (center) - Use actual class title instead of "D.A.T.E. Course"
+      const displayClassTitle = classTitle || 'Certificate Course';
+      drawCenteredText(displayClassTitle, 390, 425, 12, true);
 
-    // DATE certificate - Centered student name with more visibility
-    page.drawText("Name:", {
-      x: width / 2 - 150,
-      y: height - 270,
-      size: 16,
-      font,
-      color: rgb(0, 0, 0),
-    });
+      // Número de Certificado: x=163, y=394 (center)
+      drawCenteredText(String(certn), 163, 394, 12, true);
 
-    page.drawText(`${first_name} ${midl || ""} ${last_name}`, {
-      x: width / 2 - 80,
-      y: height - 270,
-      size: 16,
-      font: boldFont,
-      color: rgb(0, 0, 0),
-    });
+      // Fecha de Generación: x=390, y=484 (center)
+      drawCenteredText(printDate, 390, 495, 12, true);
 
-    // DATE certificate - Birth date
-    page.drawText("Birth Date:", {
-      x: width / 2 - 150,
-      y: height - 300,
-      size: 16,
-      font,
-      color: rgb(0, 0, 0),
-    });
+      // Serialize the PDF
+      const pdfBytes = await pdfDoc.save();
 
-    page.drawText(`${birthDate}`, {
-      x: width / 2 - 60,
-      y: height - 300,
-      size: 16,
-      font: boldFont,
-      color: rgb(0, 0, 0),
-    });
+      // Create blob
+      const arrayBuffer = new ArrayBuffer(pdfBytes.length);
+      const view = new Uint8Array(arrayBuffer);
+      view.set(pdfBytes);
+      const blob = new Blob([arrayBuffer], { type: 'application/pdf' });
 
-    // DATE certificate - Certificate number
-    page.drawText("Certificate #:", {
-      x: width / 2 - 150,
-      y: height - 330,
-      size: 16,
-      font,
-      color: rgb(0, 0, 0),
-    });
+      return blob;
 
-    page.drawText(`${certn}`, {
-      x: width / 2 - 50,
-      y: height - 330,
-      size: 16,
-      font: boldFont,
-      color: rgb(0, 0, 0),
-    });
-
-    // Add footer
-    page.drawText("MARÍA D. SÁNCHEZ", {
-      x: 100,
-      y: 100,
-      size: 12,
-      font: boldFont,
-      color: rgb(0, 0, 0),
-    });
-
-    page.drawText("AFFORDABLE DRIVING INSTRUCTOR", {
-      x: 100,
-      y: 80,
-      size: 12,
-      font,
-      color: rgb(0, 0, 0),
-    });
-
-    page.drawText("LICENSE #", {
-      x: 650,
-      y: 100,
-      size: 12,
-      font: boldFont,
-      color: rgb(0, 0, 0),
-    });
-
-    page.drawText("AFFORDABLE DRIVING", {
-      x: 650,
-      y: 80,
-      size: 12,
-      font,
-      color: rgb(0, 0, 0),
-    });
-
-    // Convert the PDF to bytes and create a blob
-    const pdfBytes = await pdfDoc.save();
-    return new Blob([pdfBytes], { type: "application/pdf" });
+    } catch (error) {
+      console.error('Error generating certificate with PDF template:', error);
+      throw error;
+    }
   }, []);
 
   return { generateDateCertificatePDF };

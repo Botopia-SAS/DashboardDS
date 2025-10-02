@@ -202,21 +202,11 @@ export default function TicketClassTypePage() {
               <Separator className="bg-gray-400 my-4" />
               <Card>
                 <CardContent>
-                  <div className="grid grid-cols-1 md:grid-cols-2 gap-4 py-2">
+                  <div className="grid grid-cols-1 gap-4 py-2">
                     <Navigation
                       href={`/ticket/day-of-class/${classType.name.toLowerCase()}`}
                       title="Day of Class Preparation"
                       description="Prepare for upcoming classes"
-                    />
-                    <Navigation
-                      href="/ticket/utilities"
-                      title="Utilities / Records"
-                      description="Access common utilities and records"
-                    />
-                    <Navigation
-                      href={`/ticket/test-${classType.name.toLowerCase()}`}
-                      title={`📄 ${classType.name.toUpperCase()} Certificate`}
-                      description={`Generate ${classType.name.toUpperCase()} certificates`}
                     />
                   </div>
                   <div className="mt-8">

@@ -56,7 +56,10 @@ const ClassDetails = () => {
 
         const data = await res.json();
         console.log("✅ Class details fetched successfully:", data);
-        setClassDetails(data);
+        
+        // Extract the actual class data from the API response
+        const classData = data.success ? data.data : data;
+        setClassDetails(classData);
       } catch (err) {
         console.error("[classId_GET] Error:", err);
       } finally {

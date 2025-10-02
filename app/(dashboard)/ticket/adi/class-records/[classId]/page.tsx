@@ -16,19 +16,60 @@ export default function Page() {
   const [loading, setLoading] = useState(false);
   const router = useRouter();
   const isMounted = useRef(false);
-  const fetchInfo = useCallback(() => {
+  const fetchInfo = useCallback(async () => {
     setLoading(true);
-    fetch(`/api/ticket/classes/students/${classId}`)
-      .then((res) => res.json())
-      .then((data) => {
-        // Agregar el tipo de curso 'adi' a cada estudiante para esta ruta
-        const studentsWithType = data.map((student: Student) => ({
-          ...student,
-          type: "adi",
-        }));
-        setStudents(studentsWithType);
-        setLoading(false);
+    try {
+      // First, get the ticket class to find the real classId
+      const ticketClassResponse = await fetch(`/api/ticket/classes/${classId}`);
+      if (!ticketClassResponse.ok) {
+        throw new Error('Failed to fetch ticket class');
+      }
+      
+      const ticketClassData = await ticketClassResponse.json();
+      const realClassId = ticketClassData.data.classId;
+      
+      if (!realClassId) {
+        throw new Error('No classId found in ticket class');
+      }
+
+      // Then, get the driving class information
+      const drivingClassResponse = await fetch(`/api/classes/${realClassId}`);
+      if (!drivingClassResponse.ok) {
+        throw new Error('Failed to fetch driving class');
+      }
+      
+      const drivingClassData = await drivingClassResponse.json();
+      
+      // Debug log
+      console.log('ADI Class data obtained:', {
+        title: drivingClassData.data.title,
+        classType: drivingClassData.data.classType,
+        realClassId
       });
+      
+      // Finally, get the students
+      const studentsResponse = await fetch(`/api/ticket/classes/students/${classId}`);
+      if (!studentsResponse.ok) {
+        throw new Error('Failed to fetch students');
+      }
+      
+      const studentsData = await studentsResponse.json();
+      
+      // Add class information to each student
+      const studentsWithClassInfo = studentsData.map((student: Student) => ({
+        ...student,
+        type: "adi",
+        classTitle: drivingClassData.data.title,
+        classType: drivingClassData.data.classType
+      }));
+      
+      setStudents(studentsWithClassInfo);
+    } catch (error) {
+      console.error('Error fetching ADI data:', error);
+      toast.error('Error loading class information');
+    } finally {
+      setLoading(false);
+    }
   }, [classId]);
   useEffect(() => {
     if (!isMounted.current) {
