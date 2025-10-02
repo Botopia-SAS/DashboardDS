@@ -5,6 +5,23 @@ import { generateEventId } from "@/lib/utils";
 
 export const dynamic = "force-dynamic";
 
+interface AvailableSlot {
+  _id: string;
+  date: string;
+  start: string;
+  end: string;
+  status: string;
+  classType: string;
+  amount?: number | null;
+  studentId?: string | null;
+  studentName?: string | null;
+  paid: boolean;
+  pickupLocation?: string;
+  dropoffLocation?: string;
+  instructorId?: string;
+  booked?: boolean;
+}
+
 export async function PUT(req: NextRequest) {
   try {
     await connectToDB();
@@ -195,7 +212,7 @@ export async function PUT(req: NextRequest) {
       
       // Crear un nuevo evento "available" con las mismas características
       const availableSlotId = generateEventId(originalEvent.classType, instructorId, originalEvent.date, originalEvent.start);
-      const availableSlot: any = {
+      const availableSlot: AvailableSlot = {
         _id: availableSlotId,
         date: originalEvent.date,
         start: originalEvent.start,
