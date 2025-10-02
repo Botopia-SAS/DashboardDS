@@ -12,6 +12,7 @@ import toast from "react-hot-toast";
 export default function Page() {
   const params = useParams();
   const classId = params.classId as string;
+  const classType = params.classType as string;
   const [students, setStudents] = useState<Student[]>([]);
   const [loading, setLoading] = useState(false);
   const router = useRouter();
@@ -41,10 +42,14 @@ export default function Page() {
       
       const drivingClassData = await drivingClassResponse.json();
       
+      // Decode class type for display
+      const decodedClassType = decodeURIComponent(classType);
+      
       // Debug log
-      console.log('Class data obtained:', {
+      console.log('Dynamic Class data obtained:', {
         title: drivingClassData.data.title,
         classType: drivingClassData.data.classType,
+        decodedClassType,
         realClassId
       });
       
@@ -56,32 +61,39 @@ export default function Page() {
       
       const studentsData = await studentsResponse.json();
       
+      // Determine certificate type - use default (date) for non-ADI/BDI types
+      const certificateType = (decodedClassType.toLowerCase() === 'adi' || decodedClassType.toLowerCase() === 'bdi') 
+        ? decodedClassType.toLowerCase() 
+        : 'date';
+      
       // Add class information to each student
       const studentsWithClassInfo = studentsData.map((student: Student) => ({
         ...student,
-        type: "date",
+        type: certificateType, // Use determined certificate type
         classTitle: drivingClassData.data.title,
         classType: drivingClassData.data.classType
       }));
       
       setStudents(studentsWithClassInfo);
     } catch (error) {
-      console.error('Error fetching data:', error);
+      console.error('Error fetching dynamic class data:', error);
       toast.error('Error loading class information');
     } finally {
       setLoading(false);
     }
-  }, [classId]);
+  }, [classId, classType]);
+
   useEffect(() => {
     if (!isMounted.current) {
       fetchInfo();
       isMounted.current = true;
     }
-  }, [classId, fetchInfo]);
+  }, [classId, classType, fetchInfo]);
 
   if (loading) {
     return <Loader />;
   }
+  
   const navigate = () => {
     router.back();
   };
@@ -104,11 +116,14 @@ export default function Page() {
       fetchInfo();
     }
   };
+  
+  const decodedClassType = decodeURIComponent(classType);
+  
   return (
     <>
       <div className="p-6">
         <div className="flex justify-between items-center bg-gray-800 text-white px-5 py-3 rounded-lg shadow-md">
-          <h1 className="text-xl font-semibold">Tickets</h1>
+          <h1 className="text-xl font-semibold">{decodedClassType.toUpperCase()} Tickets</h1>
           <div className="flex items-center space-x-2">
             <Button onClick={navigate} className="hover:scale-110">
               <ArrowLeftIcon size={16} />

@@ -65,58 +65,87 @@ export function DataTable({ columns, data, onUpdate }: DataTableProps) {
 
   // Functions for export and certificates
   const downloadAllCertificates = useCallback(async () => {
-    const zip = new JSZip();
     const selectedRows = table
       .getSelectedRowModel()
       .flatRows.map((row) => row.original as Student);
 
-    // Filtering students that paid and have a certificate number
-    const validStudents = selectedRows.filter(
-      (student) => student.payedAmount > 0 && student.certn
-    );
-
-    if (validStudents.length === 0) {
-      toast.error("No valid students to download certificates.");
+    if (selectedRows.length === 0) {
+      toast.error("Por favor seleccione al menos un estudiante para descargar certificados.");
       return;
     }
 
+    // Filtering students that paid and have a certificate number
+    const validStudents = selectedRows.filter(
+      (student) => student.payedAmount > 0 && student.certn && student.certn > 0
+    );
+
+    const invalidStudents = selectedRows.filter(
+      (student) => student.payedAmount === 0 || !student.certn || student.certn === 0
+    );
+
+    if (validStudents.length === 0) {
+      toast.error("No hay estudiantes válidos para descargar certificados. Verifique que hayan pagado y tengan número de certificado.");
+      return;
+    }
+
+    if (invalidStudents.length > 0) {
+      toast.warning(`${invalidStudents.length} estudiante(s) fueron omitidos por no cumplir los requisitos (pago o número de certificado).`);
+    }
+
+    const loadingToast = toast.loading(`Generando ${validStudents.length} certificado(s)...`);
+
     try {
+      const zip = new JSZip();
+      
       for (const user of validStudents) {
         const pdfBlob = await generateCertificatePDF(user);
-        const name = `${user.first_name} ${user.last_name}`;
-        zip.file(`${name.replace(/ /g, "_")}.pdf`, pdfBlob);
+        const name = `${user.first_name} ${user.last_name}`.replace(/[^a-zA-Z0-9\s]/g, '').trim();
+        const fileName = `${name.replace(/\s+/g, "_")}_Certificado_${user.certn}.pdf`;
+        zip.file(fileName, pdfBlob);
       }
 
       setRowSelection({});
       const zipBlob = await zip.generateAsync({ type: "blob" });
-      saveAs(zipBlob, "certificates.zip");
-      toast.success("Certificates downloaded successfully");
+      const zipFileName = `Certificados_${new Date().toISOString().split('T')[0]}.zip`;
+      saveAs(zipBlob, zipFileName);
+      
+      toast.dismiss(loadingToast);
+      toast.success(`${validStudents.length} certificado(s) descargado(s) exitosamente`);
     } catch (error) {
       console.error("Error generating ZIP:", error);
-      toast.error("Error generating certificates");
+      toast.dismiss(loadingToast);
+      toast.error("Error al generar los certificados. Intente nuevamente.");
     }
   }, [generateCertificatePDF, table, setRowSelection]);
 
   const downloadSingleCertificate = useCallback(
     async (user: Student) => {
+      // Validaciones mejoradas
       if (user.payedAmount === 0) {
-        toast.error("Student has not paid");
+        toast.error(`El estudiante ${user.first_name} ${user.last_name} no ha realizado el pago. No se puede generar el certificado.`);
         return;
       }
 
-      if (!user.certn) {
-        toast.error("Student does not have a certificate number");
+      if (!user.certn || user.certn === 0) {
+        toast.error(`El estudiante ${user.first_name} ${user.last_name} no tiene número de certificado asignado. Contacte al administrador.`);
         return;
       }
+
+      // Mostrar mensaje de carga
+      const loadingToast = toast.loading("Generando certificado...");
 
       try {
         const pdfBlob = await generateCertificatePDF(user);
-        const name = `${user.first_name} ${user.last_name}`;
-        saveAs(pdfBlob, `${name.replace(/ /g, "_")}.pdf`);
-        toast.success("Certificate downloaded successfully");
+        const name = `${user.first_name} ${user.last_name}`.replace(/[^a-zA-Z0-9\s]/g, '').trim();
+        const fileName = `${name.replace(/\s+/g, "_")}_Certificado_${user.certn}.pdf`;
+        
+        saveAs(pdfBlob, fileName);
+        toast.dismiss(loadingToast);
+        toast.success(`Certificado descargado exitosamente para ${user.first_name} ${user.last_name}`);
       } catch (error) {
         console.error("Error generating certificate:", error);
-        toast.error("Error generating certificate");
+        toast.dismiss(loadingToast);
+        toast.error(`Error al generar el certificado para ${user.first_name} ${user.last_name}. Intente nuevamente.`);
       }
     },
     [generateCertificatePDF]
@@ -127,14 +156,16 @@ export function DataTable({ columns, data, onUpdate }: DataTableProps) {
       .map(({ ...rest }) => rest);
 
     if (studentsWithCertnZero.length === 0) {
-      toast.error("No students with certn equal to 0.");
+      toast.error("No hay estudiantes con número de certificado igual a 0 para exportar.");
       return;
     }
+
+    const loadingToast = toast.loading("Generando archivo Excel...");
 
     try {
       const worksheet = XLSX.utils.json_to_sheet(studentsWithCertnZero);
       const workbook = XLSX.utils.book_new();
-      XLSX.utils.book_append_sheet(workbook, worksheet, "Students");
+      XLSX.utils.book_append_sheet(workbook, worksheet, "Estudiantes_Sin_Certificado");
 
       const xlsxData = XLSX.write(workbook, {
         bookType: "xlsx",
@@ -144,11 +175,15 @@ export function DataTable({ columns, data, onUpdate }: DataTableProps) {
         type: "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
       });
 
-      saveAs(blob, "info_to_fetch_cert_numbers.xlsx");
-      toast.success("XLSX downloaded successfully");
+      const fileName = `Estudiantes_Sin_Certificado_${new Date().toISOString().split('T')[0]}.xlsx`;
+      saveAs(blob, fileName);
+      
+      toast.dismiss(loadingToast);
+      toast.success(`Archivo Excel descargado exitosamente con ${studentsWithCertnZero.length} estudiante(s)`);
     } catch (error) {
       console.error("Error generating XLSX:", error);
-      toast.error("Error generating XLSX");
+      toast.dismiss(loadingToast);
+      toast.error("Error al generar el archivo Excel. Intente nuevamente.");
     }
   }, [data]);
 

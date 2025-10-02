@@ -24,6 +24,9 @@ export interface Student {
   courseAddress?: string;
   courseTime?: string;
   address?: string;
+  // New fields for class information
+  classTitle?: string; // Title of the class from drivingclasses
+  classType?: string; // Type of class from drivingclasses (DATE, BDI, ADI)
 }
 
 export const columns: ColumnDef<Student>[] = [

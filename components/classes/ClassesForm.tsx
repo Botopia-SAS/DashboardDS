@@ -267,7 +267,7 @@ const CustomForm: React.FC<FormProps> = ({ initialData }) => {
       console.log("[SAVE_DEBUG] Final payload:", payload);
 
       const res = await fetch(`/api/classes/${initialData._id}`, {
-        method: "PATCH",
+        method: "PUT",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify(payload),
       });
@@ -311,7 +311,7 @@ const CustomForm: React.FC<FormProps> = ({ initialData }) => {
       console.log("[DEBUG] initialData:", initialData);
 
       const url = initialData ? `/api/classes/${initialData._id}` : "/api/classes";
-      const method = initialData ? "PATCH" : "POST";
+      const method = initialData ? "PUT" : "POST";
 
       const payload = {
         ...values,

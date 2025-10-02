@@ -40,6 +40,7 @@ export default function Page() {
   const router = useRouter();
   const params = useParams();
   const classType = params.classType as string;
+  const decodedClassType = decodeURIComponent(classType);
 
   useEffect(() => {
     setLoading(true);
@@ -49,9 +50,13 @@ export default function Page() {
     fetch(`/api/ticket/calendar`)
       .then((res) => res.json())
       .then((data) => {
-        // Filter classes by the current class type (case-insensitive)
-        const normalizedClassType = classType.toLowerCase();
-        const filteredClasses = data.filter((c: Class) => c.type.toLowerCase() === normalizedClassType);
+        // Decode URL parameter and normalize for comparison
+        const decodedClassType = decodeURIComponent(classType).toLowerCase();
+        console.log('Filtering classes for type:', decodedClassType);
+        console.log('Available class types:', data.map((c: Class) => c.type));
+        
+        const filteredClasses = data.filter((c: Class) => c.type.toLowerCase() === decodedClassType);
+        console.log('Filtered classes:', filteredClasses.length);
         setClasses(filteredClasses);
         setLoading(false);
       })
@@ -103,7 +108,7 @@ export default function Page() {
     if (typeof c.classId === 'object' && c.classId.title) {
       return c.classId.title;
     }
-    return `${classType.toUpperCase()} Class`;
+    return `${decodedClassType.toUpperCase()} Class`;
   };
 
   // Helper function to get location name
@@ -119,7 +124,7 @@ export default function Page() {
       <div className="p-6">
         <div className="flex justify-between items-center bg-gray-800 text-white px-5 py-3 rounded-lg shadow-md">
           <h1 className="text-xl font-semibold">
-            {classType.toUpperCase()} Classes - Day of Class
+            {decodedClassType.toUpperCase()} Classes - Day of Class
           </h1>
           <Button onClick={navigate} className="hover:scale-110">
             <ArrowLeftIcon size={16} />
@@ -130,15 +135,15 @@ export default function Page() {
         <Select onValueChange={handleClassSelect}>
           <SelectTrigger>
             <SelectValue
-              placeholder={`Select a ${classType.toUpperCase()} class`}
+              placeholder={`Select a ${decodedClassType.toUpperCase()} class`}
             >
-              {selectedClassText || `Select a ${classType.toUpperCase()} class`}
+              {selectedClassText || `Select a ${decodedClassType.toUpperCase()} class`}
             </SelectValue>
           </SelectTrigger>
           <SelectContent className="bg-white">
             {classes.length === 0 ? (
               <SelectItem value="no-classes" disabled>
-                No {classType.toUpperCase()} classes available
+                No {decodedClassType.toUpperCase()} classes available
               </SelectItem>
             ) : (
               classes.map((c) => {
