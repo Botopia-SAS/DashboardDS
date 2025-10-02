@@ -358,7 +358,7 @@ const ScheduleModal: React.FC<ScheduleModalProps> = ({
         setFormData({
           classType: defaultClassType,
           start: selectedTime || "",
-          end: getDefaultEndTime(selectedTime || "", 0.5),
+          end: getDefaultEndTime(selectedTime || "", 2),
           status: "available",
           amount: "",
           pickupLocation: "",
@@ -468,6 +468,14 @@ const ScheduleModal: React.FC<ScheduleModalProps> = ({
         }));
       }
     }
+
+    // Automatically set paid to true when status changes to booked or pending
+    if (field === "status" && (value === "booked" || value === "pending")) {
+      setFormData(prev => ({
+        ...prev,
+        paid: true
+      }));
+    }
   };
 
   const validateForm = () => {
@@ -513,12 +521,18 @@ const ScheduleModal: React.FC<ScheduleModalProps> = ({
     }
     
     // Validate product selection for students with booked/pending status (only for driving lesson)
+    // Skip this validation since product selection is currently disabled in the UI for driving lessons
+    // The product field is intentionally hidden with {false &&} condition
+    // If you need to re-enable product validation, remove this comment and enable the condition below
+    /*
     if (formData.classType === "driving lesson" &&
         formData.studentId && 
         (formData.status === "booked" || formData.status === "pending") && 
-        !formData.selectedProduct) {
+        !formData.selectedProduct &&
+        !isEditMode) {
       newErrors.push("Product selection is required when a student is assigned");
     }
+    */
     
     setErrors(newErrors);
     return newErrors.length === 0;
@@ -789,45 +803,50 @@ const ScheduleModal: React.FC<ScheduleModalProps> = ({
   if (!isOpen) return null;
 
   return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center overflow-y-auto py-2">
-      <div className="schedule-modal-container bg-white rounded-lg shadow-lg border p-3 w-full max-w-2xl mx-2 max-h-[95vh] overflow-y-auto">
-        <div className="flex justify-between items-center mb-3">
-          <h2 className="text-base font-semibold">
-            {isEditMode ? "Edit Schedule" : "Configure Schedule"}
-          </h2>
-          <button
-            onClick={onClose}
-            className="text-gray-400 hover:text-gray-600 text-xl font-bold"
-          >
-            ×
-          </button>
+    <div className="fixed inset-0 z-50 flex items-center justify-center p-2 bg-black bg-opacity-50">
+      <div className="schedule-modal-container bg-white rounded-lg shadow-lg border w-full max-w-xl max-h-[90vh] flex flex-col overflow-hidden">
+        {/* Header fijo */}
+        <div className="flex-shrink-0 p-2 border-b border-gray-200">
+          <div className="flex justify-between items-center mb-1">
+            <h2 className="text-sm font-semibold">
+              {isEditMode ? "Edit Schedule" : "Configure Schedule"}
+            </h2>
+            <button
+              onClick={onClose}
+              className="text-gray-400 hover:text-gray-600 text-xl font-bold"
+            >
+              ×
+            </button>
+          </div>
+          
+          {selectedDate && selectedTime && (
+            <div className="text-xs text-gray-600">
+              {selectedDate} at {selectedTime}
+            </div>
+          )}
         </div>
         
-        {selectedDate && selectedTime && (
-          <div className="text-sm text-gray-600 mb-2">
-            Date: {selectedDate} Time: {selectedTime}
-          </div>
-        )}
-        
-        {errors.length > 0 && (
-          <div className="mb-3 p-2 bg-red-50 border border-red-200 rounded">
-            <ul className="text-sm text-red-700 space-y-1">
-              {errors.map((error, index) => (
-                <li key={index}>• {error}</li>
-              ))}
-            </ul>
-          </div>
-        )}
-
-        {selectedInstructor && (
-          <div className="mb-3 p-2 bg-gray-50 rounded">
-            <div className="text-sm">
-              {selectedInstructor.name} {selectedInstructor.email}
+        {/* Contenido scrollable */}
+        <div className="flex-1 overflow-y-auto p-2 min-h-0">
+          {errors.length > 0 && (
+            <div className="mb-2 p-1.5 bg-red-50 border border-red-200 rounded">
+              <ul className="text-xs text-red-700 space-y-0.5">
+                {errors.map((error, index) => (
+                  <li key={index}>• {error}</li>
+                ))}
+              </ul>
             </div>
-          </div>
-        )}
-        
-        <form onSubmit={handleSubmit} className="space-y-3">
+          )}
+
+          {selectedInstructor && (
+            <div className="mb-2 p-1.5 bg-gray-50 rounded">
+              <div className="text-xs">
+                {selectedInstructor.name} - {selectedInstructor.email}
+              </div>
+            </div>
+          )}
+          
+          <form onSubmit={handleSubmit} className="space-y-2">
           <div>
             <Label className="text-sm font-medium">Class type <span className="text-red-500">*</span></Label>
             <Select
@@ -847,21 +866,21 @@ const ScheduleModal: React.FC<ScheduleModalProps> = ({
 
           <div>
             <Label className="text-sm font-medium">Duration</Label>
-            <div className="flex flex-wrap gap-2 mt-2">
+            <div className="flex flex-wrap gap-1 mt-1">
               {[
-                { value: "0.5", label: "30 Min" },
-                { value: "1", label: "1 Hour" },
-                { value: "2", label: "2 Hours" },
-                { value: "3", label: "3 Hours" },
-                { value: "4", label: "4 Hours" },
-                { value: "5", label: "5 Hours" },
+                { value: "0.5", label: "30m" },
+                { value: "1", label: "1h" },
+                { value: "2", label: "2h" },
+                { value: "3", label: "3h" },
+                { value: "4", label: "4h" },
+                { value: "5", label: "5h" },
                 { value: "custom", label: "Custom" }
               ].map((duration) => (
                 <button
                   key={duration.value}
                   type="button"
                   onClick={() => handleDurationChange(duration.value)}
-                  className={`px-3 py-2 text-sm border rounded ${
+                  className={`px-2 py-1 text-xs border rounded ${
                     durationType === duration.value
                       ? "bg-blue-500 text-white border-blue-500"
                       : "bg-white text-gray-700 border-gray-300 hover:bg-gray-50"
@@ -938,7 +957,7 @@ const ScheduleModal: React.FC<ScheduleModalProps> = ({
                 { value: "expired", label: "Expired" },
                 { value: "pending", label: "Pending" }
               ].map((status) => (
-                <div key={status.value} className="flex items-center space-x-2">
+                <div key={status.value} className="flex items-center space-x-1 text-sm">
                   <input
                     type="radio"
                     id={status.value}
@@ -1318,7 +1337,8 @@ const ScheduleModal: React.FC<ScheduleModalProps> = ({
             )}
           </div>
         </form>
-      </div>
+        </div> {/* Cierre del contenido scrollable */}
+      </div> {/* Cierre del modal container */}
       
       {/* Conflict Modal */}
       {showConflictModal && conflictDetails && (

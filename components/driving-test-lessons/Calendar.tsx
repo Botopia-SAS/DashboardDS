@@ -347,26 +347,47 @@ const Calendar: React.FC<CalendarProps> = ({ selectedInstructor, targetDate, tar
     const extendedProps = event.extendedProps;
     
     // Formatear el título con líneas separadas para mejor legibilidad
-    const classType = extendedProps?.classType === 'driving test' ? 'Driving Test' : 'Driving Lesson';
+    const classType = extendedProps?.classType === 'driving test' ? 'Test' : 'Lesson';
     const status = extendedProps?.status || 'available';
     
+    // Calcular duración del evento para optimizar display
+    const startTime = new Date(event.start);
+    const endTime = new Date(event.end);
+    const durationMinutes = (endTime.getTime() - startTime.getTime()) / (1000 * 60);
+    const isShortEvent = durationMinutes <= 30;
+    
     return (
-      <div className="w-full h-full flex flex-col justify-start" data-event-id={event.id} data-status={status}>
-        <div className="font-medium text-xs leading-tight">
-          {classType}
-        </div>
-        <div className="text-xs opacity-90 capitalize">
-          {status}
-        </div>
-        {(status === 'booked' || status === 'pending') && extendedProps?.studentName && (
-          <div className="text-xs mt-1 leading-tight">
-            👤 {extendedProps.studentName}
-          </div>
-        )}
-        {extendedProps?.classType === 'driving test' && extendedProps?.amount && (
-          <div className="font-semibold text-xs mt-1">
-            💰 ${extendedProps.amount}
-          </div>
+      <div className="w-full h-full flex flex-col justify-center" data-event-id={event.id} data-status={status}>
+        {isShortEvent ? (
+          // Layout optimizado para eventos de 30 minutos - solo tipo y status
+          <>
+            <div className="font-bold leading-tight text-center">
+              {classType}
+            </div>
+            <div className="font-medium capitalize text-center">
+              {status}
+            </div>
+          </>
+        ) : (
+          // Layout normal para eventos más largos
+          <>
+            <div className="font-medium leading-tight">
+              {classType}
+            </div>
+            <div className="opacity-90 capitalize">
+              {status}
+            </div>
+            {(status === 'booked' || status === 'pending') && extendedProps?.studentName && (
+              <div className="mt-1 leading-tight">
+                {extendedProps.studentName}
+              </div>
+            )}
+            {extendedProps?.classType === 'driving test' && extendedProps?.amount && (
+              <div className="font-semibold mt-1">
+                ${extendedProps.amount}
+              </div>
+            )}
+          </>
         )}
       </div>
     );
@@ -401,9 +422,9 @@ const Calendar: React.FC<CalendarProps> = ({ selectedInstructor, targetDate, tar
       <style jsx global>{`
         /* Estilos principales para eventos */
         .fc .fc-timegrid-event .fc-event-main {
-          padding: 6px 8px !important;
-          font-size: 11px !important;
-          line-height: 1.3 !important;
+          padding: 4px 6px !important;
+          font-size: 9px !important;
+          line-height: 1.2 !important;
           white-space: normal !important;
           overflow: visible !important;
           word-wrap: break-word !important;
@@ -411,15 +432,51 @@ const Calendar: React.FC<CalendarProps> = ({ selectedInstructor, targetDate, tar
         }
         
         .fc .fc-timegrid-event {
-          min-height: 45px !important;
+          min-height: 25px !important;
           max-height: none !important;
           border-radius: 4px !important;
           overflow: visible !important;
         }
         
         .fc .fc-timegrid-event-harness {
-          min-height: 45px !important;
+          min-height: 25px !important;
           overflow: visible !important;
+        }
+        
+        /* Eventos de 30 minutos - altura específica */
+        .fc .fc-timegrid-event[data-duration="30"] {
+          min-height: 30px !important;
+          max-height: 35px !important;
+        }
+        
+        .fc .fc-timegrid-event-harness[data-duration="30"] {
+          min-height: 30px !important;
+          max-height: 35px !important;
+        }
+        
+        /* Eventos de 1+ horas - altura normal */
+        .fc .fc-timegrid-event[data-duration="60"], 
+        .fc .fc-timegrid-event[data-duration="120"] {
+          min-height: 45px !important;
+        }
+        
+        .fc .fc-timegrid-event-harness[data-duration="60"],
+        .fc .fc-timegrid-event-harness[data-duration="120"] {
+          min-height: 45px !important;
+        }
+        
+        /* Reducir tamaño de letra para todos los eventos */
+        .fc .fc-timegrid-event .fc-event-main {
+          padding: 4px 6px !important;
+          font-size: 9px !important;
+          line-height: 1.2 !important;
+        }
+        
+        /* Texto aún más pequeño para eventos de 30 minutos */
+        .fc .fc-timegrid-event[data-duration="30"] .fc-event-main {
+          padding: 2px 4px !important;
+          font-size: 8px !important;
+          line-height: 1.1 !important;
         }
         
         .fc .fc-event {
@@ -559,6 +616,23 @@ const Calendar: React.FC<CalendarProps> = ({ selectedInstructor, targetDate, tar
             select={handleDateSelect}
             eventClick={handleEventClick}
             eventContent={renderEventContent}
+            eventDidMount={(info) => {
+              // Calcular duración y agregar atributo data-duration para CSS
+              if (info.event.start && info.event.end) {
+                const startTime = new Date(info.event.start);
+                const endTime = new Date(info.event.end);
+                const durationMinutes = (endTime.getTime() - startTime.getTime()) / (1000 * 60);
+                
+                // Agregar atributo data-duration al elemento del evento
+                info.el.setAttribute('data-duration', durationMinutes.toString());
+                
+                // También agregar al harness para que el CSS funcione correctamente
+                const harness = info.el.closest('.fc-timegrid-event-harness');
+                if (harness) {
+                  harness.setAttribute('data-duration', durationMinutes.toString());
+                }
+              }
+            }}
             height="auto"
             slotMinTime="06:00:00"
             slotMaxTime="20:00:00"
