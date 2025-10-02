@@ -12,7 +12,7 @@ interface CertificateFormProps {
   onInputChange: (field: keyof GovCertificateData, value: string) => void;
 }
 
-export function CertificateForm({ formData, selectedUser, onInputChange }: CertificateFormProps) {
+export function CertificateForm({ formData, onInputChange }: CertificateFormProps) {
   return (
     <div className="space-y-4">
       {/* Certificate Number */}
@@ -170,12 +170,12 @@ export function CertificateForm({ formData, selectedUser, onInputChange }: Certi
         <SignatureInput
           value={formData.instructorSignatureImage || ""}
           onChange={(value) => onInputChange("instructorSignatureImage", value)}
-          label="Instructor's Signature"
+          label="Instructor&apos;s Signature"
         />
       </div>
 
       <div className="grid grid-cols-4 items-center gap-4">
-        <Label htmlFor="instructorSchoolName" className="text-right">Instructor's School Name</Label>
+        <Label htmlFor="instructorSchoolName" className="text-right">Instructor&apos;s School Name</Label>
         <Input
           id="instructorSchoolName"
           value={formData.instructorSchoolName}
