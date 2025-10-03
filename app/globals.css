@@ -62,21 +62,44 @@ body,
 .highlight-notification-event {
   animation: highlightPulse 2s ease-in-out 3 !important;
   box-shadow: 0 0 20px rgba(59, 130, 246, 0.8) !important;
-  border: 2px solid #3B82F6 !important;
+  border: 3px solid #3B82F6 !important;
   z-index: 1000 !important;
   position: relative !important;
+  /* NO cambiar tamaño */
+  transform: none !important;
+  width: auto !important;
+  height: auto !important;
+  min-width: unset !important;
+  min-height: unset !important;
+  max-width: none !important;
+  max-height: none !important;
 }
 
 @keyframes highlightPulse {
   0% {
     box-shadow: 0 0 20px rgba(59, 130, 246, 0.8);
+    border-color: #3B82F6;
   }
   50% {
-    box-shadow: 0 0 30px rgba(59, 130, 246, 1);
+    box-shadow: 0 0 35px rgba(59, 130, 246, 1);
+    border-color: #60A5FA;
   }
   100% {
     box-shadow: 0 0 20px rgba(59, 130, 246, 0.8);
+    border-color: #3B82F6;
   }
+}
+
+/* Hide scrollbar but allow scrolling */
+.scrollbar-hide {
+  -ms-overflow-style: none;
+  scrollbar-width: none;
+  scroll-behavior: smooth;
+  -webkit-overflow-scrolling: touch;
+}
+
+.scrollbar-hide::-webkit-scrollbar {
+  display: none;
 }
 
 /* FullCalendar ticket event fixes */

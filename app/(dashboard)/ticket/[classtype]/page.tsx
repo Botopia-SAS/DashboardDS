@@ -180,56 +180,68 @@ export default function TicketClassTypePage() {
         </div>
       )}
       
-      <div className="p-6">
+      {/* Header con mejor responsive */}
+      <div className="px-3 sm:px-6 py-4">
         <DashboardHeader title="Tickets">
           <Button
             onClick={() => setIsGovCertDialogOpen(true)}
-            className="flex items-center gap-2"
+            className="flex items-center gap-2 text-xs sm:text-sm px-3 sm:px-4"
             variant="outline"
           >
-            <FileText className="h-4 w-4" />
-            Government Certificate
+            <FileText className="h-3 w-3 sm:h-4 sm:w-4" />
+            <span className="hidden sm:inline">Government Certificate</span>
+            <span className="sm:hidden">Gov Cert</span>
           </Button>
         </DashboardHeader>
       </div>
-      <div className="p-6">
+
+      {/* Tabs con scroll horizontal */}
+      <div className="px-3 sm:px-6 pb-6">
         <Tabs className="w-full" value={currentClassType} onValueChange={handleTabChange}>
-          <TabsList className={`grid w-full gap-x-2`} style={{ gridTemplateColumns: `repeat(${classTypes.length}, 1fr)` }}>
-            {classTypes.map((classType) => (
-              <TabsTrigger
-                key={classType._id}
-                value={normalizeClassType(classType.name)}
-                className="px-4 py-2 rounded-lg hover:bg-gray-100 w-full data-[state=active]:bg-gray-300 data-[state=active]:font-medium"
-              >
-                {classType.name.toUpperCase()}
-              </TabsTrigger>
-            ))}
-          </TabsList>
+          {/* Contenedor con scroll horizontal para las tabs */}
+          <div className="relative w-full overflow-x-auto scrollbar-hide -mx-3 sm:mx-0 px-3 sm:px-0">
+            <TabsList className="inline-flex sm:flex sm:w-full gap-1 sm:gap-2 pb-2 sm:pb-0 min-w-min">
+              {classTypes.map((classType) => (
+                <TabsTrigger
+                  key={classType._id}
+                  value={normalizeClassType(classType.name)}
+                  className="
+                    px-3 sm:px-4 py-2
+                    rounded-lg hover:bg-gray-100
+                    whitespace-nowrap
+                    text-xs sm:text-sm
+                    flex-shrink-0
+                    data-[state=active]:bg-gray-300 data-[state=active]:font-medium
+                  "
+                >
+                  {classType.name.toUpperCase()}
+                </TabsTrigger>
+              ))}
+            </TabsList>
+          </div>
           {classTypes.map((classType) => (
-            <TabsContent key={classType._id} value={normalizeClassType(classType.name)} className="w-full">
-              <Separator className="bg-gray-400 my-4" />
-              <Card>
-                <CardContent>
-                  <div className="grid grid-cols-1 gap-4 py-2">
-                    <Navigation
-                      href={`/ticket/day-of-class/${normalizeClassType(classType.name)}`}
-                      title="Day of Class Preparation"
-                      description="Prepare for upcoming classes"
-                    />
-                  </div>
-                  <div className="mt-8">
-                    <TicketCalendar
-                      key={`calendar-${currentClassType}-${calendarRefreshKey}`}
-                      refreshKey={calendarRefreshKey}
-                      classType={currentClassType}
-                      focusClassId={classId}
-                      focusWeek={week ? parseInt(week) : undefined}
-                      focusYear={year ? parseInt(year) : undefined}
-                      highlightEventId={eventId}
-                    />
-                  </div>
-                </CardContent>
-              </Card>
+            <TabsContent key={classType._id} value={normalizeClassType(classType.name)} className="w-full mt-4">
+              <Separator className="bg-gray-400 mb-4" />
+
+              {/* Navigation Card - Responsive */}
+              <div className="mb-4">
+                <Navigation
+                  href={`/ticket/day-of-class/${normalizeClassType(classType.name)}`}
+                  title="Day of Class Preparation"
+                  description="Prepare for upcoming classes"
+                />
+              </div>
+
+              {/* Calendar - Responsive */}
+              <TicketCalendar
+                key={`calendar-${currentClassType}-${calendarRefreshKey}`}
+                refreshKey={calendarRefreshKey}
+                classType={currentClassType}
+                focusClassId={classId}
+                focusWeek={week ? parseInt(week) : undefined}
+                focusYear={year ? parseInt(year) : undefined}
+                highlightEventId={eventId}
+              />
             </TabsContent>
           ))}
         </Tabs>
