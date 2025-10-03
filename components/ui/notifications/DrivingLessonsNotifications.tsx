@@ -145,69 +145,44 @@ export default function DrivingLessonsNotifications({ isOpen }: DrivingLessonsNo
     try {
       setLoading(true);
       console.log('🔄 Fetching driving lessons notifications...');
-      
-      const response = await fetch('/api/instructors');
-      const instructors: Instructor[] = await response.json();
-      
-      console.log('📥 Instructors response:', instructors);
-      
-      if (Array.isArray(instructors)) {
-        
-        // Filtrar instructores que pueden enseñar driving lessons
-        const drivingLessonInstructors = instructors.filter(instructor => 
-          instructor.schedule_driving_lesson && instructor.schedule_driving_lesson.length > 0
-        );
-        
-        console.log('🚗 Instructors with driving lessons:', drivingLessonInstructors.length);
-        console.log('🔍 All instructors data:', instructors.map(i => ({
-          name: i.name,
-          hasSchedule: !!i.schedule_driving_lesson,
-          scheduleLength: i.schedule_driving_lesson?.length || 0,
-          schedule: i.schedule_driving_lesson
-        })));
-        
-        // Crear notificaciones para cada driving lesson pendiente con paymentMethod local
-        const drivingLessonNotifications: DrivingLessonNotification[] = [];
-        
-        drivingLessonInstructors.forEach(instructor => {
-          console.log(`🔍 Processing instructor: ${instructor.name}`);
-          instructor.schedule_driving_lesson.forEach(lesson => {
-            console.log(`🔍 Lesson details:`, {
-              status: lesson.status,
-              paymentMethod: lesson.paymentMethod,
-              studentName: lesson.studentName,
-              classType: lesson.classType
-            });
-            
-            if (lesson.status === 'pending' && lesson.paymentMethod === 'local') {
-              console.log(`✅ Found pending local driving lesson for ${lesson.studentName}`);
-              drivingLessonNotifications.push({
-                id: lesson._id,
-                title: 'New Driving Lesson Request',
-                message: `Driving lesson request for ${lesson.studentName}`,
-                timestamp: lesson.reservedAt,
-                status: lesson.status,
-                lessonType: lesson.classType,
-                instructorId: instructor._id,
-                instructorName: instructor.name,
-                studentId: lesson.studentId,
-                studentName: lesson.studentName,
-                date: lesson.date,
-                start: lesson.start,
-                end: lesson.end,
-                amount: lesson.amount,
-                paid: lesson.paid
-              });
-            } else {
-              console.log(`❌ Lesson filtered out: status=${lesson.status}, paymentMethod=${lesson.paymentMethod}`);
-            }
-          });
-        });
-        
+
+      const response = await fetch('/api/instructors/pending');
+      const pendingLessons = await response.json();
+
+      console.log('📥 Pending lessons response:', pendingLessons);
+
+      if (Array.isArray(pendingLessons)) {
+        // Get unique instructor IDs
+        const instructorIds = [...new Set(pendingLessons.map(lesson => lesson.instructorId))];
+
+        // Fetch instructor names
+        const instructorsResponse = await fetch('/api/instructors');
+        const instructors: Instructor[] = await instructorsResponse.json();
+        const instructorMap = new Map(instructors.map(i => [i._id, i.name]));
+
+        // Create notifications from pending lessons
+        const drivingLessonNotifications: DrivingLessonNotification[] = pendingLessons.map(lesson => ({
+          id: lesson.lessonId,
+          title: 'New Driving Lesson Request',
+          message: `Driving lesson request`,
+          timestamp: lesson.requestDate,
+          status: lesson.status,
+          lessonType: lesson.classType,
+          instructorId: lesson.instructorId,
+          instructorName: instructorMap.get(lesson.instructorId) || 'Unknown',
+          studentId: lesson.studentId,
+          studentName: '',
+          date: lesson.date,
+          start: lesson.hour,
+          end: lesson.endHour,
+          amount: 0,
+          paid: false
+        }));
+
         console.log('✅ Created driving lesson notifications:', drivingLessonNotifications.length);
         setNotifications(drivingLessonNotifications);
       } else {
-        console.log('❌ API response is not an array:', instructors);
+        console.log('❌ API response is not an array:', pendingLessons);
         setNotifications([]);
       }
     } catch (error) {
@@ -218,15 +193,64 @@ export default function DrivingLessonsNotifications({ isOpen }: DrivingLessonsNo
     }
   };
 
+  // SSE connection for real-time updates
+  useEffect(() => {
+    const eventSource = new EventSource('/api/instructors/stream');
+
+    eventSource.onmessage = (event) => {
+      try {
+        const data = JSON.parse(event.data);
+        console.log('🚗 SSE message received:', data);
+
+        if (data.type === 'driving-lessons' && data.lessons) {
+          // Fetch instructor names
+          fetch('/api/instructors')
+            .then(res => res.json())
+            .then((instructors: Instructor[]) => {
+              const instructorMap = new Map(instructors.map(i => [i._id, i.name]));
+
+              const drivingLessonNotifications: DrivingLessonNotification[] = data.lessons.map((lesson: any) => ({
+                id: lesson.lessonId,
+                title: 'New Driving Lesson Request',
+                message: `Driving lesson request`,
+                timestamp: lesson.requestDate,
+                status: lesson.status,
+                lessonType: lesson.classType,
+                instructorId: lesson.instructorId,
+                instructorName: instructorMap.get(lesson.instructorId) || 'Unknown',
+                studentId: lesson.studentId,
+                studentName: '',
+                date: lesson.date,
+                start: lesson.hour,
+                end: lesson.endHour,
+                amount: 0,
+                paid: false
+              }));
+
+              setNotifications(drivingLessonNotifications);
+              console.log('📦 Driving lessons updated from SSE');
+            });
+        }
+      } catch (error) {
+        console.error('❌ Error parsing SSE data:', error);
+      }
+    };
+
+    eventSource.onerror = (error) => {
+      console.error('❌ SSE connection error:', error);
+      setTimeout(() => {
+        console.log('🔄 Attempting reconnection...');
+      }, 5000);
+    };
+
+    return () => {
+      eventSource.close();
+    };
+  }, []);
+
   useEffect(() => {
     if (isOpen) {
       fetchDrivingLessonsNotifications();
-      
-      const timeout = setTimeout(() => {
-        setLoading(false);
-      }, 10000); // 10 segundos timeout
-      
-      return () => clearTimeout(timeout);
     }
   }, [isOpen]);
 
@@ -238,7 +262,7 @@ export default function DrivingLessonsNotifications({ isOpen }: DrivingLessonsNo
     };
 
     window.addEventListener('notificationRefresh', handleGlobalRefresh);
-    
+
     return () => {
       window.removeEventListener('notificationRefresh', handleGlobalRefresh);
     };
@@ -362,26 +386,14 @@ export function useDrivingLessonsNotificationsCount() {
 
   const fetchCount = async () => {
     try {
-      const response = await fetch('/api/instructors');
-      const instructors: Instructor[] = await response.json();
-      
-      if (Array.isArray(instructors)) {
-        
-        // Contar driving lessons pendientes con paymentMethod local
-        let totalCount = 0;
-        instructors.forEach(instructor => {
-          if (instructor.schedule_driving_lesson) {
-            instructor.schedule_driving_lesson.forEach(lesson => {
-              if (lesson.status === 'pending' && lesson.paymentMethod === 'local') {
-                totalCount++;
-              }
-            });
-          }
-        });
-        
-        setCount(totalCount);
+      const response = await fetch('/api/instructors/pending');
+      const pendingLessons = await response.json();
+
+      if (Array.isArray(pendingLessons)) {
+        setCount(pendingLessons.length);
+        console.log(`🎓 Driving lessons count updated: ${pendingLessons.length}`);
       } else {
-        console.log('❌ API response is not an array for count:', instructors);
+        console.log('❌ API response is not an array for count:', pendingLessons);
         setCount(0);
       }
     } catch (error) {
@@ -392,8 +404,10 @@ export function useDrivingLessonsNotificationsCount() {
 
   // Actualizar automáticamente cuando lleguen notificaciones SSE
   useEffect(() => {
+    console.log('🔍 Notifications changed, length:', notifications.length);
     if (notifications.length > 0) {
       const latestNotification = notifications[notifications.length - 1];
+      console.log('🔍 Latest notification:', latestNotification);
       if (latestNotification.type === 'driving-lessons') {
         console.log('🎓 Driving lesson notification received, updating count');
         fetchCount();
@@ -415,6 +429,7 @@ export function useDrivingLessonsNotificationsCount() {
     };
   }, []);
 
+  // Initial load
   useEffect(() => {
     fetchCount();
   }, []);

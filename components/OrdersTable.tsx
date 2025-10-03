@@ -1,6 +1,5 @@
 'use client'
-import React, { useState } from 'react'
-import useSWR from 'swr'
+import React, { useState, useEffect, useRef } from 'react'
 import { Table, TableHeader, TableBody, TableHead, TableRow, TableCell } from './ui/table'
 import { Badge } from './ui/badge'
 import { Button } from './ui/button'
@@ -26,8 +25,6 @@ function filterOrders(orders: Order[], query: string, status: string) {
   })
 }
 
-const fetcher = (url: string) => fetch(url).then(res => res.json())
-
 function getStatusBadge(status: string) {
   const normalizedStatus = status?.toLowerCase()
   switch (normalizedStatus) {
@@ -46,11 +43,49 @@ function getStatusBadge(status: string) {
 }
 
 export default function OrdersTable({ orders: initialOrders }: { orders: Order[] }) {
-  const { data: orders = initialOrders } = useSWR('/api/orders', fetcher, { refreshInterval: 5000, fallbackData: initialOrders })
+  const [orders, setOrders] = useState<Order[]>(initialOrders)
   const [query, setQuery] = useState('')
   const [status, setStatus] = useState('')
   const [expandedOrder, setExpandedOrder] = useState<string | null>(null)
+  const eventSourceRef = useRef<EventSource | null>(null)
   
+  // Set up SSE connection for real-time order updates
+  useEffect(() => {
+    // Create SSE connection
+    const eventSource = new EventSource('/api/orders/stream')
+    eventSourceRef.current = eventSource
+
+    eventSource.onmessage = (event) => {
+      try {
+        const data = JSON.parse(event.data)
+        if (data.orders) {
+          setOrders(data.orders)
+          console.log('📦 Orders updated in real-time')
+        }
+      } catch (error) {
+        console.error('❌ Error parsing SSE data:', error)
+      }
+    }
+
+    eventSource.onerror = (error) => {
+      console.error('❌ SSE connection error:', error)
+      // Attempt to reconnect after 5 seconds
+      setTimeout(() => {
+        if (eventSourceRef.current) {
+          eventSourceRef.current.close()
+          eventSourceRef.current = new EventSource('/api/orders/stream')
+        }
+      }, 5000)
+    }
+
+    // Cleanup on unmount
+    return () => {
+      if (eventSourceRef.current) {
+        eventSourceRef.current.close()
+      }
+    }
+  }, [])
+
   const filtered = filterOrders(orders, query, status)
   const uniqueStatuses = Array.from(new Set(orders.map((o: Order) => o.estado || o.status)))
 

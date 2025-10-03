@@ -319,38 +319,43 @@ export default function TicketNotifications({ isOpen }: TicketNotificationsProps
                   )}
 
                   {/* Class Info */}
-                  <div className="flex items-center justify-between bg-gray-50 rounded p-2">
-                    <div className="flex items-center gap-3">
-                      <div>
-                        <p className="text-gray-900 font-semibold text-sm">{formattedDate}</p>
-                        <p className="text-gray-600 text-xs">{timeRange}</p>
-                      </div>
-                      <div className="flex items-center gap-1.5">
-                        <span className="bg-blue-100 text-blue-800 px-2 py-0.5 rounded text-xs font-medium">
+                  <div className="bg-gray-50 rounded p-3">
+                    {/* First row: Date, Time, Class Type */}
+                    <div className="flex items-center justify-between mb-2">
+                      <div className="flex items-center gap-3">
+                        <div className="min-w-0 flex-shrink-0">
+                          <p className="text-gray-900 font-semibold text-sm">{formattedDate}</p>
+                          <p className="text-gray-600 text-xs whitespace-nowrap">{timeRange}</p>
+                        </div>
+                        <span className="bg-blue-100 text-blue-800 px-2 py-0.5 rounded text-xs font-medium whitespace-nowrap">
                           {notification.classType.toUpperCase()}
                         </span>
-                        <div className="flex items-center gap-1">
-                          <button 
-                            onClick={(e) => {
-                              e.stopPropagation();
-                              handleAccept(notification);
-                            }}
-                            className="bg-green-500 hover:bg-green-600 text-white px-2 py-0.5 rounded text-xs font-medium transition-colors">
-                            Accept
-                          </button>
-                          <button 
-                            onClick={(e) => {
-                              e.stopPropagation();
-                              handleReject(notification);
-                            }}
-                            className="bg-red-500 hover:bg-red-600 text-white px-2 py-0.5 rounded text-xs font-medium transition-colors">
-                            Reject
-                          </button>
-                        </div>
                       </div>
                     </div>
-                    <div className="text-gray-400 text-xs">
-                      Click to view
+                    
+                    {/* Second row: Buttons and Click to view */}
+                    <div className="flex items-center justify-between">
+                      <div className="flex items-center gap-2">
+                        <button 
+                          onClick={(e) => {
+                            e.stopPropagation();
+                            handleAccept(notification);
+                          }}
+                          className="bg-green-500 hover:bg-green-600 text-white px-3 py-1 rounded text-xs font-medium transition-colors">
+                          Accept
+                        </button>
+                        <button 
+                          onClick={(e) => {
+                            e.stopPropagation();
+                            handleReject(notification);
+                          }}
+                          className="bg-red-500 hover:bg-red-600 text-white px-3 py-1 rounded text-xs font-medium transition-colors">
+                          Reject
+                        </button>
+                      </div>
+                      <div className="text-gray-400 text-xs ml-3">
+                        Click to view
+                      </div>
                     </div>
                   </div>
                 </div>
