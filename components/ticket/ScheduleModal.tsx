@@ -13,6 +13,9 @@ interface Instructor {
 interface Student {
   _id: string;
   name: string;
+  email?: string;
+  firstName?: string;
+  lastName?: string;
 }
 
 interface TicketFormData {
@@ -150,9 +153,19 @@ export default function ScheduleModal({
     .filter((i) =>
       (i.name || "").toLowerCase().includes(instructorSearch.toLowerCase())
     );
-  const filteredStudents = students.filter((s) =>
-    (s.name || "").toLowerCase().includes(studentSearch.toLowerCase())
-  );
+
+  const filteredStudents = students.filter((s) => {
+    const search = studentSearch.toLowerCase();
+    const name = (s.name || "").toLowerCase();
+    const email = (s.email || "").toLowerCase();
+    const firstName = (s.firstName || "").toLowerCase();
+    const lastName = (s.lastName || "").toLowerCase();
+
+    return name.includes(search) ||
+           email.includes(search) ||
+           firstName.includes(search) ||
+           lastName.includes(search);
+  });
 
   // Checkbox handlers
   const handleInstructorCheck = (id: string) => {
@@ -407,7 +420,7 @@ export default function ScheduleModal({
             Configure TicketClass
             {form.date && (
               <span className="block text-xs font-normal mt-0.5">
-                {`Date: ${form.date}`}
+                {`Date: ${new Date(form.date + 'T00:00:00').toLocaleDateString('en-GB', { day: '2-digit', month: '2-digit', year: 'numeric' }).replace(/\//g, '-')}`}
                 {form.hour && (
                   <span className="ml-2 text-blue-600">
                     {`Start: ${form.hour}`}
@@ -525,21 +538,21 @@ export default function ScheduleModal({
                 <label className="block text-xs font-medium mb-0.5">Instructors <span className="text-red-500">*</span></label>
                 <input
                   type="text"
-                  placeholder="Search instructor..."
+                  placeholder="Search instructor by name..."
                   value={instructorSearch}
                   onChange={e => setInstructorSearch(e.target.value)}
                   className="w-full border rounded px-1.5 py-1 text-xs mb-1 focus:outline-none focus:ring-1 focus:ring-blue-500"
                 />
-                <div className="max-h-12 overflow-y-auto border rounded px-1.5 py-1 bg-gray-50">
-                  {filteredInstructors.length === 0 && <div className="text-xs text-gray-400">No instructors found</div>}
+                <div className="max-h-32 overflow-y-auto border rounded px-1.5 py-1 bg-gray-50 space-y-0.5">
+                  {filteredInstructors.length === 0 && <div className="text-xs text-gray-400 py-1">No instructors found</div>}
                   {filteredInstructors.map((i) => (
-                    <label key={i._id} className="flex items-center justify-between py-0.5 cursor-pointer text-xs hover:bg-gray-100 rounded px-1">
-                      <span className="truncate">{i.name}</span>
+                    <label key={i._id} className="flex items-center justify-between py-1.5 cursor-pointer text-xs hover:bg-gray-100 rounded px-1.5 transition-colors">
+                      <span className="flex-1 truncate">{i.name}</span>
                       <input
                         type="checkbox"
                         checked={form.instructorId === i._id}
                         onChange={() => handleInstructorCheck(i._id)}
-                        className="ml-1 w-3 h-3"
+                        className="ml-2 w-4 h-4 flex-shrink-0"
                       />
                     </label>
                   ))}
@@ -575,21 +588,26 @@ export default function ScheduleModal({
                   <label className="block text-xs font-medium mb-0.5">Students</label>
                   <input
                     type="text"
-                    placeholder="Search student..."
+                    placeholder="Search by name, email, first/last name..."
                     value={studentSearch}
                     onChange={e => setStudentSearch(e.target.value)}
                     className="w-full border rounded px-1.5 py-1 text-xs mb-1 focus:outline-none focus:ring-1 focus:ring-blue-500"
                   />
-                  <div className="max-h-12 overflow-y-auto border rounded px-1.5 py-1 bg-gray-50">
-                    {filteredStudents.length === 0 && <div className="text-xs text-gray-400">No students found</div>}
+                  <div className="max-h-40 overflow-y-auto border rounded px-1.5 py-1 bg-gray-50 space-y-0.5">
+                    {filteredStudents.length === 0 && <div className="text-xs text-gray-400 py-1">No students found</div>}
                     {filteredStudents.map((s) => (
-                      <label key={s._id} className="flex items-center justify-between py-0.5 cursor-pointer text-xs hover:bg-gray-100 rounded px-1">
-                        <span className="truncate">{s.name}</span>
+                      <label key={s._id} className="flex items-center justify-between py-1.5 cursor-pointer text-xs hover:bg-gray-100 rounded px-1.5 transition-colors">
+                        <div className="flex-1 min-w-0">
+                          <div className="font-medium truncate">{s.name}</div>
+                          {s.email && (
+                            <div className="text-gray-500 text-[10px] truncate">{s.email}</div>
+                          )}
+                        </div>
                         <input
                           type="checkbox"
                           checked={form.students.includes(s._id)}
                           onChange={() => handleStudentCheck(s._id)}
-                          className="ml-1 w-3 h-3"
+                          className="ml-2 w-4 h-4 flex-shrink-0"
                         />
                       </label>
                     ))}

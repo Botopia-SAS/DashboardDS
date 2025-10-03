@@ -49,9 +49,9 @@ import {
       label: "Instructors",
     },
     {
-      url: "/ticket",  // ✅ Agregamos la URL para la sección de Tickets
+      url: "/ticket",  // ✅ Agregamos la URL para la sección de Traffic School
       icon: <Ticket />,
-      label: "Tickets",
+      label: "Traffic School",
     },
     {
       url: "/driving-test-lessons",
