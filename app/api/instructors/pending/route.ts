@@ -16,7 +16,8 @@ export async function GET() {
     for (const instructor of instructors) {
       if (instructor.schedule_driving_lesson) {
         for (const event of instructor.schedule_driving_lesson) {
-          if (event.status === 'pending' && event.studentId) {
+          // Filtrar solo lecciones con status 'pending' y paymentMethod 'local'
+          if (event.status === 'pending' && event.studentId && event.paymentMethod === 'local') {
             pendingRequests.push({
               requestId: event._id?.toString() || `${instructor._id}-${event.date}-${event.start}`,
               lessonId: event._id?.toString() || `${instructor._id}-${event.date}-${event.start}`,
@@ -27,12 +28,15 @@ export async function GET() {
               classType: event.classType || 'driving lesson',
               requestDate: event.createdAt || new Date().toISOString(),
               status: event.status,
-              instructorId: instructor._id
+              instructorId: instructor._id,
+              paymentMethod: event.paymentMethod
             });
           }
         }
       }
     }
+
+    console.log(`📊 Found ${pendingRequests.length} pending local driving lesson requests`);
 
     return NextResponse.json(pendingRequests);
   } catch (error) {

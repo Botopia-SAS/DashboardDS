@@ -17,25 +17,62 @@ type TabType = 'tickets' | 'driving-test' | 'driving-lessons';
 export default function GlobalNotifications({ className, iconColor = "text-gray-600" }: GlobalNotificationsProps) {
   const [isOpen, setIsOpen] = useState(false);
   const [activeTab, setActiveTab] = useState<TabType>('tickets');
-  const [refreshTrigger, setRefreshTrigger] = useState(0);
-
-  const ticketCount = useTicketNotificationsCount();
-  const drivingTestCount = useDrivingTestNotificationsCount();
-  const drivingLessonsCount = useDrivingLessonsNotificationsCount();
-
-  const totalNotifications = ticketCount + drivingTestCount + drivingLessonsCount;
+  const [ticketCount, setTicketCount] = useState(0);
+  const [drivingTestCount, setDrivingTestCount] = useState(0);
+  const [drivingLessonsCount, setDrivingLessonsCount] = useState(0);
 
   // Usar el contexto global de notificaciones
   const { isConnected, connectionError, notifications } = useNotificationContext();
+
+  const totalNotifications = ticketCount + drivingTestCount + drivingLessonsCount;
+
+  // Function to fetch all counts
+  const fetchAllCounts = async () => {
+    try {
+      console.log('🔄 Fetching all notification counts...');
+
+      // Fetch tickets count
+      const ticketsRes = await fetch('/api/ticket/pending');
+      const tickets = await ticketsRes.json();
+      const ticketsCount = Array.isArray(tickets) ? tickets.length : 0;
+      setTicketCount(ticketsCount);
+      console.log(`🎫 Tickets count: ${ticketsCount}`);
+
+      // Fetch driving test count
+      const drivingTestRes = await fetch('/api/driving-test-lessons/pending');
+      const drivingTests = await drivingTestRes.json();
+      const drivingTestsCount = Array.isArray(drivingTests) ? drivingTests.length : 0;
+      setDrivingTestCount(drivingTestsCount);
+      console.log(`🚗 Driving test count: ${drivingTestsCount}`);
+
+      // Fetch driving lessons count
+      const lessonsRes = await fetch('/api/instructors/pending');
+      const lessons = await lessonsRes.json();
+      const lessonsCount = Array.isArray(lessons) ? lessons.length : 0;
+      setDrivingLessonsCount(lessonsCount);
+      console.log(`🎓 Driving lessons count: ${lessonsCount}`);
+
+      // Trigger event for other components to refresh
+      window.dispatchEvent(new CustomEvent('notificationRefresh'));
+    } catch (error) {
+      console.error('❌ Error fetching counts:', error);
+    }
+  };
+
+  // Initial load
+  useEffect(() => {
+    fetchAllCounts();
+  }, []);
 
   // Actualizar cuando lleguen nuevas notificaciones por SSE
   useEffect(() => {
     if (notifications.length > 0) {
       const latestNotification = notifications[notifications.length - 1];
       console.log('🔔 Nueva notificación recibida en GlobalNotifications:', latestNotification);
+      console.log('🔔 Tipo:', latestNotification.type);
 
-      // Forzar actualización de contadores
-      setRefreshTrigger(prev => prev + 1);
+      // Immediately fetch new counts
+      fetchAllCounts();
     }
   }, [notifications]);
 
@@ -81,7 +118,7 @@ export default function GlobalNotifications({ className, iconColor = "text-gray-
           />
           
           {/* Modal */}
-          <div className="fixed top-16 left-4 right-4 sm:absolute sm:right-0 sm:left-auto sm:top-auto mt-2 w-auto sm:w-80 md:w-96 lg:w-[520px] bg-white rounded-xl shadow-2xl border border-gray-200 z-50 max-h-[85vh] sm:max-h-[85vh] overflow-hidden">
+          <div className="fixed top-16 left-4 right-4 sm:absolute sm:right-0 sm:left-auto sm:top-auto mt-2 w-auto sm:w-96 md:w-[420px] lg:w-[580px] bg-white rounded-xl shadow-2xl border border-gray-200 z-50 max-h-[85vh] sm:max-h-[85vh] overflow-hidden">
             {/* Header */}
             <div className="flex items-center justify-between p-3 sm:p-4 border-b border-gray-200 bg-gradient-to-r from-blue-50 to-indigo-50">
               <div className="flex items-center gap-2 sm:gap-3">
