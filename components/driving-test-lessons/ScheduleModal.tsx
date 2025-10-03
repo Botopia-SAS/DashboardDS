@@ -790,10 +790,19 @@ const ScheduleModal: React.FC<ScheduleModalProps> = ({
 
 
 
-  // Filter users based on search term
-  const filteredUsers = users.filter(user => 
-    `${user.firstName} ${user.lastName} ${user.email}`.toLowerCase().includes(searchTerm.toLowerCase())
-  );
+  // Filter users based on search term - search by name, email, first name, or last name
+  const filteredUsers = users.filter(user => {
+    const search = searchTerm.toLowerCase();
+    const fullName = `${user.firstName} ${user.lastName}`.toLowerCase();
+    const email = user.email.toLowerCase();
+    const firstName = user.firstName.toLowerCase();
+    const lastName = user.lastName.toLowerCase();
+
+    return fullName.includes(search) ||
+           email.includes(search) ||
+           firstName.includes(search) ||
+           lastName.includes(search);
+  });
 
   // Get selected user name for display
   const selectedUser = users.find(user => user._id === formData.studentId);
@@ -1060,46 +1069,48 @@ const ScheduleModal: React.FC<ScheduleModalProps> = ({
                     type="text"
                     value={searchTerm}
                     onChange={(e) => setSearchTerm(e.target.value)}
-                    placeholder="Search student..."
+                    placeholder="Search by name, email, first/last name..."
                     className="w-full mb-1.5"
                   />
-                  <div className="max-h-20 overflow-y-auto border border-gray-200 rounded bg-white">
+                  <div className="max-h-40 overflow-y-auto border border-gray-200 rounded bg-white space-y-0.5 p-1">
                     {filteredUsers.map((user) => (
                       <div
                         key={user._id}
-                        className="flex items-center space-x-2 p-1.5 hover:bg-gray-50"
+                        className="flex items-center justify-between p-2 hover:bg-gray-50 rounded transition-colors"
                       >
-                        <input
-                          type="checkbox"
-                          id={`user-${user._id}`}
-                          checked={formData.studentId === user._id}
-                          onChange={() => {
-                            handleInputChange("studentId", user._id);
-                            setSearchTerm(`${user.firstName} ${user.lastName} (${user.email})`);
-                          }}
-                          className="w-4 h-4"
-                        />
-                        <label htmlFor={`user-${user._id}`} className="flex-1 cursor-pointer">
-                          <div className="font-medium">{user.firstName} {user.lastName}</div>
-                          <div className="text-sm text-gray-600">{user.email}</div>
+                        <label htmlFor={`user-${user._id}`} className="flex-1 cursor-pointer min-w-0">
+                          <div className="font-medium text-sm truncate">{user.firstName} {user.lastName}</div>
+                          <div className="text-xs text-gray-600 truncate">{user.email}</div>
                         </label>
-                        {formData.studentId === user._id && (
-                          <button
-                            type="button"
-                            onClick={() => {
-                              handleInputChange("studentId", "");
-                              setSearchTerm("");
+                        <div className="flex items-center gap-2 flex-shrink-0 ml-2">
+                          <input
+                            type="checkbox"
+                            id={`user-${user._id}`}
+                            checked={formData.studentId === user._id}
+                            onChange={() => {
+                              handleInputChange("studentId", user._id);
+                              setSearchTerm(`${user.firstName} ${user.lastName} (${user.email})`);
                             }}
-                            className="text-red-500 hover:text-red-700 text-xl font-bold w-6 h-6 flex items-center justify-center rounded-full hover:bg-red-100 border border-red-300"
-                            title="Remove student"
-                          >
-                            ×
-                          </button>
-                        )}
+                            className="w-4 h-4"
+                          />
+                          {formData.studentId === user._id && (
+                            <button
+                              type="button"
+                              onClick={() => {
+                                handleInputChange("studentId", "");
+                                setSearchTerm("");
+                              }}
+                              className="text-red-500 hover:text-red-700 text-xl font-bold w-6 h-6 flex items-center justify-center rounded-full hover:bg-red-100 border border-red-300"
+                              title="Remove student"
+                            >
+                              ×
+                            </button>
+                          )}
+                        </div>
                       </div>
                     ))}
                     {filteredUsers.length === 0 && !selectedUser && (
-                      <div className="p-2 text-gray-500">No students found</div>
+                      <div className="p-2 text-gray-500 text-sm">No students found</div>
                     )}
                   </div>
                   {selectedUser && (
@@ -1167,46 +1178,48 @@ const ScheduleModal: React.FC<ScheduleModalProps> = ({
                     type="text"
                     value={searchTerm}
                     onChange={(e) => setSearchTerm(e.target.value)}
-                    placeholder="Search student..."
+                    placeholder="Search by name, email, first/last name..."
                     className="w-full mb-1.5"
                   />
-                  <div className="max-h-20 overflow-y-auto border border-gray-200 rounded bg-white">
+                  <div className="max-h-40 overflow-y-auto border border-gray-200 rounded bg-white space-y-0.5 p-1">
                     {filteredUsers.map((user) => (
                       <div
                         key={user._id}
-                        className="flex items-center space-x-2 p-1.5 hover:bg-gray-50"
+                        className="flex items-center justify-between p-2 hover:bg-gray-50 rounded transition-colors"
                       >
-                        <input
-                          type="checkbox"
-                          id={`user-${user._id}`}
-                          checked={formData.studentId === user._id}
-                          onChange={() => {
-                            handleInputChange("studentId", user._id);
-                            setSearchTerm(`${user.firstName} ${user.lastName} (${user.email})`);
-                          }}
-                          className="w-4 h-4"
-                        />
-                        <label htmlFor={`user-${user._id}`} className="flex-1 cursor-pointer">
-                          <div className="font-medium">{user.firstName} {user.lastName}</div>
-                          <div className="text-sm text-gray-600">{user.email}</div>
+                        <label htmlFor={`user-${user._id}`} className="flex-1 cursor-pointer min-w-0">
+                          <div className="font-medium text-sm truncate">{user.firstName} {user.lastName}</div>
+                          <div className="text-xs text-gray-600 truncate">{user.email}</div>
                         </label>
-                        {formData.studentId === user._id && (
-                          <button
-                            type="button"
-                            onClick={() => {
-                              handleInputChange("studentId", "");
-                              setSearchTerm("");
+                        <div className="flex items-center gap-2 flex-shrink-0 ml-2">
+                          <input
+                            type="checkbox"
+                            id={`user-${user._id}`}
+                            checked={formData.studentId === user._id}
+                            onChange={() => {
+                              handleInputChange("studentId", user._id);
+                              setSearchTerm(`${user.firstName} ${user.lastName} (${user.email})`);
                             }}
-                            className="text-red-500 hover:text-red-700 text-xl font-bold w-6 h-6 flex items-center justify-center rounded-full hover:bg-red-100 border border-red-300"
-                            title="Remove student"
-                          >
-                            ×
-                          </button>
-                        )}
+                            className="w-4 h-4"
+                          />
+                          {formData.studentId === user._id && (
+                            <button
+                              type="button"
+                              onClick={() => {
+                                handleInputChange("studentId", "");
+                                setSearchTerm("");
+                              }}
+                              className="text-red-500 hover:text-red-700 text-xl font-bold w-6 h-6 flex items-center justify-center rounded-full hover:bg-red-100 border border-red-300"
+                              title="Remove student"
+                            >
+                              ×
+                            </button>
+                          )}
+                        </div>
                       </div>
                     ))}
                     {filteredUsers.length === 0 && !selectedUser && (
-                      <div className="p-2 text-gray-500">No students found</div>
+                      <div className="p-2 text-gray-500 text-sm">No students found</div>
                     )}
                   </div>
                   {selectedUser && (
