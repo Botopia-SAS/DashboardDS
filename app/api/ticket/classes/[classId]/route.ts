@@ -139,3 +139,107 @@ export async function PATCH(
     );
   }
 }
+
+export async function PUT(
+  request: NextRequest,
+  { params }: { params: Promise<{ classId: string }> }
+) {
+  try {
+    await dbConnect();
+
+    const { classId } = await params;
+    const body = await request.json();
+
+    console.log('🎫 PUT ticket class:', { classId, body });
+
+    // Validar que el classId sea válido
+    if (!classId) {
+      return NextResponse.json(
+        { success: false, message: "Class ID is required" },
+        { status: 400 }
+      );
+    }
+
+    // Buscar la clase existente
+    const ticketClass = await TicketClass.findById(classId);
+
+    if (!ticketClass) {
+      return NextResponse.json(
+        { success: false, message: "Ticket class not found" },
+        { status: 404 }
+      );
+    }
+
+    // Validar campos requeridos
+    const requiredFields = ['date', 'hour', 'endHour', 'classId', 'instructorId', 'type', 'locationId'];
+    for (const field of requiredFields) {
+      if (!body[field]) {
+        return NextResponse.json(
+          { success: false, message: `${field} is required` },
+          { status: 400 }
+        );
+      }
+    }
+
+    // Validar que la hora de fin sea posterior a la hora de inicio
+    if (body.hour >= body.endHour) {
+      return NextResponse.json(
+        { success: false, message: "End time must be after start time" },
+        { status: 400 }
+      );
+    }
+
+    // Actualizar los campos de la clase
+    const updateData = {
+      date: body.date,
+      hour: body.hour,
+      endHour: body.endHour,
+      classId: body.classId,
+      type: body.type,
+      locationId: body.locationId,
+      instructorId: body.instructorId,
+      spots: body.spots || ticketClass.spots,
+      duration: body.duration || ticketClass.duration,
+      status: body.status || ticketClass.status,
+      // Asegurar que students y studentRequests sean arrays válidos
+      students: Array.isArray(body.students) ? body.students.filter((s: unknown) => typeof s === 'string') : ticketClass.students || [],
+      studentRequests: Array.isArray(body.studentRequests) ? body.studentRequests.filter((req: unknown) => typeof req === 'string') : ticketClass.studentRequests || []
+    };
+
+    // Actualizar la clase
+    const updatedClass = await TicketClass.findByIdAndUpdate(
+      classId,
+      updateData,
+      { new: true, runValidators: true }
+    );
+
+    if (!updatedClass) {
+      return NextResponse.json(
+        { success: false, message: "Failed to update ticket class" },
+        { status: 500 }
+      );
+    }
+
+    console.log('✅ Ticket class updated successfully');
+
+    // Broadcast notification to update counters
+    await broadcastNotification('ticket', {
+      action: 'class_updated',
+      classId,
+      timestamp: new Date().toISOString()
+    });
+
+    return NextResponse.json({
+      success: true,
+      message: "Ticket class updated successfully",
+      data: updatedClass
+    });
+
+  } catch (error) {
+    console.error("Error in PUT ticket class:", error);
+    return NextResponse.json(
+      { success: false, message: "Internal server error" },
+      { status: 500 }
+    );
+  }
+}

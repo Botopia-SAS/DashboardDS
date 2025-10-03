@@ -319,8 +319,28 @@ export default function ScheduleModal({
       });
 
       if (!updateRes.ok) {
-        const errorData = await updateRes.json();
-        throw new Error(errorData.error || 'Error updating TicketClass');
+        let errorMessage = 'Error updating TicketClass';
+        try {
+          const errorData = await updateRes.json();
+          errorMessage = errorData.message || errorData.error || errorMessage;
+        } catch {
+          // Si no es JSON válido, usar el status text
+          errorMessage = `HTTP ${updateRes.status}: ${updateRes.statusText}`;
+        }
+        throw new Error(errorMessage);
+      }
+
+      // Verificar que la respuesta tenga contenido JSON válido
+      const responseText = await updateRes.text();
+      if (!responseText) {
+        throw new Error('Empty response from server');
+      }
+      
+      try {
+        JSON.parse(responseText);
+      } catch {
+        console.error('Invalid JSON response:', responseText);
+        throw new Error('Invalid response format from server');
       }
 
       // Cerrar el modal y refrescar el calendario sin alerts de éxito
