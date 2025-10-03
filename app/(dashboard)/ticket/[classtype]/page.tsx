@@ -18,6 +18,9 @@ export default function TicketClassTypePage() {
   const router = useRouter();
   const classtype = params.classtype as string;
 
+  // Función helper para normalizar nombres de clase (espacios a guiones)
+  const normalizeClassType = (name: string) => name.toLowerCase().trim().replace(/\s+/g, '-');
+
   const { setClassType, setAvailableClassTypes } = useClassTypeStore();
   const [loading, setLoading] = useState(true);
   const [tabChangeLoading, setTabChangeLoading] = useState(false);
@@ -46,18 +49,21 @@ export default function TicketClassTypePage() {
         setAvailableClassTypes(data);
 
         // Verificar si el classtype en la URL es válido
-        const normalizedClasstype = classtype.toLowerCase();
-        const isValidType = data.some((ct: ClassTypeOption) => ct.name.toLowerCase() === normalizedClasstype);
+        const normalizedClasstype = normalizeClassType(classtype);
+        const isValidType = data.some((ct: ClassTypeOption) => normalizeClassType(ct.name) === normalizedClasstype);
 
         if (isValidType) {
-          setClassType(normalizedClasstype);
+          // Encontrar el tipo original (sin normalizar) para usar como classType
+          const originalType = data.find((ct: ClassTypeOption) => normalizeClassType(ct.name) === normalizedClasstype);
+          const typeToUse = originalType ? originalType.name.toLowerCase() : normalizedClasstype;
+          setClassType(typeToUse);
           setCurrentClassType(normalizedClasstype);
         } else {
           // Si no es válido, usar el primer tipo disponible
           if (data.length > 0) {
-            const defaultType = data[0].name.toLowerCase();
+            const defaultType = normalizeClassType(data[0].name);
             setCurrentClassType(defaultType);
-            setClassType(defaultType);
+            setClassType(data[0].name.toLowerCase());
           }
         }
       } catch (error) {
@@ -71,15 +77,17 @@ export default function TicketClassTypePage() {
         setClassTypes(fallbackTypes);
         setAvailableClassTypes(fallbackTypes);
 
-        const normalizedClasstype = classtype.toLowerCase();
-        const isValidType = fallbackTypes.some(ct => ct.name.toLowerCase() === normalizedClasstype);
+        const normalizedClasstype = normalizeClassType(classtype);
+        const isValidType = fallbackTypes.some(ct => normalizeClassType(ct.name) === normalizedClasstype);
         if (isValidType) {
-          setClassType(normalizedClasstype);
+          const originalType = fallbackTypes.find(ct => normalizeClassType(ct.name) === normalizedClasstype);
+          const typeToUse = originalType ? originalType.name.toLowerCase() : normalizedClasstype;
+          setClassType(typeToUse);
           setCurrentClassType(normalizedClasstype);
         } else {
-          const defaultType = fallbackTypes[0].name.toLowerCase();
+          const defaultType = normalizeClassType(fallbackTypes[0].name);
           setCurrentClassType(defaultType);
-          setClassType(defaultType);
+          setClassType(fallbackTypes[0].name.toLowerCase());
         }
       } finally {
         setLoading(false);
@@ -121,7 +129,7 @@ export default function TicketClassTypePage() {
 
   // Handle tab change - NO RELOAD, solo actualizar estado
   const handleTabChange = (newClassType: string) => {
-    const normalizedType = newClassType.toLowerCase();
+    const normalizedType = normalizeClassType(newClassType);
 
     console.log('🔄 Tab change:', normalizedType);
 
@@ -190,7 +198,7 @@ export default function TicketClassTypePage() {
             {classTypes.map((classType) => (
               <TabsTrigger
                 key={classType._id}
-                value={classType.name.toLowerCase()}
+                value={normalizeClassType(classType.name)}
                 className="px-4 py-2 rounded-lg hover:bg-gray-100 w-full data-[state=active]:bg-gray-300 data-[state=active]:font-medium"
               >
                 {classType.name.toUpperCase()}
@@ -198,13 +206,13 @@ export default function TicketClassTypePage() {
             ))}
           </TabsList>
           {classTypes.map((classType) => (
-            <TabsContent key={classType._id} value={classType.name.toLowerCase()} className="w-full">
+            <TabsContent key={classType._id} value={normalizeClassType(classType.name)} className="w-full">
               <Separator className="bg-gray-400 my-4" />
               <Card>
                 <CardContent>
                   <div className="grid grid-cols-1 gap-4 py-2">
                     <Navigation
-                      href={`/ticket/day-of-class/${classType.name.toLowerCase()}`}
+                      href={`/ticket/day-of-class/${normalizeClassType(classType.name)}`}
                       title="Day of Class Preparation"
                       description="Prepare for upcoming classes"
                     />

@@ -290,15 +290,18 @@ const TicketCalendar = ({ className, refreshKey, classType: propClassType, focus
         return;
       }
       
-      // Filtrar clases por el tipo actualmente seleccionado (case-insensitive)
-      const normalizedClassType = classType.toLowerCase();
+      // Filtrar clases por el tipo actualmente seleccionado
+      // Normalizar tanto el classType del prop como el type de la base de datos
+      const normalizeClassType = (name: string) => name.toLowerCase().trim().replace(/\s+/g, '-');
+      const normalizedClassType = normalizeClassType(classType);
       console.log('🔍 Current classType for filtering:', classType, '| Normalized:', normalizedClassType);
       console.log('📊 All ticket classes types:', data.map((tc: TicketClassResponse) => tc.type));
 
       const filteredData = data.filter((tc: TicketClassResponse) => {
-        const matches = tc.type.toLowerCase() === normalizedClassType;
+        const normalizedTicketType = normalizeClassType(tc.type);
+        const matches = normalizedTicketType === normalizedClassType;
         if (matches) {
-          console.log(`✅ Class matched: ${tc._id} (type: ${tc.type})`);
+          console.log(`✅ Class matched: ${tc._id} (type: ${tc.type}, normalized: ${normalizedTicketType})`);
         }
         return matches;
       });
