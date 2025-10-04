@@ -31,17 +31,17 @@ export const CertificatePreview = forwardRef<HTMLDivElement, CertificatePreviewP
 
           {/* Course Time Checkboxes */}
           {formData.courseTime === "4hr" && (
-            <div className="absolute text-red-700 font-bold text-sm" style={{ top: "32.8%", left: "47.5%" }}>
+            <div className="absolute text-red-700 font-bold text-sm" style={{ top: "32.8%", left: "46.8%" }}>
               X
             </div>
           )}
           {formData.courseTime === "6hr" && (
-            <div className="absolute text-red-700 font-bold text-sm" style={{ top: "32.8%", left: "55%" }}>
+            <div className="absolute text-red-700 font-bold text-sm" style={{ top: "32.8%", left: "54.2%" }}>
               X
             </div>
           )}
           {formData.courseTime === "8hr" && (
-            <div className="absolute text-red-700 font-bold text-sm" style={{ top: "32.8%", left: "62.5%" }}>
+            <div className="absolute text-red-700 font-bold text-sm" style={{ top: "32.8%", left: "61.5%" }}>
               X
             </div>
           )}
@@ -78,17 +78,17 @@ export const CertificatePreview = forwardRef<HTMLDivElement, CertificatePreviewP
 
           {/* Attendance Reason Checkboxes */}
           {formData.attendanceReason === "court_order" && (
-            <div className="absolute text-red-700 font-bold text-sm" style={{ top: "46.8%", left: "51%" }}>
+            <div className="absolute text-red-700 font-bold text-sm" style={{ top: "46.8%", left: "49%" }}>
               X
             </div>
           )}
           {formData.attendanceReason === "volunteer" && (
-            <div className="absolute text-red-700 font-bold text-sm" style={{ top: "46.8%", left: "62%" }}>
+            <div className="absolute text-red-700 font-bold text-sm" style={{ top: "46.8%", left: "59.5%" }}>
               X
             </div>
           )}
           {formData.attendanceReason === "ticket" && (
-            <div className="absolute text-red-700 font-bold text-sm" style={{ top: "46.8%", left: "78%" }}>
+            <div className="absolute text-red-700 font-bold text-sm" style={{ top: "46.8%", left: "75.2%" }}>
               X
             </div>
           )}

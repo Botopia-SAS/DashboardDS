@@ -830,7 +830,7 @@ const ScheduleModal: React.FC<ScheduleModalProps> = ({
           
           {selectedDate && selectedTime && (
             <div className="text-xs text-gray-600">
-              {selectedDate} at {selectedTime}
+              {new Date(selectedDate + 'T00:00:00').toLocaleDateString('en-GB', { day: '2-digit', month: '2-digit', year: 'numeric' }).replace(/\//g, '-')} at {selectedTime}
             </div>
           )}
         </div>
