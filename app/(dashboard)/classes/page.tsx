@@ -12,6 +12,14 @@ import { Separator } from "@/components/ui/separator";
 import Loader from "@/components/custom ui/Loader";
 import DashboardHeader from "@/components/layout/DashboardHeader";
 import ClassTypeManager from "@/components/classes/ClassTypeManager";
+import SeoTab from "@/components/custom ui/SeoTab";
+import {
+  Dialog,
+  DialogContent,
+  DialogHeader,
+  DialogTitle,
+  DialogTrigger,
+} from "@/components/ui/dialog";
 
 const DrivingClassesDashboard = () => {
   const router = useRouter();
@@ -133,6 +141,24 @@ const DrivingClassesDashboard = () => {
                     <Plus className="h-4 w-4 mr-2" />
                     Create Class
                   </Button>
+
+                  {/* SEO Button para página general de Driving Lessons */}
+                  <Dialog>
+                    <DialogTrigger asChild>
+                      <Button
+                        variant="outline"
+                        className="border-2 border-blue-500 text-blue-600 hover:bg-blue-50 font-semibold"
+                      >
+                        SEO
+                      </Button>
+                    </DialogTrigger>
+                    <DialogContent className="max-w-3xl max-h-[90vh] overflow-y-auto">
+                      <DialogHeader>
+                        <DialogTitle>SEO Settings - Driving Lessons Page</DialogTitle>
+                      </DialogHeader>
+                      <SeoTab entityType="DrivingLessons" />
+                    </DialogContent>
+                  </Dialog>
                 </div>
               </div>
               <Separator className="bg-gray-400 my-4" />

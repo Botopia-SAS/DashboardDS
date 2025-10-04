@@ -19,6 +19,14 @@ import { Textarea } from "@/components/ui/textarea";
 import { Combobox } from "@/components/ui/combobox";
 import ImageUpload from "@/components/custom ui/ImageUpload";
 import toast from "react-hot-toast";
+import SeoTab from "@/components/custom ui/SeoTab";
+import {
+  Dialog,
+  DialogContent,
+  DialogHeader,
+  DialogTitle,
+  DialogTrigger,
+} from "@/components/ui/dialog";
 
 // ✅ Esquema de validación con `zod`
 export const onlineCourseSchema = z.object({
@@ -84,6 +92,27 @@ const OnlineCourseForm: React.FC<OnlineCourseFormProps> = ({ initialData }) => {
         <h1 className="text-3xl font-semibold text-gray-800">
           {initialData ? "Edit Online Course" : "Create Online Course"}
         </h1>
+
+        {/* SEO Button - Solo visible si hay initialData (modo edición) */}
+        {initialData && (
+          <Dialog>
+            <DialogTrigger asChild>
+              <Button
+                type="button"
+                variant="outline"
+                className="border-2 border-blue-500 text-blue-600 hover:bg-blue-50 font-semibold px-4 py-2"
+              >
+                SEO
+              </Button>
+            </DialogTrigger>
+            <DialogContent className="max-w-3xl max-h-[90vh] overflow-y-auto">
+              <DialogHeader>
+                <DialogTitle>SEO Settings - {initialData.title}</DialogTitle>
+              </DialogHeader>
+              <SeoTab entityType="OnlineCourse" entityId={initialData._id} entityData={initialData} />
+            </DialogContent>
+          </Dialog>
+        )}
       </div>
 
       <Separator className="bg-gray-300 my-4" />
