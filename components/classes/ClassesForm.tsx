@@ -257,14 +257,39 @@ const CustomForm: React.FC<FormProps> = ({ initialData }) => {
 
       console.log("[SAVE_DEBUG] Current form values:", currentValues);
       console.log("[SAVE_DEBUG] Saving to ID:", initialData._id);
+      console.log("[SAVE_DEBUG] Original data:", originalData);
+      
+      // Log specific fields you're changing
+      console.log("[SAVE_DEBUG] ClassType field:", currentValues.classType);
+      console.log("[SAVE_DEBUG] Length field:", currentValues.length);
+      console.log("[SAVE_DEBUG] Price field:", currentValues.price);
+
+      // Validate required fields before sending
+      if (!currentValues.title || !currentValues.overview || !currentValues.contact || !currentValues.buttonLabel) {
+        toast.error("Please fill in all required fields");
+        return;
+      }
+
+      if (!currentValues.length || currentValues.length <= 0) {
+        toast.error("Length must be greater than 0");
+        return;
+      }
+
+      if (!currentValues.price || currentValues.price <= 0) {
+        toast.error("Price must be greater than 0");
+        return;
+      }
 
       const payload = {
         ...currentValues,
         headquarters: form.getValues("headquarters"),
-        classType: currentValues.classType || "date",
+        classType: currentValues.classType || "date", // Usar fallback solo si está vacío
       };
 
       console.log("[SAVE_DEBUG] Final payload:", payload);
+      console.log("[SAVE_DEBUG] Payload ClassType:", payload.classType);
+      console.log("[SAVE_DEBUG] Payload Length:", payload.length);
+      console.log("[SAVE_DEBUG] Payload Price:", payload.price);
 
       const res = await fetch(`/api/classes/${initialData._id}`, {
         method: "PUT",
@@ -275,24 +300,57 @@ const CustomForm: React.FC<FormProps> = ({ initialData }) => {
       console.log("[SAVE_DEBUG] Response status:", res.status);
 
       if (res.ok) {
-        const updatedData = await res.json();
-        console.log("[SAVE_DEBUG] Updated successfully:", updatedData);
-        toast.success("Class updated successfully!");
-        setHasChanges(false);
-        // Actualizar originalData
-        setOriginalData({
-          ...currentValues,
-          headquarters: form.getValues("headquarters"),
-        });
+        const responseText = await res.text();
+        console.log("[SAVE_DEBUG] Raw response:", responseText);
+        
+        let updatedData;
+        try {
+          updatedData = JSON.parse(responseText);
+          console.log("[SAVE_DEBUG] Parsed response:", updatedData);
+        } catch (parseError) {
+          console.error("[SAVE_DEBUG] JSON parse error:", parseError);
+          toast.error("Invalid response from server");
+          return;
+        }
+        
+        if (updatedData.success) {
+          console.log("[SAVE_DEBUG] Updated successfully:", updatedData.data);
+          console.log("[SAVE_DEBUG] Server confirmed ClassType:", updatedData.data?.classType);
+          console.log("[SAVE_DEBUG] Server confirmed Length:", updatedData.data?.length);
+          console.log("[SAVE_DEBUG] Server confirmed Price:", updatedData.data?.price);
+          
+          toast.success("Class updated successfully!");
+          setHasChanges(false);
+          
+          // Actualizar originalData con los datos del servidor
+          setOriginalData({
+            ...updatedData.data,
+            headquarters: updatedData.data.headquarters || form.getValues("headquarters"),
+          });
 
-        // Redirigir a la lista de clases después de 1 segundo
-        setTimeout(() => {
-          router.push("/classes");
-        }, 1000);
+          // Redirigir a la lista de clases después de 1 segundo
+          setTimeout(() => {
+            router.push("/classes");
+          }, 1000);
+        } else {
+          console.error("[SAVE_DEBUG] Server returned success: false:", updatedData);
+          toast.error(updatedData.message || "Failed to save changes");
+        }
       } else {
-        const errorData = await res.json();
-        console.error("[SAVE_DEBUG] Error response:", errorData);
-        toast.error(errorData.message || "Failed to save changes");
+        let errorMessage = "Failed to save changes";
+        try {
+          const errorData = await res.json();
+          console.error("[SAVE_DEBUG] Error response:", errorData);
+          errorMessage = errorData.message || errorMessage;
+          
+          if (errorData.errors && Array.isArray(errorData.errors)) {
+            errorMessage = errorData.errors.join(", ");
+          }
+        } catch (jsonError) {
+          console.error("[SAVE_DEBUG] Error parsing error response:", jsonError);
+          errorMessage = `HTTP ${res.status}: ${res.statusText}`;
+        }
+        toast.error(errorMessage);
       }
     } catch (error) {
       console.error("[SAVE_DEBUG] Save error:", error);
@@ -316,7 +374,7 @@ const CustomForm: React.FC<FormProps> = ({ initialData }) => {
       const payload = {
         ...values,
         headquarters: form.getValues("headquarters"), // ✅ Envía como array
-        classType: values.classType || "date", // ✅ Asegurar formato correcto con fallback
+        classType: values.classType, // No usar fallback que puede sobrescribir el valor seleccionado
       };
 
       console.log("[DEBUG] Payload final:", payload);
@@ -332,14 +390,41 @@ const CustomForm: React.FC<FormProps> = ({ initialData }) => {
       console.log("[DEBUG] Response status:", res.status);
 
       if (res.ok) {
-        const responseData = await res.json();
-        console.log("[DEBUG] Response data:", responseData);
-        toast.success(`Class ${initialData ? "updated" : "created"} successfully`);
-        router.push("/classes");
+        const responseText = await res.text();
+        console.log("[DEBUG] Raw response:", responseText);
+        
+        let responseData;
+        try {
+          responseData = JSON.parse(responseText);
+          console.log("[DEBUG] Parsed response:", responseData);
+        } catch (parseError) {
+          console.error("[DEBUG] JSON parse error:", parseError);
+          toast.error("Invalid response from server");
+          return;
+        }
+        
+        if (responseData.success !== false) {
+          toast.success(`Class ${initialData ? "updated" : "created"} successfully`);
+          router.push("/classes");
+        } else {
+          console.error("[DEBUG] Server returned success: false:", responseData);
+          toast.error(responseData.message || "Failed to submit form");
+        }
       } else {
-        const errorData = await res.json();
-        console.error("[DEBUG] Error response:", errorData);
-        toast.error(errorData.message || "Failed to submit form");
+        let errorMessage = "Failed to submit form";
+        try {
+          const errorData = await res.json();
+          console.error("[DEBUG] Error response:", errorData);
+          errorMessage = errorData.message || errorMessage;
+          
+          if (errorData.errors && Array.isArray(errorData.errors)) {
+            errorMessage = errorData.errors.join(", ");
+          }
+        } catch (jsonError) {
+          console.error("[DEBUG] Error parsing error response:", jsonError);
+          errorMessage = `HTTP ${res.status}: ${res.statusText}`;
+        }
+        toast.error(errorMessage);
       }
     } catch (error) {
       console.error("[DEBUG] Fetch error:", error);
@@ -644,31 +729,29 @@ const CustomForm: React.FC<FormProps> = ({ initialData }) => {
             )}
           />
 
-          {/* 🔹 BUTTONS */}
-          <div className="flex gap-4">
-            {/* Botón Save solo para edición */}
-            {initialData && (
-              <Button
-                type="button"
-                onClick={handleSave}
-                className={`${hasChanges ? 'bg-green-600 hover:bg-green-700' : 'bg-gray-400'} text-white transition-colors`}
-                disabled={isLoading || !hasChanges}
-              >
-                {isLoading ? (
-                  <div className="flex items-center gap-2">
-                    <div className="animate-spin rounded-full h-4 w-4 border-2 border-white border-t-transparent"></div>
-                    Saving...
-                  </div>
-                ) : (
-                  <div className="flex items-center gap-2">
-                    💾 Save Changes
-                    {hasChanges && <span className="w-2 h-2 bg-white rounded-full animate-pulse"></span>}
-                  </div>
-                )}
-              </Button>
+      {/* 🔹 BUTTONS */}
+      <div className="flex gap-4">
+        {/* Botón Save solo para edición */}
+        {initialData && (
+          <Button
+            type="button"
+            onClick={handleSave}
+            className={`${hasChanges ? 'bg-green-600 hover:bg-green-700' : 'bg-gray-400'} text-white transition-colors`}
+            disabled={isLoading || !hasChanges}
+          >
+            {isLoading ? (
+              <div className="flex items-center gap-2">
+                <div className="animate-spin rounded-full h-4 w-4 border-2 border-white border-t-transparent"></div>
+                Saving...
+              </div>
+            ) : (
+              <div className="flex items-center gap-2">
+                💾 Save Changes
+                {hasChanges && <span className="w-2 h-2 bg-white rounded-full animate-pulse"></span>}
+              </div>
             )}
-
-            {/* Botón Submit original para creación */}
+          </Button>
+        )}            {/* Botón Submit original para creación */}
             {!initialData && (
               <Button
                 type="submit"

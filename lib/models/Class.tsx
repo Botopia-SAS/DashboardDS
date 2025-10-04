@@ -13,8 +13,7 @@ const classSchema = new mongoose.Schema({
   headquarters: { type: [String], required: true },
   classType: {
     type: String,
-    default: "date",
-    lowercase: true
+    default: "date"
   },
   duration: {
     type: String,
