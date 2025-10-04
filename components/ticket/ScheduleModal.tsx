@@ -102,6 +102,11 @@ export default function ScheduleModal({
 
   useEffect(() => {
     if (isOpen) {
+      // Normalizar estudiantes al cargar - convertir objetos a strings
+      const normalizedStudents = initialData?.students
+        ? normalizeStudents(initialData.students)
+        : [];
+
       setForm({
         _id: initialData?._id,
         date: initialData?.date || "",
@@ -112,7 +117,7 @@ export default function ScheduleModal({
         duration: initialData?.duration || "2h",
         locationId: initialData?.locationId || selectedLocationId || "",
         instructorId: initialData?.instructorId || "",
-        students: initialData?.students || [],
+        students: normalizedStudents,
         spots: initialData?.spots || 30,
         status: initialData?.status || "available",
         studentRequests: initialData?.studentRequests || [],
@@ -167,6 +172,43 @@ export default function ScheduleModal({
            lastName.includes(search);
   });
 
+  // Tipo para el estudiante en la base de datos
+  type StudentInDB = string | {
+    student_id?: string;
+    studentId?: string;
+    _id?: string
+  };
+
+  // Normalizar estudiantes - convertir objetos a strings
+  const normalizeStudents = (students: StudentInDB[]): string[] => {
+    return students.map((s) => {
+      if (typeof s === 'string') {
+        return s;
+      }
+      if (typeof s === 'object' && s !== null) {
+        // Buscar en orden de prioridad: studentId, student_id, _id
+        return s.studentId || s.student_id || s._id || '';
+      }
+      return '';
+    }).filter(id => id !== '');
+  };
+
+  // Helper function to check if student is in the class
+  // Handles both string IDs and objects with student_id/studentId/_id
+  const isStudentInClass = (studentId: string, students: StudentInDB[]): boolean => {
+    return students.some((s) => {
+      // Si es un string, comparar directamente
+      if (typeof s === 'string') {
+        return s === studentId;
+      }
+      // Si es un objeto, buscar por studentId, student_id o _id
+      if (typeof s === 'object' && s !== null) {
+        return s.studentId === studentId || s.student_id === studentId || s._id === studentId;
+      }
+      return false;
+    });
+  };
+
   // Checkbox handlers
   const handleInstructorCheck = (id: string) => {
     setForm((prev) => ({
@@ -174,13 +216,31 @@ export default function ScheduleModal({
       instructorId: prev.instructorId === id ? "" : id,
     }));
   };
+
   const handleStudentCheck = (id: string) => {
-    setForm((prev) => ({
-      ...prev,
-      students: prev.students.includes(id)
-        ? prev.students.filter((s: string) => s !== id)
-        : [...prev.students, id],
-    }));
+    setForm((prev) => {
+      const isCurrentlyInClass = isStudentInClass(id, prev.students);
+
+      if (isCurrentlyInClass) {
+        // Remover el estudiante - filtrar tanto strings como objetos
+        return {
+          ...prev,
+          students: prev.students.filter((s: StudentInDB) => {
+            if (typeof s === 'string') return s !== id;
+            if (typeof s === 'object' && s !== null) {
+              return s.studentId !== id && s.student_id !== id && s._id !== id;
+            }
+            return true;
+          })
+        };
+      } else {
+        // Agregar el estudiante como string ID
+        return {
+          ...prev,
+          students: [...prev.students, id]
+        };
+      }
+    });
   };
 
   // Cuando el usuario cambia la hora final manualmente, marcamos que la tocó
@@ -605,7 +665,7 @@ export default function ScheduleModal({
                         </div>
                         <input
                           type="checkbox"
-                          checked={form.students.includes(s._id)}
+                          checked={isStudentInClass(s._id, form.students)}
                           onChange={() => handleStudentCheck(s._id)}
                           className="ml-2 w-4 h-4 flex-shrink-0"
                         />
