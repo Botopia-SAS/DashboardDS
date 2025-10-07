@@ -33,7 +33,7 @@ const SeoTab: React.FC<SeoTabProps> = ({ entityType, entityId, entityData }) => 
 
   // Función para auto-generar SEO basado en los datos de la entidad
   const generateSeoFromEntity = (data: any, type: string): SeoData => {
-    let generatedSeo: SeoData = {
+    const generatedSeo: SeoData = {
       metaTitle: "",
       metaDescription: "",
       metaKeywords: "",
