@@ -35,9 +35,9 @@ import {
 const GOOGLE_MAPS_API_KEY = process.env.NEXT_PUBLIC_GOOGLE_MAPS_API_KEY || "";
 
 const formSchema = z.object({
-  title: z.string().min(2).max(100),
-  description: z.string().min(10).max(2000),
-  zone: z.string().min(1, "Please select a valid location"),
+  title: z.string().optional(),
+  description: z.string().optional(),
+  zone: z.string().optional(),
   locationImage: z.string().optional(),
   instructors: z.array(z.string()).default([]), // 📌 Array de IDs de instructores
 });
