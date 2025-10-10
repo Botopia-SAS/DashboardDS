@@ -266,13 +266,20 @@ export default function ScheduleModal({
     }
   };
 
-  // Filter classes based on the selected type in the form (case-insensitive)
+  // Helper function to normalize class type for comparison
+  const normalizeClassType = (type: string) => {
+    return type.toLowerCase().trim().replace(/\s+/g, '-');
+  };
+
+  // Filter classes based on the selected type in the form (case-insensitive and normalized)
   const filteredClasses = classes.filter(cls => {
-    const clsType = cls.classType?.toLowerCase() || '';
-    const formType = form.type?.toLowerCase() || '';
+    const clsType = normalizeClassType(cls.classType || '');
+    const formType = normalizeClassType(form.type || '');
     const matches = clsType === formType;
     if (matches) {
-      console.log(`✅ Class matched: "${cls.title}" (classType: "${cls.classType}") matches form.type: "${form.type}"`);
+      console.log(`✅ Class matched: "${cls.title}" (classType: "${cls.classType}" → "${clsType}") matches form.type: "${form.type}" → "${formType}"`);
+    } else {
+      console.log(`❌ Class NOT matched: "${cls.title}" (classType: "${cls.classType}" → "${clsType}") vs form.type: "${form.type}" → "${formType}"`);
     }
     return matches;
   });
