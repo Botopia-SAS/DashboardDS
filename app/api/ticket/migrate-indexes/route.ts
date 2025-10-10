@@ -2,64 +2,70 @@ import { NextResponse } from "next/server";
 import { connectToDB } from "@/lib/mongoDB";
 import TicketClass from "@/lib/models/TicketClass";
 
-export async function POST() {
+export async function GET() {
   try {
     await connectToDB();
-    
+
     console.log("🔧 Starting index migration for TicketClass...");
-    
+
     // Get the collection
     const collection = TicketClass.collection;
-    
+
     // Get existing indexes
     const existingIndexes = await collection.indexes();
-    console.log("📋 Current indexes:", existingIndexes.map(idx => idx.name));
-    
-    // Drop problematic unique indexes if they exist
-    const indexesToDrop = [
-      "date_1_hour_1",
-      "date_1_hour_1_students_1"
-    ];
-    
-    for (const indexName of indexesToDrop) {
+    console.log("📋 Current indexes:", existingIndexes);
+
+    // Drop ALL unique indexes except _id - we want to allow multiple classes at the same time
+    const droppedIndexes = [];
+    const notFoundIndexes = [];
+
+    for (const index of existingIndexes) {
+      // Skip the _id index as it's required by MongoDB
+      if (index.name === '_id_') {
+        console.log(`⏭️ Skipping required _id index`);
+        continue;
+      }
+
+      // Drop any other index (unique or not) to clean up
       try {
-        await collection.dropIndex(indexName);
-        console.log(`✅ Dropped index: ${indexName}`);
+        await collection.dropIndex(index.name);
+        console.log(`✅ Dropped index: ${index.name}`);
+        droppedIndexes.push(index.name);
       } catch (error) {
-        console.log(`⚠️ Index ${indexName} not found or already dropped`);
+        console.log(`⚠️ Could not drop index ${index.name}:`, error);
+        notFoundIndexes.push(index.name);
       }
     }
-    
-    // Create the new index that includes instructorId
-    try {
-      await collection.createIndex(
-        { date: 1, hour: 1, instructorId: 1 },
-        { unique: true, name: "date_hour_instructor_unique" }
-      );
-      console.log("✅ Created new unique index: date_hour_instructor_unique");
-    } catch (error) {
-      console.log("⚠️ New index already exists or error creating:", error);
-    }
-    
+
+    // No need to create new unique indexes - we allow multiple classes at the same time now
+    console.log("✅ Removed instructor-based constraints - tickets are now open for scheduling");
+
     // List final indexes
     const finalIndexes = await collection.indexes();
-    console.log("📋 Final indexes:", finalIndexes.map(idx => idx.name));
-    
-    return NextResponse.json({ 
-      success: true, 
+    console.log("📋 Final indexes:", finalIndexes);
+
+    return NextResponse.json({
+      success: true,
       message: "Index migration completed successfully",
-      indexes: finalIndexes.map(idx => idx.name)
+      initialIndexes: existingIndexes.map(idx => ({ name: idx.name, keys: idx.key })),
+      droppedIndexes,
+      notFoundIndexes,
+      finalIndexes: finalIndexes.map(idx => ({ name: idx.name, keys: idx.key }))
     });
-    
+
   } catch (error) {
     console.error("❌ Error during index migration:", error);
     return NextResponse.json(
-      { 
-        success: false, 
+      {
+        success: false,
         error: "Failed to migrate indexes",
         details: error instanceof Error ? error.message : "Unknown error"
       },
       { status: 500 }
     );
   }
+}
+
+export async function POST() {
+  return GET();
 }

@@ -2,7 +2,6 @@ import { NextRequest, NextResponse } from "next/server";
 import TicketClass from "@/lib/models/TicketClass";
 import Location from "@/lib/models/Locations";
 import DrivingClass from "@/lib/models/Class";
-import Instructor from "@/lib/models/Instructor";
 import { connectToDB } from "@/lib/mongoDB";
 
 export async function GET() {
@@ -15,7 +14,6 @@ export async function GET() {
     const ticketClasses = await TicketClass.find({})
       .populate('locationId', 'title')
       .populate('classId', 'title')
-      .populate('instructorId', 'name')
       .lean();
     
     console.log('📊 Found ticket classes:', ticketClasses.length);
@@ -48,11 +46,7 @@ export async function POST(req: NextRequest) {
     spots,
     status,
     studentRequests,
-    instructorId,
   } = data;
-  if (!instructorId) {
-    return NextResponse.json({ error: 'instructorId is required' }, { status: 400 });
-  }
   const ticketClass = await TicketClass.create({
     locationId,
     date,
@@ -65,7 +59,6 @@ export async function POST(req: NextRequest) {
     spots: spots || 30,
     status: status || "available",
     studentRequests: studentRequests || [],
-    instructorId,
   });
   return NextResponse.json(ticketClass, { status: 201 });
 } 

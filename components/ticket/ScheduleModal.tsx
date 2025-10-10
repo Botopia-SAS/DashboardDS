@@ -4,12 +4,6 @@ import { useState, useEffect } from "react";
 import useClassTypeStore from "@/app/store/classTypeStore";
 import { refreshTicketCalendar } from "@/lib/calendarEvents";
 
-interface Instructor {
-  _id: string;
-  name: string;
-  canTeachTicketClass?: boolean;
-}
-
 interface Student {
   _id: string;
   name: string;
@@ -27,7 +21,6 @@ interface TicketFormData {
   type: string;
   duration: string;
   locationId: string;
-  instructorId: string;
   students: string[];
   spots: number;
   status: string;
@@ -43,7 +36,6 @@ interface ScheduleModalProps {
   onDelete?: (id: string) => void;
   onUpdate?: () => void;
   initialData?: Partial<TicketFormData>;
-  instructors: Instructor[];
   locations: { _id: string; title: string }[];
   classes: { _id: string; title: string; classType?: string }[];
   students?: Student[];
@@ -57,7 +49,6 @@ export default function ScheduleModal({
   onDelete,
   onUpdate,
   initialData = {},
-  instructors = [],
   classes = [],
   students = [],
   selectedLocationId,
@@ -89,7 +80,6 @@ export default function ScheduleModal({
     type: initialData?.type || classType,
     duration: initialData?.duration || "2h",
     locationId: initialData?.locationId || selectedLocationId || "",
-    instructorId: initialData?.instructorId || "",
     students: initialData?.students || [],
     spots: initialData?.spots || 30,
     status: initialData?.status || "available",
@@ -116,7 +106,6 @@ export default function ScheduleModal({
         type: initialData?.type || classType,
         duration: initialData?.duration || "2h",
         locationId: initialData?.locationId || selectedLocationId || "",
-        instructorId: initialData?.instructorId || "",
         students: normalizedStudents,
         spots: initialData?.spots || 30,
         status: initialData?.status || "available",
@@ -127,7 +116,18 @@ export default function ScheduleModal({
       // Si estamos editando un ticket existente (tiene _id), marcar endHour como tocada para evitar recálculo
       setEndHourTouched(initialData?._id ? true : false);
     }
-  }, [isOpen, initialData, recurrence, recurrenceEndDate, selectedLocationId, classType]);
+  }, [isOpen, initialData, selectedLocationId, classType]);
+
+  // Efecto separado para actualizar solo la recurrencia sin afectar otros campos
+  useEffect(() => {
+    if (isOpen) {
+      setForm(prev => ({
+        ...prev,
+        recurrence,
+        recurrenceEndDate: recurrence !== "none" ? recurrenceEndDate : undefined,
+      }));
+    }
+  }, [recurrence, recurrenceEndDate, isOpen]);
 
   // Efecto separado para actualizar el tipo de clase cuando cambie la pestaña activa
   useEffect(() => {
@@ -149,15 +149,8 @@ export default function ScheduleModal({
   }, [form.hour, endHourTouched, initialData?._id]);
 
   // Buscadores
-  const [instructorSearch, setInstructorSearch] = useState("");
   const [studentSearch, setStudentSearch] = useState("");
   const [validationErrors, setValidationErrors] = useState<string[]>([]);
-
-  const filteredInstructors = instructors
-    .filter((i) => i.canTeachTicketClass === true) // Solo instructores que pueden enseñar ticket class
-    .filter((i) =>
-      (i.name || "").toLowerCase().includes(instructorSearch.toLowerCase())
-    );
 
   const filteredStudents = students.filter((s) => {
     const search = studentSearch.toLowerCase();
@@ -210,13 +203,6 @@ export default function ScheduleModal({
   };
 
   // Checkbox handlers
-  const handleInstructorCheck = (id: string) => {
-    setForm((prev) => ({
-      ...prev,
-      instructorId: prev.instructorId === id ? "" : id,
-    }));
-  };
-
   const handleStudentCheck = (id: string) => {
     setForm((prev) => {
       const isCurrentlyInClass = isStudentInClass(id, prev.students);
@@ -280,13 +266,20 @@ export default function ScheduleModal({
     }
   };
 
-  // Filter classes based on the selected type in the form (case-insensitive)
+  // Helper function to normalize class type for comparison
+  const normalizeClassType = (type: string) => {
+    return type.toLowerCase().trim().replace(/\s+/g, '-');
+  };
+
+  // Filter classes based on the selected type in the form (case-insensitive and normalized)
   const filteredClasses = classes.filter(cls => {
-    const clsType = cls.classType?.toLowerCase() || '';
-    const formType = form.type?.toLowerCase() || '';
+    const clsType = normalizeClassType(cls.classType || '');
+    const formType = normalizeClassType(form.type || '');
     const matches = clsType === formType;
     if (matches) {
-      console.log(`✅ Class matched: "${cls.title}" (classType: "${cls.classType}") matches form.type: "${form.type}"`);
+      console.log(`✅ Class matched: "${cls.title}" (classType: "${cls.classType}" → "${clsType}") matches form.type: "${form.type}" → "${formType}"`);
+    } else {
+      console.log(`❌ Class NOT matched: "${cls.title}" (classType: "${cls.classType}" → "${clsType}") vs form.type: "${form.type}" → "${formType}"`);
     }
     return matches;
   });
@@ -300,7 +293,6 @@ export default function ScheduleModal({
       form.locationId &&
       form.hour &&
       form.endHour &&
-      form.instructorId &&
       form.status &&
       form.hour < form.endHour
     );
@@ -311,7 +303,6 @@ export default function ScheduleModal({
     if (!form.classId) errors.push("Driving Class is required");
     if (!form.hour) errors.push("Start Time is required");
     if (!form.endHour) errors.push("End Time is required");
-    if (!form.instructorId) errors.push("You must select a valid instructor");
     if (!form.status) errors.push("Status is required");
     if (form.hour >= form.endHour) errors.push("End Time must be after Start Time");
     if (recurrence !== "none" && !recurrenceEndDate) errors.push("Recurrence end date is required");
@@ -346,13 +337,12 @@ export default function ScheduleModal({
   // Update
   const handleUpdate = async () => {
     if (!form._id) return;
-    
+
     // Validar el formulario antes de enviar
     const errors = [];
     if (!form.classId) errors.push("Driving Class is required");
     if (!form.hour) errors.push("Start Time is required");
     if (!form.endHour) errors.push("End Time is required");
-    if (!form.instructorId) errors.push("You must select a valid instructor");
     if (!form.status) errors.push("Status is required");
     if (form.hour >= form.endHour) errors.push("End Time must be after Start Time");
 
@@ -372,15 +362,14 @@ export default function ScheduleModal({
         classId: form.classId,
         type: form.type,
         locationId: form.locationId,
-        instructorId: form.instructorId,
         // Asegurar que students y studentRequests sean arrays de strings
-        students: Array.isArray(form.students) 
+        students: Array.isArray(form.students)
           ? form.students.filter(s => typeof s === 'string')
           : [],
         spots: form.spots,
         duration: form.duration,
         status: form.status,
-        studentRequests: Array.isArray(form.studentRequests) 
+        studentRequests: Array.isArray(form.studentRequests)
           ? form.studentRequests.filter(req => typeof req === 'string')
           : [],
       };
@@ -448,13 +437,11 @@ export default function ScheduleModal({
       studentRequests: [],
       status: "available",
       classId: "", // Reset class selection to force user to choose a new class
-      instructorId: "", // Reset instructor to force new selection
       // Keep: date, hour, endHour, type, spots, locationId, duration
     };
 
     setForm(newForm);
     setValidationErrors([]);
-    setInstructorSearch(""); // Clear instructor search
     setStudentSearch(""); // Clear student search
   };
 
@@ -593,31 +580,6 @@ export default function ScheduleModal({
                   </div>
                 </div>
               )}
-
-              <div>
-                <label className="block text-xs font-medium mb-0.5">Instructors <span className="text-red-500">*</span></label>
-                <input
-                  type="text"
-                  placeholder="Search instructor by name..."
-                  value={instructorSearch}
-                  onChange={e => setInstructorSearch(e.target.value)}
-                  className="w-full border rounded px-1.5 py-1 text-xs mb-1 focus:outline-none focus:ring-1 focus:ring-blue-500"
-                />
-                <div className="max-h-32 overflow-y-auto border rounded px-1.5 py-1 bg-gray-50 space-y-0.5">
-                  {filteredInstructors.length === 0 && <div className="text-xs text-gray-400 py-1">No instructors found</div>}
-                  {filteredInstructors.map((i) => (
-                    <label key={i._id} className="flex items-center justify-between py-1.5 cursor-pointer text-xs hover:bg-gray-100 rounded px-1.5 transition-colors">
-                      <span className="flex-1 truncate">{i.name}</span>
-                      <input
-                        type="checkbox"
-                        checked={form.instructorId === i._id}
-                        onChange={() => handleInstructorCheck(i._id)}
-                        className="ml-2 w-4 h-4 flex-shrink-0"
-                      />
-                    </label>
-                  ))}
-                </div>
-              </div>
 
               <div>
                 <label className="block text-xs font-medium mb-0.5">Status <span className="text-red-500">*</span></label>

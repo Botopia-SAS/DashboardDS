@@ -14,26 +14,20 @@ import {
 
 export const useTicketCalendarData = (classType: string, refreshKey: number) => {
   const [calendarEvents, setCalendarEvents] = useState<TicketCalendarEvent[]>([]);
-  const [instructors, setInstructors] = useState<{ _id: string; name: string }[]>([]);
   const [classes, setClasses] = useState<{ _id: string; title: string }[]>([]);
   const [students, setStudents] = useState<{ _id: string; name: string }[]>([]);
   const [locations, setLocations] = useState<{ _id: string; title: string }[]>([]);
   const [isLoading, setIsLoading] = useState(true);
 
-  // Load static data (instructors, locations, classes, students)
+  // Load static data (locations, classes, students)
   useEffect(() => {
     const loadStaticData = async () => {
       try {
-        const [instructorsRes, locationsRes, classesRes, studentsRes] = await Promise.all([
-          fetch('/api/instructors'),
+        const [locationsRes, classesRes, studentsRes] = await Promise.all([
           fetch('/api/locations'),
           fetch('/api/classes'),
           fetch('/api/customers')
         ]);
-
-        if (instructorsRes.ok) {
-          setInstructors(await instructorsRes.json());
-        }
 
         if (locationsRes.ok) {
           setLocations(await locationsRes.json());
@@ -87,7 +81,6 @@ export const useTicketCalendarData = (classType: string, refreshKey: number) => 
       const events = filteredData.map((tc: TicketClassResponse) => {
         const studentCount = Array.isArray(tc.students) ? tc.students.length : 0;
         const totalSpots = tc.spots || 30;
-        const instructorName = getInstructorName(tc.instructorId, instructors);
         const displayClassType = tc.type.toUpperCase();
         const status = getStatusDisplay(tc.status);
         const { bg: backgroundColor, border: borderColor } = getStatusColors(status);
@@ -98,7 +91,7 @@ export const useTicketCalendarData = (classType: string, refreshKey: number) => 
 
         return {
           id: tc._id,
-          title: `${displayClassType}\n${instructorName}\n${status} (${studentCount}/${totalSpots})`,
+          title: `${displayClassType}\n${status} (${studentCount}/${totalSpots})`,
           start: `${dateStr}T${hour}`,
           end: `${dateStr}T${endHour}`,
           backgroundColor,
@@ -125,7 +118,7 @@ export const useTicketCalendarData = (classType: string, refreshKey: number) => 
 
   useEffect(() => {
     fetchTicketClasses();
-  }, [refreshKey, classType, instructors]);
+  }, [refreshKey, classType]);
 
   // Listen for real-time updates
   useEffect(() => {
@@ -147,7 +140,6 @@ export const useTicketCalendarData = (classType: string, refreshKey: number) => 
 
   return {
     calendarEvents,
-    instructors,
     classes,
     students,
     locations,

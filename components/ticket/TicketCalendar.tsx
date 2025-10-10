@@ -21,7 +21,6 @@ interface TicketFormData {
   endHour: string;
   type: string;
   status: string;
-  instructorId: string;
   students: string[];
   spots: number;
   classId?: string;
@@ -58,7 +57,6 @@ const TicketCalendar = ({
 
   const {
     calendarEvents,
-    instructors,
     classes,
     students,
     locations,
@@ -91,7 +89,6 @@ const TicketCalendar = ({
       endHour: endDate.toTimeString().slice(0, 5),
       type: classType,
       status: "available",
-      instructorId: "",
       students: [],
       spots: 30,
       classId: focusClassId || "",
@@ -112,9 +109,6 @@ const TicketCalendar = ({
         endHour: ticketClass.endHour || "",
         type: ticketClass.type || "date",
         status: ticketClass.status || "available",
-        instructorId: typeof ticketClass.instructorId === 'string'
-          ? ticketClass.instructorId
-          : ticketClass.instructorId._id,
         students: ticketClass.students || [],
         spots: ticketClass.spots || 30,
         classId: typeof ticketClass.classId === 'string'
@@ -183,7 +177,6 @@ const TicketCalendar = ({
           onDelete={handleModalDelete}
           onUpdate={refreshCalendar}
           initialData={selectedSlot}
-          instructors={instructors}
           locations={locations}
           classes={classes}
           students={students}
