@@ -4,7 +4,6 @@ import { connectToDB } from "@/lib/mongoDB";
 import Joi from "joi";
 import Location from "@/lib/models/Locations";
 import DrivingClass from "@/lib/models/Class";
-import Instructor from "@/lib/models/Instructor";
 
 const ticketClassSchema = Joi.object({
   locationId: Joi.string().required(),
@@ -42,11 +41,6 @@ interface DrivingClassDoc {
   _id: string;
   title: string;
   duration?: string;
-}
-
-interface InstructorDoc {
-  _id: string;
-  name: string;
 }
 
 export async function POST(req: NextRequest) {
@@ -219,15 +213,10 @@ export async function GET(req: NextRequest) {
   try {
     await connectToDB();
     const queryType = req.nextUrl.searchParams.get("type");
-    const instructorId = req.nextUrl.searchParams.get("instructorId");
     let query = {};
 
     if (queryType) {
       query = { type: queryType };
-    }
-    
-    if (instructorId) {
-      query = { ...query, instructorId };
     }
 
     const classes = await TicketClass.find(query).lean();
@@ -243,12 +232,6 @@ export async function GET(req: NextRequest) {
     const drivingClasses = await DrivingClass.find({
       _id: { $in: classIds },
     }).lean<DrivingClassDoc[]>();
-
-    // Fetch instructor names
-    const instructorIds = classes.map((cls) => cls.instructorId);
-    const instructors = await Instructor.find({
-      _id: { $in: instructorIds },
-    }).lean<InstructorDoc[]>();
 
     // Create lookup tables for faster access
     const locationMap: { [key: string]: string } = locations.reduce(
@@ -267,22 +250,12 @@ export async function GET(req: NextRequest) {
       {} as { [key: string]: string }
     );
 
-    const instructorMap: { [key: string]: string } = instructors.reduce(
-      (acc, inst) => {
-        acc[inst?._id.toString()] = inst.name;
-        return acc;
-      },
-      {} as { [key: string]: string }
-    );
-
-    // Enhance class data with related information
+    // Enhance class data with related information (no instructor info)
     const enhancedClasses = classes.map((cls) => ({
       ...cls,
       locationName:
         locationMap[cls.locationId.toString()] || "Unknown Location",
       className: classMap[cls.classId.toString()] || "Unknown Class",
-      instructorName:
-        instructorMap[cls.instructorId.toString()] || "Unknown Instructor",
     }));
 
     return NextResponse.json(enhancedClasses);

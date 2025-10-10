@@ -1,6 +1,5 @@
 import User from "@/lib/modals/user.modal";
 import Certificate from "@/lib/models/Cerificate";
-import Instructor from "@/lib/models/Instructor";
 import Order from "@/lib/models/Order";
 import Payment from "@/lib/models/Payments";
 import TicketClass from "@/lib/models/TicketClass";
@@ -21,7 +20,6 @@ interface Response {
   date: string;
   hour: string;
   classId: string;
-  instructorId: string;
   type: string;
   students: Student[];
   __v: number;
@@ -41,9 +39,6 @@ export async function GET(req: NextRequest) {
   
   console.log('✅ TicketClass found:', ticketClass._id);
   console.log('📋 Full ticketClass object:', JSON.stringify(ticketClass, null, 2));
-  const instructor = await Instructor.findOne({
-    _id: ticketClass.instructorId,
-  });
   console.log('📋 Raw ticketClass.students:', JSON.stringify(ticketClass.students, null, 2));
   
   const students = [];
@@ -88,8 +83,8 @@ export async function GET(req: NextRequest) {
       mfl_affiliate: 158996,
       schoolid: 1453,
       classid: 2181,
-      instructorId: instructor.dni,
-      instructorName: instructor.name,
+      instructorId: "N/A", // No instructor assigned to ticket classes
+      instructorName: "N/A",
       first_name: user.firstName,
       midl: user.middleName,
       last_name: user.lastName,

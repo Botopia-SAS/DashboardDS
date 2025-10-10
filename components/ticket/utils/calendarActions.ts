@@ -9,7 +9,6 @@ interface TicketFormData {
   endHour: string;
   type: string;
   status: string;
-  instructorId: string;
   students: string[];
   spots: number;
   classId?: string;
@@ -50,7 +49,6 @@ const createRecurringClasses = async (data: TicketFormData): Promise<void> => {
       classId: data.classId,
       type: data.type,
       locationId: data.locationId,
-      instructorId: data.instructorId,
       students: data.students,
       spots: data.spots,
       duration: data.duration,
@@ -81,7 +79,6 @@ const createSingleClass = async (data: TicketFormData): Promise<void> => {
       classId: data.classId,
       type: data.type,
       locationId: data.locationId,
-      instructorId: data.instructorId,
       students: data.students,
       spots: data.spots,
       duration: data.duration,

@@ -21,7 +21,7 @@ export async function GET() {
 
     for (const index of existingIndexes) {
       // Skip the _id index as it's required by MongoDB
-      if (index.name === '_id_') {
+      if (index.name === '_id_' || !index.name) {
         console.log(`⏭️ Skipping required _id index`);
         continue;
       }
