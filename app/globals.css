@@ -2,6 +2,27 @@
 @tailwind components;
 @tailwind utilities;
 
+/* Cloudinary Widget z-index and pointer-events fix - must be above modals and interactive */
+.cloudinary-widget-overlay,
+#cloudinary-overlay,
+.cloudinary-widget,
+.cloudinary-widget iframe,
+iframe[id^="cloudinary"],
+div[id^="cloudinary"],
+[class*="cloudinary"] {
+  z-index: 99999 !important;
+  pointer-events: auto !important;
+}
+
+/* Ensure the widget overlay backdrop is interactive */
+#cloudinary-overlay {
+  position: fixed !important;
+  top: 0 !important;
+  left: 0 !important;
+  right: 0 !important;
+  bottom: 0 !important;
+}
+
 /* Schedule Modal Responsive Styles */
 @media screen and (max-height: 600px) {
   .schedule-modal-container {

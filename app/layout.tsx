@@ -18,6 +18,13 @@ export default function RootLayout({
 }>) {
   return (
     <html lang="en">
+      <head>
+        {/* Cloudinary Upload Widget Script */}
+        <script
+          src="https://upload-widget.cloudinary.com/global/all.js"
+          async
+        />
+      </head>
       <body className={inter.className}>
         <NotificationProvider>
           <Providers>

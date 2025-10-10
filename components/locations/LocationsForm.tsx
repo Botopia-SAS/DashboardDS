@@ -22,14 +22,7 @@ import toast from "react-hot-toast";
 import Select from "react-select"; // 📌 Librería para Select
 import { useJsApiLoader, Autocomplete } from "@react-google-maps/api";
 import { useRef } from "react";
-import SeoTab from "@/components/custom ui/SeoTab";
-import {
-  Dialog,
-  DialogContent,
-  DialogHeader,
-  DialogTitle,
-  DialogTrigger,
-} from "@/components/ui/dialog";
+import Link from "next/link";
 
 // Configurar la API de Google Maps
 const GOOGLE_MAPS_API_KEY = process.env.NEXT_PUBLIC_GOOGLE_MAPS_API_KEY || "";
@@ -181,23 +174,15 @@ const LocationsForm: React.FC<LocationsFormProps> = ({ initialData }) => {
 
         {/* SEO Button - Solo visible si hay initialData (modo edición) */}
         {initialData && (
-          <Dialog>
-            <DialogTrigger asChild>
-              <Button
-                type="button"
-                variant="outline"
-                className="border-2 border-blue-500 text-blue-600 hover:bg-blue-50 font-semibold px-4 py-2"
-              >
-                SEO
-              </Button>
-            </DialogTrigger>
-            <DialogContent className="max-w-3xl max-h-[90vh] overflow-y-auto">
-              <DialogHeader>
-                <DialogTitle>SEO Settings - {initialData.title}</DialogTitle>
-              </DialogHeader>
-              <SeoTab entityType="Location" entityId={initialData._id} entityData={initialData} />
-            </DialogContent>
-          </Dialog>
+          <Link href={`/locations/${initialData._id}/seo`}>
+            <Button
+              type="button"
+              variant="outline"
+              className="border-2 border-blue-500 text-blue-600 hover:bg-blue-50 font-semibold px-4 py-2"
+            >
+              SEO Settings
+            </Button>
+          </Link>
         )}
       </div>
       <Separator className="bg-gray-300 my-4" />

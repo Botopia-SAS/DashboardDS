@@ -2,6 +2,7 @@ import { CldUploadWidget } from "next-cloudinary";
 import { Plus, Trash } from "lucide-react";
 import { Button } from "../ui/button";
 import Image from "next/image";
+import { useState, useEffect } from "react";
 
 interface ImageUploadProps {
   value: string[];
@@ -19,6 +20,22 @@ interface CloudinaryUploadResult {
 }
 
 const ImageUpload: React.FC<ImageUploadProps> = ({ onChange, onRemove, value, defaultImageUrl }) => {
+  const [isScriptLoaded, setIsScriptLoaded] = useState(false);
+
+  useEffect(() => {
+    // Verificar si el script de Cloudinary está cargado
+    const checkCloudinaryScript = () => {
+      if (typeof window !== 'undefined' && (window as any).cloudinary) {
+        setIsScriptLoaded(true);
+      } else {
+        // Reintentar después de un breve delay
+        setTimeout(checkCloudinaryScript, 100);
+      }
+    };
+
+    checkCloudinaryScript();
+  }, []);
+
   const onUpload = (result: CloudinaryUploadResult) => {
     if (typeof result.info === 'object' && result.info?.secure_url) {
       onChange(result.info.secure_url);
@@ -55,24 +72,69 @@ const ImageUpload: React.FC<ImageUploadProps> = ({ onChange, onRemove, value, de
       </div>
 
       {/* ✅ Verificación antes de ejecutar `open` */}
-      <CldUploadWidget uploadPreset="uznprz18" onSuccess={onUpload}>
-        {({ open }) => (
-          <Button
-            type="button"
-            onClick={() => {
-              if (open) {
-                open();
-              } else {
-                console.error("Upload widget is not ready yet.");
+      {isScriptLoaded ? (
+        <CldUploadWidget
+          uploadPreset="uznprz18"
+          onSuccess={onUpload}
+          options={{
+            cloudName: process.env.NEXT_PUBLIC_CLOUDINARY_CLOUD_NAME,
+            sources: ['local', 'url', 'camera', 'google_drive', 'dropbox'],
+            multiple: false,
+            maxFiles: 1,
+            clientAllowedFormats: ['image'],
+            maxImageFileSize: 5000000, // 5MB
+            maxImageWidth: 2000,
+            maxImageHeight: 2000,
+            showPoweredBy: false,
+            styles: {
+              palette: {
+                window: "#FFFFFF",
+                windowBorder: "#90A0B3",
+                tabIcon: "#0078FF",
+                menuIcons: "#5A616A",
+                textDark: "#000000",
+                textLight: "#FFFFFF",
+                link: "#0078FF",
+                action: "#0078FF",
+                inactiveTabIcon: "#0E2F5A",
+                error: "#F44235",
+                inProgress: "#0078FF",
+                complete: "#20B832",
+                sourceBg: "#E4EBF1"
+              },
+              frame: {
+                background: "rgba(0,0,0,0.5)"
               }
-            }}
-            className="bg-gray-500 text-white"
-          >
-            <Plus className="h-4 w-4 mr-2" />
-            Upload Image
-          </Button>
-        )}
-      </CldUploadWidget>
+            }
+          }}
+        >
+          {({ open }) => (
+            <Button
+              type="button"
+              onClick={() => {
+                if (open) {
+                  open();
+                } else {
+                  console.error("Upload widget is not ready yet.");
+                }
+              }}
+              className="bg-gray-500 text-white"
+            >
+              <Plus className="h-4 w-4 mr-2" />
+              Upload Image
+            </Button>
+          )}
+        </CldUploadWidget>
+      ) : (
+        <Button
+          type="button"
+          disabled
+          className="bg-gray-400 text-white cursor-not-allowed"
+        >
+          <Plus className="h-4 w-4 mr-2" />
+          Loading...
+        </Button>
+      )}
     </div>
   );
 };

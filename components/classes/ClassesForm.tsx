@@ -21,14 +21,7 @@ import toast from "react-hot-toast";
 import { useEffect, useState } from "react";
 import Select, { MultiValue, ActionMeta } from "react-select";
 import useClassTypeStore from "@/app/store/classTypeStore";
-import SeoTab from "@/components/custom ui/SeoTab";
-import {
-  Dialog,
-  DialogContent,
-  DialogHeader,
-  DialogTitle,
-  DialogTrigger,
-} from "@/components/ui/dialog";
+import Link from "next/link";
 
 const formSchema = z.object({
   title: z.string().min(2).max(500),
@@ -452,23 +445,15 @@ const CustomForm: React.FC<FormProps> = ({ initialData }) => {
 
         {/* SEO Button - Solo visible si hay initialData (modo edición) */}
         {initialData && (
-          <Dialog>
-            <DialogTrigger asChild>
-              <Button
-                type="button"
-                variant="outline"
-                className="border-2 border-blue-500 text-blue-600 hover:bg-blue-50 font-semibold px-4 py-2"
-              >
-                SEO
-              </Button>
-            </DialogTrigger>
-            <DialogContent className="max-w-3xl max-h-[90vh] overflow-y-auto">
-              <DialogHeader>
-                <DialogTitle>SEO Settings - {initialData.title}</DialogTitle>
-              </DialogHeader>
-              <SeoTab entityType="DrivingClass" entityId={initialData._id} entityData={initialData} />
-            </DialogContent>
-          </Dialog>
+          <Link href={`/classes/${initialData._id}/seo`}>
+            <Button
+              type="button"
+              variant="outline"
+              className="border-2 border-blue-500 text-blue-600 hover:bg-blue-50 font-semibold px-4 py-2"
+            >
+              SEO Settings
+            </Button>
+          </Link>
         )}
       </div>
       <Separator className="bg-gray-300 my-4" />
