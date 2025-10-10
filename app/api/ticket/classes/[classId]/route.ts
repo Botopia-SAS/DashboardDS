@@ -171,7 +171,7 @@ export async function PUT(
     }
 
     // Validar campos requeridos
-    const requiredFields = ['date', 'hour', 'endHour', 'classId', 'instructorId', 'type', 'locationId'];
+    const requiredFields = ['date', 'hour', 'endHour', 'classId', 'type', 'locationId'];
     for (const field of requiredFields) {
       if (!body[field]) {
         return NextResponse.json(
@@ -197,7 +197,6 @@ export async function PUT(
       classId: body.classId,
       type: body.type,
       locationId: body.locationId,
-      instructorId: body.instructorId,
       spots: body.spots || ticketClass.spots,
       duration: body.duration || ticketClass.duration,
       status: body.status || ticketClass.status,

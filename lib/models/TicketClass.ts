@@ -52,22 +52,10 @@ const TicketClassSchema = new mongoose.Schema({
     type: [String],
     default: [],
   },
-  instructorId: {
-    type: mongoose.Schema.Types.ObjectId,
-    ref: "Instructor",
-    required: true,
-  },
 });
 
-// Index to prevent the same instructor from having multiple classes at the same date/hour
-// This allows different instructors to teach at the same time
-TicketClassSchema.index(
-  { date: 1, hour: 1, instructorId: 1 },
-  { unique: true }
-);
-
-// Indexes para evitar duplicados por fecha y clase
-TicketClassSchema.index({ date: 1, classId: 1 });
+// Indexes para evitar duplicados por fecha, hora y ubicación
+TicketClassSchema.index({ date: 1, hour: 1, locationId: 1 }, { unique: true });
 
 // Force refresh the model to use new schema
 if (mongoose.models.TicketClass) {
