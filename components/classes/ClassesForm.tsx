@@ -30,7 +30,6 @@ const formSchema = z.object({
   price: z.coerce.number().min(0.1, "Price must be greater than 0"),
   overview: z.string().min(10).max(2000),
   objectives: z.array(z.string().min(1)).default([]),
-  contact: z.string().regex(/^\d{10,15}$/, "Enter a valid phone number (10-15 digits)"),
   buttonLabel: z.string().min(1).max(20),
   image: z.string().optional(),
   headquarters: z.array(z.string()).min(1, "Please select at least one headquarters"),
@@ -46,7 +45,6 @@ interface FormProps {
     price: number;
     overview: string;
     objectives: string[];
-    contact: string;
     buttonLabel: string;
     image?: string;
     headquarters?: string[];
@@ -696,20 +694,6 @@ const CustomForm: React.FC<FormProps> = ({ initialData }) => {
           </FormItem>
 
 
-          {/* 🔹 CONTACT */}
-          <FormField
-            control={form.control}
-            name="contact"
-            render={({ field }) => (
-              <FormItem>
-                <FormLabel>Contact</FormLabel>
-                <FormControl>
-                  <Input type="tel" {...field} placeholder="Enter phone number" />
-                </FormControl>
-                <FormMessage />
-              </FormItem>
-            )}
-          />
 
           {/* 🔹 IMAGE UPLOAD */}
           <FormField

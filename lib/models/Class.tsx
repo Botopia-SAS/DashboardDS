@@ -7,7 +7,6 @@ const classSchema = new mongoose.Schema({
   price: { type: Number, required: true, min: 0 },
   overview: { type: String, required: true },
   objectives: { type: [String], default: [] },
-  contact: { type: String, required: true, match: /^\d{10,15}$/ },
   buttonLabel: { type: String, required: true },
   image: { type: String, default: "" },
   headquarters: { type: [String], required: true },

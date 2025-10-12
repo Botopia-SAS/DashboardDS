@@ -27,7 +27,6 @@ export async function POST(req: Request) {
       price: body.price,
       overview: body.overview,
       objectives: body.objectives,
-      contact: body.contact,
       buttonLabel: body.buttonLabel,
       image: body.image,
       headquarters: body.headquarters, // 🚀 Se almacena en MongoDB
