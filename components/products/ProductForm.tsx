@@ -32,7 +32,7 @@ const formSchema = z.object({
   price: z.coerce.number().min(0.1, "Price must be at least $0.10"),
   duration: z.coerce.number().int("Duration must be a whole number").min(1, "Duration must be at least 1 hour").max(24, "Duration cannot exceed 24 hours"),
   category: z.enum(["General", "Road Skills for Life"]),
-  type: z.enum(["Book", "Buy","Contact"]),
+  type: z.literal("Buy"), // Always "Buy" for products
   buttonLabel: z.string().min(1, "Button label is required").max(20),
 });
 
@@ -45,7 +45,6 @@ interface ProductFormProps {
     price: number;
     duration: number;
     category: "General" | "Road Skills for Life";
-    type: "Book" | "Buy" | "Contact";
     buttonLabel: string;
   } | null;
 }
@@ -64,7 +63,7 @@ const ProductForm: React.FC<ProductFormProps> = ({ initialData }) => {
       price: initialData?.price ?? 0.1, // Usa `??` para evitar undefined
       duration: initialData?.duration ?? 1,
       category: initialData?.category || "General",
-      type: initialData?.type || "Book",
+      type: "Buy",
       buttonLabel: initialData?.buttonLabel || "",
     },
   });
@@ -233,30 +232,8 @@ const ProductForm: React.FC<ProductFormProps> = ({ initialData }) => {
             />
           </div>
 
-          {/* 🔹 TYPE y BUTTON LABEL en otra FILA */}
+          {/* 🔹 BUTTON LABEL - TYPE is always Buy */}
           <div className="grid grid-cols-1 md:grid-cols-2 gap-32">
-            <FormField
-              control={form.control}
-              name="type"
-              render={({ field }) => (
-                <FormItem>
-                  <FormLabel>Type *</FormLabel>
-                  <FormControl>
-                    <Combobox
-                      options={[
-                        { label: "Book", value: "Book" },
-                        { label: "Buy", value: "Buy" },
-                        { label: "Contact", value: "Contact" },
-                      ]}
-                      value={field.value}
-                      onChange={field.onChange}
-                    />
-                  </FormControl>
-                  <FormMessage />
-                </FormItem>
-              )}
-            />
-
             <FormField
               control={form.control}
               name="buttonLabel"

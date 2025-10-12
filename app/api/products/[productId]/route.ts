@@ -51,11 +51,10 @@ export const POST = async (req: NextRequest) => {
       price,
       duration,
       category,
-      type,
       buttonLabel,
     } = await req.json();
 
-    if (!title || !description || !price || !duration || !category || !type || !buttonLabel) {
+    if (!title || !description || !price || !duration || !category || !buttonLabel) {
       return new NextResponse("All fields are required", { status: 400 });
     }
 
@@ -69,7 +68,7 @@ export const POST = async (req: NextRequest) => {
       price,
       duration,
       category,
-      type,
+      type: "Buy", // Always "Buy" for products
       buttonLabel,
     });
 
@@ -118,9 +117,12 @@ export const PATCH = async (req: NextRequest) => {
       return new NextResponse("Product ID is required", { status: 400 });
     }
 
+    // Ensure type is always "Buy" for products
+    const updateData = { ...body, type: "Buy" };
+    
     const updatedProduct = await Product.findByIdAndUpdate(
       productId,
-      body,
+      updateData,
       { new: true }
     );
 
