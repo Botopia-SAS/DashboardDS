@@ -143,13 +143,13 @@ export default function CertificateEditorPage() {
 
       // Create a mock student with example data
       const mockStudent: Student = {
-        _id: 'preview',
+        id: 'preview',
         first_name: 'JOHN',
         midl: 'MICHAEL',
         last_name: 'DOE',
-        birthDate: new Date('1990-01-15'),
+        birthDate: '1990-01-15',
         certn: 12345,
-        courseDate: new Date(),
+        courseDate: new Date().toISOString(),
         classTitle: 'Drive Safety & Driver Improvement Course',
         classType: decodedClassType.toUpperCase(),
         licenseNumber: 'D123-456-78-910-0',
@@ -159,7 +159,8 @@ export default function CertificateEditorPage() {
         courseTime: '9:00 AM - 5:00 PM',
         instructorName: 'N/A',
         type: decodedClassType.toUpperCase(),
-      } as Student;
+        payedAmount: 150.00,
+      };
 
       // Generate PDF using the dynamic generator
       const pdfBlob = await generateDynamicCertificatePDF(mockStudent, template);
