@@ -10,8 +10,9 @@ import Loader from "@/components/custom ui/Loader";
 import DashboardHeader from "@/components/layout/DashboardHeader";
 import { useSearchParams, useRouter, useParams } from "next/navigation";
 import { GovCertificateDialog } from "@/components/ticket/gov-certificate-dialog";
+import { AdiCertificateDialog } from "@/components/ticket/adi-certificate-dialog";
 import { Button } from "@/components/ui/button";
-import { FileText } from "lucide-react";
+import { FileText, GraduationCap } from "lucide-react";
 
 export default function TicketClassTypePage() {
   const params = useParams();
@@ -23,12 +24,11 @@ export default function TicketClassTypePage() {
 
   const { setClassType, setAvailableClassTypes } = useClassTypeStore();
   const [loading, setLoading] = useState(true);
-  const [tabChangeLoading, setTabChangeLoading] = useState(false);
-  const [loadingClassType, setLoadingClassType] = useState('');
   const [calendarRefreshKey, setCalendarRefreshKey] = useState(0);
   const [classTypes, setClassTypes] = useState<ClassTypeOption[]>([]);
   const [currentClassType, setCurrentClassType] = useState(classtype?.toLowerCase() || 'date');
   const [isGovCertDialogOpen, setIsGovCertDialogOpen] = useState(false);
+  const [isAdiCertDialogOpen, setIsAdiCertDialogOpen] = useState(false);
   const searchParams = useSearchParams();
 
   // Get URL parameters
@@ -131,19 +131,10 @@ export default function TicketClassTypePage() {
   const handleTabChange = (newClassType: string) => {
     const normalizedType = normalizeClassType(newClassType);
 
-    console.log('🔄 Tab change:', normalizedType);
-
     // Prevenir cambio si es el mismo tipo
     if (normalizedType === currentClassType) {
-      console.log('⏭️ Same type, skipping');
       return;
     }
-
-    // Set the loading type FIRST
-    setLoadingClassType(normalizedType);
-
-    // Start loading
-    setTabChangeLoading(true);
 
     // Update current type
     setCurrentClassType(normalizedType);
@@ -157,41 +148,36 @@ export default function TicketClassTypePage() {
     // Update URL sin recargar la página
     const newUrl = `/ticket/${normalizedType}${window.location.search}`;
     window.history.pushState({ classType: normalizedType }, '', newUrl);
-
-    // End loading
-    setTimeout(() => {
-      setTabChangeLoading(false);
-    }, 300);
   };
 
   if (loading) return <Loader />;
 
   return (
     <>
-      {/* Loading overlay for tab changes */}
-      {tabChangeLoading && (
-        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
-          <div className="bg-white p-6 rounded-lg shadow-lg">
-            <div className="flex items-center space-x-3">
-              <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-blue-600"></div>
-              <span className="text-lg font-medium text-gray-700">Loading {loadingClassType.toUpperCase()}...</span>
-            </div>
-          </div>
-        </div>
-      )}
       
       {/* Header con mejor responsive */}
       <div className="px-3 sm:px-6 py-4">
         <DashboardHeader title="Tickets">
-          <Button
-            onClick={() => setIsGovCertDialogOpen(true)}
-            className="flex items-center gap-2 text-xs sm:text-sm px-3 sm:px-4"
-            variant="outline"
-          >
-            <FileText className="h-3 w-3 sm:h-4 sm:w-4" />
-            <span className="hidden sm:inline">Government Certificate</span>
-            <span className="sm:hidden">Gov Cert</span>
-          </Button>
+          <div className="flex gap-2">
+            <Button
+              onClick={() => setIsGovCertDialogOpen(true)}
+              className="flex items-center gap-2 text-xs sm:text-sm px-3 sm:px-4"
+              variant="outline"
+            >
+              <FileText className="h-3 w-3 sm:h-4 sm:w-4" />
+              <span className="hidden sm:inline">Government Certificate</span>
+              <span className="sm:hidden">Gov Cert</span>
+            </Button>
+            <Button
+              onClick={() => setIsAdiCertDialogOpen(true)}
+              className="flex items-center gap-2 text-xs sm:text-sm px-3 sm:px-4"
+              variant="outline"
+            >
+              <GraduationCap className="h-3 w-3 sm:h-4 sm:w-4" />
+              <span className="hidden sm:inline">Enrollment Letter</span>
+              <span className="sm:hidden">Enrollment</span>
+            </Button>
+          </div>
         </DashboardHeader>
       </div>
 
@@ -250,6 +236,11 @@ export default function TicketClassTypePage() {
       <GovCertificateDialog
         open={isGovCertDialogOpen}
         onOpenChange={setIsGovCertDialogOpen}
+      />
+
+      <AdiCertificateDialog
+        open={isAdiCertDialogOpen}
+        onOpenChange={setIsAdiCertDialogOpen}
       />
     </>
   );

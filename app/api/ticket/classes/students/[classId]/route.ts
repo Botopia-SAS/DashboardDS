@@ -28,48 +28,33 @@ interface Response {
 export async function GET(req: NextRequest) {
   await connectToDB();
   const classId = req.url.split("/").pop();
-  console.log('🔍 Searching for class with ID:', classId);
   
   const ticketClass = await TicketClass.findById(classId).exec();
   
   if (!ticketClass) {
-    console.log('❌ Class not found with ID:', classId);
     return NextResponse.json({ error: "Class not found" }, { status: 404 });
   }
-  
-  console.log('✅ TicketClass found:', ticketClass._id);
-  console.log('📋 Full ticketClass object:', JSON.stringify(ticketClass, null, 2));
-  console.log('📋 Raw ticketClass.students:', JSON.stringify(ticketClass.students, null, 2));
   
   const students = [];
   
   // Ensure students is an array before iterating
   const studentsArray = Array.isArray(ticketClass.students) ? ticketClass.students : [];
-  console.log('🔍 Students array length:', studentsArray.length);
   
   for (const studentEntry of studentsArray) {
-    console.log('👤 Processing student entry:', JSON.stringify(studentEntry, null, 2));
-    
     // Handle both cases: direct ID strings or objects with studentId
     let studentId;
     if (typeof studentEntry === 'string') {
       studentId = studentEntry;
-      console.log('✅ Format 1 - Direct ID:', studentId);
     } else if (studentEntry && typeof studentEntry === 'object' && studentEntry.studentId) {
       studentId = studentEntry.studentId;
-      console.log('✅ Format 2 - Object with studentId:', studentId);
     } else {
-      console.warn('❌ Invalid student entry:', studentEntry);
       continue;
     }
     
-    console.log('🔎 Searching for user with ID:', studentId);
     const user = await User.findOne({ _id: studentId }).exec();
     if (!user) {
-      console.warn(`❌ User not found for studentId: ${studentId}`);
       continue; // Skip if user not found
     }
-    console.log('✅ User found:', user.firstName, user.lastName);
     
     const payment = await Payment.findOne({
       user_id: studentId,
@@ -105,7 +90,6 @@ export async function GET(req: NextRequest) {
     });
   }
   
-  console.log(`📊 Final result: Found ${students.length} students for class ${classId}`);
   return NextResponse.json(students, { status: 200 });
 }
 
