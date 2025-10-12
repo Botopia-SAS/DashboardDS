@@ -3,7 +3,7 @@
 import ContactForm from "@/components/ui/ContactForm";
 import Link from "next/link";
 import { Button } from "@/components/ui/button";
-import { ArrowLeft, Mail, Layers, CalendarClock } from "lucide-react";
+import { ArrowLeft, Mail, Layers } from "lucide-react";
 import TemplatesPanel from '@/components/ui/TemplatesPanel';
 import { useEffect, useState } from "react";
 

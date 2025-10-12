@@ -1,16 +1,16 @@
 "use client";
 
-import { useState, useRef, useEffect } from "react";
+import { useState } from "react";
 import { useRouter } from "next/navigation";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
-import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
+// import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Textarea } from "@/components/ui/textarea";
 import { Switch } from "@/components/ui/switch";
-import { Trash2, Plus, Save, Eye, Type, ImageIcon, Square, Circle, Minus } from "lucide-react";
+import { Trash2, Plus } from "lucide-react";
 import toast from "react-hot-toast";
 import { CertificateTemplate, TextElement, ImageElement, ShapeElement, DEFAULT_VARIABLES } from "./types";
 import { CertificateCanvas } from "./CertificateCanvas";
@@ -30,9 +30,9 @@ export function CertificateEditor({
   onSave, 
   initialTemplate, 
   showVariables = false, 
-  setShowVariables,
-  previewMode = false, 
-  setPreviewMode 
+  // setShowVariables,
+  previewMode = false 
+  // setPreviewMode 
 }: CertificateEditorProps) {
   const router = useRouter();
   const [template, setTemplate] = useState<CertificateTemplate>(

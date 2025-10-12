@@ -1,7 +1,7 @@
 import { NextRequest } from "next/server";
 import { io } from "@/lib/socket";
 
-export async function GET(req: NextRequest) {
+export async function GET() {
   return new Response(JSON.stringify({ message: "Socket.IO server is running" }), {
     status: 200,
     headers: {

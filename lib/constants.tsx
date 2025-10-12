@@ -1,6 +1,5 @@
 import {
     LayoutDashboard,
-    Shapes,
     ShoppingBag,
     UsersRound,
     Car,

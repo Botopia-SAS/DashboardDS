@@ -6,10 +6,10 @@ import bcrypt from "bcryptjs";
 
 export const dynamic = "force-dynamic";
 
-interface Auth0Error {
-  message: string;
-  [key: string]: unknown;
-}
+// interface Auth0Error {
+//   message: string;
+//   [key: string]: unknown;
+// }
 
 export async function POST(req: Request) {
   try {

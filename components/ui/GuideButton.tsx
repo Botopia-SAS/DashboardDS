@@ -4,7 +4,7 @@ import { useState, useEffect } from "react";
 import { usePathname } from "next/navigation";
 import { Button } from "@/components/ui/button";
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
-import { HelpCircle, X } from "lucide-react";
+import { HelpCircle } from "lucide-react";
 
 interface GuideContent {
   title: string;

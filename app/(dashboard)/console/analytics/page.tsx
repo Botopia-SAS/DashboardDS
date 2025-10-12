@@ -29,19 +29,19 @@ import { CalendarIcon, Users, Clock, Globe, Monitor, ArrowLeft } from "lucide-re
 const COLORS = ['#0088FE', '#00C49F', '#FFBB28', '#FF8042', '#8884d8'];
 
 // Define tipos para los eventos de heatmap
-interface HeatmapEvent {
-  x: number;
-  y: number;
-  value: number;
-  pathname: string;
-  event_type: string;
-  timestamp?: string;
-}
+// interface HeatmapEvent {
+//   x: number;
+//   y: number;
+//   value: number;
+//   pathname: string;
+//   event_type: string;
+//   timestamp?: string;
+// }
 
-interface HeatmapResponse {
-  success: boolean;
-  heatmap: HeatmapEvent[];
-}
+// interface HeatmapResponse {
+//   success: boolean;
+//   heatmap: HeatmapEvent[];
+// }
 
 // Define tipos para los datos de analytics
 interface AnalyticsDevice { device: string; count: number; }

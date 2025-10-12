@@ -11,7 +11,7 @@ export async function GET(req: NextRequest) {
     const classType = searchParams.get("classType");
     const defaultOnly = searchParams.get("default") === "true";
 
-    let query: any = { isActive: true };
+    const query: any = { isActive: true };
 
     if (classType) {
       query.classType = classType.toUpperCase();

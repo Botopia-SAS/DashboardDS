@@ -6,7 +6,7 @@ import { Plus } from "lucide-react";
 
 import Loader from "@/components/custom ui/Loader";
 import { Button } from "@/components/ui/button";
-import { Separator } from "@/components/ui/separator";
+// import { Separator } from "@/components/ui/separator";
 import { DataTable } from "@/components/custom ui/DataTable";
 import { columns } from "@/components/products/ProductColumns";
 import DashboardHeader from "@/components/layout/DashboardHeader";

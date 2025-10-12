@@ -1,4 +1,4 @@
-import { NextRequest, NextResponse } from "next/server";
+import { NextResponse } from "next/server";
 import TicketClass from "@/lib/models/TicketClass";
 import { connectToDB } from "@/lib/mongoDB";
 

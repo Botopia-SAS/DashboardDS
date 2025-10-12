@@ -152,7 +152,7 @@ const Calendar: React.FC<CalendarProps> = ({ selectedInstructor, targetDate, tar
         const clipboard = window.localStorage.getItem(clipboardKey);
         if (!clipboard) return;
         try {
-          const data = JSON.parse(clipboard);
+          // const data = JSON.parse(clipboard);
           // console.log("Pasted data:", data);
           
           // El modal detectará automáticamente los datos pegados
@@ -167,13 +167,13 @@ const Calendar: React.FC<CalendarProps> = ({ selectedInstructor, targetDate, tar
     return () => window.removeEventListener('keydown', handlePaste);
   }, [isModalOpen, selectedDate, selectedTime]);
 
-  const getDefaultEndTime = (startTime: string, hours: number) => {
-    if (!startTime) return "";
-    const [hoursStart, minutes] = startTime.split(":").map(Number);
-    let endHours = hoursStart + hours;
-    if (endHours >= 24) endHours = 23;
-    return `${endHours.toString().padStart(2, "0")}:${minutes.toString().padStart(2, "0")}`;
-  };
+  // const getDefaultEndTime = (startTime: string, hours: number) => {
+  //   if (!startTime) return "";
+  //   const [hoursStart, minutes] = startTime.split(":").map(Number);
+  //   let endHours = hoursStart + hours;
+  //   if (endHours >= 24) endHours = 23;
+  //   return `${endHours.toString().padStart(2, "0")}:${minutes.toString().padStart(2, "0")}`;
+  // };
 
   const handleDateSelect = (selectInfo: any) => {
     try {
