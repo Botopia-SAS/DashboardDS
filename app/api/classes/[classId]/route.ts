@@ -56,7 +56,7 @@ export async function PUT(
     }
 
     // Validate required fields from body
-    const requiredFields = ['title', 'length', 'price', 'overview', 'contact', 'buttonLabel'];
+    const requiredFields = ['title', 'length', 'price', 'overview', 'buttonLabel'];
     for (const field of requiredFields) {
       if (!body[field] && body[field] !== 0) {
         console.error(`❌ [PUT_CLASS] Missing required field: ${field}`);
