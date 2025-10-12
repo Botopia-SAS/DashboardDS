@@ -70,12 +70,12 @@ export const useTicketCalendarData = (classType: string, refreshKey: number) => 
   }, []);
 
   // Load calendar events
-  const fetchTicketClasses = async () => {
+  const fetchTicketClasses = async (forceRefresh = false) => {
     setIsLoading(true);
     try {
-      // Check cache first
+      // Check cache first (only if not forcing refresh)
       const cacheKey = `calendar-${classType}`;
-      const cachedData = getCachedData(cacheKey);
+      const cachedData = forceRefresh ? null : getCachedData(cacheKey);
       
       if (cachedData) {
         setCalendarEvents(cachedData);
@@ -83,7 +83,9 @@ export const useTicketCalendarData = (classType: string, refreshKey: number) => 
         return;
       }
 
-      const response = await fetch("/api/ticket/calendar");
+      // Add timestamp to prevent caching
+      const timestamp = Date.now();
+      const response = await fetch(`/api/ticket/calendar?t=${timestamp}`);
 
       if (!response.ok) {
         throw new Error(`API Error: ${response.status}`);
@@ -168,6 +170,6 @@ export const useTicketCalendarData = (classType: string, refreshKey: number) => 
     students,
     locations,
     isLoading,
-    refreshCalendar: fetchTicketClasses
+    refreshCalendar: () => fetchTicketClasses(true) // Force refresh when called manually
   };
 };

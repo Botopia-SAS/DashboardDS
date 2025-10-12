@@ -81,7 +81,9 @@ export default function Page() {
     }
   };
   const navigate = () => {
-    router.back();
+    // Navigate specifically to the correct classtype page instead of using router.back()
+    const normalizedClassType = classType.toLowerCase().replace(/\s+/g, '-');
+    router.push(`/ticket/${normalizedClassType}`);
   };
 
   // Handler para cuando se selecciona una clase

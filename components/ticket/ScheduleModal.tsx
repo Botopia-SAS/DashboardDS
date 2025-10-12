@@ -2,7 +2,6 @@ import { Dialog } from "@headlessui/react";
 import { Button } from "@/components/ui/button";
 import { useState, useEffect } from "react";
 import useClassTypeStore from "@/app/store/classTypeStore";
-import { refreshTicketCalendar } from "@/lib/calendarEvents";
 
 interface Student {
   _id: string;
@@ -320,9 +319,6 @@ export default function ScheduleModal({
         recurrence,
         recurrenceEndDate: recurrence !== "none" ? recurrenceEndDate : undefined
       });
-
-      // Disparar evento global de actualización del calendario
-      refreshTicketCalendar();
     } catch (error: unknown) {
       // Handle API errors (like instructor conflicts)
       if (error instanceof Error && error.message) {
@@ -408,9 +404,6 @@ export default function ScheduleModal({
       // Cerrar el modal y refrescar el calendario sin alerts de éxito
       onClose();
       if (onUpdate) onUpdate();
-
-      // Disparar evento global de actualización del calendario
-      refreshTicketCalendar();
     } catch (err) {
       console.error('Update error:', err);
       alert(`Error updating TicketClass: ${err instanceof Error ? err.message : 'Unknown error'}`);

@@ -635,7 +635,7 @@ const Calendar: React.FC<CalendarProps> = ({ selectedInstructor, targetDate, tar
             }}
             height="auto"
             slotMinTime="06:00:00"
-            slotMaxTime="20:00:00"
+            slotMaxTime="22:00:00"
             slotDuration="00:30:00"
             allDaySlot={false}
             eventTimeFormat={{

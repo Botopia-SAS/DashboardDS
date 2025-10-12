@@ -88,7 +88,9 @@ export default function Page() {
   }
   
   const navigate = () => {
-    router.back();
+    // Navigate specifically to the correct classtype page instead of using router.back()
+    const normalizedClassType = classType.toLowerCase().replace(/\s+/g, '-');
+    router.push(`/ticket/${normalizedClassType}`);
   };
 
   const onUpdate = async (data: Partial<Student>[]) => {

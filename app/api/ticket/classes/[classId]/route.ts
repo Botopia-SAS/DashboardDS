@@ -242,3 +242,58 @@ export async function PUT(
     );
   }
 }
+
+export async function DELETE(
+  request: NextRequest,
+  { params }: { params: Promise<{ classId: string }> }
+) {
+  try {
+    await dbConnect();
+
+    const { classId } = await params;
+
+    console.log('🗑️ DELETE ticket class:', { classId });
+
+    // Validar que el classId sea válido
+    if (!classId) {
+      return NextResponse.json(
+        { success: false, message: "Class ID is required" },
+        { status: 400 }
+      );
+    }
+
+    // Buscar la clase existente
+    const ticketClass = await TicketClass.findById(classId);
+
+    if (!ticketClass) {
+      return NextResponse.json(
+        { success: false, message: "Ticket class not found" },
+        { status: 404 }
+      );
+    }
+
+    // Eliminar la clase
+    await TicketClass.findByIdAndDelete(classId);
+
+    console.log('✅ Ticket class deleted successfully');
+
+    // Broadcast notification to update counters
+    await broadcastNotification('ticket', {
+      action: 'class_deleted',
+      classId,
+      timestamp: new Date().toISOString()
+    });
+
+    return NextResponse.json({
+      success: true,
+      message: "Ticket class deleted successfully"
+    });
+
+  } catch (error) {
+    console.error("Error in DELETE ticket class:", error);
+    return NextResponse.json(
+      { success: false, message: "Internal server error" },
+      { status: 500 }
+    );
+  }
+}

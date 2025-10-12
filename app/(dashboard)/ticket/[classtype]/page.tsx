@@ -97,6 +97,35 @@ export default function TicketClassTypePage() {
     fetchClassTypes();
   }, []); // Solo ejecutar una vez al montar
 
+  // Escuchar cambios en los parámetros de la URL para actualizar el classType
+  useEffect(() => {
+    if (classTypes.length > 0) {
+      const normalizedClasstype = normalizeClassType(classtype);
+      const isValidType = classTypes.some((ct: ClassTypeOption) => normalizeClassType(ct.name) === normalizedClasstype);
+
+      if (isValidType) {
+        // Encontrar el tipo original (sin normalizar) para usar como classType
+        const originalType = classTypes.find((ct: ClassTypeOption) => normalizeClassType(ct.name) === normalizedClasstype);
+        const typeToUse = originalType ? originalType.name.toLowerCase() : normalizedClasstype;
+        setClassType(typeToUse);
+        setCurrentClassType(normalizedClasstype);
+      } else {
+        // Si no es válido, usar el primer tipo disponible
+        if (classTypes.length > 0) {
+          const defaultType = normalizeClassType(classTypes[0].name);
+          setCurrentClassType(defaultType);
+          setClassType(classTypes[0].name.toLowerCase());
+        }
+      }
+    }
+  }, [classtype, classTypes, setClassType]); // Escuchar cambios en classtype
+
+  // Actualizar inmediatamente cuando cambie la URL (sin esperar classTypes)
+  useEffect(() => {
+    const normalizedClasstype = normalizeClassType(classtype);
+    setCurrentClassType(normalizedClasstype);
+  }, [classtype]); // Solo escuchar cambios en classtype
+
   // Función para refrescar el calendario
   const refreshCalendar = () => {
     setCalendarRefreshKey(prev => prev + 1);
