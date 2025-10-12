@@ -187,6 +187,11 @@ export default function Page() {
           <CardContent>
             <div className="grid grid-cols-1 md:grid-cols-2 gap-4 py-2">
               <Navigation
+                href={`/ticket/${classType}/certificate-editor`}
+                title="Edit Certificate Design"
+                description="Customize the certificate template for this class type."
+              />
+              <Navigation
                 href={`/ticket/${classType}/class-records/${classId}`}
                 title="View the Class Records"
                 description="View the records of the selected class."
