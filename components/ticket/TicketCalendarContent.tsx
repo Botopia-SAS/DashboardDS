@@ -106,7 +106,7 @@ export const TicketCalendarContent = ({
             selectable
             editable={false}
             slotMinTime="06:00:00"
-            slotMaxTime="20:00:00"
+            slotMaxTime="22:00:00"
             slotDuration="00:30:00"
             height="auto"
             contentHeight="auto"

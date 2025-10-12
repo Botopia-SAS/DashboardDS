@@ -138,8 +138,11 @@ const TicketCalendar = ({
   const handleModalSave = async (data: TicketFormData) => {
     try {
       await saveTicketClass(data);
+      // Small delay to ensure API processing is complete
+      setTimeout(async () => {
+        await refreshCalendar();
+      }, 100);
       setIsModalOpen(false);
-      await refreshCalendar();
     } catch (error) {
       console.error('Error saving class:', error);
       throw error;
