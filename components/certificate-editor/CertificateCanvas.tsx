@@ -23,6 +23,7 @@ export function CertificateCanvas({
   const canvasRef = useRef<HTMLDivElement>(null);
   const [dragging, setDragging] = useState<{ type: 'text' | 'image' | 'shape'; id: string } | null>(null);
   const [dragStart, setDragStart] = useState<{ x: number; y: number } | null>(null);
+  const [potentialDrag, setPotentialDrag] = useState<{ type: 'text' | 'image' | 'shape'; id: string; x: number; y: number; startX: number; startY: number } | null>(null);
 
   // Scale factor for display - Optimized for better certificate visibility
   const getOptimalScale = () => {
@@ -64,25 +65,65 @@ export function CertificateCanvas({
     if (previewMode) return;
 
     e.stopPropagation();
-    onSelectElement({ type, id });
-    setDragging({ type, id });
-    setDragStart({ x: e.clientX - currentX * scale, y: e.clientY - currentY * scale });
+
+    // Toggle selection: if clicking on the same element, deselect it
+    const isCurrentlySelected = selectedElement.type === type && selectedElement.id === id;
+
+    if (isCurrentlySelected) {
+      // Deselect if clicking on already selected element
+      onSelectElement({ type: null, id: null });
+      return; // Don't prepare for drag if deselecting
+    } else {
+      // Select the new element
+      onSelectElement({ type, id });
+    }
+
+    // Prepare for potential drag (but don't start dragging yet)
+    setPotentialDrag({
+      type,
+      id,
+      x: currentX,
+      y: currentY,
+      startX: e.clientX,
+      startY: e.clientY
+    });
   };
 
   // Handle mouse move
   const handleMouseMove = (e: React.MouseEvent) => {
-    if (!dragging || !dragStart || previewMode) return;
+    if (previewMode) return;
 
-    const newX = (e.clientX - dragStart.x) / scale;
-    const newY = (e.clientY - dragStart.y) / scale;
+    // If we have a potential drag but haven't started dragging yet
+    if (potentialDrag && !dragging) {
+      const deltaX = Math.abs(e.clientX - potentialDrag.startX);
+      const deltaY = Math.abs(e.clientY - potentialDrag.startY);
+      const threshold = 5; // Start dragging only if moved more than 5 pixels
 
-    onUpdateElement(dragging.type, dragging.id, { x: newX, y: newY });
+      if (deltaX > threshold || deltaY > threshold) {
+        // Start actual dragging
+        setDragging({ type: potentialDrag.type, id: potentialDrag.id });
+        setDragStart({
+          x: e.clientX - potentialDrag.x * scale,
+          y: e.clientY - potentialDrag.y * scale
+        });
+      }
+      return;
+    }
+
+    // Continue dragging if already started
+    if (dragging && dragStart) {
+      const newX = (e.clientX - dragStart.x) / scale;
+      const newY = (e.clientY - dragStart.y) / scale;
+
+      onUpdateElement(dragging.type, dragging.id, { x: newX, y: newY });
+    }
   };
 
   // Handle mouse up
   const handleMouseUp = () => {
     setDragging(null);
     setDragStart(null);
+    setPotentialDrag(null);
   };
 
   // Replace variables in text with example values or show variables

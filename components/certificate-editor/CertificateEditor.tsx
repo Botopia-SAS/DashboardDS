@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { useRouter } from "next/navigation";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -14,10 +14,12 @@ import { Trash2, Plus } from "lucide-react";
 import toast from "react-hot-toast";
 import { CertificateTemplate, TextElement, ImageElement, ShapeElement, DEFAULT_VARIABLES } from "./types";
 import { CertificateCanvas } from "./CertificateCanvas";
+import { CertificateImageUpload } from "./CertificateImageUpload";
 
 interface CertificateEditorProps {
   classType: string;
   onSave?: (template: CertificateTemplate) => void;
+  onChange?: (template: CertificateTemplate) => void;
   initialTemplate?: CertificateTemplate;
   showVariables?: boolean;
   setShowVariables?: (show: boolean) => void;
@@ -25,14 +27,15 @@ interface CertificateEditorProps {
   setPreviewMode?: (mode: boolean) => void;
 }
 
-export function CertificateEditor({ 
-  classType, 
-  onSave, 
-  initialTemplate, 
-  showVariables = false, 
+export function CertificateEditor({
+  classType,
+  onSave,
+  onChange,
+  initialTemplate,
+  showVariables = false,
   // setShowVariables,
-  previewMode = false 
-  // setPreviewMode 
+  previewMode = false
+  // setPreviewMode
 }: CertificateEditorProps) {
   const router = useRouter();
   const [template, setTemplate] = useState<CertificateTemplate>(
@@ -57,6 +60,13 @@ export function CertificateEditor({
 
   const [borderLineStyle, setBorderLineStyle] = useState<string>('solid');
   const [selectedFrameStyle, setSelectedFrameStyle] = useState<string>('');
+
+  // Notify parent component when template changes
+  useEffect(() => {
+    if (onChange) {
+      onChange(template);
+    }
+  }, [template, onChange]);
 
   // Add Text Element
   const addTextElement = () => {
@@ -310,7 +320,7 @@ export function CertificateEditor({
     setSelectedFrameStyle('quick-single');
   };
 
-  // Predefined frame styles
+  // Predefined frame styles - ALL BLACK
   const frameStyles = [
     {
       id: 'classic-triple',
@@ -327,8 +337,8 @@ export function CertificateEditor({
       name: 'Elegant Double',
       description: 'Clean double border',
       shapes: [
-        { type: 'rectangle' as const, x: 15, y: 15, width: 812, height: 565, borderColor: '#2563eb', borderWidth: 3, color: 'transparent' },
-        { type: 'rectangle' as const, x: 25, y: 25, width: 792, height: 545, borderColor: '#1d4ed8', borderWidth: 2, color: 'transparent' }
+        { type: 'rectangle' as const, x: 15, y: 15, width: 812, height: 565, borderColor: '#000000', borderWidth: 3, color: 'transparent' },
+        { type: 'rectangle' as const, x: 25, y: 25, width: 792, height: 545, borderColor: '#000000', borderWidth: 2, color: 'transparent' }
       ]
     },
     {
@@ -336,7 +346,7 @@ export function CertificateEditor({
       name: 'Modern Single',
       description: 'Minimalist single border',
       shapes: [
-        { type: 'rectangle' as const, x: 25, y: 25, width: 792, height: 545, borderColor: '#059669', borderWidth: 4, color: 'transparent' }
+        { type: 'rectangle' as const, x: 25, y: 25, width: 792, height: 545, borderColor: '#000000', borderWidth: 4, color: 'transparent' }
       ]
     },
     {
@@ -344,21 +354,21 @@ export function CertificateEditor({
       name: 'Decorative Corners',
       description: 'Corner accent design',
       shapes: [
-        { type: 'rectangle' as const, x: 20, y: 20, width: 802, height: 555, borderColor: '#dc2626', borderWidth: 2, color: 'transparent' },
-        { type: 'rectangle' as const, x: 20, y: 20, width: 80, height: 80, borderColor: '#dc2626', borderWidth: 4, color: 'transparent' },
-        { type: 'rectangle' as const, x: 742, y: 20, width: 80, height: 80, borderColor: '#dc2626', borderWidth: 4, color: 'transparent' },
-        { type: 'rectangle' as const, x: 20, y: 495, width: 80, height: 80, borderColor: '#dc2626', borderWidth: 4, color: 'transparent' },
-        { type: 'rectangle' as const, x: 742, y: 495, width: 80, height: 80, borderColor: '#dc2626', borderWidth: 4, color: 'transparent' }
+        { type: 'rectangle' as const, x: 20, y: 20, width: 802, height: 555, borderColor: '#000000', borderWidth: 2, color: 'transparent' },
+        { type: 'rectangle' as const, x: 20, y: 20, width: 80, height: 80, borderColor: '#000000', borderWidth: 4, color: 'transparent' },
+        { type: 'rectangle' as const, x: 742, y: 20, width: 80, height: 80, borderColor: '#000000', borderWidth: 4, color: 'transparent' },
+        { type: 'rectangle' as const, x: 20, y: 495, width: 80, height: 80, borderColor: '#000000', borderWidth: 4, color: 'transparent' },
+        { type: 'rectangle' as const, x: 742, y: 495, width: 80, height: 80, borderColor: '#000000', borderWidth: 4, color: 'transparent' }
       ]
     },
     {
-      id: 'gold-luxury',
-      name: 'Gold Luxury',
-      description: 'Premium gold frame',
+      id: 'thick-border',
+      name: 'Thick Border',
+      description: 'Bold single thick border',
       shapes: [
-        { type: 'rectangle' as const, x: 10, y: 10, width: 822, height: 575, borderColor: '#f59e0b', borderWidth: 8, color: 'transparent' },
-        { type: 'rectangle' as const, x: 20, y: 20, width: 802, height: 555, borderColor: '#d97706', borderWidth: 3, color: 'transparent' },
-        { type: 'rectangle' as const, x: 30, y: 30, width: 782, height: 535, borderColor: '#f59e0b', borderWidth: 1, color: 'transparent' }
+        { type: 'rectangle' as const, x: 10, y: 10, width: 822, height: 575, borderColor: '#000000', borderWidth: 8, color: 'transparent' },
+        { type: 'rectangle' as const, x: 20, y: 20, width: 802, height: 555, borderColor: '#000000', borderWidth: 3, color: 'transparent' },
+        { type: 'rectangle' as const, x: 30, y: 30, width: 782, height: 535, borderColor: '#000000', borderWidth: 1, color: 'transparent' }
       ]
     },
     {
@@ -366,9 +376,9 @@ export function CertificateEditor({
       name: 'Vintage Ornate',
       description: 'Classic ornate style',
       shapes: [
-        { type: 'rectangle' as const, x: 15, y: 15, width: 812, height: 565, borderColor: '#7c2d12', borderWidth: 5, color: 'transparent' },
-        { type: 'rectangle' as const, x: 25, y: 25, width: 792, height: 545, borderColor: '#92400e', borderWidth: 2, color: 'transparent' },
-        { type: 'rectangle' as const, x: 35, y: 35, width: 772, height: 525, borderColor: '#a16207', borderWidth: 1, color: 'transparent' }
+        { type: 'rectangle' as const, x: 15, y: 15, width: 812, height: 565, borderColor: '#000000', borderWidth: 5, color: 'transparent' },
+        { type: 'rectangle' as const, x: 25, y: 25, width: 792, height: 545, borderColor: '#000000', borderWidth: 2, color: 'transparent' },
+        { type: 'rectangle' as const, x: 35, y: 35, width: 772, height: 525, borderColor: '#000000', borderWidth: 1, color: 'transparent' }
       ]
     },
     {
@@ -376,11 +386,11 @@ export function CertificateEditor({
       name: 'Tech Modern',
       description: 'Contemporary tech style',
       shapes: [
-        { type: 'rectangle' as const, x: 30, y: 30, width: 782, height: 535, borderColor: '#6366f1', borderWidth: 3, color: 'transparent' },
-        { type: 'line' as const, x: 30, y: 30, x2: 130, y2: 30, borderColor: '#8b5cf6', borderWidth: 6 },
-        { type: 'line' as const, x: 712, y: 30, x2: 812, y2: 30, borderColor: '#8b5cf6', borderWidth: 6 },
-        { type: 'line' as const, x: 30, y: 565, x2: 130, y2: 565, borderColor: '#8b5cf6', borderWidth: 6 },
-        { type: 'line' as const, x: 712, y: 565, x2: 812, y2: 565, borderColor: '#8b5cf6', borderWidth: 6 }
+        { type: 'rectangle' as const, x: 30, y: 30, width: 782, height: 535, borderColor: '#000000', borderWidth: 3, color: 'transparent' },
+        { type: 'line' as const, x: 30, y: 30, x2: 130, y2: 30, borderColor: '#000000', borderWidth: 6 },
+        { type: 'line' as const, x: 712, y: 30, x2: 812, y2: 30, borderColor: '#000000', borderWidth: 6 },
+        { type: 'line' as const, x: 30, y: 565, x2: 130, y2: 565, borderColor: '#000000', borderWidth: 6 },
+        { type: 'line' as const, x: 712, y: 565, x2: 812, y2: 565, borderColor: '#000000', borderWidth: 6 }
       ]
     },
     {
@@ -388,9 +398,9 @@ export function CertificateEditor({
       name: 'Academic Formal',
       description: 'Traditional academic style',
       shapes: [
-        { type: 'rectangle' as const, x: 25, y: 25, width: 792, height: 545, borderColor: '#1f2937', borderWidth: 4, color: 'transparent' },
-        { type: 'rectangle' as const, x: 35, y: 35, width: 772, height: 525, borderColor: '#374151', borderWidth: 2, color: 'transparent' },
-        { type: 'rectangle' as const, x: 45, y: 45, width: 752, height: 505, borderColor: '#4b5563', borderWidth: 1, color: 'transparent' }
+        { type: 'rectangle' as const, x: 25, y: 25, width: 792, height: 545, borderColor: '#000000', borderWidth: 4, color: 'transparent' },
+        { type: 'rectangle' as const, x: 35, y: 35, width: 772, height: 525, borderColor: '#000000', borderWidth: 2, color: 'transparent' },
+        { type: 'rectangle' as const, x: 45, y: 45, width: 752, height: 505, borderColor: '#000000', borderWidth: 1, color: 'transparent' }
       ]
     },
     {
@@ -398,9 +408,9 @@ export function CertificateEditor({
       name: 'Creative Wave',
       description: 'Artistic wave design',
       shapes: [
-        { type: 'rectangle' as const, x: 20, y: 20, width: 802, height: 555, borderColor: '#ec4899', borderWidth: 3, color: 'transparent' },
-        { type: 'line' as const, x: 20, y: 100, x2: 822, y2: 120, borderColor: '#f97316', borderWidth: 4 },
-        { type: 'line' as const, x: 20, y: 475, x2: 822, y2: 455, borderColor: '#f97316', borderWidth: 4 }
+        { type: 'rectangle' as const, x: 20, y: 20, width: 802, height: 555, borderColor: '#000000', borderWidth: 3, color: 'transparent' },
+        { type: 'line' as const, x: 20, y: 100, x2: 822, y2: 120, borderColor: '#000000', borderWidth: 4 },
+        { type: 'line' as const, x: 20, y: 475, x2: 822, y2: 455, borderColor: '#000000', borderWidth: 4 }
       ]
     },
     {
@@ -408,9 +418,9 @@ export function CertificateEditor({
       name: 'Professional Clean',
       description: 'Clean professional look',
       shapes: [
-        { type: 'rectangle' as const, x: 40, y: 40, width: 762, height: 515, borderColor: '#0f172a', borderWidth: 2, color: 'transparent' },
-        { type: 'line' as const, x: 40, y: 60, x2: 802, y2: 60, borderColor: '#0f172a', borderWidth: 1 },
-        { type: 'line' as const, x: 40, y: 535, x2: 802, y2: 535, borderColor: '#0f172a', borderWidth: 1 }
+        { type: 'rectangle' as const, x: 40, y: 40, width: 762, height: 515, borderColor: '#000000', borderWidth: 2, color: 'transparent' },
+        { type: 'line' as const, x: 40, y: 60, x2: 802, y2: 60, borderColor: '#000000', borderWidth: 1 },
+        { type: 'line' as const, x: 40, y: 535, x2: 802, y2: 535, borderColor: '#000000', borderWidth: 1 }
       ]
     }
   ];
@@ -564,22 +574,6 @@ export function CertificateEditor({
                   value={template.classType}
                   disabled
                   className="bg-gray-100"
-                />
-              </div>
-
-              <div className="flex items-center justify-between">
-                <Label>Set as Default</Label>
-                <Switch
-                  checked={template.isDefault}
-                  onCheckedChange={(checked) => setTemplate({ ...template, isDefault: checked })}
-                />
-              </div>
-
-              <div className="flex items-center justify-between">
-                <Label>Active</Label>
-                <Switch
-                  checked={template.isActive}
-                  onCheckedChange={(checked) => setTemplate({ ...template, isActive: checked })}
                 />
               </div>
 
@@ -841,44 +835,59 @@ export function CertificateEditor({
         </div>
       </div>
 
-      {/* Right Sidebar - Properties (only for selected elements) */}
-      {!previewMode && selectedEl && (
+      {/* Right Sidebar - Always visible */}
+      {!previewMode && (
         <div className="w-72 bg-white border-l overflow-y-auto flex-shrink-0 rounded-r-lg">
           <div className="p-2">
-            <Card>
-              <CardHeader className="flex flex-row items-center justify-between">
-                <CardTitle className="text-lg">Properties</CardTitle>
-                <Button
-                  size="sm"
-                  variant="destructive"
-                  onClick={() => deleteElement(selectedElement.type!, selectedElement.id!)}
-                >
-                  <Trash2 className="w-4 h-4" />
-                </Button>
-              </CardHeader>
-              <CardContent className="space-y-4">
-                {selectedElement.type === 'text' && (
-                  <TextElementProperties
-                    element={selectedEl as TextElement}
-                    onUpdate={(updates) => updateElement('text', selectedElement.id!, updates)}
-                  />
-                )}
+            {selectedEl ? (
+              <Card>
+                <CardHeader className="flex flex-row items-center justify-between">
+                  <CardTitle className="text-lg">Properties</CardTitle>
+                  <Button
+                    size="sm"
+                    variant="destructive"
+                    onClick={() => deleteElement(selectedElement.type!, selectedElement.id!)}
+                  >
+                    <Trash2 className="w-4 h-4" />
+                  </Button>
+                </CardHeader>
+                <CardContent className="space-y-4">
+                  {selectedElement.type === 'text' && (
+                    <TextElementProperties
+                      element={selectedEl as TextElement}
+                      onUpdate={(updates) => updateElement('text', selectedElement.id!, updates)}
+                    />
+                  )}
 
-                {selectedElement.type === 'image' && (
-                  <ImageElementProperties
-                    element={selectedEl as ImageElement}
-                    onUpdate={(updates) => updateElement('image', selectedElement.id!, updates)}
-                  />
-                )}
+                  {selectedElement.type === 'image' && (
+                    <ImageElementProperties
+                      element={selectedEl as ImageElement}
+                      onUpdate={(updates) => updateElement('image', selectedElement.id!, updates)}
+                    />
+                  )}
 
-                {selectedElement.type === 'shape' && (
-                  <ShapeElementProperties
-                    element={selectedEl as ShapeElement}
-                    onUpdate={(updates) => updateElement('shape', selectedElement.id!, updates)}
-                  />
-                )}
-              </CardContent>
-            </Card>
+                  {selectedElement.type === 'shape' && (
+                    <ShapeElementProperties
+                      element={selectedEl as ShapeElement}
+                      onUpdate={(updates) => updateElement('shape', selectedElement.id!, updates)}
+                    />
+                  )}
+                </CardContent>
+              </Card>
+            ) : (
+              <Card>
+                <CardHeader>
+                  <CardTitle className="text-lg">Element Properties</CardTitle>
+                </CardHeader>
+                <CardContent>
+                  <div className="text-center py-8 text-gray-500">
+                    <div className="text-6xl mb-4">🖱️</div>
+                    <p className="text-sm">Select an element to edit its properties</p>
+                    <p className="text-xs mt-2 text-gray-400">Click on any text, image, or shape in the canvas</p>
+                  </div>
+                </CardContent>
+              </Card>
+            )}
           </div>
         </div>
       )}
@@ -989,6 +998,13 @@ function ImageElementProperties({ element, onUpdate }: { element: ImageElement; 
         <Input
           value={element.url}
           onChange={(e) => onUpdate({ url: e.target.value })}
+          placeholder="Enter image URL or upload to Cloudinary"
+        />
+      </div>
+
+      <div>
+        <CertificateImageUpload
+          onUpload={(url) => onUpdate({ url })}
         />
       </div>
 
