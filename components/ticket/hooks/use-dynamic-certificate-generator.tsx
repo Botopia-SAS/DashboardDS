@@ -3,7 +3,7 @@
 import { Student } from "../columns";
 import { useCallback } from "react";
 import { PDFDocument, rgb, StandardFonts } from "pdf-lib";
-import { CertificateTemplate, TextElement, ImageElement, ShapeElement } from "@/components/certificate-editor/types";
+import { CertificateTemplate, TextElement, ShapeElement } from "@/components/certificate-editor/types";
 
 export function useDynamicCertificateGenerator() {
   const generateDynamicCertificatePDF = useCallback(async (user: Student, template: CertificateTemplate) => {
@@ -285,11 +285,17 @@ export function useDynamicCertificateGenerator() {
           xPos = text.x - textWidth;
         }
 
-        console.log(`📝 Text ${index + 1}: "${content}" at (${xPos}, ${height - text.y - text.fontSize}) size ${text.fontSize}`);
+        // In HTML, text.y is the top of the text element
+        // In PDF, drawText positions by baseline (roughly 80% down from top of text)
+        // So we convert: PDF_y = height - (HTML_y + fontSize * 0.8)
+        const baselineOffset = text.fontSize * 0.8;
+        const pdfY = height - text.y - baselineOffset;
+
+        console.log(`📝 Text ${index + 1}: "${content}" at (${xPos}, ${pdfY.toFixed(1)}) size ${text.fontSize}`);
 
         page.drawText(content, {
           x: xPos,
-          y: height - text.y - text.fontSize, // Adjust for baseline
+          y: pdfY,
           size: text.fontSize,
           font,
           color: rgb(textColor.r, textColor.g, textColor.b),
@@ -301,8 +307,9 @@ export function useDynamicCertificateGenerator() {
       const pdfBytes = await pdfDoc.save();
       console.log(`✅ PDF generated successfully: ${pdfBytes.length} bytes`);
 
-      // Create blob
-      const blob = new Blob([pdfBytes], { type: 'application/pdf' });
+      // Create blob - create a new Uint8Array to ensure it's an ArrayBuffer
+      const arrayBuffer = pdfBytes.slice().buffer as ArrayBuffer;
+      const blob = new Blob([arrayBuffer], { type: 'application/pdf' });
       console.log('📄 PDF blob created');
       return blob;
 
