@@ -6,9 +6,11 @@ import { CertificateEditor } from "@/components/certificate-editor";
 import { CertificateTemplate } from "@/components/certificate-editor/types";
 import Loader from "@/components/custom ui/Loader";
 import { Button } from "@/components/ui/button";
-import { ArrowLeftIcon, Eye, Save } from "lucide-react";
+import { ArrowLeftIcon, Eye, Save, FileText } from "lucide-react";
 import toast from "react-hot-toast";
 import { getDefaultBDITemplate } from "@/lib/defaultTemplates/bdiTemplate";
+import { useDynamicCertificateGenerator } from "@/components/ticket/hooks/use-dynamic-certificate-generator";
+import { Student } from "@/components/ticket/columns";
 
 export default function CertificateEditorPage() {
   const params = useParams();
@@ -20,6 +22,7 @@ export default function CertificateEditorPage() {
   const [loading, setLoading] = useState(true);
   const [showVariables, setShowVariables] = useState(false);
   const [previewMode, setPreviewMode] = useState(false);
+  const { generateDynamicCertificatePDF } = useDynamicCertificateGenerator();
 
   useEffect(() => {
     fetchTemplate();
@@ -39,9 +42,9 @@ export default function CertificateEditorPage() {
   const fetchTemplate = async () => {
     try {
       setLoading(true);
-      // Try to get the saved template for this class type
+      // Try to get the saved template for this class type (only by classType, not default)
       const response = await fetch(
-        `/api/certificate-templates?classType=${decodedClassType.toUpperCase()}&default=true`
+        `/api/certificate-templates?classType=${decodedClassType.toUpperCase()}`
       );
 
       if (response.ok) {
@@ -104,16 +107,11 @@ export default function CertificateEditorPage() {
 
   const saveTemplate = async () => {
     if (!template) return;
-    
+
     try {
-      const url = template._id
-        ? `/api/certificate-templates/${template._id}`
-        : '/api/certificate-templates';
-
-      const method = template._id ? 'PUT' : 'POST';
-
-      const response = await fetch(url, {
-        method,
+      // Always use POST - it will upsert (update existing or create new) based on classType
+      const response = await fetch('/api/certificate-templates', {
+        method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify(template),
       });
@@ -123,14 +121,59 @@ export default function CertificateEditorPage() {
       }
 
       const savedTemplate = await response.json();
-      toast.success('Template saved successfully!');
+      toast.success('Certificate template saved successfully!');
       setTemplate(savedTemplate);
-      
+
       // Redirect to day-of-class page after successful save
       router.push(`/ticket/day-of-class/${classType.toLowerCase()}`);
     } catch (error) {
       console.error('Error saving template:', error);
       toast.error('Failed to save template');
+    }
+  };
+
+  const handlePreviewPDF = async () => {
+    if (!template) {
+      toast.error('No template to preview');
+      return;
+    }
+
+    try {
+      toast.loading('Generating preview PDF...');
+
+      // Create a mock student with example data
+      const mockStudent: Student = {
+        _id: 'preview',
+        first_name: 'JOHN',
+        midl: 'MICHAEL',
+        last_name: 'DOE',
+        birthDate: new Date('1990-01-15'),
+        certn: 12345,
+        courseDate: new Date(),
+        classTitle: 'Drive Safety & Driver Improvement Course',
+        classType: decodedClassType.toUpperCase(),
+        licenseNumber: 'D123-456-78-910-0',
+        citation_number: 'CIT-2025-001',
+        address: '3167 FOREST HILL BLVD. WEST PALM BEACH, FL 33406',
+        courseAddress: '3167 FOREST HILL BLVD. WEST PALM BEACH, FL 33406',
+        courseTime: '9:00 AM - 5:00 PM',
+        instructorName: 'N/A',
+        type: decodedClassType.toUpperCase(),
+      } as Student;
+
+      // Generate PDF using the dynamic generator
+      const pdfBlob = await generateDynamicCertificatePDF(mockStudent, template);
+
+      // Create URL and open in new tab
+      const pdfUrl = URL.createObjectURL(pdfBlob);
+      window.open(pdfUrl, '_blank');
+
+      toast.dismiss();
+      toast.success('Preview PDF generated!');
+    } catch (error) {
+      console.error('Error generating preview PDF:', error);
+      toast.dismiss();
+      toast.error('Failed to generate preview PDF');
     }
   };
 
@@ -160,9 +203,9 @@ export default function CertificateEditorPage() {
             <Eye className="w-4 h-4 mr-2" />
             {showVariables ? 'Show Examples' : 'Show Variables'}
           </Button>
-          <Button onClick={() => setPreviewMode(!previewMode)} variant="outline" className="text-white border-white hover:bg-gray-700">
-            <Eye className="w-4 h-4 mr-2" />
-            {previewMode ? 'Edit Mode' : 'Preview'}
+          <Button onClick={handlePreviewPDF} variant="outline" className="text-white border-white hover:bg-gray-700">
+            <FileText className="w-4 h-4 mr-2" />
+            Preview PDF
           </Button>
           <Button onClick={saveTemplate} className="bg-blue-500 hover:bg-blue-600 text-white">
             <Save className="w-4 h-4 mr-2" />
@@ -175,6 +218,7 @@ export default function CertificateEditorPage() {
         <CertificateEditor
           classType={decodedClassType}
           onSave={handleSave}
+          onChange={(updatedTemplate) => setTemplate(updatedTemplate)}
           initialTemplate={template || undefined}
           showVariables={showVariables}
           setShowVariables={setShowVariables}

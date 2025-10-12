@@ -12,7 +12,7 @@ import toast from "react-hot-toast";
 export default function Page() {
   const params = useParams();
   const classId = params.classId as string;
-  const classType = params.classType as string;
+  const classType = (params.classtype || params.classType) as string; // Support both lowercase and uppercase
   const [students, setStudents] = useState<Student[]>([]);
   const [loading, setLoading] = useState(false);
   const router = useRouter();
@@ -90,7 +90,7 @@ export default function Page() {
   const navigate = () => {
     // Navigate specifically to the correct classtype page instead of using router.back()
     const normalizedClassType = classType.toLowerCase().replace(/\s+/g, '-');
-    router.push(`/ticket/${normalizedClassType}`);
+    router.push(`/ticket/day-of-class/${normalizedClassType}`);
   };
 
   const onUpdate = async (data: Partial<Student>[]) => {

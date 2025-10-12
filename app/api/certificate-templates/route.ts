@@ -30,12 +30,14 @@ export async function GET(req: NextRequest) {
   }
 }
 
-// POST - Create new template
+// POST - Create or Update template (UPSERT - only one template per classType)
 export async function POST(req: NextRequest) {
   try {
     await connectToDB();
 
     const body = await req.json();
+    console.log('📥 Received certificate template data:', JSON.stringify(body, null, 2));
+
     const {
       name,
       classType,
@@ -45,7 +47,6 @@ export async function POST(req: NextRequest) {
       imageElements,
       shapeElements,
       availableVariables,
-      isDefault,
       createdBy,
     } = body;
 
@@ -54,21 +55,40 @@ export async function POST(req: NextRequest) {
       return new NextResponse("Name and classType are required", { status: 400 });
     }
 
-    // Create new template
-    const newTemplate = await CertificateTemplate.create({
-      name,
-      classType: classType.toUpperCase(),
-      pageSize: pageSize || { width: 842, height: 595, orientation: 'landscape' },
-      background,
-      textElements: textElements || [],
-      imageElements: imageElements || [],
-      shapeElements: shapeElements || [],
-      availableVariables: availableVariables || [],
-      isDefault: isDefault || false,
-      createdBy,
-    });
+    const upperClassType = classType.toUpperCase();
+    console.log(`🔍 Upserting template for classType: ${upperClassType}`);
+    console.log(`📄 Background:`, background);
+    console.log(`📝 Text elements: ${textElements?.length || 0}`);
+    console.log(`🖼️ Image elements: ${imageElements?.length || 0}`);
+    console.log(`🔲 Shape elements: ${shapeElements?.length || 0}`);
 
-    return NextResponse.json(newTemplate, { status: 201 });
+    // UPSERT: Find existing template for this classType and update it, or create new one
+    const template = await CertificateTemplate.findOneAndUpdate(
+      { classType: upperClassType }, // Find by classType
+      {
+        name,
+        classType: upperClassType,
+        pageSize: pageSize || { width: 842, height: 595, orientation: 'landscape' },
+        background,
+        textElements: textElements || [],
+        imageElements: imageElements || [],
+        shapeElements: shapeElements || [],
+        availableVariables: availableVariables || [],
+        isDefault: true, // Always set as default (it's the only one for this classType)
+        isActive: true,  // Always active
+        createdBy,
+      },
+      {
+        new: true,        // Return the updated document
+        upsert: true,     // Create if doesn't exist
+        runValidators: true
+      }
+    );
+
+    console.log(`✅ Template upserted successfully:`, template._id);
+    console.log(`💾 Saved background:`, template.background);
+
+    return NextResponse.json(template, { status: 200 });
   } catch (err) {
     console.error("[certificate-templates_POST]", err);
     return new NextResponse("Internal Server Error", { status: 500 });

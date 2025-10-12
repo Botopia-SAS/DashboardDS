@@ -22,10 +22,10 @@ export function useCertificateGenerator() {
 
       console.log(`Generating certificate for type: ${certType}`);
 
-      // Try to fetch saved template from database first
+      // Try to fetch saved template from database first (only by classType)
       try {
         const templateResponse = await fetch(
-          `/api/certificate-templates?classType=${certType}&default=true`
+          `/api/certificate-templates?classType=${certType}`
         );
 
         if (templateResponse.ok) {
