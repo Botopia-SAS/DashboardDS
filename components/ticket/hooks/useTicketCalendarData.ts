@@ -12,6 +12,22 @@ import {
   getInstructorName
 } from "../utils/calendarHelpers";
 
+// Simple cache to avoid duplicate requests
+const cache = new Map<string, { data: any; timestamp: number }>();
+const CACHE_DURATION = 30000; // 30 seconds
+
+const getCachedData = (key: string) => {
+  const cached = cache.get(key);
+  if (cached && Date.now() - cached.timestamp < CACHE_DURATION) {
+    return cached.data;
+  }
+  return null;
+};
+
+const setCachedData = (key: string, data: any) => {
+  cache.set(key, { data, timestamp: Date.now() });
+};
+
 export const useTicketCalendarData = (classType: string, refreshKey: number) => {
   const [calendarEvents, setCalendarEvents] = useState<TicketCalendarEvent[]>([]);
   const [classes, setClasses] = useState<{ _id: string; title: string }[]>([]);
@@ -46,7 +62,7 @@ export const useTicketCalendarData = (classType: string, refreshKey: number) => 
           setStudents(transformedStudents);
         }
       } catch (error) {
-        console.error('Error loading static data:', error);
+        // Silent error handling
       }
     };
 
@@ -57,7 +73,16 @@ export const useTicketCalendarData = (classType: string, refreshKey: number) => 
   const fetchTicketClasses = async () => {
     setIsLoading(true);
     try {
-      console.log('🔄 Fetching ticket classes from API');
+      // Check cache first
+      const cacheKey = `calendar-${classType}`;
+      const cachedData = getCachedData(cacheKey);
+      
+      if (cachedData) {
+        setCalendarEvents(cachedData);
+        setIsLoading(false);
+        return;
+      }
+
       const response = await fetch("/api/ticket/calendar");
 
       if (!response.ok) {
@@ -67,7 +92,6 @@ export const useTicketCalendarData = (classType: string, refreshKey: number) => 
       const data = await response.json();
 
       if (!Array.isArray(data)) {
-        console.error('❌ Expected array but got:', typeof data);
         setCalendarEvents([]);
         return;
       }
@@ -108,8 +132,8 @@ export const useTicketCalendarData = (classType: string, refreshKey: number) => 
       });
 
       setCalendarEvents(events);
+      setCachedData(cacheKey, events);
     } catch (error) {
-      console.error('❌ Error fetching ticket classes:', error);
       setCalendarEvents([]);
     } finally {
       setIsLoading(false);

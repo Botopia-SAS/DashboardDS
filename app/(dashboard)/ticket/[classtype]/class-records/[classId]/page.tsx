@@ -45,13 +45,6 @@ export default function Page() {
       // Decode class type for display
       const decodedClassType = decodeURIComponent(classType);
       
-      // Debug log
-      console.log('Dynamic Class data obtained:', {
-        title: drivingClassData.data.title,
-        classType: drivingClassData.data.classType,
-        decodedClassType,
-        realClassId
-      });
       
       // Finally, get the students
       const studentsResponse = await fetch(`/api/ticket/classes/students/${classId}`);

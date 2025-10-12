@@ -1,6 +1,7 @@
 "use client";
 
 import { useState, useRef, useEffect } from "react";
+import { useRouter } from "next/navigation";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -9,7 +10,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Textarea } from "@/components/ui/textarea";
 import { Switch } from "@/components/ui/switch";
-import { Trash2, Plus, Save, Eye } from "lucide-react";
+import { Trash2, Plus, Save, Eye, Type, ImageIcon, Square, Circle, Minus } from "lucide-react";
 import toast from "react-hot-toast";
 import { CertificateTemplate, TextElement, ImageElement, ShapeElement, DEFAULT_VARIABLES } from "./types";
 import { CertificateCanvas } from "./CertificateCanvas";
@@ -33,6 +34,7 @@ export function CertificateEditor({
   previewMode = false, 
   setPreviewMode 
 }: CertificateEditorProps) {
+  const router = useRouter();
   const [template, setTemplate] = useState<CertificateTemplate>(
     initialTemplate || {
       name: `${classType} Certificate`,
@@ -451,12 +453,25 @@ export function CertificateEditor({
   // Clear all frame/border shapes
   const clearAllFrames = () => {
     const nonFrameShapes = template.shapeElements.filter(shape => {
-      // Remove shapes that look like borders (rectangles near edges or lines that span width/height)
+      // Remove shapes that look like borders or corner decorations
       if (shape.type === 'rectangle') {
-        const isNearEdge = shape.x <= 50 && shape.y <= 50; // Near top-left corner
-        const isFullWidth = (shape.width || 0) > template.pageSize.width * 0.8; // Spans most of width
-        const isFullHeight = (shape.height || 0) > template.pageSize.height * 0.8; // Spans most of height
-        return !(isNearEdge && (isFullWidth || isFullHeight));
+        const width = shape.width || 0;
+        const height = shape.height || 0;
+        
+        // Check if it's near any corner (within 100px of any edge)
+        const isNearTopLeft = shape.x <= 100 && shape.y <= 100;
+        const isNearTopRight = shape.x >= template.pageSize.width - 100 - width && shape.y <= 100;
+        const isNearBottomLeft = shape.x <= 100 && shape.y >= template.pageSize.height - 100 - height;
+        const isNearBottomRight = shape.x >= template.pageSize.width - 100 - width && shape.y >= template.pageSize.height - 100 - height;
+        
+        const isNearAnyCorner = isNearTopLeft || isNearTopRight || isNearBottomLeft || isNearBottomRight;
+        
+        // Also check for full-width or full-height rectangles (borders)
+        const isFullWidth = width > template.pageSize.width * 0.8;
+        const isFullHeight = height > template.pageSize.height * 0.8;
+        
+        // Remove if it's near a corner OR if it's a full border
+        return !(isNearAnyCorner || isFullWidth || isFullHeight);
       }
       if (shape.type === 'line') {
         const spansWidth = Math.abs((shape.x2 || 0) - shape.x) > template.pageSize.width * 0.8;
@@ -499,6 +514,9 @@ export function CertificateEditor({
       if (onSave) {
         onSave(savedTemplate);
       }
+
+      // Redirect to day-of-class page after successful save
+      router.push(`/ticket/day-of-class/${classType.toLowerCase()}`);
     } catch (error) {
       console.error('Error saving template:', error);
       toast.error('Failed to save template');
@@ -823,8 +841,8 @@ export function CertificateEditor({
         </div>
       </div>
 
-      {/* Right Sidebar - Properties */}
-      {selectedEl && !previewMode && (
+      {/* Right Sidebar - Properties (only for selected elements) */}
+      {!previewMode && selectedEl && (
         <div className="w-72 bg-white border-l overflow-y-auto flex-shrink-0 rounded-r-lg">
           <div className="p-2">
             <Card>

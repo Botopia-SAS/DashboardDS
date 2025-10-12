@@ -8,20 +8,11 @@ export async function GET() {
   try {
     await connectToDB();
     
-    console.log('🔄 Fetching ticket classes for calendar...');
-    
     // Obtener todas las ticket classes con datos populados
     const ticketClasses = await TicketClass.find({})
       .populate('locationId', 'title')
       .populate('classId', 'title')
       .lean();
-    
-    console.log('📊 Found ticket classes:', ticketClasses.length);
-    
-    // Agregar logs para debugging
-    if (ticketClasses.length > 0) {
-      console.log('📋 First ticket class sample:', ticketClasses[0]);
-    }
     
     return NextResponse.json(ticketClasses);
   } catch (error) {

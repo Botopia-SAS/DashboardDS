@@ -12,8 +12,16 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
-import { ArrowLeftIcon } from "lucide-react";
+import { ArrowLeftIcon, MapPin, Users } from "lucide-react";
 import { useRouter, useParams } from "next/navigation";
+import {
+  Dialog,
+  DialogContent,
+  DialogDescription,
+  DialogFooter,
+  DialogHeader,
+  DialogTitle,
+} from "@/components/ui/dialog";
 import { useEffect, useState } from "react";
 
 interface Class {
@@ -36,6 +44,7 @@ export default function Page() {
   const [classes, setClasses] = useState<Class[]>([]);
   const [loading, setLoading] = useState(false);
   const [selectedClassText, setSelectedClassText] = useState<string>("");
+  const [showSelectClassModal, setShowSelectClassModal] = useState(false);
   const { setClassId, classId } = useClassStore();
   const router = useRouter();
   const params = useParams();
@@ -52,11 +61,8 @@ export default function Page() {
       .then((data) => {
         // Decode URL parameter and normalize for comparison
         const decodedClassType = decodeURIComponent(classType).toLowerCase();
-        console.log('Filtering classes for type:', decodedClassType);
-        console.log('Available class types:', data.map((c: Class) => c.type));
         
         const filteredClasses = data.filter((c: Class) => c.type.toLowerCase() === decodedClassType);
-        console.log('Filtered classes:', filteredClasses.length);
         setClasses(filteredClasses);
         setLoading(false);
       })
@@ -71,7 +77,7 @@ export default function Page() {
   const handleClick = (e: React.MouseEvent) => {
     if (classId === "") {
       e.preventDefault();
-      alert("Please select a class");
+      setShowSelectClassModal(true);
     }
   };
   const navigate = () => {
@@ -173,8 +179,11 @@ export default function Page() {
                           day: "numeric",
                         })} at {formatTime(c?.hour)}
                       </div>
-                      <div className="text-xs text-gray-500">
-                        📍 {getLocationName(c)} | 👥 {studentCount}/{totalSpots} students
+                      <div className="text-xs text-gray-500 flex items-center gap-1">
+                        <MapPin className="w-3 h-3 text-gray-500" />
+                        {getLocationName(c)} | 
+                        <Users className="w-3 h-3 text-gray-500 ml-1" />
+                        {studentCount}/{totalSpots} students
                       </div>
                     </div>
                   </SelectItem>
@@ -201,6 +210,28 @@ export default function Page() {
           </CardContent>
         </Card>
       </div>
+
+      {/* Select Class Modal */}
+      <Dialog open={showSelectClassModal} onOpenChange={setShowSelectClassModal}>
+        <DialogContent className="sm:max-w-[425px]">
+          <DialogHeader>
+            <DialogTitle className="text-xl font-semibold text-gray-900">
+              Select Class
+            </DialogTitle>
+            <DialogDescription className="text-gray-600">
+              Please select a class before proceeding to view the class records.
+            </DialogDescription>
+          </DialogHeader>
+          <DialogFooter>
+            <Button 
+              onClick={() => setShowSelectClassModal(false)}
+              className="bg-blue-600 hover:bg-blue-700 text-white"
+            >
+              OK
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
     </>
   );
 }

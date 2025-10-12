@@ -24,30 +24,31 @@ export function CertificateCanvas({
   const [dragging, setDragging] = useState<{ type: 'text' | 'image' | 'shape'; id: string } | null>(null);
   const [dragStart, setDragStart] = useState<{ x: number; y: number } | null>(null);
 
-  // Scale factor for display - Adjusted for better visibility and screen adaptation
-  // Calculate scale based on screen size and template dimensions
+  // Scale factor for display - Optimized for better certificate visibility
   const getOptimalScale = () => {
     const isLandscape = template.pageSize.orientation === 'landscape';
     
-    // Get available space more precisely (updated widths)
-    const sidebarWidth = 320; // w-80 = 320px
-    const propertiesWidth = selectedElement.id && !previewMode ? 288 : 0; // w-72 = 288px when visible
-    const padding = 20; // reduced padding and margins
+    // Get available space more precisely
+    const sidebarWidth = 320; // w-80 = 320px (left sidebar)
+    const propertiesWidth = selectedElement.id && !previewMode ? 288 : 0; // w-72 = 288px (right sidebar)
+    const padding = 40; // More padding for better visual spacing
+    const headerHeight = 120; // Account for header and margins
     
     const availableWidth = window.innerWidth - sidebarWidth - propertiesWidth - padding;
-    const availableHeight = window.innerHeight - 140; // Account for smaller header and margins
+    const availableHeight = window.innerHeight - headerHeight;
     
-    // Calculate scale to fit the available space
+    // Calculate scale to fit the available space with better proportions
     const widthScale = availableWidth / template.pageSize.width;
     const heightScale = availableHeight / template.pageSize.height;
     
-    // Use the smaller scale to ensure it fits perfectly
-    const optimalScale = Math.min(widthScale, heightScale, 1.5); // Max 150% scale
+    // Use the smaller scale to ensure it fits perfectly with some margin
+    const optimalScale = Math.min(widthScale, heightScale, 0.9); // Max 90% scale for better fit
     
-    // Ensure minimum scale for readability
-    const minScale = isLandscape ? 0.6 : 0.5;
+    // Ensure minimum scale for readability and maximum for usability
+    const minScale = 0.4; // Minimum readable scale
+    const maxScale = 0.9; // Maximum scale to prevent overflow
     
-    return Math.max(optimalScale, minScale);
+    return Math.min(Math.max(optimalScale, minScale), maxScale);
   };
 
   const scale = getOptimalScale();

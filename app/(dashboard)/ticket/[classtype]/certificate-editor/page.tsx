@@ -123,6 +123,9 @@ export default function CertificateEditorPage() {
       const savedTemplate = await response.json();
       toast.success('Template saved successfully!');
       setTemplate(savedTemplate);
+      
+      // Redirect to day-of-class page after successful save
+      router.push(`/ticket/day-of-class/${classType.toLowerCase()}`);
     } catch (error) {
       console.error('Error saving template:', error);
       toast.error('Failed to save template');
