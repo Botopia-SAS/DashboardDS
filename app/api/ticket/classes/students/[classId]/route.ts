@@ -6,24 +6,24 @@ import TicketClass from "@/lib/models/TicketClass";
 import { connectToDB } from "@/lib/mongoDB";
 import { NextRequest, NextResponse } from "next/server";
 
-interface Student {
-  studentId: string;
-  reason?: string;
-  citation_number?: string;
-  country_ticket?: string;
-  course_country?: string;
-}
+// interface Student {
+//   studentId: string;
+//   reason?: string;
+//   citation_number?: string;
+//   country_ticket?: string;
+//   course_country?: string;
+// }
 
-interface Response {
-  _id: string;
-  locationId: string;
-  date: string;
-  hour: string;
-  classId: string;
-  type: string;
-  students: Student[];
-  __v: number;
-}
+// interface Response {
+//   _id: string;
+//   locationId: string;
+//   date: string;
+//   hour: string;
+//   classId: string;
+//   type: string;
+//   students: Student[];
+//   __v: number;
+// }
 
 export async function GET(req: NextRequest) {
   await connectToDB();

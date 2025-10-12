@@ -1,4 +1,4 @@
-import { NextRequest, NextResponse } from "next/server";
+import { NextResponse } from "next/server";
 import Instructor from "@/lib/models/Instructor";
 import { connectToDB } from "@/lib/mongoDB";
 

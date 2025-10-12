@@ -1,13 +1,13 @@
 "use client";
 
 import { useRef, useState } from "react";
-import { CertificateTemplate, TextElement, ImageElement, ShapeElement, DEFAULT_VARIABLES } from "./types";
+import { CertificateTemplate, DEFAULT_VARIABLES } from "./types";
 
 interface CertificateCanvasProps {
   template: CertificateTemplate;
   selectedElement: { type: 'text' | 'image' | 'shape' | null; id: string | null };
   onSelectElement: (element: { type: 'text' | 'image' | 'shape' | null; id: string | null }) => void;
-  onUpdateElement: (type: 'text' | 'image' | 'shape', id: string, updates: any) => void;
+  onUpdateElement: (type: 'text' | 'image' | 'shape', id: string, updates: Record<string, any>) => void;
   previewMode?: boolean;
   showVariables?: boolean;
 }
@@ -26,7 +26,7 @@ export function CertificateCanvas({
 
   // Scale factor for display - Optimized for better certificate visibility
   const getOptimalScale = () => {
-    const isLandscape = template.pageSize.orientation === 'landscape';
+    // const isLandscape = template.pageSize.orientation === 'landscape';
     
     // Get available space more precisely
     const sidebarWidth = 320; // w-80 = 320px (left sidebar)
@@ -216,7 +216,7 @@ export function CertificateCanvas({
           const displayText = replaceVariables(text.content);
 
           // Calculate position based on alignment
-          let leftPosition = text.x * scale;
+          const leftPosition = text.x * scale;
 
           // For center-aligned text, we need to offset by half the width
           // This is handled by transform: translateX(-50%)

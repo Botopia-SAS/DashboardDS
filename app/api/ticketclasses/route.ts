@@ -1,8 +1,8 @@
-import { NextRequest, NextResponse } from 'next/server';
+import { NextResponse } from 'next/server';
 import { connectToDB } from '@/lib/mongoDB';
 import TicketClass from '@/lib/models/TicketClass';
 
-export async function GET(request: NextRequest) {
+export async function GET() {
   try {
     // Conectar a la base de datos
     await connectToDB();

@@ -31,7 +31,7 @@ export async function POST(req: NextRequest) {
       end,
       classType = "driving lesson",
       status = "available",
-      amount,
+      // amount,
       pickupLocation = "",
       dropoffLocation = "",
       selectedProduct = "",

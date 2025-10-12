@@ -5,7 +5,7 @@ import { useRouter } from "next/navigation";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
-import { Plus, Edit, Trash2, Eye, CheckCircle2, ArrowLeft } from "lucide-react";
+import { Plus, Edit, Trash2, CheckCircle2, ArrowLeft } from "lucide-react";
 import Loader from "@/components/custom ui/Loader";
 import toast from "react-hot-toast";
 import { CertificateTemplate } from "@/components/certificate-editor/types";

@@ -108,16 +108,16 @@ export async function POST(req: NextRequest) {
     }
 
     // Calculate the expected duration format based on the class length
-    let expectedDuration = "";
+    // const expectedDuration = "";
     if (existClass.length) {
       if (existClass.length <= 2.5) {
-        expectedDuration = "2h";
+        // expectedDuration = "2h";
       } else if (existClass.length <= 5) {
-        expectedDuration = "4h";
+        // expectedDuration = "4h";
       } else if (existClass.length <= 10) {
-        expectedDuration = "8h";
+        // expectedDuration = "8h";
       } else {
-        expectedDuration = "12h";
+        // expectedDuration = "12h";
       }
     }
 
@@ -141,13 +141,13 @@ export async function POST(req: NextRequest) {
     // });
 
     // Function to check if two time ranges overlap
-    const timeRangesOverlap = (start1: string, end1: string, start2: string, end2: string) => {
-      const s1 = new Date(`2000-01-01T${start1}:00`);
-      const e1 = new Date(`2000-01-01T${end1}:00`);
-      const s2 = new Date(`2000-01-01T${start2}:00`);
-      const e2 = new Date(`2000-01-01T${end2}:00`);
-      return s1 < e2 && s2 < e1;
-    };
+    // const timeRangesOverlap = (start1: string, end1: string, start2: string, end2: string) => {
+    //   const s1 = new Date(`2000-01-01T${start1}:00`);
+    //   const e1 = new Date(`2000-01-01T${end1}:00`);
+    //   const s2 = new Date(`2000-01-01T${start2}:00`);
+    //   const e2 = new Date(`2000-01-01T${end2}:00`);
+    //   return s1 < e2 && s2 < e1;
+    // };
 
     // Check that students don't have another class at the same date and time
     if (students && students.length > 0) {

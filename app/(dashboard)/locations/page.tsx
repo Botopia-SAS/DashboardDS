@@ -7,7 +7,7 @@ import { Plus } from "lucide-react";
 import { columns } from "@/components/locations/LocationsColumns";
 import { DataTable } from "@/components/custom ui/DataTable";
 import { Button } from "@/components/ui/button";
-import { Separator } from "@/components/ui/separator";
+// import { Separator } from "@/components/ui/separator";
 import Loader from "@/components/custom ui/Loader";
 import DashboardHeader from "@/components/layout/DashboardHeader";
 

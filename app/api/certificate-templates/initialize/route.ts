@@ -1,11 +1,11 @@
-import { NextRequest, NextResponse } from "next/server";
+import { NextResponse } from "next/server";
 import { connectToDB } from "@/lib/mongoDB";
 import CertificateTemplate from "@/lib/models/CertificateTemplate";
 
 // Initialize default templates
 // NOTE: DATE uses BDI template by default (no need to create separate DATE template)
 // This only creates templates if you want custom designs saved to database
-export async function POST(req: NextRequest) {
+export async function POST() {
   try {
     await connectToDB();
 

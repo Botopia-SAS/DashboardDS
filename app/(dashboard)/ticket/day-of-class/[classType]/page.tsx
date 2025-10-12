@@ -156,7 +156,7 @@ export default function Page() {
                 const studentCount = Array.isArray(c.students) ? c.students.length : 0;
                 const totalSpots = c.spots || 30;
                 const formatTime = (hour: string) => {
-                  const [h, m] = hour.split(':');
+                  const [h] = hour.split(':');
                   const hourNum = parseInt(h);
                   return hourNum > 11 ? `${hour} PM` : `${hour} AM`;
                 };

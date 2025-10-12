@@ -7,18 +7,18 @@ import { ObjectId } from "mongodb";
 import mongoose from "mongoose";
 
 // Define types for parameters
-interface TicketClassData {
-  locationId: string;
-  date: string;
-  hour: string;
-  endHour: string;
-  classId: string;
-  type: string;
-  instructorId?: string;
-  students?: string[];
-  cupos?: number;
-  [key: string]: any;
-}
+// interface TicketClassData {
+//   locationId: string;
+//   date: string;
+//   hour: string;
+//   endHour: string;
+//   classId: string;
+//   type: string;
+//   instructorId?: string;
+//   students?: string[];
+//   cupos?: number;
+//   [key: string]: any;
+// }
 
 // Define types for schedule slots
 interface ScheduleSlot {

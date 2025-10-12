@@ -9,8 +9,8 @@ export async function GET(req: NextRequest) {
     //console.log("[EVENTS] Starting to fetch calendar events");
     await connectToDB();
     const { searchParams } = new URL(req.url);
-    const start = searchParams.get("start");
-    const end = searchParams.get("end");
+    // const start = searchParams.get("start");
+    // const end = searchParams.get("end");
     const instructorId = searchParams.get("instructorId");
 
     //console.log("[EVENTS] Fetching instructors");

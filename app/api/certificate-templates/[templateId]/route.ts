@@ -5,12 +5,13 @@ import CertificateTemplate from "@/lib/models/CertificateTemplate";
 // GET single template
 export async function GET(
   req: NextRequest,
-  { params }: { params: { templateId: string } }
+  { params }: { params: Promise<{ templateId: string }> }
 ) {
   try {
     await connectToDB();
+    const { templateId } = await params;
 
-    const template = await CertificateTemplate.findById(params.templateId);
+    const template = await CertificateTemplate.findById(templateId);
 
     if (!template) {
       return new NextResponse("Template not found", { status: 404 });
@@ -26,10 +27,11 @@ export async function GET(
 // PUT - Update template
 export async function PUT(
   req: NextRequest,
-  { params }: { params: { templateId: string } }
+  { params }: { params: Promise<{ templateId: string }> }
 ) {
   try {
     await connectToDB();
+    const { templateId } = await params;
 
     const body = await req.json();
     const {
@@ -45,7 +47,7 @@ export async function PUT(
       isActive,
     } = body;
 
-    const template = await CertificateTemplate.findById(params.templateId);
+    const template = await CertificateTemplate.findById(templateId);
 
     if (!template) {
       return new NextResponse("Template not found", { status: 404 });
@@ -77,12 +79,13 @@ export async function PUT(
 // DELETE template
 export async function DELETE(
   req: NextRequest,
-  { params }: { params: { templateId: string } }
+  { params }: { params: Promise<{ templateId: string }> }
 ) {
   try {
     await connectToDB();
+    const { templateId } = await params;
 
-    const template = await CertificateTemplate.findByIdAndDelete(params.templateId);
+    const template = await CertificateTemplate.findByIdAndDelete(templateId);
 
     if (!template) {
       return new NextResponse("Template not found", { status: 404 });

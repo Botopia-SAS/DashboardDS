@@ -21,12 +21,12 @@ interface DrivingTest {
   paid: boolean;
 }
 
-interface InstructorDocument {
-  _id: string;
-  schedule_driving_test: DrivingTest[];
-  markModified: (path: string) => void;
-  save: () => Promise<InstructorDocument>;
-}
+// interface InstructorDocument {
+//   _id: string;
+//   schedule_driving_test: DrivingTest[];
+//   markModified: (path: string) => void;
+//   save: () => Promise<InstructorDocument>;
+// }
 
 export async function PATCH(
   req: Request,

@@ -1,7 +1,7 @@
 import { NextRequest, NextResponse } from "next/server";
 import TicketClass from "@/lib/models/TicketClass";
-import Location from "@/lib/models/Locations";
-import DrivingClass from "@/lib/models/Class";
+// import Location from "@/lib/models/Locations";
+// import DrivingClass from "@/lib/models/Class";
 import { connectToDB } from "@/lib/mongoDB";
 
 export async function GET() {

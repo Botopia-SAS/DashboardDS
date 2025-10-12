@@ -104,8 +104,8 @@ function ConsolePage() {
   useLayoutEffect(() => {
     if (!containerRef.current) return;
     const updateSize = () => {
-      const maxWidth = Math.min(containerRef.current!.offsetWidth, 1400);
-      const aspect = imageNatural.height / imageNatural.width;
+      // const maxWidth = Math.min(containerRef.current!.offsetWidth, 1400);
+      // const aspect = imageNatural.height / imageNatural.width;
       // No need to update containerSize since we're not using it anymore
     };
     updateSize();

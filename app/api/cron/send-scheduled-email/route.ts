@@ -4,10 +4,10 @@ import ScheduledEmail from "@/lib/models/ScheduledEmail";
 import sendEmail from "@/lib/sendEmail";
 import { getEmailTemplate } from "@/lib/email/templates";
 
-function logWithColor(message: string, color: string = "\x1b[36m") {
-  // cyan por defecto
-  console.log(`${color}%s\x1b[0m`, message);
-}
+// function logWithColor(message: string, color: string = "\x1b[36m") {
+//   // cyan por defecto
+//   console.log(`${color}%s\x1b[0m`, message);
+// }
 
 export async function POST(req: NextRequest) {
   const now = new Date();
@@ -43,7 +43,7 @@ export async function POST(req: NextRequest) {
       await sendEmail(email.recipients, email.subject, email.body, html);
       await email.deleteOne();
       sentCount++;
-    } catch (err) {
+    } catch {
       // Puedes loguear el error si quieres
     }
   }

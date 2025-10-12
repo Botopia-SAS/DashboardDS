@@ -1,14 +1,14 @@
 "use client";
 import useClassTypeStore, { ClassTypeOption } from "@/app/store/classTypeStore";
 import Navigation from "@/components/ticket/navigation-card";
-import { Card, CardContent } from "@/components/ui/card";
+// import { Card, CardContent } from "@/components/ui/card";
 import { Separator } from "@/components/ui/separator";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import TicketCalendar from "@/components/ticket/TicketCalendar";
 import { useState, useEffect } from "react";
 import Loader from "@/components/custom ui/Loader";
 import DashboardHeader from "@/components/layout/DashboardHeader";
-import { useSearchParams, useRouter, useParams } from "next/navigation";
+import { useSearchParams, useParams } from "next/navigation";
 import { GovCertificateDialog } from "@/components/ticket/gov-certificate-dialog";
 import { AdiCertificateDialog } from "@/components/ticket/adi-certificate-dialog";
 import { Button } from "@/components/ui/button";
@@ -16,7 +16,7 @@ import { FileText, GraduationCap } from "lucide-react";
 
 export default function TicketClassTypePage() {
   const params = useParams();
-  const router = useRouter();
+  // const router = useRouter();
   const classtype = params.classtype as string;
 
   // Función helper para normalizar nombres de clase (espacios a guiones)

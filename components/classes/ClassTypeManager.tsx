@@ -19,12 +19,6 @@ const ClassTypeManager: React.FC<ClassTypeManagerProps> = ({ isOpen, onClose }) 
   const [editingName, setEditingName] = useState("");
   const [isLoading, setIsLoading] = useState(false);
 
-  useEffect(() => {
-    if (isOpen) {
-      fetchClassTypes();
-    }
-  }, [isOpen]);
-
   const fetchClassTypes = async () => {
     try {
       const res = await fetch("/api/classtypes");
@@ -33,9 +27,15 @@ const ClassTypeManager: React.FC<ClassTypeManagerProps> = ({ isOpen, onClose }) 
         setAvailableClassTypes(data);
       }
     } catch (error) {
-      console.error("Failed to fetch class types:", error);
+      console.error("Error fetching class types:", error);
     }
   };
+
+  useEffect(() => {
+    if (isOpen) {
+      fetchClassTypes();
+    }
+  }, [isOpen]);
 
   const handleAdd = async () => {
     if (!newTypeName.trim()) {

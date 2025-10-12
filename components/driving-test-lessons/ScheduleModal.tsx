@@ -102,7 +102,7 @@ const ScheduleModal: React.FC<ScheduleModalProps> = ({
   eventData,
   onEventUpdate,
   onEventDelete,
-  onEventCopy
+  // onEventCopy
 }) => {
   const [loading, setLoading] = useState(false);
   const [errors, setErrors] = useState<string[]>([]);
