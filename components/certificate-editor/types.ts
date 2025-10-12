@@ -34,6 +34,7 @@ export interface ShapeElement {
   color?: string;
   borderColor?: string;
   borderWidth?: number;
+  borderStyle?: string;
 }
 
 export interface Variable {

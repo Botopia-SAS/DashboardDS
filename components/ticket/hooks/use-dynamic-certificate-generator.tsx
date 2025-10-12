@@ -190,14 +190,47 @@ export function useDynamicCertificateGenerator() {
             color: color,
             borderColor: rgb(borderColor.r, borderColor.g, borderColor.b),
             borderWidth: shape.borderWidth || 0,
+            // Note: pdf-lib doesn't support border styles like dashed/dotted for rectangles
           });
         } else if (shape.type === 'line') {
-          page.drawLine({
-            start: { x: shape.x, y: height - shape.y },
-            end: { x: shape.x2 || shape.x, y: height - (shape.y2 || shape.y) },
-            thickness: shape.borderWidth || 1,
-            color: rgb(borderColor.r, borderColor.g, borderColor.b),
-          });
+          const thickness = shape.borderWidth || 1;
+          const startX = shape.x;
+          const startY = height - shape.y;
+          const endX = shape.x2 || shape.x;
+          const endY = height - (shape.y2 || shape.y);
+          
+          if (shape.borderStyle === 'dashed' || shape.borderStyle === 'dotted') {
+            // Simulate dashed/dotted lines by drawing multiple small segments
+            const dashLength = shape.borderStyle === 'dotted' ? 2 : 8;
+            const gapLength = shape.borderStyle === 'dotted' ? 2 : 4;
+            const totalLength = Math.sqrt(Math.pow(endX - startX, 2) + Math.pow(endY - startY, 2));
+            const segments = Math.floor(totalLength / (dashLength + gapLength));
+            
+            for (let i = 0; i < segments; i++) {
+              const segmentStart = i * (dashLength + gapLength) / totalLength;
+              const segmentEnd = (i * (dashLength + gapLength) + dashLength) / totalLength;
+              
+              const segStartX = startX + (endX - startX) * segmentStart;
+              const segStartY = startY + (endY - startY) * segmentStart;
+              const segEndX = startX + (endX - startX) * segmentEnd;
+              const segEndY = startY + (endY - startY) * segmentEnd;
+              
+              page.drawLine({
+                start: { x: segStartX, y: segStartY },
+                end: { x: segEndX, y: segEndY },
+                thickness: thickness,
+                color: rgb(borderColor.r, borderColor.g, borderColor.b),
+              });
+            }
+          } else {
+            // Solid line (default)
+            page.drawLine({
+              start: { x: startX, y: startY },
+              end: { x: endX, y: endY },
+              thickness: thickness,
+              color: rgb(borderColor.r, borderColor.g, borderColor.b),
+            });
+          }
         } else if (shape.type === 'circle') {
           // PDF-lib doesn't have a direct circle drawing, so we use an ellipse
           page.drawEllipse({
@@ -208,6 +241,7 @@ export function useDynamicCertificateGenerator() {
             color: color,
             borderColor: rgb(borderColor.r, borderColor.g, borderColor.b),
             borderWidth: shape.borderWidth || 0,
+            // Note: pdf-lib doesn't support border styles like dashed/dotted for ellipses
           });
         }
       });

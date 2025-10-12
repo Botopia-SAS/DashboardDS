@@ -44,6 +44,16 @@ body,
   height: 100%;
 }
 
+/* Certificate Editor - No scroll */
+.certificate-editor-page {
+  overflow: hidden !important;
+  height: 100vh !important;
+}
+
+.certificate-editor-page body {
+  overflow: hidden !important;
+}
+
 /* Custom scrollbar hiding */
 .scrollbar-hidden {
   -ms-overflow-style: none;  /* IE and Edge */

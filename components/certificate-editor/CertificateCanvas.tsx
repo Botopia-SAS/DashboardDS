@@ -9,6 +9,7 @@ interface CertificateCanvasProps {
   onSelectElement: (element: { type: 'text' | 'image' | 'shape' | null; id: string | null }) => void;
   onUpdateElement: (type: 'text' | 'image' | 'shape', id: string, updates: any) => void;
   previewMode?: boolean;
+  showVariables?: boolean;
 }
 
 export function CertificateCanvas({
@@ -17,14 +18,39 @@ export function CertificateCanvas({
   onSelectElement,
   onUpdateElement,
   previewMode = false,
+  showVariables = false,
 }: CertificateCanvasProps) {
   const canvasRef = useRef<HTMLDivElement>(null);
   const [dragging, setDragging] = useState<{ type: 'text' | 'image' | 'shape'; id: string } | null>(null);
   const [dragStart, setDragStart] = useState<{ x: number; y: number } | null>(null);
 
-  // Scale factor for display - Adjusted for better visibility
-  // Landscape: Use 0.85 for better view, Portrait: Use 0.7
-  const scale = template.pageSize.orientation === 'landscape' ? 0.85 : 0.7;
+  // Scale factor for display - Adjusted for better visibility and screen adaptation
+  // Calculate scale based on screen size and template dimensions
+  const getOptimalScale = () => {
+    const isLandscape = template.pageSize.orientation === 'landscape';
+    
+    // Get available space more precisely (updated widths)
+    const sidebarWidth = 320; // w-80 = 320px
+    const propertiesWidth = selectedElement.id && !previewMode ? 288 : 0; // w-72 = 288px when visible
+    const padding = 20; // reduced padding and margins
+    
+    const availableWidth = window.innerWidth - sidebarWidth - propertiesWidth - padding;
+    const availableHeight = window.innerHeight - 140; // Account for smaller header and margins
+    
+    // Calculate scale to fit the available space
+    const widthScale = availableWidth / template.pageSize.width;
+    const heightScale = availableHeight / template.pageSize.height;
+    
+    // Use the smaller scale to ensure it fits perfectly
+    const optimalScale = Math.min(widthScale, heightScale, 1.5); // Max 150% scale
+    
+    // Ensure minimum scale for readability
+    const minScale = isLandscape ? 0.6 : 0.5;
+    
+    return Math.max(optimalScale, minScale);
+  };
+
+  const scale = getOptimalScale();
 
   // Handle mouse down on element
   const handleMouseDown = (
@@ -58,18 +84,24 @@ export function CertificateCanvas({
     setDragStart(null);
   };
 
-  // Replace variables in text with example values
+  // Replace variables in text with example values or show variables
   const replaceVariables = (text: string): string => {
-    let result = text;
-    DEFAULT_VARIABLES.forEach(variable => {
-      const regex = new RegExp(`\\{\\{${variable.key}\\}\\}`, 'g');
-      result = result.replace(regex, variable.example);
-    });
-    return result;
+    if (showVariables) {
+      // Show actual variable names
+      return text;
+    } else {
+      // Show example values
+      let result = text;
+      DEFAULT_VARIABLES.forEach(variable => {
+        const regex = new RegExp(`\\{\\{${variable.key}\\}\\}`, 'g');
+        result = result.replace(regex, variable.example);
+      });
+      return result;
+    }
   };
 
   return (
-    <div className="flex justify-center items-center min-h-full p-8 bg-gray-50">
+    <div className="flex justify-center items-center h-full w-full p-2 bg-gray-50 overflow-hidden">
       <div
         ref={canvasRef}
         className="relative bg-white shadow-2xl border-4 border-gray-200"
@@ -77,8 +109,6 @@ export function CertificateCanvas({
           width: `${template.pageSize.width * scale}px`,
           height: `${template.pageSize.height * scale}px`,
           backgroundColor: template.background.type === 'color' ? template.background.value : '#FFFFFF',
-          maxWidth: '95%',
-          maxHeight: '95%',
         }}
         onMouseMove={handleMouseMove}
         onMouseUp={handleMouseUp}
@@ -114,7 +144,7 @@ export function CertificateCanvas({
                   width: `${(shape.width || 0) * scale}px`,
                   height: `${(shape.height || 0) * scale}px`,
                   backgroundColor: shape.color || 'transparent',
-                  border: `${(shape.borderWidth || 0) * scale}px solid ${shape.borderColor || '#000'}`,
+                  border: `${(shape.borderWidth || 0) * scale}px ${shape.borderStyle || 'solid'} ${shape.borderColor || '#000'}`,
                 }}
               />
             )}
@@ -132,6 +162,11 @@ export function CertificateCanvas({
                   y2={`${((shape.y2 || 0) - shape.y) * scale}`}
                   stroke={shape.borderColor || '#000'}
                   strokeWidth={(shape.borderWidth || 1) * scale}
+                  strokeDasharray={
+                    shape.borderStyle === 'dashed' ? `${4 * scale},${4 * scale}` :
+                    shape.borderStyle === 'dotted' ? `${2 * scale},${2 * scale}` :
+                    undefined
+                  }
                 />
               </svg>
             )}
@@ -143,7 +178,7 @@ export function CertificateCanvas({
                   height: `${(shape.radius || 0) * 2 * scale}px`,
                   borderRadius: '50%',
                   backgroundColor: shape.color || 'transparent',
-                  border: `${(shape.borderWidth || 0) * scale}px solid ${shape.borderColor || '#000'}`,
+                  border: `${(shape.borderWidth || 0) * scale}px ${shape.borderStyle || 'solid'} ${shape.borderColor || '#000'}`,
                 }}
               />
             )}
