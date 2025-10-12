@@ -163,7 +163,6 @@ const CustomForm: React.FC<FormProps> = ({ initialData }) => {
       price: initialData?.price ?? 0.1,
       overview: initialData?.overview || "",
       objectives: initialData?.objectives ?? [],
-      contact: initialData?.contact || "",
       buttonLabel: initialData?.buttonLabel || "",
       image: initialData?.image || "",
       headquarters: initialData?.headquarters ?? [], // ✅ Asegura que sea un array

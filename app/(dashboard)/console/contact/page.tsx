@@ -33,7 +33,7 @@ export default function ContactPage() {
   };
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-gray-50 to-blue-50 flex flex-col items-center py-8">
+    <div className="min-h-screen bg-white flex flex-col items-center py-8">
       <div className="w-full max-w-[1600px]">
         <div className="mb-6 flex items-center gap-2">
           <Link href="/console">
