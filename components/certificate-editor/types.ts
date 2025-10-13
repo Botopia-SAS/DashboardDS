@@ -19,6 +19,7 @@ export interface ImageElement {
   y: number;
   width: number;
   height: number;
+  grayscale?: boolean;
 }
 
 export interface ShapeElement {
@@ -68,20 +69,17 @@ export interface CertificateTemplate {
 }
 
 export const DEFAULT_VARIABLES: Variable[] = [
-  { key: 'studentName', label: 'Student Full Name', example: 'JOHN MICHAEL DOE' },
-  { key: 'firstName', label: 'First Name', example: 'JOHN' },
-  { key: 'lastName', label: 'Last Name', example: 'DOE' },
-  { key: 'middleName', label: 'Middle Name', example: 'MICHAEL' },
-  { key: 'certn', label: 'Certificate Number', example: '12345' },
-  { key: 'birthDate', label: 'Birth Date', example: '01/15/1990' },
-  { key: 'courseDate', label: 'Course Completion Date', example: 'Nov 10, 2025' },
-  { key: 'printDate', label: 'Print Date', example: 'Nov 15, 2025' },
-  { key: 'classTitle', label: 'Class Title', example: 'Defensive Driving Course' },
-  { key: 'classType', label: 'Class Type', example: 'DATE' },
-  { key: 'licenseNumber', label: 'License Number', example: 'D123-456-78-910-0' },
-  { key: 'citationNumber', label: 'Citation Number', example: 'CIT-2025-001' },
-  { key: 'address', label: 'Address', example: '123 Main St, City, FL 12345' },
-  { key: 'courseAddress', label: 'Course Address', example: '3167 Forest Hill Blvd, West Palm Beach, FL' },
-  { key: 'courseTime', label: 'Course Time', example: '9:00 AM - 5:00 PM' },
-  { key: 'instructorName', label: 'Instructor Name', example: 'Jane Smith' },
+  // Variables from User
+  { key: 'firstName', label: 'First Name (User)', example: 'JOHN' },
+  { key: 'lastName', label: 'Last Name (User)', example: 'DOE' },
+  { key: 'birthDate', label: 'Birth Date (User)', example: '01/15/1990' },
+  { key: 'licenseNumber', label: 'License Number (User)', example: 'D123-456-78-910-0' },
+  
+  // Variables from Ticket
+  { key: 'courseDate', label: 'Course Completion Date (Ticket)', example: 'Nov 10, 2025' },
+  { key: 'classTitle', label: 'Class Title (from classId)', example: 'Defensive Driving Course' },
+  { key: 'classType', label: 'Class Type (Ticket)', example: 'DATE' },
+  { key: 'address', label: 'Address (from locationId → zone)', example: 'Palm Beach County, FL' },
+  { key: 'courseTime', label: 'Course Duration (Ticket)', example: '2h' },
+  { key: 'certn', label: 'Certificate Number (Ticket)', example: '12345' },
 ];

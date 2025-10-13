@@ -21,8 +21,7 @@ function sendToAllClients(data: any) {
 // Function to get inactive sessions
 async function getInactiveSessions() {
   return await Session.find({ sessionActive: false })
-    .sort({ lastActive: -1 })
-    .limit(20);
+    .sort({ lastActive: -1 });
 }
 
 // SSE endpoint for real-time updates
