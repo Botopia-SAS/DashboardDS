@@ -24,6 +24,7 @@ export function CertificateCanvas({
   const [dragging, setDragging] = useState<{ type: 'text' | 'image' | 'shape'; id: string } | null>(null);
   const [dragStart, setDragStart] = useState<{ x: number; y: number } | null>(null);
   const [potentialDrag, setPotentialDrag] = useState<{ type: 'text' | 'image' | 'shape'; id: string; x: number; y: number; startX: number; startY: number } | null>(null);
+  const [justClickedElement, setJustClickedElement] = useState(false);
 
   // Scale factor for display - Optimized for better certificate visibility
   const getOptimalScale = () => {
@@ -54,7 +55,7 @@ export function CertificateCanvas({
 
   const scale = getOptimalScale();
 
-  // Handle mouse down on element
+  // Handle mouse down on element - simple click to select/deselect
   const handleMouseDown = (
     e: React.MouseEvent,
     type: 'text' | 'image' | 'shape',
@@ -65,20 +66,20 @@ export function CertificateCanvas({
     if (previewMode) return;
 
     e.stopPropagation();
+    setJustClickedElement(true);
 
-    // Toggle selection: if clicking on the same element, deselect it
+    // Check if clicking on already selected element
     const isCurrentlySelected = selectedElement.type === type && selectedElement.id === id;
 
     if (isCurrentlySelected) {
-      // Deselect if clicking on already selected element
+      // If already selected, deselect immediately
       onSelectElement({ type: null, id: null });
-      return; // Don't prepare for drag if deselecting
     } else {
-      // Select the new element
+      // Select the new element immediately
       onSelectElement({ type, id });
     }
 
-    // Prepare for potential drag (but don't start dragging yet)
+    // Always prepare for potential drag regardless of selection state
     setPotentialDrag({
       type,
       id,
@@ -97,7 +98,7 @@ export function CertificateCanvas({
     if (potentialDrag && !dragging) {
       const deltaX = Math.abs(e.clientX - potentialDrag.startX);
       const deltaY = Math.abs(e.clientY - potentialDrag.startY);
-      const threshold = 5; // Start dragging only if moved more than 5 pixels
+      const threshold = 3; // Reduced threshold for more responsive dragging
 
       if (deltaX > threshold || deltaY > threshold) {
         // Start actual dragging
@@ -106,6 +107,8 @@ export function CertificateCanvas({
           x: e.clientX - potentialDrag.x * scale,
           y: e.clientY - potentialDrag.y * scale
         });
+        // Clear the justClickedElement flag when starting to drag
+        setJustClickedElement(false);
       }
       return;
     }
@@ -124,6 +127,8 @@ export function CertificateCanvas({
     setDragging(null);
     setDragStart(null);
     setPotentialDrag(null);
+    // Reset the flag after a short delay to prevent immediate deselection
+    setTimeout(() => setJustClickedElement(false), 10);
   };
 
   // Replace variables in text with example values or show variables
@@ -146,7 +151,7 @@ export function CertificateCanvas({
     <div className="flex justify-center items-center h-full w-full p-2 bg-gray-50 overflow-hidden">
       <div
         ref={canvasRef}
-        className="relative bg-white shadow-2xl border-4 border-gray-200"
+        className="relative bg-white shadow-2xl border-4 border-gray-200 focus:outline-none focus:ring-2 focus:ring-blue-500"
         style={{
           width: `${template.pageSize.width * scale}px`,
           height: `${template.pageSize.height * scale}px`,
@@ -155,7 +160,8 @@ export function CertificateCanvas({
         onMouseMove={handleMouseMove}
         onMouseUp={handleMouseUp}
         onMouseLeave={handleMouseUp}
-        onClick={() => !previewMode && onSelectElement({ type: null, id: null })}
+        onClick={() => !previewMode && !justClickedElement && onSelectElement({ type: null, id: null })}
+        tabIndex={0}
       >
         {/* Background Image */}
         {template.background.type === 'image' && template.background.value && (
@@ -170,7 +176,7 @@ export function CertificateCanvas({
         {template.shapeElements.map((shape) => (
           <div
             key={shape.id}
-            className={`absolute cursor-move ${
+            className={`absolute ${dragging && dragging.id === shape.id ? 'cursor-move' : 'cursor-pointer'} ${
               selectedElement.id === shape.id && !previewMode ? 'ring-2 ring-blue-500' : ''
             }`}
             style={{
@@ -231,7 +237,7 @@ export function CertificateCanvas({
         {template.imageElements.map((image) => (
           <div
             key={image.id}
-            className={`absolute cursor-move ${
+            className={`absolute ${dragging && dragging.id === image.id ? 'cursor-move' : 'cursor-pointer'} ${
               selectedElement.id === image.id && !previewMode ? 'ring-2 ring-blue-500' : ''
             }`}
             style={{
@@ -265,7 +271,7 @@ export function CertificateCanvas({
           return (
             <div
               key={text.id}
-              className={`absolute cursor-move ${
+              className={`absolute ${dragging && dragging.id === text.id ? 'cursor-move' : 'cursor-pointer'} ${
                 selectedElement.id === text.id && !previewMode ? 'ring-2 ring-blue-500 bg-blue-50' : ''
               }`}
               style={{

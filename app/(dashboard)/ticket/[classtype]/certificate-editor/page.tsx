@@ -53,42 +53,26 @@ export default function CertificateEditorPage() {
           // Template exists in database, use it
           setTemplate(templates[0]);
         } else {
-          // No template exists - Load BDI template as default for all types (except ADI)
+          // No template exists - Load BDI template as default for ALL types (including ADI)
           const upperClassType = decodedClassType.toUpperCase();
-
-          if (upperClassType === 'ADI') {
-            // For ADI, start with blank template
-            setTemplate(null);
-          } else {
-            // For all other types (DATE, BDI, and any new classes), use BDI template
-            const bdiTemplate = getDefaultBDITemplate(upperClassType);
-            setTemplate(bdiTemplate as CertificateTemplate);
-            console.log(`Loading BDI template as default for ${upperClassType}`);
-          }
-        }
-      } else {
-        // Error fetching - use BDI default
-        const upperClassType = decodedClassType.toUpperCase();
-        if (upperClassType !== 'ADI') {
           const bdiTemplate = getDefaultBDITemplate(upperClassType);
           setTemplate(bdiTemplate as CertificateTemplate);
-        } else {
-          setTemplate(null);
+          console.log(`Loading BDI template as default for ${upperClassType}`);
         }
+      } else {
+        // Error fetching - use BDI default for all types
+        const upperClassType = decodedClassType.toUpperCase();
+        const bdiTemplate = getDefaultBDITemplate(upperClassType);
+        setTemplate(bdiTemplate as CertificateTemplate);
       }
     } catch (error) {
       console.error("Error fetching template:", error);
 
-      // Even on error, load BDI template as default
+      // Even on error, load BDI template as default for all types
       const upperClassType = decodedClassType.toUpperCase();
-      if (upperClassType !== 'ADI') {
-        const bdiTemplate = getDefaultBDITemplate(upperClassType);
-        setTemplate(bdiTemplate as CertificateTemplate);
-        toast.success("Loaded default BDI template");
-      } else {
-        toast.error("Error loading certificate template");
-        setTemplate(null);
-      }
+      const bdiTemplate = getDefaultBDITemplate(upperClassType);
+      setTemplate(bdiTemplate as CertificateTemplate);
+      toast.success("Loaded default BDI template");
     } finally {
       setLoading(false);
     }

@@ -40,28 +40,24 @@ export function useCertificateGenerator() {
         console.log('⚠️ No saved template found, using defaults', error);
       }
 
-      // No saved template exists - Use default templates
+      // No saved template exists - ALL TYPES use BDI template as default (including ADI)
       console.log(`🔄 No saved template found for ${certType}, using default BDI template`);
 
-      if (certType === "ADI") {
-        // ADI uses its own legacy generator
-        console.log('📄 Using ADI legacy generator');
-        return generateAdiCertificatePDF(user);
-      } else {
-        // ALL OTHER TYPES (DATE, BDI, and ANY NEW CLASS) use BDI template as default
-        console.log(`🎨 Using default BDI template for ${certType}`);
+      try {
+        // Get BDI template and generate PDF for ALL types
+        const bdiTemplate = getDefaultBDITemplate(certType);
+        console.log('📋 BDI Template loaded:', bdiTemplate.name);
 
-        try {
-          // Get BDI template and generate PDF
-          const bdiTemplate = getDefaultBDITemplate(certType);
-          console.log('📋 BDI Template loaded:', bdiTemplate.name);
-          
-          const result = await generateDynamicCertificatePDF(user, bdiTemplate as CertificateTemplate);
-          console.log('✅ Certificate generated successfully with BDI template');
-          return result;
-        } catch (error) {
-          console.error('❌ Error generating with BDI template, falling back to legacy generator:', error);
-          // Fallback to legacy BDI generator if dynamic fails
+        const result = await generateDynamicCertificatePDF(user, bdiTemplate as CertificateTemplate);
+        console.log('✅ Certificate generated successfully with BDI template');
+        return result;
+      } catch (error) {
+        console.error('❌ Error generating with BDI template, falling back to legacy generator:', error);
+
+        // Fallback to appropriate legacy generator based on type
+        if (certType === "ADI") {
+          return generateAdiCertificatePDF(user);
+        } else {
           return generateBdiCertificatePDF(user);
         }
       }
