@@ -1,6 +1,6 @@
 # Certificado Digital GOV - Documentación
 
-## 📋 Resumen
+## 📋 Resumen.
 
 Se ha **reemplazado completamente** el certificado físico (`Certificate.jpg`) por un certificado 100% digital generado con HTML/CSS/SVG. Este cambio elimina la dependencia de imágenes raster y proporciona un diseño profesional, nítido y totalmente personalizable.
 
