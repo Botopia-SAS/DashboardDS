@@ -19,9 +19,14 @@ import { Button } from "@/components/ui/button";
 import { ArrowLeft } from "lucide-react";
 import { usePathname } from "next/navigation";
 import DashboardHeader from "@/components/layout/DashboardHeader";
+import { usePhone } from "@/hooks/usePhone";
+import PhoneEditModal from "@/components/modals/PhoneEditModal";
+import { Phone, Edit3 } from "lucide-react";
 
 function ConsolePage() {
   const pathname = usePathname();
+  const { phone, updatePhone } = usePhone();
+  const [isPhoneModalOpen, setIsPhoneModalOpen] = useState(false);
 
   const Heatmap = dynamic(() => import("@/components/Heatmap"), { ssr: false });
   const [heatmapData, setHeatmapData] = useState<
@@ -182,6 +187,22 @@ function ConsolePage() {
       
       <DashboardHeader title="Console Dashboard">
         <div className="flex gap-2 sm:gap-6 items-center flex-wrap">
+          {/* Phone Number Display */}
+          <div className="flex items-center gap-2 px-3 py-2 bg-gray-700 rounded-lg">
+            <Phone className="w-4 h-4 text-blue-400" />
+            <span className="text-sm text-gray-200">
+              {phone?.phoneNumber || "(561) 969-0150"}
+            </span>
+            <Button
+              variant="ghost"
+              size="sm"
+              onClick={() => setIsPhoneModalOpen(true)}
+              className="h-6 w-6 p-0 hover:bg-gray-600"
+            >
+              <Edit3 className="w-3 h-3 text-gray-400 hover:text-white" />
+            </Button>
+          </div>
+          
           <Link
             href="/console/analytics"
             className="px-2 sm:px-4 py-2 text-sm rounded-lg hover:bg-gray-700"
@@ -346,6 +367,14 @@ function ConsolePage() {
           </CardContent>
         </Card>
       </div>
+
+      {/* Phone Edit Modal */}
+      <PhoneEditModal
+        isOpen={isPhoneModalOpen}
+        onClose={() => setIsPhoneModalOpen(false)}
+        currentPhone={phone?.phoneNumber || "(561) 969-0150"}
+        onSave={updatePhone}
+      />
     </div>
   );
 }
