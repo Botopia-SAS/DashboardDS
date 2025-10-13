@@ -6,6 +6,7 @@ const SEOSchema = new mongoose.Schema({
   metaDescription: { type: String, required: false },
   metaKeywords: { type: String, required: false },
   metaImage: { type: String, required: false },
+  slug: { type: String, required: false },
 
   // Relación polimórfica - permite asociar SEO a diferentes entidades
   entityType: {
