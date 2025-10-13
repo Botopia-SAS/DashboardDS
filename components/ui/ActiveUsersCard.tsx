@@ -37,26 +37,9 @@ export default function ActiveUsersCard({ language = "es" }: { language?: "es" |
   const [usersPerPage, setUsersPerPage] = useState(4);
   const eventSourceRef = useRef<EventSource | null>(null);
 
-  // Hook para detectar el tamaño de pantalla
+  // Fijar en 5 tarjetas por página para todas las pantallas
   useEffect(() => {
-    const updateUsersPerPage = () => {
-      const width = window.innerWidth;
-      if (width >= 1536) { // 2xl
-        setUsersPerPage(8);
-      } else if (width >= 1280) { // xl
-        setUsersPerPage(6);
-      } else if (width >= 1024) { // lg
-        setUsersPerPage(5);
-      } else if (width >= 768) { // md
-        setUsersPerPage(4);
-      } else {
-        setUsersPerPage(2);
-      }
-    };
-
-    updateUsersPerPage();
-    window.addEventListener('resize', updateUsersPerPage);
-    return () => window.removeEventListener('resize', updateUsersPerPage);
+    setUsersPerPage(5);
   }, []);
 
   useEffect(() => {
@@ -132,7 +115,7 @@ export default function ActiveUsersCard({ language = "es" }: { language?: "es" |
         ) : view === 'cards' ? (
           <>
             {/* Desktop: carrusel con flechas */}
-            <div className="w-full flex items-center justify-center gap-6 hidden sm:flex px-1 md:px-2" style={{ maxWidth: '1450px', margin: '0 auto', minHeight: '220px' }}>
+            <div className="w-full flex items-center justify-center gap-2 hidden sm:flex px-2 md:px-3" style={{ maxWidth: '100%', margin: '0 auto', minHeight: '21rem' }}>
               {/* Flecha Izquierda */}
               <div className="flex-shrink-0">
                 <button
@@ -145,7 +128,7 @@ export default function ActiveUsersCard({ language = "es" }: { language?: "es" |
                 </button>
               </div>
               {/* Cards */}
-              <div className="flex flex-nowrap gap-3 py-4 justify-center overflow-hidden" style={{ minWidth: 0, flex: '1 1 auto' }}>
+              <div className="flex flex-nowrap gap-1 py-4 justify-center overflow-hidden pr-2" style={{ minWidth: 0, flex: '1 1 auto' }}>
                 {activeUsers.slice(carouselIndex, carouselIndex + usersPerPage).map((user) => {
                   const start = user.startTimestamp ? new Date(user.startTimestamp).getTime() : 0;
                   const last = user.lastActive ? new Date(user.lastActive).getTime() : 0;
@@ -153,35 +136,57 @@ export default function ActiveUsersCard({ language = "es" }: { language?: "es" |
                   return (
                     <div
                       key={user._id}
-                      className="bg-gradient-to-br from-green-50 to-white shadow-lg rounded-xl p-4 min-w-[200px] max-w-[240px] flex flex-col items-center border border-green-200 hover:scale-105 hover:shadow-xl transition-transform cursor-pointer relative group flex-shrink-0"
-                      style={{ boxSizing: 'border-box' }}
+                      className="bg-gradient-to-br from-green-50 to-white shadow-lg rounded-xl p-3 w-[15.5rem] h-[20rem] flex flex-col justify-between items-center border border-green-200 hover:scale-105 hover:shadow-xl transition-transform cursor-pointer relative group flex-shrink-0"
+                      style={{ 
+                        boxSizing: 'border-box',
+                        minWidth: 'clamp(200px, 15.5rem, 280px)',
+                        maxWidth: 'clamp(200px, 15.5rem, 280px)',
+                        minHeight: 'clamp(300px, 20rem, 350px)',
+                        maxHeight: 'clamp(300px, 20rem, 350px)'
+                      }}
                     >
-                      <span className="text-lg font-mono font-bold text-green-900 mb-1 group-hover:underline">{user.ipAddress || "-"}</span>
-                      <div className="flex items-center gap-1 text-gray-600 mb-1">
-                        <Globe size={16} />
-                        <span>{user.geolocation?.country || "-"}, {user.geolocation?.city || "-"}</span>
+                      {/* Sección superior */}
+                      <div className="flex flex-col items-center text-center">
+                        <span className="text-base font-mono font-bold text-green-900 mb-2 group-hover:underline">{user.ipAddress || "-"}</span>
+                        <div className="flex items-center gap-1 text-gray-600 mb-2">
+                          <Globe size={16} />
+                          <span className="text-sm">{user.geolocation?.country || "-"}, {user.geolocation?.city || "-"}</span>
+                        </div>
+                        <div className="flex flex-wrap gap-1 mb-2 justify-center">
+                          <span className="bg-blue-100 text-blue-800 rounded-full px-2 py-0.5 text-xs flex items-center gap-1">
+                            <Smartphone size={12} /> {getDevice(user.userAgent)}
+                          </span>
+                          <span className={`rounded-full px-2 py-0.5 text-xs flex items-center gap-1 ${user.vpn ? 'bg-red-100 text-red-800' : 'bg-green-100 text-green-800'}`}> 
+                            <ShieldCheck size={12} /> VPN: {user.vpn ? "Yes" : "No"}
+                          </span>
+                        </div>
+                        <div className="text-xs text-gray-500 mb-2 flex items-center gap-2">
+                          <span>Lat: {user.geolocation?.latitude ?? "-"}</span>
+                          <span>Lon: {user.geolocation?.longitude ?? "-"}</span>
+                        </div>
                       </div>
-                      <div className="flex gap-2 mb-1">
-                        <span className="bg-blue-100 text-blue-800 rounded-full px-2 py-0.5 text-xs flex items-center gap-1">
-                          <Smartphone size={14} /> {getDevice(user.userAgent)}
-                        </span>
-                        <span className={`rounded-full px-2 py-0.5 text-xs flex items-center gap-1 ${user.vpn ? 'bg-red-100 text-red-800' : 'bg-green-100 text-green-800'}`}>
-                          <ShieldCheck size={14} /> {language === 'en' ? `VPN: ${user.vpn ? "Yes" : "No"}` : `VPN: ${user.vpn ? "Sí" : "No"}`}
-                        </span>
-                      </div>
-                      <div className="text-xs text-gray-500 mb-1">
-                        Lat: {user.geolocation?.latitude ?? "-"}, Lon: {user.geolocation?.longitude ?? "-"}
-                      </div>
-                      <div className="flex flex-col items-center mt-2 w-full">
+                      
+                      {/* Sección inferior */}
+                      <div className="flex flex-col items-center text-center w-full space-y-1">
                         <span className="flex items-center gap-1 text-xs text-gray-700">
-                          <Clock size={13} /> {language === 'en' ? 'Last activity:' : 'Última act:'} {user.lastActive ? new Date(user.lastActive).toLocaleTimeString() : "N/A"}
+                          <Clock size={12} /> Last activity: {user.lastActive ? new Date(user.lastActive).toLocaleTimeString() : "N/A"}
                         </span>
-                        <span className="flex items-center gap-1 text-xs text-gray-700 mt-1 w-full justify-center text-center">
-                          <Monitor size={13} /> {language === 'en' ? 'Page:' : 'Página:'} {user.pages && user.pages.length > 0 ? user.pages[user.pages.length - 1].url : "-"}
-                        </span>
-                        <span className="flex items-center gap-1 text-xs text-blue-700 mt-1">
-                          <Clock size={13} /> {language === 'en' ? 'Session time:' : 'Tiempo de sesión:'} {duration}
-                        </span>
+                        <div className="flex flex-col items-center gap-1 text-xs text-gray-700 w-full">
+                          <div className="flex items-center gap-1">
+                            <Monitor size={12} /> Page:
+                          </div>
+                          <div className="text-center break-words max-w-full px-1">
+                            {user.pages && user.pages.length > 0 ? user.pages[user.pages.length - 1].url : "-"}
+                          </div>
+                        </div>
+                        <div className="flex flex-col items-center gap-1 text-xs text-blue-700 w-full">
+                          <div className="flex items-center gap-1">
+                            <Clock size={12} /> Session time:
+                          </div>
+                          <div className="text-center break-words max-w-full px-1">
+                            {duration}
+                          </div>
+                        </div>
                       </div>
                       {/* Sombra animada al hacer hover */}
                       <div className="absolute inset-0 rounded-xl border-2 border-green-300 opacity-0 group-hover:opacity-100 transition-opacity pointer-events-none"></div>

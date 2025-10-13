@@ -24,6 +24,8 @@ export interface Student {
   courseAddress?: string;
   courseTime?: string;
   address?: string;
+  duration?: string; // Duration from ticket class (e.g., "2h")
+  locationId?: string; // Location ID from ticket class
   // New fields for class information
   classTitle?: string; // Title of the class from drivingclasses
   classType?: string; // Type of class from drivingclasses (DATE, BDI, ADI)
@@ -68,5 +70,13 @@ export const columns: ColumnDef<Student>[] = [
   {
     accessorKey: "certn",
     header: "Certificate Number",
+  },
+  {
+    accessorKey: "citation_number",
+    header: "Citation Number",
+    cell: ({ row }) => {
+      const citationNumber = row.getValue("citation_number") as string;
+      return citationNumber || "-";
+    },
   },
 ];

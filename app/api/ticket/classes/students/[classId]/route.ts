@@ -3,6 +3,7 @@ import Certificate from "@/lib/models/Cerificate";
 import Order from "@/lib/models/Order";
 import Payment from "@/lib/models/Payments";
 import TicketClass from "@/lib/models/TicketClass";
+// import Location from "../../../../../../lib/models/Locations";
 import { connectToDB } from "@/lib/mongoDB";
 import { NextRequest, NextResponse } from "next/server";
 
@@ -36,6 +37,21 @@ export async function GET(req: NextRequest) {
   }
   
   const students = [];
+  
+  // Get location information for address
+  let locationAddress = "";
+  if (ticketClass.locationId) {
+    try {
+      const { default: Location } = await import("@/lib/models/Locations");
+      const location = await Location.findById(ticketClass.locationId).exec();
+      if (location) {
+        locationAddress = location.zone || "";
+        console.log('Location found for address:', locationAddress);
+      }
+    } catch (error) {
+      console.error('Error importing Location model:', error);
+    }
+  }
   
   // Ensure students is an array before iterating
   const studentsArray = Array.isArray(ticketClass.students) ? ticketClass.students : [];
@@ -85,8 +101,15 @@ export async function GET(req: NextRequest) {
       reason: "", // These fields are no longer stored in studentEntry
       country_ticket: "",
       course_country: "",
-      citation_number: "",
+      citation_number: cert?.citation_number || "", // Get from certificate data
       licenseNumber: user.licenseNumber,
+      // Add ticket class data
+      locationId: ticketClass.locationId,
+      address: locationAddress, // Real address from locations table
+      duration: ticketClass.duration,
+      type: ticketClass.type,
+      hour: ticketClass.hour,
+      endHour: ticketClass.endHour,
     });
   }
   
@@ -97,7 +120,8 @@ export async function PATCH(req: NextRequest) {
   try {
     await connectToDB();
     const classId = req.url.split("/").pop();
-    const { id, certn, payedAmount, paymentMethod } = await req.json();
+    const { id, certn, payedAmount, paymentMethod, citation_number } = await req.json();
+    console.log('API received citation_number:', citation_number);
     const user = await User.findOne({ _id: id }).exec();
     if (!user) {
       return NextResponse.json(
@@ -118,54 +142,48 @@ export async function PATCH(req: NextRequest) {
       );
     }
 
-    // Determinamos el monto requerido según el tipo de clase
-    let requiredAmount = 50; // Default para "date" y "bdi"
-    if (ticketClass.type && ticketClass.type.toLowerCase() === "adi") {
-      requiredAmount = 100;
+    // Save citation number in Certificate table if provided
+    if (citation_number !== undefined) {
+      console.log('About to save citation_number:', citation_number, 'for student:', user._id, 'class:', classId);
+      
+      // Find existing certificate for this student and class
+      const cert = await Certificate.findOne({
+        studentId: user._id,
+        classId,
+      }).exec();
+
+      if (cert) {
+        // Update existing certificate with citation number
+        cert.citation_number = citation_number;
+        await cert.save();
+        console.log('Certificate updated with citation_number:', cert.citation_number);
+      } else {
+        // Create new certificate with citation number (if certn is also provided)
+        if (certn) {
+          await Certificate.create({
+            studentId: user._id,
+            classId,
+            number: Number(certn),
+            citation_number: citation_number,
+          });
+          console.log('New certificate created with citation_number:', citation_number);
+        }
+      }
     }
 
-    // Verificamos si ya existe un pago para este estudiante y clase
-    const existingOrder = await Order.findOne({
-      user_id: user._id,
-      course_id: classId,
-      status: "paid",
-    }).exec();
-
+    // Check if there's an existing payment record to update
+    const existingPayment = await Payment.findOne({ user_id: user._id }).exec();
+    
     // Verificar si hay pago existente cuando se proporciona un nuevo pago
     if (payedAmount > 0) {
-      if (existingOrder) {
-        // Si ya existe un pago, solo actualizamos el método de pago si se proporciona
-        if (paymentMethod) {
-          const payment = await Payment.findOne({
-            order: existingOrder._id,
-          }).exec();
-          if (payment) {
-            payment.method = paymentMethod;
-            await payment.save();
-          }
-        }
-      } else {
-        if (payedAmount !== requiredAmount) {
-          return NextResponse.json(
-            {
-              success: false,
-              message: `Payment amount must be exactly $${requiredAmount} for this class type (${ticketClass.type})`,
-            },
-            { status: 400 }
-          );
-        }
 
-        // Para pagos de certificados, NO creamos una orden automáticamente
-        // Solo creamos el registro de pago sin asociarlo a ninguna orden
-        
         // Check if there's an existing payment record to update
-        const payment = await Payment.findOne({ user_id: user._id }).exec();
-        if (payment) {
-          payment.amount = payedAmount;
+        if (existingPayment) {
+          existingPayment.amount = payedAmount;
           if (paymentMethod) {
-            payment.method = paymentMethod;
+            existingPayment.method = paymentMethod;
           }
-          await payment.save();
+          await existingPayment.save();
         } else {
           // If no payment method is provided, use a default
           const method = paymentMethod || "Other";
@@ -174,11 +192,9 @@ export async function PATCH(req: NextRequest) {
             user_id: user._id,
             amount: payedAmount,
             method: method,
-            // No incluimos order: order._id para evitar crear la relación con una orden
           });
         }
       }
-    }
 
     // Procesamos el número de certificado independientemente del estado del pago
     if (certn) {
@@ -210,17 +226,13 @@ export async function PATCH(req: NextRequest) {
         // Buscar pago válido directamente en la tabla Payment
         const existingPayment = await Payment.findOne({
           user_id: user._id,
-          amount: requiredAmount,
         }).exec();
         
-        if (
-          !existingPayment &&
-          (!payedAmount || payedAmount !== requiredAmount)
-        ) {
+        if (!existingPayment && (!payedAmount || payedAmount <= 0)) {
           return NextResponse.json(
             {
               success: false,
-              message: `Cannot assign certificate without valid payment. Required payment: $${requiredAmount}`,
+              message: `Cannot assign certificate without valid payment.`,
             },
             { status: 400 }
           );

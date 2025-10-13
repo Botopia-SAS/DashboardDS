@@ -5,6 +5,79 @@ import { useCallback } from "react";
 import { PDFDocument, rgb, StandardFonts } from "pdf-lib";
 import { CertificateTemplate, TextElement, ShapeElement } from "@/components/certificate-editor/types";
 
+// Function to apply grayscale filter to image bytes
+async function applyGrayscaleFilter(imageBytes: ArrayBuffer): Promise<ArrayBuffer> {
+  return new Promise((resolve, reject) => {
+    try {
+      // Create a blob from the image bytes
+      const blob = new Blob([imageBytes]);
+      const url = URL.createObjectURL(blob);
+      
+      // Create an image element
+      const img = new Image();
+      img.crossOrigin = 'anonymous';
+      
+      img.onload = () => {
+        try {
+          // Create a canvas
+          const canvas = document.createElement('canvas');
+          const ctx = canvas.getContext('2d');
+          
+          if (!ctx) {
+            reject(new Error('Could not get canvas context'));
+            return;
+          }
+          
+          canvas.width = img.width;
+          canvas.height = img.height;
+          
+          // Draw the image
+          ctx.drawImage(img, 0, 0);
+          
+          // Get image data
+          const imageData = ctx.getImageData(0, 0, canvas.width, canvas.height);
+          const data = imageData.data;
+          
+          // Apply grayscale filter
+          for (let i = 0; i < data.length; i += 4) {
+            const gray = data[i] * 0.299 + data[i + 1] * 0.587 + data[i + 2] * 0.114;
+            data[i] = gray;     // Red
+            data[i + 1] = gray; // Green
+            data[i + 2] = gray; // Blue
+            // Alpha channel (data[i + 3]) remains unchanged
+          }
+          
+          // Put the modified image data back
+          ctx.putImageData(imageData, 0, 0);
+          
+          // Convert canvas to blob
+          canvas.toBlob((blob) => {
+            if (blob) {
+              blob.arrayBuffer().then(resolve).catch(reject);
+            } else {
+              reject(new Error('Could not convert canvas to blob'));
+            }
+          }, 'image/png');
+          
+        } catch (error) {
+          reject(error);
+        } finally {
+          URL.revokeObjectURL(url);
+        }
+      };
+      
+      img.onerror = () => {
+        URL.revokeObjectURL(url);
+        reject(new Error('Could not load image'));
+      };
+      
+      img.src = url;
+    } catch (error) {
+      reject(error);
+    }
+  });
+}
+
 export function useDynamicCertificateGenerator() {
   const generateDynamicCertificatePDF = useCallback(async (user: Student, template: CertificateTemplate) => {
     console.log('🎨 Starting dynamic certificate generation');
@@ -37,6 +110,7 @@ export function useDynamicCertificateGenerator() {
       address,
       courseAddress,
       courseTime,
+      duration,
       instructorName,
     } = user;
 
@@ -106,9 +180,9 @@ export function useDynamicCertificateGenerator() {
           classType: (classType || '').toUpperCase(),
           licenseNumber: licenseNumber || '',
           citationNumber: citation_number || '',
-          address: address || '',
+          address: address || '', // This comes from locationId → zone
           courseAddress: courseAddress || '',
-          courseTime: courseTime || '',
+          courseTime: duration || courseTime || '', // Use duration from ticket class, fallback to courseTime
           instructorName: instructorName || '',
         };
 
@@ -249,7 +323,13 @@ export function useDynamicCertificateGenerator() {
       // Draw images
       for (const image of template.imageElements) {
         try {
-          const imageBytes = await fetch(image.url).then(res => res.arrayBuffer());
+          let imageBytes = await fetch(image.url).then(res => res.arrayBuffer());
+          
+          // Apply grayscale filter if enabled
+          if (image.grayscale) {
+            imageBytes = await applyGrayscaleFilter(imageBytes);
+          }
+          
           let pdfImage;
 
           if (image.url.toLowerCase().endsWith('.png')) {

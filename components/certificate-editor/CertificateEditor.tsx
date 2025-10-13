@@ -61,12 +61,96 @@ export function CertificateEditor({
   const [borderLineStyle, setBorderLineStyle] = useState<string>('solid');
   const [selectedFrameStyle, setSelectedFrameStyle] = useState<string>('');
 
+  // History for undo/redo
+  const [history, setHistory] = useState<CertificateTemplate[]>([template]);
+  const [historyIndex, setHistoryIndex] = useState(0);
+
+  // Clipboard for copy/paste functionality
+  const [clipboard, setClipboard] = useState<{
+    type: 'text' | 'image' | 'shape';
+    element: TextElement | ImageElement | ShapeElement;
+  } | null>(null);
+
   // Notify parent component when template changes
   useEffect(() => {
     if (onChange) {
       onChange(template);
     }
   }, [template, onChange]);
+
+  // Keyboard shortcuts for undo/redo, copy/paste, and delete
+  useEffect(() => {
+    const handleKeyDown = (e: KeyboardEvent) => {
+      // Undo
+      if ((e.ctrlKey || e.metaKey) && e.key === 'z' && !e.shiftKey) {
+        e.preventDefault();
+        undo();
+      } 
+      // Redo
+      else if ((e.ctrlKey || e.metaKey) && (e.key === 'y' || (e.key === 'z' && e.shiftKey))) {
+        e.preventDefault();
+        redo();
+      }
+      // Copy element
+      else if ((e.ctrlKey || e.metaKey) && e.key === 'c') {
+        e.preventDefault();
+        copySelectedElement();
+      }
+      // Paste element
+      else if ((e.ctrlKey || e.metaKey) && e.key === 'v') {
+        e.preventDefault();
+        pasteElement();
+      }
+      // Delete element
+      else if (e.key === 'Delete' || e.key === 'Supr') {
+        e.preventDefault();
+        deleteSelectedElement();
+      }
+    };
+
+    window.addEventListener('keydown', handleKeyDown);
+    return () => window.removeEventListener('keydown', handleKeyDown);
+  }, [historyIndex, selectedElement, clipboard]);
+
+  // Update history when template changes (but not during undo/redo)
+  const pushToHistory = (newTemplate: CertificateTemplate) => {
+    const newHistory = history.slice(0, historyIndex + 1);
+    newHistory.push(newTemplate);
+
+    // Keep only last 50 states to prevent memory issues
+    if (newHistory.length > 50) {
+      newHistory.shift();
+    } else {
+      setHistoryIndex(historyIndex + 1);
+    }
+
+    setHistory(newHistory);
+    setTemplate(newTemplate);
+  };
+
+  // Undo function
+  const undo = () => {
+    if (historyIndex > 0) {
+      const newIndex = historyIndex - 1;
+      setHistoryIndex(newIndex);
+      setTemplate(history[newIndex]);
+      toast.success('Undo');
+    } else {
+      toast.error('Nothing to undo');
+    }
+  };
+
+  // Redo function
+  const redo = () => {
+    if (historyIndex < history.length - 1) {
+      const newIndex = historyIndex + 1;
+      setHistoryIndex(newIndex);
+      setTemplate(history[newIndex]);
+      toast.success('Redo');
+    } else {
+      toast.error('Nothing to redo');
+    }
+  };
 
   // Add Text Element
   const addTextElement = () => {
@@ -82,7 +166,7 @@ export function CertificateEditor({
       align: 'left',
     };
 
-    setTemplate({
+    pushToHistory({
       ...template,
       textElements: [...template.textElements, newElement],
     });
@@ -101,7 +185,7 @@ export function CertificateEditor({
       height: 100,
     };
 
-    setTemplate({
+    pushToHistory({
       ...template,
       imageElements: [...template.imageElements, newElement],
     });
@@ -125,7 +209,7 @@ export function CertificateEditor({
       borderWidth: 2,
     };
 
-    setTemplate({
+    pushToHistory({
       ...template,
       shapeElements: [...template.shapeElements, newElement],
     });
@@ -136,21 +220,21 @@ export function CertificateEditor({
   // Update element
   const updateElement = (type: 'text' | 'image' | 'shape', id: string, updates: any) => {
     if (type === 'text') {
-      setTemplate({
+      pushToHistory({
         ...template,
         textElements: template.textElements.map(el =>
           el.id === id ? { ...el, ...updates } : el
         ),
       });
     } else if (type === 'image') {
-      setTemplate({
+      pushToHistory({
         ...template,
         imageElements: template.imageElements.map(el =>
           el.id === id ? { ...el, ...updates } : el
         ),
       });
     } else if (type === 'shape') {
-      setTemplate({
+      pushToHistory({
         ...template,
         shapeElements: template.shapeElements.map(el =>
           el.id === id ? { ...el, ...updates } : el
@@ -162,17 +246,17 @@ export function CertificateEditor({
   // Delete element
   const deleteElement = (type: 'text' | 'image' | 'shape', id: string) => {
     if (type === 'text') {
-      setTemplate({
+      pushToHistory({
         ...template,
         textElements: template.textElements.filter(el => el.id !== id),
       });
     } else if (type === 'image') {
-      setTemplate({
+      pushToHistory({
         ...template,
         imageElements: template.imageElements.filter(el => el.id !== id),
       });
     } else if (type === 'shape') {
-      setTemplate({
+      pushToHistory({
         ...template,
         shapeElements: template.shapeElements.filter(el => el.id !== id),
       });
@@ -183,6 +267,102 @@ export function CertificateEditor({
     }
   };
 
+  // Copy selected element to clipboard
+  const copySelectedElement = () => {
+    if (!selectedElement.type || !selectedElement.id) {
+      toast.error('No element selected to copy');
+      return;
+    }
+
+    const element = getSelectedElement();
+    if (!element) {
+      toast.error('Selected element not found');
+      return;
+    }
+
+    setClipboard({
+      type: selectedElement.type,
+      element: { ...element } // Create a copy to avoid reference issues
+    });
+
+    toast.success(`${selectedElement.type} element copied to clipboard`);
+  };
+
+  // Paste element from clipboard
+  const pasteElement = () => {
+    if (!clipboard) {
+      toast.error('No element in clipboard to paste');
+      return;
+    }
+
+    // Create a new element with a unique ID and slightly offset position
+    const offsetX = 20;
+    const offsetY = 20;
+
+    if (clipboard.type === 'text') {
+      const textElement = clipboard.element as TextElement;
+      const newElement: TextElement = {
+        ...textElement,
+        id: `text-${Date.now()}`,
+        x: textElement.x + offsetX,
+        y: textElement.y + offsetY,
+      };
+
+      pushToHistory({
+        ...template,
+        textElements: [...template.textElements, newElement],
+      });
+
+      setSelectedElement({ type: 'text', id: newElement.id });
+      toast.success('Text element pasted');
+    } else if (clipboard.type === 'image') {
+      const imageElement = clipboard.element as ImageElement;
+      const newElement: ImageElement = {
+        ...imageElement,
+        id: `image-${Date.now()}`,
+        x: imageElement.x + offsetX,
+        y: imageElement.y + offsetY,
+      };
+
+      pushToHistory({
+        ...template,
+        imageElements: [...template.imageElements, newElement],
+      });
+
+      setSelectedElement({ type: 'image', id: newElement.id });
+      toast.success('Image element pasted');
+    } else if (clipboard.type === 'shape') {
+      const shapeElement = clipboard.element as ShapeElement;
+      const newElement: ShapeElement = {
+        ...shapeElement,
+        id: `shape-${Date.now()}`,
+        x: shapeElement.x + offsetX,
+        y: shapeElement.y + offsetY,
+        x2: shapeElement.x2 ? shapeElement.x2 + offsetX : undefined,
+        y2: shapeElement.y2 ? shapeElement.y2 + offsetY : undefined,
+      };
+
+      pushToHistory({
+        ...template,
+        shapeElements: [...template.shapeElements, newElement],
+      });
+
+      setSelectedElement({ type: 'shape', id: newElement.id });
+      toast.success('Shape element pasted');
+    }
+  };
+
+  // Delete selected element using keyboard shortcut
+  const deleteSelectedElement = () => {
+    if (!selectedElement.type || !selectedElement.id) {
+      toast.error('No element selected to delete');
+      return;
+    }
+
+    deleteElement(selectedElement.type, selectedElement.id);
+    toast.success(`${selectedElement.type} element deleted`);
+  };
+
   // Insert variable into selected text element
   const insertVariable = (variableKey: string) => {
     if (selectedElement.type === 'text' && selectedElement.id) {
@@ -190,11 +370,11 @@ export function CertificateEditor({
       if (textElement) {
         const variable = `{{${variableKey}}}`;
         const newContent = textElement.content + variable;
-        
-        setTemplate({
+
+        pushToHistory({
           ...template,
           textElements: template.textElements.map(el =>
-            el.id === selectedElement.id 
+            el.id === selectedElement.id
               ? { ...el, content: newContent }
               : el
           ),
@@ -214,7 +394,7 @@ export function CertificateEditor({
         align: 'left',
       };
 
-      setTemplate({
+      pushToHistory({
         ...template,
         textElements: [...template.textElements, newElement],
       });
@@ -247,7 +427,7 @@ export function CertificateEditor({
       { id: `border-inner-${Date.now()}`, type: 'rectangle' as const, x: 40, y: 40, width: 762, height: 515, borderColor: '#000000', borderWidth: 2, borderStyle: borderLineStyle, color: 'transparent' }
     ];
 
-    setTemplate({
+    pushToHistory({
       ...template,
       shapeElements: [...nonFrameShapes, ...borders],
     });
@@ -276,7 +456,7 @@ export function CertificateEditor({
       { id: `border-inner-${Date.now()}`, type: 'rectangle' as const, x: 30, y: 30, width: 782, height: 535, borderColor: '#000000', borderWidth: 2, borderStyle: borderLineStyle, color: 'transparent' }
     ];
 
-    setTemplate({
+    pushToHistory({
       ...template,
       shapeElements: [...nonFrameShapes, ...borders],
     });
@@ -300,20 +480,20 @@ export function CertificateEditor({
       return true;
     });
 
-    const border = { 
-      id: `border-${Date.now()}`, 
-      type: 'rectangle' as const, 
-      x: 20, 
-      y: 20, 
-      width: 802, 
-      height: 555, 
-      borderColor: '#000000', 
-      borderWidth: 3, 
+    const border = {
+      id: `border-${Date.now()}`,
+      type: 'rectangle' as const,
+      x: 20,
+      y: 20,
+      width: 802,
+      height: 555,
+      borderColor: '#000000',
+      borderWidth: 3,
       borderStyle: borderLineStyle,
-      color: 'transparent' 
+      color: 'transparent'
     };
 
-    setTemplate({
+    pushToHistory({
       ...template,
       shapeElements: [...nonFrameShapes, border],
     });
@@ -452,7 +632,7 @@ export function CertificateEditor({
       id: `${styleId}-${Date.now()}-${Math.random().toString(36).substr(2, 9)}`
     }));
 
-    setTemplate({
+    pushToHistory({
       ...template,
       shapeElements: [...nonFrameShapes, ...newShapes],
     });
@@ -491,7 +671,7 @@ export function CertificateEditor({
       return true; // Keep circles and other shapes
     });
 
-    setTemplate({
+    pushToHistory({
       ...template,
       shapeElements: nonFrameShapes,
     });
@@ -564,7 +744,7 @@ export function CertificateEditor({
                 <Label>Template Name</Label>
                 <Input
                   value={template.name}
-                  onChange={(e) => setTemplate({ ...template, name: e.target.value })}
+                  onChange={(e) => pushToHistory({ ...template, name: e.target.value })}
                 />
               </div>
 
@@ -583,10 +763,10 @@ export function CertificateEditor({
                 <div className="mt-2 space-y-2">
                   <div>
                     <Label className="text-xs">Background Type</Label>
-                    <Select 
-                      value={template.background.type} 
-                      onValueChange={(value) => setTemplate({ 
-                        ...template, 
+                    <Select
+                      value={template.background.type}
+                      onValueChange={(value) => pushToHistory({
+                        ...template,
                         background: { ...template.background, type: value as 'color' | 'image' | 'pdf' }
                       })}
                     >
@@ -608,16 +788,16 @@ export function CertificateEditor({
                         <Input
                           type="color"
                           value={template.background.value || '#FFFFFF'}
-                          onChange={(e) => setTemplate({ 
-                            ...template, 
+                          onChange={(e) => pushToHistory({
+                            ...template,
                             background: { ...template.background, value: e.target.value }
                           })}
                           className="w-12 h-8 p-1"
                         />
                         <Input
                           value={template.background.value || '#FFFFFF'}
-                          onChange={(e) => setTemplate({ 
-                            ...template, 
+                          onChange={(e) => pushToHistory({
+                            ...template,
                             background: { ...template.background, value: e.target.value }
                           })}
                           className="flex-1 h-8 text-xs"
@@ -632,8 +812,8 @@ export function CertificateEditor({
                       <Label className="text-xs">URL</Label>
                       <Input
                         value={template.background.value || ''}
-                        onChange={(e) => setTemplate({ 
-                          ...template, 
+                        onChange={(e) => pushToHistory({
+                          ...template,
                           background: { ...template.background, value: e.target.value }
                         })}
                         placeholder="/path/to/file.jpg"
@@ -815,6 +995,32 @@ export function CertificateEditor({
                     <div className="text-gray-500 text-xs italic">Example: {v.example}</div>
                   </button>
                 ))}
+              </div>
+            </CardContent>
+          </Card>
+
+          <Card>
+            <CardHeader>
+              <CardTitle className="text-lg">Keyboard Shortcuts</CardTitle>
+            </CardHeader>
+            <CardContent>
+              <div className="text-xs space-y-2">
+                <div className="flex justify-between">
+                  <span className="text-gray-600">Copy element:</span>
+                  <kbd className="px-1 py-0.5 bg-gray-100 rounded text-xs">Ctrl+C</kbd>
+                </div>
+                <div className="flex justify-between">
+                  <span className="text-gray-600">Paste element:</span>
+                  <kbd className="px-1 py-0.5 bg-gray-100 rounded text-xs">Ctrl+V</kbd>
+                </div>
+                <div className="flex justify-between">
+                  <span className="text-gray-600">Delete element:</span>
+                  <kbd className="px-1 py-0.5 bg-gray-100 rounded text-xs">Supr</kbd>
+                </div>
+                <div className="flex justify-between">
+                  <span className="text-gray-600">Undo:</span>
+                  <kbd className="px-1 py-0.5 bg-gray-100 rounded text-xs">Ctrl+Z</kbd>
+                </div>
               </div>
             </CardContent>
           </Card>
@@ -1044,6 +1250,16 @@ function ImageElementProperties({ element, onUpdate }: { element: ImageElement; 
             onChange={(e) => onUpdate({ height: Number(e.target.value) })}
           />
         </div>
+      </div>
+
+      <div className="flex items-center space-x-2">
+        <Switch
+          checked={element.grayscale || false}
+          onCheckedChange={(checked) => onUpdate({ grayscale: checked })}
+        />
+        <Label className="text-sm">
+          Grayscale (Black & White)
+        </Label>
       </div>
     </>
   );

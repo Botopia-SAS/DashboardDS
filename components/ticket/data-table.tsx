@@ -22,9 +22,9 @@ import {
 import { Student } from "./columns";
 import { useTableData } from "./hooks/use-table-data";
 import { useCertificateGenerator } from "./hooks/use-master-certificate-generator";
+import { VariableValidationModal } from "@/components/certificate-editor/VariableValidationModal";
 import { RowActionButtons } from "./row-action-buttons";
 import { TableActions } from "./table-actions";
-import { PaymentMethodModal } from "./payment-method-modal";
 
 // Interface definitions
 interface DataTableProps {
@@ -36,23 +36,22 @@ interface DataTableProps {
 // Main component
 export function DataTable({ columns, data, onUpdate }: DataTableProps) {
   const [rowSelection, setRowSelection] = useState({});
+  const [validationModalOpen, setValidationModalOpen] = useState(false);
+  const [pendingUser, setPendingUser] = useState<Student | null>(null);
+  const [pendingTemplate, setPendingTemplate] = useState<any>(null);
 
   const {
     tableData,
     editingRow,
     editedData,
     isSaving,
-    isPaymentModalOpen,
-    setIsPaymentModalOpen,
-    setSelectedPaymentMethod,
     handleEdit,
     handleCancelEdit,
     handleChange,
     handleSave,
-    handleSavePaymentMethod,
   } = useTableData({ initialData: data, onUpdate });
 
-  const { generateCertificatePDF } = useCertificateGenerator();
+  const { generateCertificatePDF, validateVariables } = useCertificateGenerator();
 
   const table = useReactTable({
     data: tableData,
@@ -127,36 +126,85 @@ export function DataTable({ columns, data, onUpdate }: DataTableProps) {
 
   const downloadSingleCertificate = useCallback(
     async (user: Student) => {
-      // Validaciones mejoradas
-      if (user.payedAmount === 0) {
-        toast.error(`El estudiante ${user.first_name} ${user.last_name} no ha realizado el pago. No se puede generar el certificado.`);
-        return;
-      }
-
+      // Validación básica - solo verificar número de certificado
       if (!user.certn || user.certn === 0) {
         toast.error(`El estudiante ${user.first_name} ${user.last_name} no tiene número de certificado asignado. Contacte al administrador.`);
         return;
       }
 
-      // Mostrar mensaje de carga
-      const loadingToast = toast.loading("Generando certificado...");
-
+      // Get template for validation
+      const { type, classType } = user;
+      const certType = (classType || type || 'DATE').toUpperCase();
+      
       try {
-        const pdfBlob = await generateCertificatePDF(user);
-        const name = `${user.first_name} ${user.last_name}`.replace(/[^a-zA-Z0-9\s]/g, '').trim();
-        const fileName = `${name.replace(/\s+/g, "_")}_Certificado_${user.certn}.pdf`;
+        const templateResponse = await fetch(`/api/certificate-templates?classType=${certType}`);
+        let template = null;
         
-        saveAs(pdfBlob, fileName);
-        toast.dismiss(loadingToast);
-        toast.success(`Certificado descargado exitosamente para ${user.first_name} ${user.last_name}`);
+        if (templateResponse.ok) {
+          const templates = await templateResponse.json();
+          if (templates.length > 0) {
+            template = templates[0];
+          }
+        }
+        
+        // If no template found, use default
+        if (!template) {
+          const { getDefaultBDITemplate } = await import("@/lib/defaultTemplates/bdiTemplate");
+          template = getDefaultBDITemplate(certType);
+        }
+
+        // Validate variables
+        const validation = validateVariables(user, template);
+        
+        console.log(`🔍 DataTable validation result:`, validation);
+        
+        if (!validation.isValid) {
+          console.log(`❌ Variables missing, showing modal`);
+          // Show validation modal
+          setPendingUser(user);
+          setPendingTemplate(template);
+          setValidationModalOpen(true);
+          return;
+        }
+
+        console.log(`✅ All variables valid, proceeding with generation`);
+        // Proceed with generation if all variables are valid
+        await proceedWithGeneration(user);
+        
       } catch (error) {
-        console.error("Error generating certificate:", error);
-        toast.dismiss(loadingToast);
-        toast.error(`Error al generar el certificado para ${user.first_name} ${user.last_name}. Intente nuevamente.`);
+        console.error("Error validating variables:", error);
+        toast.error("Error al validar las variables del certificado");
       }
     },
-    [generateCertificatePDF]
+    [generateCertificatePDF, validateVariables]
   );
+
+  const proceedWithGeneration = async (user: Student) => {
+    const loadingToast = toast.loading("Generando certificado...");
+
+    try {
+      const pdfBlob = await generateCertificatePDF(user);
+      const name = `${user.first_name} ${user.last_name}`.replace(/[^a-zA-Z0-9\s]/g, '').trim();
+      const fileName = `${name.replace(/\s+/g, "_")}_Certificado_${user.certn}.pdf`;
+      
+      saveAs(pdfBlob, fileName);
+      toast.dismiss(loadingToast);
+      toast.success(`Certificado descargado exitosamente para ${user.first_name} ${user.last_name}`);
+    } catch (error) {
+      console.error("Error generating certificate:", error);
+      toast.dismiss(loadingToast);
+      toast.error(`Error al generar el certificado para ${user.first_name} ${user.last_name}. Intente nuevamente.`);
+    }
+  };
+
+  const handleAddMissingVariables = (variables: string[]) => {
+    if (pendingUser) {
+      // Here you would typically update the user data with the missing variables
+      // For now, we'll just proceed with generation
+      toast.success(`Variables agregadas: ${variables.join(', ')}`);
+      proceedWithGeneration(pendingUser);
+    }
+  };
   const downloadXLSX = useCallback(() => {
     const studentsWithCertnZero = data
       .filter((student) => student.certn === 0)
@@ -237,12 +285,17 @@ export function DataTable({ columns, data, onUpdate }: DataTableProps) {
                         <TableCell key={cell.id}>
                           {isEditing &&
                           (columnId === "certn" ||
-                            columnId === "payedAmount") ? (
+                            columnId === "payedAmount" ||
+                            columnId === "citation_number") ? (
                             <input
-                              type="text"
+                              type={columnId === "citation_number" ? "text" : "text"}
                               value={rowData[columnId] || ""}
                               onChange={(e) =>
-                                handleChange(row.id, columnId, +e.target.value)
+                                handleChange(
+                                  row.id, 
+                                  columnId, 
+                                  columnId === "citation_number" ? e.target.value : +e.target.value
+                                )
                               }
                               className="border p-1 w-full"
                             />
@@ -285,11 +338,13 @@ export function DataTable({ columns, data, onUpdate }: DataTableProps) {
         </Table>
       </div>
 
-      <PaymentMethodModal
-        isOpen={isPaymentModalOpen}
-        onOpenChange={setIsPaymentModalOpen}
-        onSave={handleSavePaymentMethod}
-        onSelectPaymentMethod={setSelectedPaymentMethod}
+      <VariableValidationModal
+        open={validationModalOpen}
+        onOpenChange={setValidationModalOpen}
+        template={pendingTemplate}
+        user={pendingUser}
+        onProceed={() => pendingUser && proceedWithGeneration(pendingUser)}
+        onAddMissingVariables={handleAddMissingVariables}
       />
     </div>
   );

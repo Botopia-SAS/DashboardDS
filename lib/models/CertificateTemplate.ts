@@ -23,6 +23,7 @@ interface ImageElement {
   y: number;
   width: number;
   height: number;
+  grayscale?: boolean; // Grayscale filter option
 }
 
 // Interface for shape elements (rectangles, lines, etc.)
@@ -94,6 +95,7 @@ const CertificateTemplateSchema = new mongoose.Schema({
     y: Number,
     width: Number,
     height: Number,
+    grayscale: { type: Boolean, default: false },
   }],
 
   // Shape elements (borders, lines, etc.)
