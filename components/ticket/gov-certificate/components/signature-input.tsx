@@ -14,27 +14,33 @@ interface SignatureInputProps {
   label: string;
 }
 
-export function SignatureInput({ value, onChange, label }: SignatureInputProps) {
+export function SignatureInput({
+  value,
+  onChange,
+  label,
+}: SignatureInputProps) {
   const sigCanvas = useRef<SignatureCanvas>(null);
   const [activeTab, setActiveTab] = useState<string>("draw");
+  const [saved, setSaved] = useState(false);
 
   const handleClear = () => {
     sigCanvas.current?.clear();
     onChange("");
+    setSaved(false);
   };
 
   const handleSave = () => {
     if (sigCanvas.current && !sigCanvas.current.isEmpty()) {
       // Get canvas and create transparent version
       const canvas = sigCanvas.current.getCanvas();
-      const ctx = canvas.getContext('2d');
+      const ctx = canvas.getContext("2d");
       if (!ctx) return;
 
       // Create a new canvas with transparent background
-      const newCanvas = document.createElement('canvas');
+      const newCanvas = document.createElement("canvas");
       newCanvas.width = canvas.width;
       newCanvas.height = canvas.height;
-      const newCtx = newCanvas.getContext('2d');
+      const newCtx = newCanvas.getContext("2d");
       if (!newCtx) return;
 
       // Get image data
@@ -55,6 +61,7 @@ export function SignatureInput({ value, onChange, label }: SignatureInputProps) 
       newCtx.putImageData(imageData, 0, 0);
       const dataUrl = newCanvas.toDataURL("image/png");
       onChange(dataUrl);
+      setSaved(true);
     }
   };
 
@@ -66,10 +73,10 @@ export function SignatureInput({ value, onChange, label }: SignatureInputProps) 
         // Process image to remove white background
         const img = new Image();
         img.onload = () => {
-          const canvas = document.createElement('canvas');
+          const canvas = document.createElement("canvas");
           canvas.width = img.width;
           canvas.height = img.height;
-          const ctx = canvas.getContext('2d');
+          const ctx = canvas.getContext("2d");
           if (!ctx) return;
 
           ctx.drawImage(img, 0, 0);
@@ -132,14 +139,29 @@ export function SignatureInput({ value, onChange, label }: SignatureInputProps) 
               <Eraser className="h-4 w-4" />
               Clear
             </Button>
-            <Button
-              type="button"
-              size="sm"
-              onClick={handleSave}
-              className="flex items-center gap-1"
+            <div
+              className={`rounded px-3 py-1 flex items-center transition-colors duration-300 ${
+                saved
+                  ? "bg-green-200 border-2 border-green-400"
+                  : "bg-yellow-200 border-2 border-yellow-400 animate-pulse"
+              }`}
             >
-              Save Signature
-            </Button>
+              <Button
+                type="button"
+                size="sm"
+                onClick={handleSave}
+                className={`flex items-center gap-1 font-bold ${
+                  saved ? "text-green-900" : "text-yellow-900"
+                }`}
+                style={
+                  saved
+                    ? { background: "#b9fbc0", borderColor: "#38d996" }
+                    : { background: "#ffe066", borderColor: "#ffd43b" }
+                }
+              >
+                Save Signature
+              </Button>
+            </div>
           </div>
         </TabsContent>
 

@@ -128,7 +128,7 @@ export function GovCertificateDialog({ open, onOpenChange }: GovCertificateDialo
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent className="max-w-7xl max-h-[95vh] overflow-y-auto bg-white">
+      <DialogContent className="max-w-[99vw] w-[1920px] max-h-[98vh] overflow-hidden bg-white">
         <DialogHeader>
           <DialogTitle>Generate Government Certificate</DialogTitle>
           <DialogDescription>
@@ -136,9 +136,9 @@ export function GovCertificateDialog({ open, onOpenChange }: GovCertificateDialo
           </DialogDescription>
         </DialogHeader>
 
-        <div className="grid grid-cols-1 lg:grid-cols-2 gap-6 py-4">
-          {/* Form Section */}
-          <div className="space-y-4 bg-gray-50 p-6 rounded-lg border border-gray-200">
+        <div className="flex gap-4 py-2">
+          {/* Form Section - Más estrecha */}
+          <div className="w-[380px] flex-shrink-0 space-y-3 bg-gray-50 p-4 rounded-lg border border-gray-200 overflow-y-auto max-h-[75vh]">
             <UserSearch
               searchQuery={searchQuery}
               onSearchChange={setSearchQuery}
@@ -156,8 +156,10 @@ export function GovCertificateDialog({ open, onOpenChange }: GovCertificateDialo
             />
           </div>
 
-          {/* Preview Section */}
-          <CertificatePreview ref={previewRef} formData={formData} />
+          {/* Preview Section - Espacio completo para 1366px sin scroll */}
+          <div className="flex-1 flex items-start justify-center">
+            <CertificatePreview ref={previewRef} formData={formData} />
+          </div>
         </div>
 
         <DialogFooter className="bg-gray-50 p-4 rounded-lg">
