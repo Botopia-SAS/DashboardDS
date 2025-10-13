@@ -7,6 +7,7 @@ import { Button } from "@/components/ui/button";
 import ImageUpload from "@/components/custom ui/ImageUpload";
 import toast from "react-hot-toast";
 import { Separator } from "@/components/ui/separator";
+import { RotateCcw } from "lucide-react";
 
 interface SeoTabProps {
   entityType: "DrivingClass" | "OnlineCourse" | "Location" | "DrivingLessons" | "General";
@@ -19,6 +20,7 @@ interface SeoData {
   metaDescription: string;
   metaKeywords: string;
   metaImage: string;
+  slug: string;
 }
 
 const SeoTab: React.FC<SeoTabProps> = ({ entityType, entityId, entityData }) => {
@@ -27,9 +29,22 @@ const SeoTab: React.FC<SeoTabProps> = ({ entityType, entityId, entityData }) => 
     metaDescription: "",
     metaKeywords: "",
     metaImage: "",
+    slug: "",
   });
   const [isLoading, setIsLoading] = useState(false);
   const [isFetching, setIsFetching] = useState(true);
+
+  // Función para generar slug desde el título SEO
+  const generateSlugFromTitle = (title: string): string => {
+    return title
+      .toLowerCase()
+      .trim()
+      .replace(/[^\w\s-]/g, '') // Eliminar caracteres especiales excepto espacios y guiones
+      .replace(/\s+/g, '-') // Reemplazar espacios con guiones
+      .replace(/--+/g, '-') // Reemplazar múltiples guiones con uno solo
+      .replace(/^-+/, '') // Eliminar guiones al inicio
+      .replace(/-+$/, ''); // Eliminar guiones al final
+  };
 
   // Función para auto-generar SEO basado en los datos de la entidad
   const generateSeoFromEntity = (data: any, type: string): SeoData => {
@@ -38,6 +53,7 @@ const SeoTab: React.FC<SeoTabProps> = ({ entityType, entityId, entityData }) => 
       metaDescription: "",
       metaKeywords: "",
       metaImage: data?.image || data?.locationImage || "",
+      slug: "",
     };
 
     if (type === "DrivingClass") {
@@ -72,6 +88,7 @@ const SeoTab: React.FC<SeoTabProps> = ({ entityType, entityId, entityData }) => 
       ].filter(Boolean).join(", ");
 
       generatedSeo.metaKeywords = keywords;
+      generatedSeo.slug = generateSlugFromTitle(generatedSeo.metaTitle);
     }
     else if (type === "OnlineCourse") {
       // Auto-generar para Online Course
@@ -90,6 +107,7 @@ const SeoTab: React.FC<SeoTabProps> = ({ entityType, entityId, entityData }) => 
       generatedSeo.metaDescription = fullDescription.substring(0, 320);
 
       generatedSeo.metaKeywords = `${title} Online, Florida Online ${courseType}, ${title}, Online Driver Education, Florida Driving Course, Online Traffic School, ${courseType} Online Florida, Approved Online Course`;
+      generatedSeo.slug = generateSlugFromTitle(generatedSeo.metaTitle);
     }
     else if (type === "Location") {
       // Auto-generar para Location
@@ -108,6 +126,7 @@ const SeoTab: React.FC<SeoTabProps> = ({ entityType, entityId, entityData }) => 
       generatedSeo.metaDescription = fullDescription;
 
       generatedSeo.metaKeywords = `${title} Driving School, ${zone} Traffic School, Driving Lessons ${zone}, Florida Driving School, ${title}, Driving Instructor ${zone}, Traffic School ${zone}, Learn to Drive ${zone}`;
+      generatedSeo.slug = generateSlugFromTitle(generatedSeo.metaTitle);
     }
 
     return generatedSeo;
@@ -138,6 +157,7 @@ const SeoTab: React.FC<SeoTabProps> = ({ entityType, entityId, entityData }) => 
               metaDescription: data.metaDescription || "",
               metaKeywords: data.metaKeywords || "",
               metaImage: data.metaImage || "",
+              slug: data.slug || "",
             });
           } else if (entityData) {
             // Si no hay datos guardados pero hay entityData, auto-generar
@@ -163,6 +183,17 @@ const SeoTab: React.FC<SeoTabProps> = ({ entityType, entityId, entityData }) => 
 
     fetchSeoData();
   }, [entityType, entityId, entityData]);
+
+  const handleReset = () => {
+    if (!entityData) {
+      toast.error("No entity data available to reset from");
+      return;
+    }
+
+    const generated = generateSeoFromEntity(entityData, entityType);
+    setSeoData(generated);
+    toast.success("SEO fields reset to auto-generated values");
+  };
 
   const handleSave = async () => {
     if (!entityId && entityType !== "General" && entityType !== "DrivingLessons") {
@@ -208,11 +239,24 @@ const SeoTab: React.FC<SeoTabProps> = ({ entityType, entityId, entityData }) => 
 
   return (
     <div className="p-6 space-y-6 bg-gray-50 rounded-lg">
-      <div>
-        <h3 className="text-lg font-semibold mb-2">SEO Settings</h3>
-        <p className="text-sm text-gray-600">
-          Optimize your content for search engines. These settings control how this page appears in search results.
-        </p>
+      <div className="flex justify-between items-start">
+        <div>
+          <h3 className="text-lg font-semibold mb-2">SEO Settings</h3>
+          <p className="text-sm text-gray-600">
+            Optimize your content for search engines. These settings control how this page appears in search results.
+          </p>
+        </div>
+        {entityData && (
+          <Button
+            type="button"
+            onClick={handleReset}
+            variant="outline"
+            className="flex items-center gap-2"
+          >
+            <RotateCcw className="w-4 h-4" />
+            Reset to Default
+          </Button>
+        )}
       </div>
 
       <Separator className="bg-gray-300" />
@@ -262,6 +306,40 @@ const SeoTab: React.FC<SeoTabProps> = ({ entityType, entityId, entityData }) => 
         />
         <p className="text-xs text-gray-500 mt-1">
           Use keywords that people might search for when looking for this content
+        </p>
+      </div>
+
+      {/* SEO Slug */}
+      <div>
+        <label className="block text-sm font-medium mb-2">
+          SEO Slug <span className="text-gray-500">(URL-friendly version)</span>
+        </label>
+        <div className="flex gap-2">
+          <Input
+            placeholder="e.g., 4-hour-bdi-traffic-ticket-class-palm-beach-county"
+            value={seoData.slug}
+            onChange={(e) => setSeoData({ ...seoData, slug: e.target.value })}
+            className="flex-1"
+          />
+          <Button
+            type="button"
+            onClick={() => {
+              if (!seoData.metaTitle) {
+                toast.error("Please enter a SEO Title first");
+                return;
+              }
+              const generatedSlug = generateSlugFromTitle(seoData.metaTitle);
+              setSeoData({ ...seoData, slug: generatedSlug });
+              toast.success("Slug generated successfully");
+            }}
+            variant="outline"
+            className="whitespace-nowrap"
+          >
+            Auto Slug
+          </Button>
+        </div>
+        <p className="text-xs text-gray-500 mt-1">
+          The slug will be used in the URL. Click &quot;Auto Slug&quot; to generate from the SEO Title
         </p>
       </div>
 

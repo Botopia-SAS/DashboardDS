@@ -31,8 +31,13 @@ export default function SeoPage({
       try {
         const response = await fetch(apiEndpoint);
         if (response.ok) {
-          const data = await response.json();
-          setEntityData(data);
+          const responseData = await response.json();
+          // Extract the actual data from the API response
+          // Handle both { success: true, data: ... } and direct data formats
+          const actualData = responseData.success && responseData.data
+            ? responseData.data
+            : responseData;
+          setEntityData(actualData);
         } else {
           console.error("Failed to fetch entity data");
         }
