@@ -1021,10 +1021,6 @@ export function CertificateEditor({
                   <span className="text-gray-600">Undo:</span>
                   <kbd className="px-1 py-0.5 bg-gray-100 rounded text-xs">Ctrl+Z</kbd>
                 </div>
-                <div className="flex justify-between">
-                  <span className="text-gray-600">Redo:</span>
-                  <kbd className="px-1 py-0.5 bg-gray-100 rounded text-xs">Ctrl+Y</kbd>
-                </div>
               </div>
             </CardContent>
           </Card>
@@ -1254,6 +1250,16 @@ function ImageElementProperties({ element, onUpdate }: { element: ImageElement; 
             onChange={(e) => onUpdate({ height: Number(e.target.value) })}
           />
         </div>
+      </div>
+
+      <div className="flex items-center space-x-2">
+        <Switch
+          checked={element.grayscale || false}
+          onCheckedChange={(checked) => onUpdate({ grayscale: checked })}
+        />
+        <Label className="text-sm">
+          Grayscale (Black & White)
+        </Label>
       </div>
     </>
   );

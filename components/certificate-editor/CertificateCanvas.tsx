@@ -254,6 +254,9 @@ export function CertificateCanvas({
               alt="Certificate Element"
               className="w-full h-full object-contain"
               draggable={false}
+              style={{
+                filter: image.grayscale ? 'grayscale(100%)' : 'none'
+              }}
             />
           </div>
         ))}
