@@ -348,7 +348,7 @@ export const CertificatePreview = forwardRef<
                 )}
               </div>
               <div className="border-t-2 border-[#c94a3a] pt-1 text-xs text-[#c94a3a] text-left w-full">
-                Instructor's Signature:
+                Instructor&apos;s Signature:
               </div>
             </div>
             {/* Línea y label de escuela en el mismo renglón */}
@@ -364,7 +364,7 @@ export const CertificatePreview = forwardRef<
                 </div>
               </div>
               <div className="border-t border-[#c94a3a] pt-1 text-xs text-[#c94a3a] text-right w-full">
-                Instructor's School Name:
+                Instructor&apos;s School Name:
               </div>
             </div>
           </div>

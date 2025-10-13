@@ -24,21 +24,6 @@ export default function CertificateEditorPage() {
   const [previewMode, setPreviewMode] = useState(false);
   const { generateDynamicCertificatePDF } = useDynamicCertificateGenerator();
 
-  useEffect(() => {
-    fetchTemplate();
-  }, [classType]);
-
-  // Prevent body scroll when in certificate editor
-  useEffect(() => {
-    document.body.style.overflow = 'hidden';
-    document.documentElement.style.overflow = 'hidden';
-    
-    return () => {
-      document.body.style.overflow = '';
-      document.documentElement.style.overflow = '';
-    };
-  }, []);
-
   const fetchTemplate = async () => {
     try {
       setLoading(true);
@@ -93,6 +78,22 @@ export default function CertificateEditorPage() {
       setLoading(false);
     }
   };
+
+  useEffect(() => {
+    fetchTemplate();
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [classType]);
+
+  // Prevent body scroll when in certificate editor
+  useEffect(() => {
+    document.body.style.overflow = 'hidden';
+    document.documentElement.style.overflow = 'hidden';
+
+    return () => {
+      document.body.style.overflow = '';
+      document.documentElement.style.overflow = '';
+    };
+  }, []);
 
   const handleSave = (savedTemplate: CertificateTemplate) => {
     setTemplate(savedTemplate);

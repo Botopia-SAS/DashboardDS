@@ -151,7 +151,7 @@ function ConsolePage() {
       resizeObserver.disconnect();
       window.removeEventListener('resize', updateSize);
       window.removeEventListener('orientationchange', updateSize);
-      
+
       // Limpiar el listener de media query
       const mediaQuery = window.matchMedia('(min-resolution: 1dppx)');
       if (mediaQuery.removeEventListener) {
@@ -160,10 +160,11 @@ function ConsolePage() {
         // Fallback para navegadores antiguos
         mediaQuery.removeListener(handleZoomChange);
       }
-      
-      if (imgResizeObserver && imgRef.current) imgResizeObserver.disconnect();
+
+      const imgRefCurrent = imgRef.current;
+      if (imgResizeObserver && imgRefCurrent) imgResizeObserver.disconnect();
     };
-  }, [imageNatural, selectedPage]);
+  }, [imageNatural, selectedPage, baseHeight, baseWidth]);
 
   return (
     <div className="w-full">

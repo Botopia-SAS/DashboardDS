@@ -118,7 +118,8 @@ export default function TicketClassTypePage() {
         }
       }
     }
-  }, [classtype, classTypes, setClassType]); // Escuchar cambios en classtype
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [classtype, classTypes]); // Escuchar cambios en classtype
 
   // Actualizar inmediatamente cuando cambie la URL (sin esperar classTypes)
   useEffect(() => {
