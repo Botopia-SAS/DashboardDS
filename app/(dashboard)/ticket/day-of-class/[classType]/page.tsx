@@ -79,7 +79,8 @@ export default function Page() {
           const matches = normalizedTicketType === normalizedClassType;
           
           if (matches) {
-            console.log(`✅ Class matched: "${c.classId?.title || 'Unknown'}" (type: "${c.type}" → "${normalizedTicketType}") matches "${normalizedClassType}"`);
+            const className = typeof c.classId === 'object' ? c.classId?.title : 'Unknown';
+            console.log(`✅ Class matched: "${className}" (type: "${c.type}" → "${normalizedTicketType}") matches "${normalizedClassType}"`);
           }
           
           return matches;
