@@ -11,10 +11,38 @@ export async function GET(req: NextRequest) {
     const classType = searchParams.get("classType");
     const defaultOnly = searchParams.get("default") === "true";
 
+    console.log(`🔍 Certificate templates API - Requested classType: "${classType}"`);
+
     const query: any = { isActive: true };
 
     if (classType) {
-      query.classType = classType.toUpperCase();
+      // Normalize classType for comparison - handle both spaces and hyphens
+      const normalizedClassType = classType.toUpperCase().trim();
+      console.log(`📝 Searching for classType: "${normalizedClassType}"`);
+      
+      // Try exact match first
+      query.classType = normalizedClassType;
+      
+      // Also try to find templates that might have different formats
+      // (e.g., "ANGER-MANAGMENT" vs "ANGER MANAGMENT")
+      const alternativeQuery = { 
+        isActive: true,
+        $or: [
+          { classType: normalizedClassType },
+          { classType: normalizedClassType.replace(/-/g, ' ') },
+          { classType: normalizedClassType.replace(/\s+/g, '-') }
+        ]
+      };
+      
+      console.log(`🔎 Using alternative query:`, JSON.stringify(alternativeQuery, null, 2));
+      const templates = await CertificateTemplate.find(alternativeQuery).sort({ createdAt: -1 });
+      
+      console.log(`📋 Found ${templates.length} templates`);
+      templates.forEach(template => {
+        console.log(`  - ${template.name} (classType: "${template.classType}")`);
+      });
+      
+      return NextResponse.json(templates, { status: 200 });
     }
 
     if (defaultOnly) {
@@ -22,6 +50,7 @@ export async function GET(req: NextRequest) {
     }
 
     const templates = await CertificateTemplate.find(query).sort({ createdAt: -1 });
+    console.log(`📋 Found ${templates.length} templates (no classType filter)`);
 
     return NextResponse.json(templates, { status: 200 });
   } catch (err) {

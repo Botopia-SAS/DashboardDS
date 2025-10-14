@@ -9,6 +9,11 @@ import { useDynamicCertificateGenerator } from "./use-dynamic-certificate-genera
 import { CertificateTemplate } from "@/components/certificate-editor/types";
 import { getDefaultBDITemplate } from "@/lib/defaultTemplates/bdiTemplate";
 
+// Helper function to normalize class type for database queries (same as calendar)
+const normalizeClassType = (type: string): string => {
+  return type.toLowerCase().trim().replace(/\s+/g, '-');
+};
+
 export function useCertificateGenerator() {
   const { generateDateCertificatePDF } = useDateCertificateGenerator();
   const { generateBdiCertificatePDF } = useBdiCertificateGenerator();
@@ -106,7 +111,8 @@ export function useCertificateGenerator() {
       const { type, classType } = user;
       const certType = (classType || type || 'DATE').toUpperCase();
 
-      console.log(`Generating certificate for type: ${certType}`);
+      console.log(`🔍 Generating certificate for type: ${certType}`);
+      console.log(`📊 User data:`, { classType, type, certType });
 
       // Try to fetch saved template from database first (only by classType)
       try {
@@ -114,16 +120,24 @@ export function useCertificateGenerator() {
           `/api/certificate-templates?classType=${certType}`
         );
 
+        console.log(`🌐 API Response status: ${templateResponse.status}`);
+
         if (templateResponse.ok) {
           const templates = await templateResponse.json();
+          console.log(`📋 Templates found: ${templates.length}`);
+          
           if (templates.length > 0) {
             // Use saved template from database
-            console.log(`✅ Using saved template for ${certType}`);
+            console.log(`✅ Using saved template for ${certType}:`, templates[0].name);
             return await generateDynamicCertificatePDF(user, templates[0] as CertificateTemplate);
+          } else {
+            console.log(`❌ No templates found in database for ${certType}`);
           }
+        } else {
+          console.log(`❌ API request failed with status: ${templateResponse.status}`);
         }
       } catch (error) {
-        console.log('⚠️ No saved template found, using defaults', error);
+        console.log('⚠️ Error fetching template from database:', error);
       }
 
       // No saved template exists - ALL TYPES use BDI template as default (including ADI)
