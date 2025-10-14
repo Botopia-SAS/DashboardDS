@@ -24,6 +24,11 @@ import {
 } from "@/components/ui/dialog";
 import { useEffect, useState } from "react";
 
+// Helper function to normalize class type for comparison (same as calendar)
+const normalizeClassType = (type: string): string => {
+  return type.toLowerCase().trim().replace(/\s+/g, '-');
+};
+
 interface Class {
   _id: string;
   locationId: string | { _id: string; title: string };
@@ -59,10 +64,28 @@ export default function Page() {
     fetch(`/api/ticket/calendar`)
       .then((res) => res.json())
       .then((data) => {
-        // Decode URL parameter and normalize for comparison
-        const decodedClassType = decodeURIComponent(classType).toLowerCase();
+        // Decode URL parameter and normalize for comparison using the same logic as calendar
+        const decodedClassType = decodeURIComponent(classType);
+        const normalizedClassType = normalizeClassType(decodedClassType);
         
-        const filteredClasses = data.filter((c: Class) => c.type.toLowerCase() === decodedClassType);
+        console.log('🔍 Day of Class - Filtering classes:');
+        console.log('  - URL classType:', classType);
+        console.log('  - Decoded classType:', decodedClassType);
+        console.log('  - Normalized classType:', normalizedClassType);
+        console.log('  - Total classes from API:', data.length);
+        
+        const filteredClasses = data.filter((c: Class) => {
+          const normalizedTicketType = normalizeClassType(c.type);
+          const matches = normalizedTicketType === normalizedClassType;
+          
+          if (matches) {
+            console.log(`✅ Class matched: "${c.classId?.title || 'Unknown'}" (type: "${c.type}" → "${normalizedTicketType}") matches "${normalizedClassType}"`);
+          }
+          
+          return matches;
+        });
+        
+        console.log('  - Filtered classes count:', filteredClasses.length);
         setClasses(filteredClasses);
         setLoading(false);
       })
