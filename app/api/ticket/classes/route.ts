@@ -149,23 +149,7 @@ export async function POST(req: NextRequest) {
     //   return s1 < e2 && s2 < e1;
     // };
 
-    // Check that students don't have another class at the same date and time
-    if (students && students.length > 0) {
-      const studentConflict = await TicketClass.findOne({
-        date: normalizedDate,
-        hour,
-        students: { $in: students },
-      });
-
-      if (studentConflict) {
-        return NextResponse.json(
-          {
-            error: "One or more students already have a class at this time.",
-          },
-          { status: 400 }
-        );
-      }
-    }
+    // Validation removed: Students can now be in multiple classes at the same time
 
     // Create the new class with spots
     const classData = {

@@ -54,8 +54,7 @@ const TicketClassSchema = new mongoose.Schema({
   },
 });
 
-// Indexes para evitar duplicados por fecha, hora y ubicación
-TicketClassSchema.index({ date: 1, hour: 1, locationId: 1 }, { unique: true });
+// Index removed: Allow multiple classes at the same date, time and location
 
 // Force refresh the model to use new schema
 if (mongoose.models.TicketClass) {
