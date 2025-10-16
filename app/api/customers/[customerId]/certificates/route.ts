@@ -105,7 +105,7 @@ export async function GET(req: NextRequest) {
                   }
                 }
 
-                if (certificate && certificate.number) {
+                if (certificate && !Array.isArray(certificate) && certificate.number) {
                   certificateNumber = certificate.number.toString();
                   console.log("✅ Certificate number:", certificateNumber);
                 }
