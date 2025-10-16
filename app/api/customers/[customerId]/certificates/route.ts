@@ -1,5 +1,6 @@
 import TicketClass from "@/lib/models/TicketClass";
 import User from "@/lib/models/users";
+import Certificate from "@/lib/models/Cerificate";
 import { connectToDB } from "@/lib/mongoDB";
 import { NextRequest, NextResponse } from "next/server";
 
@@ -72,9 +73,49 @@ export async function GET(req: NextRequest) {
                 studentId: customerId
               });
 
+              // Search for the actual certificate in the database
+              let certificateNumber = "Pending";
+              try {
+                // First, try to find certificate by studentId and classId (TicketClass ID)
+                let certificate = await Certificate.findOne({
+                  studentId: customerId,
+                  classId: ticketClass._id?.toString()
+                }).lean();
+
+                // If not found, try with the classId from classInfo
+                if (!certificate && classInfo?._id) {
+                  certificate = await Certificate.findOne({
+                    studentId: customerId,
+                    classId: classInfo._id.toString()
+                  }).lean();
+                }
+
+                // If still not found, get the most recent certificate for this student
+                // (since a student might have completed multiple classes but only one certificate)
+                if (!certificate) {
+                  const allCerts = await Certificate.find({ studentId: customerId })
+                    .sort({ date: -1 })
+                    .lean();
+                  
+                  if (allCerts.length > 0) {
+                    certificate = allCerts[0]; // Use the most recent certificate
+                    console.log("📜 Using most recent certificate for student:", certificate.number);
+                  } else {
+                    console.log("🔍 No certificate found for studentId:", customerId);
+                  }
+                }
+
+                if (certificate && !Array.isArray(certificate) && certificate.number) {
+                  certificateNumber = certificate.number.toString();
+                  console.log("✅ Certificate number:", certificateNumber);
+                }
+              } catch (certErr) {
+                console.error("Error fetching certificate:", certErr);
+              }
+
               certificates.push({
                 _id: `${ticketClass._id}_${customerId}`,
-                certificateNumber: "Pending", // Will be updated when actual cert# is available
+                certificateNumber: certificateNumber,
                 className: classInfo?.title || "Unknown Class",
                 classId: classInfo?._id,
                 locationName: locationInfo?.title || "Unknown Location",

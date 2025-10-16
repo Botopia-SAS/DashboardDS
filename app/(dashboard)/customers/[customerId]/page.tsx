@@ -94,7 +94,7 @@ const CustomerDetails = () => {
   const customerId = params?.customerId as string;
 
   return (
-    <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
+    <div className="px-2 sm:px-4 lg:px-6 py-8">
       <CustomerTabs activeTab={activeTab} onTabChange={setActiveTab} />
 
       <div className="mt-6">
