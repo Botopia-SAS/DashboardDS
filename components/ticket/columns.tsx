@@ -29,6 +29,12 @@ export interface Student {
   // New fields for class information
   classTitle?: string; // Title of the class from drivingclasses
   classType?: string; // Type of class from drivingclasses (DATE, BDI, ADI)
+  // Certificate-specific fields
+  courseCompletionDate?: string;
+  country_course?: string;
+  license_number?: string;
+  dateOfBirth?: string;
+  sex?: string;
 }
 
 export const columns: ColumnDef<Student>[] = [

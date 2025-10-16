@@ -22,6 +22,7 @@ import {
 import { Student } from "./columns";
 import { useTableData } from "./hooks/use-table-data";
 import { useCertificateGenerator } from "./hooks/use-master-certificate-generator";
+import { useMultiCertificateDownloader } from "./hooks/use-multi-certificate-downloader";
 import { VariableValidationModal } from "@/components/certificate-editor/VariableValidationModal";
 import { RowActionButtons } from "./row-action-buttons";
 import { TableActions } from "./table-actions";
@@ -52,6 +53,7 @@ export function DataTable({ columns, data, onUpdate }: DataTableProps) {
   } = useTableData({ initialData: data, onUpdate });
 
   const { generateCertificatePDF, validateVariables } = useCertificateGenerator();
+  const { downloadMultipleCertificates } = useMultiCertificateDownloader();
 
   const table = useReactTable({
     data: tableData,
@@ -123,6 +125,73 @@ export function DataTable({ columns, data, onUpdate }: DataTableProps) {
       toast.error("Error al generar los certificados. Intente nuevamente.");
     }
   }, [generateCertificatePDF, table, setRowSelection]);
+
+  const downloadCombinedCertificates = useCallback(async (targetPages: number = 1) => {
+    const selectedRows = table
+      .getSelectedRowModel()
+      .flatRows.map((row) => row.original as Student);
+
+    if (selectedRows.length === 0) {
+      toast.error("Por favor seleccione al menos un estudiante para descargar certificados.");
+      return;
+    }
+
+    // Filtering students that paid and have a certificate number
+    const validStudents = selectedRows.filter(
+      (student) => student.payedAmount > 0 && student.certn && student.certn > 0
+    );
+
+    const invalidStudents = selectedRows.filter(
+      (student) => student.payedAmount === 0 || !student.certn || student.certn === 0
+    );
+
+    if (validStudents.length === 0) {
+      toast.error("No hay estudiantes válidos para descargar certificados. Verifique que hayan pagado y tengan número de certificado.");
+      return;
+    }
+
+    if (invalidStudents.length > 0) {
+      toast(`${invalidStudents.length} estudiante(s) fueron omitidos por no cumplir los requisitos (pago o número de certificado).`, {
+        icon: '⚠️',
+        style: {
+          background: '#fff3cd',
+          color: '#856404',
+          border: '1px solid #ffeaa7'
+        }
+      });
+    }
+
+    const loadingToast = toast.loading(`Generando PDF combinado con ${validStudents.length} certificado(s)...`);
+
+    try {
+      console.log('Starting PDF generation with', validStudents.length, 'students and', targetPages, 'pages');
+      
+      // Transform student data to certificate format
+      const certificateData = validStudents.map(student => ({
+        certificateNumber: student.certn?.toString() || '0',
+        printDate: new Date().toLocaleDateString('en-US'),
+        courseCompletionDate: student.courseCompletionDate || new Date().toLocaleDateString('en-US'),
+        citationNumber: student.citation_number || 'N/A',
+        citationCounty: student.country_course || 'N/A',
+        driversLicenseNumber: student.license_number || 'N/A',
+        studentName: `${student.first_name} ${student.last_name}`,
+        dateOfBirth: student.dateOfBirth || 'N/A',
+        reasonAttending: student.reason || 'N/A',
+      }));
+
+      console.log('Certificate data prepared:', certificateData);
+      const result = await downloadMultipleCertificates(certificateData, targetPages);
+      console.log('PDF generation result:', result);
+      
+      setRowSelection({});
+      toast.dismiss(loadingToast);
+      toast.success(`${validStudents.length} certificado(s) combinado(s) en PDF exitosamente`);
+    } catch (error) {
+      console.error("Error generating combined PDF:", error);
+      toast.dismiss(loadingToast);
+      toast.error("Error al generar el PDF combinado. Intente nuevamente.");
+    }
+  }, [downloadMultipleCertificates, table, setRowSelection]);
 
   const downloadSingleCertificate = useCallback(
     async (user: Student) => {
@@ -247,6 +316,7 @@ export function DataTable({ columns, data, onUpdate }: DataTableProps) {
       <TableActions
         rowSelection={rowSelection}
         onDownloadAll={downloadAllCertificates}
+        onDownloadCombined={downloadCombinedCertificates}
         onDownloadXLSX={downloadXLSX}
       />
 
