@@ -2,6 +2,9 @@
 
 import Loader from "@/components/custom ui/Loader";
 import CustomersForm from "@/components/customers/CustomersForm";
+import CustomerTabs, { TabType } from "@/components/customers/CustomerTabs";
+import ClassHistory from "@/components/customers/ClassHistory";
+import CertificateHistory from "@/components/customers/CertificateHistory";
 import { useParams } from "next/navigation";
 import { useEffect, useState } from "react";
 
@@ -49,6 +52,7 @@ type CustomerEmailAddressesType = {
 const CustomerDetails = () => {
   const [loading, setLoading] = useState(true);
   const [customer, setCustomer] = useState<CustomerType | null>(null);
+  const [activeTab, setActiveTab] = useState<TabType>("update");
   const params = useParams();
 
   useEffect(() => {
@@ -86,7 +90,22 @@ const CustomerDetails = () => {
 
   if (loading) return <Loader />;
   if (!customer) return <div>Customer not found</div>;
-  if (customer !== null) return <CustomersForm initialData={customer} />;
+
+  const customerId = params?.customerId as string;
+
+  return (
+    <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
+      <CustomerTabs activeTab={activeTab} onTabChange={setActiveTab} />
+
+      <div className="mt-6">
+        {activeTab === "update" && <CustomersForm initialData={customer} />}
+        {activeTab === "classes" && <ClassHistory customerId={customerId} />}
+        {activeTab === "certificates" && (
+          <CertificateHistory customerId={customerId} />
+        )}
+      </div>
+    </div>
+  );
 };
 
 export default CustomerDetails;
