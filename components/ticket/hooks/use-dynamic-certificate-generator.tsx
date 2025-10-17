@@ -73,19 +73,27 @@ export function useDynamicCertificateGenerator() {
       // Draw background once
       await drawBackground(template, page, width, height, pdfDoc);
 
-      // For INDIVIDUAL certificate, only draw ONE certificate in the first position
-      // (even if template has certificatesPerPage > 1)
-      const offsetY = 0; // First position (top)
-      console.log(`🎫 Drawing individual certificate at position 1`);
+      // Calculate scaling factors to match canvas behavior
+      const isLandscape = template.pageSize.orientation === 'landscape';
+      const textScaleFactor = rows === 1 ? 1 : rows === 2 ? 0.85 : 0.80;
+      const borderWidthScale = rows === 1 ? 1 : (!isLandscape && rows === 2) ? 0.85 : (!isLandscape && rows === 3) ? 0.80 : 1;
 
-      // Draw shapes
-      drawShapes(template.shapeElements, page, height, certScaleX, certScaleY, offsetY);
+      // Draw all certificates according to template.certificatesPerPage
+      for (let certIndex = 0; certIndex < certsPerPage; certIndex++) {
+        const row = Math.floor(certIndex / cols);
+        // offsetY is the start position of each certificate slot
+        const offsetY = row * (height / rows);
+        console.log(`🎫 Drawing certificate ${certIndex + 1}/${certsPerPage} at position ${certIndex + 1}`);
 
-      // Draw images
-      await drawImages(template.imageElements, page, height, certScaleX, certScaleY, offsetY, pdfDoc);
+        // Draw shapes
+        drawShapes(template.shapeElements, page, height, certScaleX, certScaleY, offsetY, borderWidthScale);
 
-      // Draw text
-      drawTexts(template.textElements, page, height, certScaleX, certScaleY, offsetY, getFont, replaceVariables);
+        // Draw images
+        await drawImages(template.imageElements, page, height, certScaleX, certScaleY, offsetY, pdfDoc);
+
+        // Draw text
+        drawTexts(template.textElements, page, height, certScaleX, certScaleY, offsetY, getFont, replaceVariables, textScaleFactor);
+      }
 
       // Serialize PDF
       console.log('💾 Serializing PDF...');
@@ -138,6 +146,11 @@ export function useDynamicCertificateGenerator() {
         return fontMap[fontFamily] || fonts.helvetica;
       };
 
+      // Calculate scaling factors to match canvas behavior
+      const isLandscape = template.pageSize.orientation === 'landscape';
+      const textScaleFactor = rows === 1 ? 1 : rows === 2 ? 0.85 : 0.80;
+      const borderWidthScale = rows === 1 ? 1 : (!isLandscape && rows === 2) ? 0.85 : (!isLandscape && rows === 3) ? 0.80 : 1;
+
       // Process users in chunks of certsPerPage
       for (let pageIndex = 0; pageIndex < Math.ceil(users.length / certsPerPage); pageIndex++) {
         const page = pdfDoc.addPage([template.pageSize.width, template.pageSize.height]);
@@ -155,6 +168,7 @@ export function useDynamicCertificateGenerator() {
           const user = users[i];
           const positionInPage = i - startIdx;
           const row = Math.floor(positionInPage / cols);
+          // offsetY is the start position of each certificate slot
           const offsetY = row * (height / rows);
 
           console.log(`🎫 Certificate ${i + 1}/${users.length}: ${user.first_name} ${user.last_name} at position ${positionInPage + 1}`);
@@ -170,13 +184,13 @@ export function useDynamicCertificateGenerator() {
           };
 
           // Draw shapes
-          drawShapes(template.shapeElements, page, height, certScaleX, certScaleY, offsetY);
+          drawShapes(template.shapeElements, page, height, certScaleX, certScaleY, offsetY, borderWidthScale);
 
           // Draw images
           await drawImages(template.imageElements, page, height, certScaleX, certScaleY, offsetY, pdfDoc);
 
           // Draw text
-          drawTexts(template.textElements, page, height, certScaleX, certScaleY, offsetY, getFont, replaceVariables);
+          drawTexts(template.textElements, page, height, certScaleX, certScaleY, offsetY, getFont, replaceVariables, textScaleFactor);
         }
       }
 

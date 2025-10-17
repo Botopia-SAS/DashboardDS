@@ -8,7 +8,8 @@ export function drawShapes(
   height: number,
   certScaleX: number,
   certScaleY: number,
-  offsetY: number
+  offsetY: number,
+  borderWidthScale: number = 1
 ) {
   shapes.forEach((shape: ShapeElement) => {
     const scaledShape = {
@@ -19,7 +20,7 @@ export function drawShapes(
       x2: shape.x2 ? shape.x2 * certScaleX : undefined,
       y2: shape.y2 ? shape.y2 * certScaleY + offsetY : undefined,
       radius: shape.radius ? shape.radius * certScaleY : undefined,
-      borderWidth: shape.borderWidth,
+      borderWidth: shape.borderWidth ? shape.borderWidth * borderWidthScale : undefined,
     };
 
     let color = undefined;

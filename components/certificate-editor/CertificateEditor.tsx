@@ -1082,6 +1082,7 @@ export function CertificateEditor({
                               height: newHeight,
                               orientation: value
                             },
+                            certificatesPerPage: value === 'landscape' ? 1 : template.certificatesPerPage,
                             textElements: scaledTextElements,
                             imageElements: scaledImageElements,
                             shapeElements: scaledShapeElements
@@ -1122,7 +1123,7 @@ export function CertificateEditor({
                           certificatesPerPage: Number(value)
                         });
                       }}
-                      disabled={editMode}
+                      disabled={editMode || template.pageSize.orientation === 'landscape'}
                     >
                       <SelectTrigger className="h-auto min-h-[2.5rem]">
                         <SelectValue />
@@ -1148,19 +1149,14 @@ export function CertificateEditor({
                   <div>
                     <Label className="text-xs">Background Type</Label>
                     <Select
-                      value={template.background.type}
-                      onValueChange={(value) => pushToHistory({
-                        ...template,
-                        background: { ...template.background, type: value as 'color' | 'image' | 'pdf' }
-                      })}
+                      value="color"
+                      disabled
                     >
                       <SelectTrigger className="h-auto min-h-[2.5rem]">
                         <SelectValue />
                       </SelectTrigger>
                       <SelectContent className="bg-white border border-gray-200 shadow-lg">
                         <SelectItem value="color" className="bg-white hover:bg-gray-50">Color</SelectItem>
-                        <SelectItem value="image" className="bg-white hover:bg-gray-50">Image</SelectItem>
-                        <SelectItem value="pdf" className="bg-white hover:bg-gray-50">PDF Template</SelectItem>
                       </SelectContent>
                     </Select>
                   </div>
@@ -1556,6 +1552,7 @@ export function CertificateEditor({
                                 height: newHeight,
                                 orientation: value
                               },
+                              certificatesPerPage: value === 'landscape' ? 1 : template.certificatesPerPage,
                               textElements: scaledTextElements,
                               imageElements: scaledImageElements,
                               shapeElements: scaledShapeElements
@@ -1595,6 +1592,7 @@ export function CertificateEditor({
                             certificatesPerPage: Number(value)
                           });
                         }}
+                        disabled={template.pageSize.orientation === 'landscape'}
                       >
                         <SelectTrigger className="h-auto min-h-[2.5rem]">
                           <SelectValue />
@@ -1620,19 +1618,14 @@ export function CertificateEditor({
                     <div>
                       <Label className="text-xs">Background Type</Label>
                       <Select
-                        value={template.background.type}
-                        onValueChange={(value) => pushToHistory({
-                          ...template,
-                          background: { ...template.background, type: value as 'color' | 'image' | 'pdf' }
-                        })}
+                        value="color"
+                        disabled
                       >
                         <SelectTrigger className="h-auto min-h-[2.5rem]">
                           <SelectValue />
                         </SelectTrigger>
                         <SelectContent className="bg-white border border-gray-200 shadow-lg">
                           <SelectItem value="color" className="bg-white hover:bg-gray-50">Color</SelectItem>
-                          <SelectItem value="image" className="bg-white hover:bg-gray-50">Image</SelectItem>
-                          <SelectItem value="pdf" className="bg-white hover:bg-gray-50">PDF Template</SelectItem>
                         </SelectContent>
                       </Select>
                     </div>

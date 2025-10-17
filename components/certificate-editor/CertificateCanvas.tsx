@@ -27,7 +27,7 @@ export function CertificateCanvas({
   const [dragStart, setDragStart] = useState<{ x: number; y: number } | null>(null);
   const [potentialDrag, setPotentialDrag] = useState<{ type: 'text' | 'image' | 'shape'; id: string; x: number; y: number; startX: number; startY: number } | null>(null);
   const [justClickedElement, setJustClickedElement] = useState(false);
-  const [manualZoom, setManualZoom] = useState<number>(1); // 1 = 100%
+  const [manualZoom, setManualZoom] = useState<number>(1.5); // 1.5 = 150%
 
   // Scale factor for display - Optimized for better certificate visibility
   const getOptimalScale = () => {
@@ -240,9 +240,9 @@ export function CertificateCanvas({
           // Reduce border width for multiple certificates (only in portrait)
           let borderWidthScale = 1;
           if (!isLandscape && effectiveCertsPerPage === 2) {
-            borderWidthScale = 0.65; // Same as text scale for 2 certs
+            borderWidthScale = 0.85; // Same as text scale for 2 certs
           } else if (!isLandscape && effectiveCertsPerPage === 3) {
-            borderWidthScale = 0.60; // Same as text scale for 3 certs
+            borderWidthScale = 0.80; // Same as text scale for 3 certs
           }
 
           const scaledShape = {
@@ -370,9 +370,9 @@ export function CertificateCanvas({
           } else if (!isLandscape) {
             // Only adjust for portrait mode with multiple certs
             if (effectiveCertsPerPage === 2) {
-              minTextScale = 0.67; // Increase 3% from 0.65 for 2 certs portrait
+              minTextScale = 0.85; // Increased for better readability with 2 certs
             } else if (effectiveCertsPerPage === 3) {
-              minTextScale = 0.60; // Reduce for 3 certs portrait
+              minTextScale = 0.80; // Increased for better readability with 3 certs
             }
           }
 
@@ -437,7 +437,7 @@ export function CertificateCanvas({
   useEffect(() => {
     if (editMode && containerRef.current) {
       // Reset manual zoom when entering edit mode
-      setManualZoom(1);
+      setManualZoom(1.5);
       
       // Scroll to the top immediately
       containerRef.current.scrollTop = 0;
@@ -560,7 +560,7 @@ export function CertificateCanvas({
         )}
 
         {/* Zoom Indicator in Edit Mode */}
-        {editMode && manualZoom !== 1 && (
+        {editMode && manualZoom !== 1.5 && (
           <div className="absolute top-2 right-2 bg-blue-500 text-white px-3 py-1 rounded-md text-sm font-medium shadow-lg pointer-events-none z-10">
             {Math.round(manualZoom * 100)}%
           </div>
@@ -569,7 +569,7 @@ export function CertificateCanvas({
       </div>
 
       {/* Navigation Minimap - Above Zoom Controls */}
-      {!previewMode && !editMode && manualZoom > 1 && (
+      {!previewMode && !editMode && manualZoom > 1.5 && (
         <div
           className="absolute bottom-20 right-4 bg-white rounded-lg shadow-lg border-2 border-gray-400 overflow-hidden cursor-pointer"
           onClick={handleMinimapClick}
@@ -629,7 +629,7 @@ export function CertificateCanvas({
             +
           </button>
           <button
-            onClick={() => setManualZoom(1)}
+            onClick={() => setManualZoom(1.5)}
             className="ml-1 px-2 h-8 text-xs text-gray-600 hover:bg-gray-100 rounded transition-colors"
             title="Reset Zoom"
           >
