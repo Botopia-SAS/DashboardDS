@@ -153,26 +153,34 @@ export function CertificateCanvas({
   // 2, 3 certificates are stacked vertically in rows
   const rows = certsPerPage;
   const cols = 1;
-  // FORCE: Keep content at original size, don't scale it down
-  const certScaleX = 1; // Full width - no scaling
-  const certScaleY = 1; // Full height - no scaling (content stays same size)
+  // Scale: Keep FULL WIDTH, only reduce HEIGHT
+  const certScaleX = 1; // Full width - NO scaling
+  const certScaleY = 1 / rows; // Divide height by number of rows
+
+  // Content scale: use Y scale to fit vertically, X stays full width
+  const contentScale = certScaleY;
 
   // Render a single certificate instance
   const renderCertificate = (certIndex: number) => {
     const row = Math.floor(certIndex / cols);
     const col = certIndex % cols;
-    const offsetX = col * (template.pageSize.width / cols);
-    const offsetY = row * (template.pageSize.height / rows);
+    const certWidth = template.pageSize.width;
+    const certHeight = template.pageSize.height / rows;
+    const offsetX = 0;
+    const offsetY = row * certHeight;
 
     return (
       <div
         key={`cert-${certIndex}`}
-        className="absolute inset-0"
+        className="absolute"
         style={{
+          left: 0,
+          top: 0,
           transform: `translate(${offsetX * scale}px, ${offsetY * scale}px)`,
-          width: `${(template.pageSize.width / cols) * scale}px`,
-          height: `${(template.pageSize.height / rows) * scale}px`,
+          width: `${certWidth * scale}px`,
+          height: `${certHeight * scale}px`,
           overflow: 'hidden',
+          clipPath: 'inset(0)',
           pointerEvents: certIndex === 0 ? 'auto' : 'none', // Only first certificate is editable
           opacity: certIndex === 0 ? 1 : 0.7, // Dim copies slightly
         }}
@@ -196,8 +204,8 @@ export function CertificateCanvas({
             height: shape.height ? shape.height * certScaleY : undefined,
             x2: shape.x2 ? shape.x2 * certScaleX : undefined,
             y2: shape.y2 ? shape.y2 * certScaleY : undefined,
-            radius: shape.radius ? shape.radius * Math.min(certScaleX, certScaleY) : undefined,
-            borderWidth: shape.borderWidth ? shape.borderWidth * Math.min(certScaleX, certScaleY) : undefined,
+            radius: shape.radius ? shape.radius * certScaleY : undefined,
+            borderWidth: shape.borderWidth, // DO NOT scale borderWidth - keep original
           };
 
           return (
@@ -228,7 +236,7 @@ export function CertificateCanvas({
               <svg
                 width={`${Math.abs((scaledShape.x2 || 0) - scaledShape.x) * scale}px`}
                 height={`${Math.abs((scaledShape.y2 || 0) - scaledShape.y) * scale}px`}
-                style={{ overflow: 'visible' }}
+                style={{ overflow: 'hidden' }}
               >
                 <line
                   x1="0"
@@ -302,11 +310,13 @@ export function CertificateCanvas({
         {/* Render Text Elements */}
         {template.textElements.map((text) => {
           const displayText = replaceVariables(text.content);
+          // Keep text more readable - minimum scale of 0.7 (70%)
+          const textScaleFactor = Math.max(0.7, contentScale);
           const scaledText = {
             ...text,
             x: text.x * certScaleX,
             y: text.y * certScaleY,
-            fontSize: text.fontSize * certScaleX, // Keep text proportional to width
+            fontSize: text.fontSize * textScaleFactor,
           };
 
           // Calculate position based on alignment
@@ -339,6 +349,18 @@ export function CertificateCanvas({
             </div>
           );
         })}
+
+        {/* Division line for multiple certificates */}
+        {certsPerPage > 1 && certIndex < certsPerPage - 1 && (
+          <div
+            className="absolute bottom-0 left-0 right-0 border-b-2 border-dashed border-gray-400"
+            style={{
+              borderColor: '#999',
+              borderStyle: 'dashed',
+              borderBottomWidth: '2px',
+            }}
+          />
+        )}
       </div>
     );
   };

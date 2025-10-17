@@ -24,9 +24,10 @@ export function useDynamicCertificateGenerator() {
       const certsPerPage = template.certificatesPerPage || 1;
       const rows = certsPerPage;
       const cols = 1;
-      // FORCE: Keep content at original size
-      const certScaleX = 1;
-      const certScaleY = 1;
+      // Scale: Keep FULL WIDTH, only reduce HEIGHT proportionally
+      const certScaleX = 1; // Full width - NO scaling horizontally
+      const certScaleY = 1 / rows; // Divide height by number of rows
+      const contentScale = certScaleY; // Use Y scale for uniform scaling
 
       // Create page
       const page = pdfDoc.addPage([template.pageSize.width, template.pageSize.height]);

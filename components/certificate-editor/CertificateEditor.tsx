@@ -623,6 +623,39 @@ export function CertificateEditor({
           { type: 'line' as const, x: 40, y: 60, x2: w - 40, y2: 60, borderColor: '#000000', borderWidth: 1 },
           { type: 'line' as const, x: 40, y: h - 60, x2: w - 40, y2: h - 60, borderColor: '#000000', borderWidth: 1 }
         ]
+      },
+      {
+        id: 'certificate-classic',
+        name: 'Certificate Classic',
+        description: 'Formal certificate with decorative borders',
+        shapes: [
+          // Top decorative band (peach/orange)
+          { type: 'rectangle' as const, x: 0, y: 0, width: w, height: 40, borderColor: '#FFB366', borderWidth: 0, color: '#FFB366' },
+          // Bottom decorative band (peach/orange)
+          { type: 'rectangle' as const, x: 0, y: h - 40, width: w, height: 40, borderColor: '#FFB366', borderWidth: 0, color: '#FFB366' },
+          // Outer border
+          { type: 'rectangle' as const, x: 20, y: 20, width: w - 40, height: h - 40, borderColor: '#FFB366', borderWidth: 8, color: 'transparent' },
+          // Middle decorative border
+          { type: 'rectangle' as const, x: 35, y: 35, width: w - 70, height: h - 70, borderColor: '#FFB366', borderWidth: 4, color: 'transparent' },
+          // Inner border
+          { type: 'rectangle' as const, x: 45, y: 45, width: w - 90, height: h - 90, borderColor: '#FFB366', borderWidth: 2, color: 'transparent' },
+          // Decorative corner elements (top-left)
+          { type: 'circle' as const, x: 25, y: 25, radius: 8, borderColor: '#FFB366', borderWidth: 3, color: 'transparent' },
+          { type: 'circle' as const, x: 35, y: 25, radius: 6, borderColor: '#FFB366', borderWidth: 2, color: 'transparent' },
+          { type: 'circle' as const, x: 25, y: 35, radius: 6, borderColor: '#FFB366', borderWidth: 2, color: 'transparent' },
+          // Decorative corner elements (top-right)
+          { type: 'circle' as const, x: w - 25, y: 25, radius: 8, borderColor: '#FFB366', borderWidth: 3, color: 'transparent' },
+          { type: 'circle' as const, x: w - 35, y: 25, radius: 6, borderColor: '#FFB366', borderWidth: 2, color: 'transparent' },
+          { type: 'circle' as const, x: w - 25, y: 35, radius: 6, borderColor: '#FFB366', borderWidth: 2, color: 'transparent' },
+          // Decorative corner elements (bottom-left)
+          { type: 'circle' as const, x: 25, y: h - 25, radius: 8, borderColor: '#FFB366', borderWidth: 3, color: 'transparent' },
+          { type: 'circle' as const, x: 35, y: h - 25, radius: 6, borderColor: '#FFB366', borderWidth: 2, color: 'transparent' },
+          { type: 'circle' as const, x: 25, y: h - 35, radius: 6, borderColor: '#FFB366', borderWidth: 2, color: 'transparent' },
+          // Decorative corner elements (bottom-right)
+          { type: 'circle' as const, x: w - 25, y: h - 25, radius: 8, borderColor: '#FFB366', borderWidth: 3, color: 'transparent' },
+          { type: 'circle' as const, x: w - 35, y: h - 25, radius: 6, borderColor: '#FFB366', borderWidth: 2, color: 'transparent' },
+          { type: 'circle' as const, x: w - 25, y: h - 35, radius: 6, borderColor: '#FFB366', borderWidth: 2, color: 'transparent' }
+        ]
       }
     ];
   };

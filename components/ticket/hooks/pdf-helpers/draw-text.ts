@@ -17,7 +17,10 @@ export function drawTexts(
     const font = getFont(text.fontFamily, text.fontWeight);
     const textColor = hexToRgb(text.color);
 
-    const scaledFontSize = text.fontSize * certScaleX;
+    // Keep text more readable - don't scale down as much as other elements
+    // Use a minimum scale of 0.7 (70%) to maintain readability
+    const textScaleFactor = Math.max(0.7, certScaleY);
+    const scaledFontSize = text.fontSize * textScaleFactor;
     const textWidth = font.widthOfTextAtSize(content, scaledFontSize);
 
     const scaledX = text.x * certScaleX;
