@@ -71,6 +71,7 @@ export async function POST(req: NextRequest) {
       name,
       classType,
       pageSize,
+      certificatesPerPage,
       background,
       textElements,
       imageElements,
@@ -87,6 +88,7 @@ export async function POST(req: NextRequest) {
     const upperClassType = classType.toUpperCase();
     console.log(`🔍 Upserting template for classType: ${upperClassType}`);
     console.log(`📄 Background:`, background);
+    console.log(`📄 Certificates Per Page: ${certificatesPerPage || 1}`);
     console.log(`📝 Text elements: ${textElements?.length || 0}`);
     console.log(`🖼️ Image elements: ${imageElements?.length || 0}`);
     console.log(`🔲 Shape elements: ${shapeElements?.length || 0}`);
@@ -98,6 +100,7 @@ export async function POST(req: NextRequest) {
         name,
         classType: upperClassType,
         pageSize: pageSize || { width: 842, height: 595, orientation: 'landscape' },
+        certificatesPerPage: certificatesPerPage || 1, // Default to 1 if not provided
         background,
         textElements: textElements || [],
         imageElements: imageElements || [],

@@ -25,6 +25,7 @@ export function CertificateCanvas({
   const [dragStart, setDragStart] = useState<{ x: number; y: number } | null>(null);
   const [potentialDrag, setPotentialDrag] = useState<{ type: 'text' | 'image' | 'shape'; id: string; x: number; y: number; startX: number; startY: number } | null>(null);
   const [justClickedElement, setJustClickedElement] = useState(false);
+  const [manualZoom, setManualZoom] = useState<number>(1); // 1 = 100%
 
   // Scale factor for display - Optimized for better certificate visibility
   const getOptimalScale = () => {
@@ -53,7 +54,7 @@ export function CertificateCanvas({
     return Math.min(Math.max(optimalScale, minScale), maxScale);
   };
 
-  const scale = getOptimalScale();
+  const scale = getOptimalScale() * manualZoom;
 
   // Handle mouse down on element - simple click to select/deselect
   const handleMouseDown = (
@@ -147,8 +148,260 @@ export function CertificateCanvas({
     }
   };
 
+  // Calculate layout for multiple certificates per page
+  const certsPerPage = template.certificatesPerPage || 1;
+  // 2, 3 certificates are stacked vertically in rows
+  const rows = certsPerPage;
+  const cols = 1;
+  // Scale: Keep FULL WIDTH, only reduce HEIGHT
+  const certScaleX = 1; // Full width - NO scaling
+  const certScaleY = 1 / rows; // Divide height by number of rows
+
+  // Content scale: use Y scale to fit vertically, X stays full width
+  const contentScale = certScaleY;
+
+  // Render a single certificate instance
+  const renderCertificate = (certIndex: number) => {
+    const row = Math.floor(certIndex / cols);
+    const col = certIndex % cols;
+    const certWidth = template.pageSize.width;
+    const certHeight = template.pageSize.height / rows;
+    const offsetX = 0;
+    const offsetY = row * certHeight;
+
+    return (
+      <div
+        key={`cert-${certIndex}`}
+        className="absolute"
+        style={{
+          left: 0,
+          top: 0,
+          transform: `translate(${offsetX * scale}px, ${offsetY * scale}px)`,
+          width: `${certWidth * scale}px`,
+          height: `${certHeight * scale}px`,
+          overflow: 'hidden',
+          clipPath: 'inset(0)',
+          pointerEvents: certIndex === 0 ? 'auto' : 'none', // Only first certificate is editable
+          opacity: certIndex === 0 ? 1 : 0.7, // Dim copies slightly
+        }}
+      >
+        {/* Background Image */}
+        {template.background.type === 'image' && template.background.value && (
+          <img
+            src={template.background.value}
+            alt="Background"
+            className="absolute inset-0 w-full h-full object-cover pointer-events-none"
+          />
+        )}
+
+        {/* Render Shape Elements */}
+        {template.shapeElements.map((shape) => {
+          const scaledShape = {
+            ...shape,
+            x: shape.x * certScaleX,
+            y: shape.y * certScaleY,
+            width: shape.width ? shape.width * certScaleX : undefined,
+            height: shape.height ? shape.height * certScaleY : undefined,
+            x2: shape.x2 ? shape.x2 * certScaleX : undefined,
+            y2: shape.y2 ? shape.y2 * certScaleY : undefined,
+            radius: shape.radius ? shape.radius * certScaleY : undefined,
+            borderWidth: shape.borderWidth, // DO NOT scale borderWidth - keep original
+          };
+
+          return (
+          <div
+            key={`${shape.id}-${certIndex}`}
+            className={`absolute ${certIndex === 0 && dragging && dragging.id === shape.id ? 'cursor-move' : certIndex === 0 ? 'cursor-pointer' : ''} ${
+              certIndex === 0 && selectedElement.id === shape.id && !previewMode ? 'ring-2 ring-blue-500' : ''
+            }`}
+            style={{
+              left: `${scaledShape.x * scale}px`,
+              top: `${scaledShape.y * scale}px`,
+              pointerEvents: previewMode || certIndex !== 0 ? 'none' : 'auto',
+            }}
+            onMouseDown={certIndex === 0 ? (e) => handleMouseDown(e, 'shape', shape.id, shape.x, shape.y) : undefined}
+          >
+            {shape.type === 'rectangle' && (
+              <div
+                style={{
+                  width: `${(scaledShape.width || 0) * scale}px`,
+                  height: `${(scaledShape.height || 0) * scale}px`,
+                  backgroundColor: shape.color || 'transparent',
+                  border: `${(scaledShape.borderWidth || 0) * scale}px ${shape.borderStyle || 'solid'} ${shape.borderColor || '#000'}`,
+                }}
+              />
+            )}
+
+            {shape.type === 'line' && (
+              <svg
+                width={`${Math.abs((scaledShape.x2 || 0) - scaledShape.x) * scale}px`}
+                height={`${Math.abs((scaledShape.y2 || 0) - scaledShape.y) * scale}px`}
+                style={{ overflow: 'hidden' }}
+              >
+                <line
+                  x1="0"
+                  y1="0"
+                  x2={`${((scaledShape.x2 || 0) - scaledShape.x) * scale}`}
+                  y2={`${((scaledShape.y2 || 0) - scaledShape.y) * scale}`}
+                  stroke={shape.borderColor || '#000'}
+                  strokeWidth={(scaledShape.borderWidth || 1) * scale}
+                  strokeDasharray={
+                    shape.borderStyle === 'dashed' ? `${4 * scale},${4 * scale}` :
+                    shape.borderStyle === 'dotted' ? `${2 * scale},${2 * scale}` :
+                    undefined
+                  }
+                />
+              </svg>
+            )}
+
+            {shape.type === 'circle' && (
+              <div
+                style={{
+                  width: `${(scaledShape.radius || 0) * 2 * scale}px`,
+                  height: `${(scaledShape.radius || 0) * 2 * scale}px`,
+                  borderRadius: '50%',
+                  backgroundColor: shape.color || 'transparent',
+                  border: `${(scaledShape.borderWidth || 0) * scale}px ${shape.borderStyle || 'solid'} ${shape.borderColor || '#000'}`,
+                }}
+              />
+            )}
+          </div>
+        );
+        })}
+
+        {/* Render Image Elements */}
+        {template.imageElements.map((image) => {
+          const scaledImage = {
+            ...image,
+            x: image.x * certScaleX,
+            y: image.y * certScaleY,
+            width: image.width * certScaleX,
+            height: image.height * certScaleY,
+          };
+
+          return (
+          <div
+            key={`${image.id}-${certIndex}`}
+            className={`absolute ${certIndex === 0 && dragging && dragging.id === image.id ? 'cursor-move' : certIndex === 0 ? 'cursor-pointer' : ''} ${
+              certIndex === 0 && selectedElement.id === image.id && !previewMode ? 'ring-2 ring-blue-500' : ''
+            }`}
+            style={{
+              left: `${scaledImage.x * scale}px`,
+              top: `${scaledImage.y * scale}px`,
+              width: `${scaledImage.width * scale}px`,
+              height: `${scaledImage.height * scale}px`,
+              pointerEvents: previewMode || certIndex !== 0 ? 'none' : 'auto',
+            }}
+            onMouseDown={certIndex === 0 ? (e) => handleMouseDown(e, 'image', image.id, image.x, image.y) : undefined}
+          >
+            <img
+              src={image.url}
+              alt="Certificate Element"
+              className="w-full h-full object-contain"
+              draggable={false}
+              style={{
+                filter: image.grayscale ? 'grayscale(100%)' : 'none'
+              }}
+            />
+          </div>
+          );
+        })}
+
+        {/* Render Text Elements */}
+        {template.textElements.map((text) => {
+          const displayText = replaceVariables(text.content);
+          // Keep text more readable - minimum scale of 0.7 (70%)
+          const textScaleFactor = Math.max(0.7, contentScale);
+          const scaledText = {
+            ...text,
+            x: text.x * certScaleX,
+            y: text.y * certScaleY,
+            fontSize: text.fontSize * textScaleFactor,
+          };
+
+          // Calculate position based on alignment
+          const leftPosition = scaledText.x * scale;
+
+          return (
+            <div
+              key={`${text.id}-${certIndex}`}
+              className={`absolute ${certIndex === 0 && dragging && dragging.id === text.id ? 'cursor-move' : certIndex === 0 ? 'cursor-pointer' : ''} ${
+                certIndex === 0 && selectedElement.id === text.id && !previewMode ? 'ring-2 ring-blue-500 bg-blue-50' : ''
+              }`}
+              style={{
+                left: `${leftPosition}px`,
+                top: `${scaledText.y * scale}px`,
+                fontSize: `${scaledText.fontSize * scale}px`,
+                fontFamily: text.fontFamily,
+                fontWeight: text.fontWeight === 'bold' ? 'bold' : 'normal',
+                fontStyle: text.italic ? 'italic' : 'normal',
+                textDecoration: text.underline ? 'underline' : 'none',
+                color: text.color,
+                pointerEvents: previewMode || certIndex !== 0 ? 'none' : 'auto',
+                whiteSpace: 'nowrap',
+                lineHeight: '1.2',
+                // Apply transform for center alignment
+                transform: text.align === 'center' ? 'translateX(-50%)' : text.align === 'right' ? 'translateX(-100%)' : 'none',
+              }}
+              onMouseDown={certIndex === 0 ? (e) => handleMouseDown(e, 'text', text.id, text.x, text.y) : undefined}
+            >
+              {displayText}
+            </div>
+          );
+        })}
+
+        {/* Division line for multiple certificates */}
+        {certsPerPage > 1 && certIndex < certsPerPage - 1 && (
+          <div
+            className="absolute bottom-0 left-0 right-0 border-b-2 border-dashed border-gray-400"
+            style={{
+              borderColor: '#999',
+              borderStyle: 'dashed',
+              borderBottomWidth: '2px',
+            }}
+          />
+        )}
+      </div>
+    );
+  };
+
+  const containerRef = useRef<HTMLDivElement>(null);
+  const [viewportPosition, setViewportPosition] = useState({ x: 0, y: 0 });
+
+  // Handle viewport scroll to update minimap
+  const handleScroll = (e: React.UIEvent<HTMLDivElement>) => {
+    const container = e.currentTarget;
+    setViewportPosition({
+      x: container.scrollLeft,
+      y: container.scrollTop
+    });
+  };
+
+  // Handle minimap click to move viewport
+  const handleMinimapClick = (e: React.MouseEvent<HTMLDivElement>) => {
+    if (!containerRef.current) return;
+    const rect = e.currentTarget.getBoundingClientRect();
+    const clickX = e.clientX - rect.left;
+    const clickY = e.clientY - rect.top;
+
+    // Calculate scroll position based on minimap click
+    const minimapScale = 0.15; // Minimap is 15% of actual size
+    const scrollX = (clickX / minimapScale) - (containerRef.current.clientWidth / 2);
+    const scrollY = (clickY / minimapScale) - (containerRef.current.clientHeight / 2);
+
+    containerRef.current.scrollTo({
+      left: Math.max(0, scrollX),
+      top: Math.max(0, scrollY),
+      behavior: 'smooth'
+    });
+  };
+
   return (
-    <div className="flex justify-center items-center h-full w-full p-2 bg-gray-50 overflow-hidden">
+    <div
+      ref={containerRef}
+      className="relative flex justify-center items-center h-full w-full p-2 bg-gray-50 overflow-auto"
+      onScroll={handleScroll}
+    >
       <div
         ref={canvasRef}
         className="relative bg-white shadow-2xl border-4 border-gray-200 focus:outline-none focus:ring-2 focus:ring-blue-500"
@@ -163,141 +416,8 @@ export function CertificateCanvas({
         onClick={() => !previewMode && !justClickedElement && onSelectElement({ type: null, id: null })}
         tabIndex={0}
       >
-        {/* Background Image */}
-        {template.background.type === 'image' && template.background.value && (
-          <img
-            src={template.background.value}
-            alt="Background"
-            className="absolute inset-0 w-full h-full object-cover pointer-events-none"
-          />
-        )}
-
-        {/* Render Shape Elements */}
-        {template.shapeElements.map((shape) => (
-          <div
-            key={shape.id}
-            className={`absolute ${dragging && dragging.id === shape.id ? 'cursor-move' : 'cursor-pointer'} ${
-              selectedElement.id === shape.id && !previewMode ? 'ring-2 ring-blue-500' : ''
-            }`}
-            style={{
-              left: `${shape.x * scale}px`,
-              top: `${shape.y * scale}px`,
-              pointerEvents: previewMode ? 'none' : 'auto',
-            }}
-            onMouseDown={(e) => handleMouseDown(e, 'shape', shape.id, shape.x, shape.y)}
-          >
-            {shape.type === 'rectangle' && (
-              <div
-                style={{
-                  width: `${(shape.width || 0) * scale}px`,
-                  height: `${(shape.height || 0) * scale}px`,
-                  backgroundColor: shape.color || 'transparent',
-                  border: `${(shape.borderWidth || 0) * scale}px ${shape.borderStyle || 'solid'} ${shape.borderColor || '#000'}`,
-                }}
-              />
-            )}
-
-            {shape.type === 'line' && (
-              <svg
-                width={`${Math.abs((shape.x2 || 0) - shape.x) * scale}px`}
-                height={`${Math.abs((shape.y2 || 0) - shape.y) * scale}px`}
-                style={{ overflow: 'visible' }}
-              >
-                <line
-                  x1="0"
-                  y1="0"
-                  x2={`${((shape.x2 || 0) - shape.x) * scale}`}
-                  y2={`${((shape.y2 || 0) - shape.y) * scale}`}
-                  stroke={shape.borderColor || '#000'}
-                  strokeWidth={(shape.borderWidth || 1) * scale}
-                  strokeDasharray={
-                    shape.borderStyle === 'dashed' ? `${4 * scale},${4 * scale}` :
-                    shape.borderStyle === 'dotted' ? `${2 * scale},${2 * scale}` :
-                    undefined
-                  }
-                />
-              </svg>
-            )}
-
-            {shape.type === 'circle' && (
-              <div
-                style={{
-                  width: `${(shape.radius || 0) * 2 * scale}px`,
-                  height: `${(shape.radius || 0) * 2 * scale}px`,
-                  borderRadius: '50%',
-                  backgroundColor: shape.color || 'transparent',
-                  border: `${(shape.borderWidth || 0) * scale}px ${shape.borderStyle || 'solid'} ${shape.borderColor || '#000'}`,
-                }}
-              />
-            )}
-          </div>
-        ))}
-
-        {/* Render Image Elements */}
-        {template.imageElements.map((image) => (
-          <div
-            key={image.id}
-            className={`absolute ${dragging && dragging.id === image.id ? 'cursor-move' : 'cursor-pointer'} ${
-              selectedElement.id === image.id && !previewMode ? 'ring-2 ring-blue-500' : ''
-            }`}
-            style={{
-              left: `${image.x * scale}px`,
-              top: `${image.y * scale}px`,
-              width: `${image.width * scale}px`,
-              height: `${image.height * scale}px`,
-              pointerEvents: previewMode ? 'none' : 'auto',
-            }}
-            onMouseDown={(e) => handleMouseDown(e, 'image', image.id, image.x, image.y)}
-          >
-            <img
-              src={image.url}
-              alt="Certificate Element"
-              className="w-full h-full object-contain"
-              draggable={false}
-              style={{
-                filter: image.grayscale ? 'grayscale(100%)' : 'none'
-              }}
-            />
-          </div>
-        ))}
-
-        {/* Render Text Elements */}
-        {template.textElements.map((text) => {
-          const displayText = replaceVariables(text.content);
-
-          // Calculate position based on alignment
-          const leftPosition = text.x * scale;
-
-          // For center-aligned text, we need to offset by half the width
-          // This is handled by transform: translateX(-50%)
-
-          return (
-            <div
-              key={text.id}
-              className={`absolute ${dragging && dragging.id === text.id ? 'cursor-move' : 'cursor-pointer'} ${
-                selectedElement.id === text.id && !previewMode ? 'ring-2 ring-blue-500 bg-blue-50' : ''
-              }`}
-              style={{
-                left: `${leftPosition}px`,
-                top: `${text.y * scale}px`,
-                fontSize: `${text.fontSize * scale}px`,
-                fontFamily: text.fontFamily,
-                fontWeight: text.fontWeight === 'bold' ? 'bold' : 'normal',
-                fontStyle: text.italic ? 'italic' : 'normal',
-                textDecoration: text.underline ? 'underline' : 'none',
-                color: text.color,
-                pointerEvents: previewMode ? 'none' : 'auto',
-                whiteSpace: 'nowrap',
-                lineHeight: '1.2',
-                // Apply transform for center alignment
-                transform: text.align === 'center' ? 'translateX(-50%)' : text.align === 'right' ? 'translateX(-100%)' : 'none',
-              }}
-              onMouseDown={(e) => handleMouseDown(e, 'text', text.id, text.x, text.y)}
-            >
-              {displayText}
-            </div>
-          );
-        })}
+        {/* Render all certificate instances */}
+        {Array.from({ length: certsPerPage }).map((_, certIndex) => renderCertificate(certIndex))}
 
         {/* Preview Mode Watermark */}
         {previewMode && (
@@ -308,6 +428,76 @@ export function CertificateCanvas({
           </div>
         )}
       </div>
+
+      {/* Navigation Minimap - Above Zoom Controls */}
+      {!previewMode && manualZoom > 1 && (
+        <div
+          className="absolute bottom-20 right-4 bg-white rounded-lg shadow-lg border-2 border-gray-400 overflow-hidden cursor-pointer"
+          onClick={handleMinimapClick}
+          title="Click to navigate"
+        >
+          <div
+            className="relative bg-gray-100"
+            style={{
+              width: `${template.pageSize.width * 0.15}px`,
+              height: `${template.pageSize.height * 0.15}px`,
+              maxWidth: '150px',
+              maxHeight: '150px',
+            }}
+          >
+            {/* Minimap representation of the certificate */}
+            <div
+              className="absolute inset-0 bg-white border border-gray-300"
+              style={{
+                backgroundColor: template.background.type === 'color' ? template.background.value : '#FFFFFF',
+              }}
+            />
+
+            {/* Viewport indicator */}
+            {containerRef.current && (
+              <div
+                className="absolute border-2 border-blue-500 bg-blue-200 bg-opacity-30 pointer-events-none"
+                style={{
+                  left: `${Math.min(100, (viewportPosition.x / Math.max(1, containerRef.current.scrollWidth - containerRef.current.clientWidth)) * 100)}%`,
+                  top: `${Math.min(100, (viewportPosition.y / Math.max(1, containerRef.current.scrollHeight - containerRef.current.clientHeight)) * 100)}%`,
+                  width: `${Math.min(100, (containerRef.current.clientWidth / containerRef.current.scrollWidth) * 100)}%`,
+                  height: `${Math.min(100, (containerRef.current.clientHeight / containerRef.current.scrollHeight) * 100)}%`,
+                }}
+              />
+            )}
+          </div>
+        </div>
+      )}
+
+      {/* Zoom Controls - Bottom Right Corner */}
+      {!previewMode && (
+        <div className="absolute bottom-4 right-4 flex items-center gap-2 bg-white rounded-lg shadow-lg border border-gray-300 px-3 py-2">
+          <button
+            onClick={() => setManualZoom(prev => Math.max(0.5, prev - 0.1))}
+            className="w-8 h-8 flex items-center justify-center text-gray-700 hover:bg-gray-100 rounded transition-colors font-bold text-lg"
+            title="Zoom Out"
+          >
+            −
+          </button>
+          <span className="text-sm font-medium text-gray-700 min-w-[50px] text-center">
+            {Math.round(manualZoom * 100)}%
+          </span>
+          <button
+            onClick={() => setManualZoom(prev => Math.min(2, prev + 0.1))}
+            className="w-8 h-8 flex items-center justify-center text-gray-700 hover:bg-gray-100 rounded transition-colors font-bold text-lg"
+            title="Zoom In"
+          >
+            +
+          </button>
+          <button
+            onClick={() => setManualZoom(1)}
+            className="ml-1 px-2 h-8 text-xs text-gray-600 hover:bg-gray-100 rounded transition-colors"
+            title="Reset Zoom"
+          >
+            Reset
+          </button>
+        </div>
+      )}
     </div>
   );
 }

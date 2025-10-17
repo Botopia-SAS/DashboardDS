@@ -23,6 +23,7 @@ import { Student } from "./columns";
 import { useTableData } from "./hooks/use-table-data";
 import { useCertificateGenerator } from "./hooks/use-master-certificate-generator";
 import { useMultiCertificateDownloader } from "./hooks/use-multi-certificate-downloader";
+import { useDynamicCertificateGenerator } from "./hooks/use-dynamic-certificate-generator";
 import { VariableValidationModal } from "@/components/certificate-editor/VariableValidationModal";
 import { RowActionButtons } from "./row-action-buttons";
 import { TableActions } from "./table-actions";
@@ -54,6 +55,7 @@ export function DataTable({ columns, data, onUpdate }: DataTableProps) {
 
   const { generateCertificatePDF, validateVariables } = useCertificateGenerator();
   const { downloadMultipleCertificates } = useMultiCertificateDownloader();
+  const { generateMultipleCertificatesPDF } = useDynamicCertificateGenerator();
 
   const table = useReactTable({
     data: tableData,
@@ -161,37 +163,80 @@ export function DataTable({ columns, data, onUpdate }: DataTableProps) {
       });
     }
 
-    const loadingToast = toast.loading(`Generando PDF combinado con ${validStudents.length} certificado(s)...`);
+    const loadingToast = toast.loading(`Generando PDF(s) con ${validStudents.length} certificado(s)...`);
 
     try {
-      console.log('Starting PDF generation with', validStudents.length, 'students and', targetPages, 'pages');
-      
-      // Transform student data to certificate format
-      const certificateData = validStudents.map(student => ({
-        certificateNumber: student.certn?.toString() || '0',
-        printDate: new Date().toLocaleDateString('en-US'),
-        courseCompletionDate: student.courseCompletionDate || new Date().toLocaleDateString('en-US'),
-        citationNumber: student.citation_number || 'N/A',
-        citationCounty: student.country_course || 'N/A',
-        driversLicenseNumber: student.license_number || 'N/A',
-        studentName: `${student.first_name} ${student.last_name}`,
-        dateOfBirth: student.dateOfBirth || 'N/A',
-        reasonAttending: student.reason || 'N/A',
-      }));
+      // Get template to know certificatesPerPage
+      const { type, classType } = validStudents[0];
+      const certType = (classType || type || 'DATE').toUpperCase();
 
-      console.log('Certificate data prepared:', certificateData);
-      const result = await downloadMultipleCertificates(certificateData, targetPages);
-      console.log('PDF generation result:', result);
-      
-      setRowSelection({});
-      toast.dismiss(loadingToast);
-      toast.success(`${validStudents.length} certificado(s) combinado(s) en PDF exitosamente`);
+      console.log(`🔍 Student data:`, validStudents[0]);
+      console.log(`📋 Resolved certType: ${certType}`);
+
+      const templateResponse = await fetch(`/api/certificate-templates?classType=${certType}`);
+      let template = null;
+
+      if (templateResponse.ok) {
+        const templates = await templateResponse.json();
+        console.log(`📥 Templates from API:`, templates);
+        if (templates.length > 0) {
+          template = templates[0];
+          console.log(`✅ Using template from database:`, template.name);
+        }
+      }
+
+      if (!template) {
+        console.log(`⚠️ No template found, using default BDI template for ${certType}`);
+        const { getDefaultBDITemplate } = await import("@/lib/defaultTemplates/bdiTemplate");
+        template = getDefaultBDITemplate(certType);
+      }
+
+      const certsPerPage = template.certificatesPerPage || 1;
+      console.log(`📄 Template: ${template.name} has ${certsPerPage} certificates per page`);
+      console.log(`👥 ${validStudents.length} students selected`);
+
+      // If students fit in ONE PDF (≤ certificatesPerPage), generate single PDF
+      if (validStudents.length <= certsPerPage) {
+        console.log(`✅ Generating single PDF with ${validStudents.length} certificate(s)`);
+        const pdfBlob = await generateMultipleCertificatesPDF(validStudents, template);
+        const fileName = `Certificados_Combinados_${new Date().toISOString().split('T')[0]}.pdf`;
+        saveAs(pdfBlob, fileName);
+
+        setRowSelection({});
+        toast.dismiss(loadingToast);
+        toast.success(`PDF generado con ${validStudents.length} certificado(s)`);
+      }
+      // If students > certificatesPerPage, generate MULTIPLE PDFs in a ZIP
+      else {
+        console.log(`📦 Generating multiple PDFs (max ${certsPerPage} per PDF)`);
+        const zip = new JSZip();
+        const numPDFs = Math.ceil(validStudents.length / certsPerPage);
+
+        for (let i = 0; i < numPDFs; i++) {
+          const start = i * certsPerPage;
+          const end = Math.min(start + certsPerPage, validStudents.length);
+          const chunk = validStudents.slice(start, end);
+
+          console.log(`📄 PDF ${i + 1}/${numPDFs}: ${chunk.length} certificate(s)`);
+          const pdfBlob = await generateMultipleCertificatesPDF(chunk, template);
+          const pdfFileName = `Certificados_Grupo_${i + 1}_${chunk.length}_certs.pdf`;
+          zip.file(pdfFileName, pdfBlob);
+        }
+
+        const zipBlob = await zip.generateAsync({ type: "blob" });
+        const zipFileName = `Certificados_${numPDFs}_PDFs_${validStudents.length}_estudiantes_${new Date().toISOString().split('T')[0]}.zip`;
+        saveAs(zipBlob, zipFileName);
+
+        setRowSelection({});
+        toast.dismiss(loadingToast);
+        toast.success(`${numPDFs} PDF(s) generados con ${validStudents.length} certificado(s) en total`);
+      }
     } catch (error) {
       console.error("Error generating combined PDF:", error);
       toast.dismiss(loadingToast);
       toast.error("Error al generar el PDF combinado. Intente nuevamente.");
     }
-  }, [downloadMultipleCertificates, table, setRowSelection]);
+  }, [generateMultipleCertificatesPDF, table, setRowSelection]);
 
   const downloadSingleCertificate = useCallback(
     async (user: Student) => {

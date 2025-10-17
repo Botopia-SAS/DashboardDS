@@ -66,6 +66,14 @@ const CertificateTemplateSchema = new mongoose.Schema({
     orientation: { type: String, enum: ['portrait', 'landscape'], default: 'landscape' }
   },
 
+  // Number of certificates per page (1, 2, or 3)
+  certificatesPerPage: {
+    type: Number,
+    default: 1,
+    min: 1,
+    max: 3,
+  },
+
   // Background image or color
   background: {
     type: { type: String, enum: ['color', 'image', 'pdf'], default: 'color' },
