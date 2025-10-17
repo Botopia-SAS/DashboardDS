@@ -12,7 +12,7 @@ import { Textarea } from "@/components/ui/textarea";
 import { Switch } from "@/components/ui/switch";
 import { Trash2, Plus } from "lucide-react";
 import toast from "react-hot-toast";
-import { CertificateTemplate, TextElement, ImageElement, ShapeElement, DEFAULT_VARIABLES } from "./types";
+import { CertificateTemplate, TextElement, ImageElement, ShapeElement, DEFAULT_VARIABLES, PAGE_SIZE_OPTIONS } from "./types";
 import { CertificateCanvas } from "./CertificateCanvas";
 import { CertificateImageUpload } from "./CertificateImageUpload";
 
@@ -42,7 +42,7 @@ export function CertificateEditor({
     initialTemplate || {
       name: `${classType} Certificate`,
       classType: classType.toUpperCase(),
-      pageSize: { width: 842, height: 595, orientation: 'landscape' },
+      pageSize: { width: 792, height: 612, orientation: 'landscape' },
       background: { type: 'color', value: '#FFFFFF' },
       textElements: [],
       imageElements: [],
@@ -61,6 +61,15 @@ export function CertificateEditor({
   const [borderLineStyle, setBorderLineStyle] = useState<string>('solid');
   const [selectedFrameStyle, setSelectedFrameStyle] = useState<string>('');
 
+  // Store original template state for each orientation to prevent cumulative scaling
+  const [orientationStates, setOrientationStates] = useState<{
+    landscape: CertificateTemplate | null;
+    portrait: CertificateTemplate | null;
+  }>({
+    landscape: template.pageSize.orientation === 'landscape' ? template : null,
+    portrait: template.pageSize.orientation === 'portrait' ? template : null,
+  });
+
   // History for undo/redo
   const [history, setHistory] = useState<CertificateTemplate[]>([template]);
   const [historyIndex, setHistoryIndex] = useState(0);
@@ -70,6 +79,14 @@ export function CertificateEditor({
     type: 'text' | 'image' | 'shape';
     element: TextElement | ImageElement | ShapeElement;
   } | null>(null);
+
+  // Update the saved orientation state whenever template changes
+  useEffect(() => {
+    setOrientationStates(prev => ({
+      ...prev,
+      [template.pageSize.orientation]: template
+    }));
+  }, [template]);
 
   // Notify parent component when template changes
   useEffect(() => {
@@ -422,9 +439,9 @@ export function CertificateEditor({
     });
 
     const borders = [
-      { id: `border-outer-${Date.now()}`, type: 'rectangle' as const, x: 20, y: 20, width: 802, height: 555, borderColor: '#000000', borderWidth: 6, borderStyle: borderLineStyle, color: 'transparent' },
-      { id: `border-middle-${Date.now()}`, type: 'rectangle' as const, x: 30, y: 30, width: 782, height: 535, borderColor: '#000000', borderWidth: 4, borderStyle: borderLineStyle, color: 'transparent' },
-      { id: `border-inner-${Date.now()}`, type: 'rectangle' as const, x: 40, y: 40, width: 762, height: 515, borderColor: '#000000', borderWidth: 2, borderStyle: borderLineStyle, color: 'transparent' }
+      { id: `border-outer-${Date.now()}`, type: 'rectangle' as const, x: 20, y: 20, width: template.pageSize.width - 40, height: template.pageSize.height - 40, borderColor: '#000000', borderWidth: 6, borderStyle: borderLineStyle, color: 'transparent' },
+      { id: `border-middle-${Date.now()}`, type: 'rectangle' as const, x: 30, y: 30, width: template.pageSize.width - 60, height: template.pageSize.height - 60, borderColor: '#000000', borderWidth: 4, borderStyle: borderLineStyle, color: 'transparent' },
+      { id: `border-inner-${Date.now()}`, type: 'rectangle' as const, x: 40, y: 40, width: template.pageSize.width - 80, height: template.pageSize.height - 80, borderColor: '#000000', borderWidth: 2, borderStyle: borderLineStyle, color: 'transparent' }
     ];
 
     pushToHistory({
@@ -452,8 +469,8 @@ export function CertificateEditor({
     });
 
     const borders = [
-      { id: `border-outer-${Date.now()}`, type: 'rectangle' as const, x: 20, y: 20, width: 802, height: 555, borderColor: '#000000', borderWidth: 4, borderStyle: borderLineStyle, color: 'transparent' },
-      { id: `border-inner-${Date.now()}`, type: 'rectangle' as const, x: 30, y: 30, width: 782, height: 535, borderColor: '#000000', borderWidth: 2, borderStyle: borderLineStyle, color: 'transparent' }
+      { id: `border-outer-${Date.now()}`, type: 'rectangle' as const, x: 20, y: 20, width: template.pageSize.width - 40, height: template.pageSize.height - 40, borderColor: '#000000', borderWidth: 4, borderStyle: borderLineStyle, color: 'transparent' },
+      { id: `border-inner-${Date.now()}`, type: 'rectangle' as const, x: 30, y: 30, width: template.pageSize.width - 60, height: template.pageSize.height - 60, borderColor: '#000000', borderWidth: 2, borderStyle: borderLineStyle, color: 'transparent' }
     ];
 
     pushToHistory({
@@ -485,8 +502,8 @@ export function CertificateEditor({
       type: 'rectangle' as const,
       x: 20,
       y: 20,
-      width: 802,
-      height: 555,
+      width: template.pageSize.width - 40,
+      height: template.pageSize.height - 40,
       borderColor: '#000000',
       borderWidth: 3,
       borderStyle: borderLineStyle,
@@ -500,110 +517,117 @@ export function CertificateEditor({
     setSelectedFrameStyle('quick-single');
   };
 
-  // Predefined frame styles - ALL BLACK
-  const frameStyles = [
-    {
-      id: 'classic-triple',
-      name: 'Classic Triple Border',
-      description: 'Traditional certificate style',
-      shapes: [
-        { type: 'rectangle' as const, x: 20, y: 20, width: 802, height: 555, borderColor: '#000000', borderWidth: 6, color: 'transparent' },
-        { type: 'rectangle' as const, x: 30, y: 30, width: 782, height: 535, borderColor: '#000000', borderWidth: 4, color: 'transparent' },
-        { type: 'rectangle' as const, x: 40, y: 40, width: 762, height: 515, borderColor: '#000000', borderWidth: 2, color: 'transparent' }
-      ]
-    },
-    {
-      id: 'elegant-double',
-      name: 'Elegant Double',
-      description: 'Clean double border',
-      shapes: [
-        { type: 'rectangle' as const, x: 15, y: 15, width: 812, height: 565, borderColor: '#000000', borderWidth: 3, color: 'transparent' },
-        { type: 'rectangle' as const, x: 25, y: 25, width: 792, height: 545, borderColor: '#000000', borderWidth: 2, color: 'transparent' }
-      ]
-    },
-    {
-      id: 'modern-single',
-      name: 'Modern Single',
-      description: 'Minimalist single border',
-      shapes: [
-        { type: 'rectangle' as const, x: 25, y: 25, width: 792, height: 545, borderColor: '#000000', borderWidth: 4, color: 'transparent' }
-      ]
-    },
-    {
-      id: 'decorative-corners',
-      name: 'Decorative Corners',
-      description: 'Corner accent design',
-      shapes: [
-        { type: 'rectangle' as const, x: 20, y: 20, width: 802, height: 555, borderColor: '#000000', borderWidth: 2, color: 'transparent' },
-        { type: 'rectangle' as const, x: 20, y: 20, width: 80, height: 80, borderColor: '#000000', borderWidth: 4, color: 'transparent' },
-        { type: 'rectangle' as const, x: 742, y: 20, width: 80, height: 80, borderColor: '#000000', borderWidth: 4, color: 'transparent' },
-        { type: 'rectangle' as const, x: 20, y: 495, width: 80, height: 80, borderColor: '#000000', borderWidth: 4, color: 'transparent' },
-        { type: 'rectangle' as const, x: 742, y: 495, width: 80, height: 80, borderColor: '#000000', borderWidth: 4, color: 'transparent' }
-      ]
-    },
-    {
-      id: 'thick-border',
-      name: 'Thick Border',
-      description: 'Bold single thick border',
-      shapes: [
-        { type: 'rectangle' as const, x: 10, y: 10, width: 822, height: 575, borderColor: '#000000', borderWidth: 8, color: 'transparent' },
-        { type: 'rectangle' as const, x: 20, y: 20, width: 802, height: 555, borderColor: '#000000', borderWidth: 3, color: 'transparent' },
-        { type: 'rectangle' as const, x: 30, y: 30, width: 782, height: 535, borderColor: '#000000', borderWidth: 1, color: 'transparent' }
-      ]
-    },
-    {
-      id: 'vintage-ornate',
-      name: 'Vintage Ornate',
-      description: 'Classic ornate style',
-      shapes: [
-        { type: 'rectangle' as const, x: 15, y: 15, width: 812, height: 565, borderColor: '#000000', borderWidth: 5, color: 'transparent' },
-        { type: 'rectangle' as const, x: 25, y: 25, width: 792, height: 545, borderColor: '#000000', borderWidth: 2, color: 'transparent' },
-        { type: 'rectangle' as const, x: 35, y: 35, width: 772, height: 525, borderColor: '#000000', borderWidth: 1, color: 'transparent' }
-      ]
-    },
-    {
-      id: 'tech-modern',
-      name: 'Tech Modern',
-      description: 'Contemporary tech style',
-      shapes: [
-        { type: 'rectangle' as const, x: 30, y: 30, width: 782, height: 535, borderColor: '#000000', borderWidth: 3, color: 'transparent' },
-        { type: 'line' as const, x: 30, y: 30, x2: 130, y2: 30, borderColor: '#000000', borderWidth: 6 },
-        { type: 'line' as const, x: 712, y: 30, x2: 812, y2: 30, borderColor: '#000000', borderWidth: 6 },
-        { type: 'line' as const, x: 30, y: 565, x2: 130, y2: 565, borderColor: '#000000', borderWidth: 6 },
-        { type: 'line' as const, x: 712, y: 565, x2: 812, y2: 565, borderColor: '#000000', borderWidth: 6 }
-      ]
-    },
-    {
-      id: 'academic-formal',
-      name: 'Academic Formal',
-      description: 'Traditional academic style',
-      shapes: [
-        { type: 'rectangle' as const, x: 25, y: 25, width: 792, height: 545, borderColor: '#000000', borderWidth: 4, color: 'transparent' },
-        { type: 'rectangle' as const, x: 35, y: 35, width: 772, height: 525, borderColor: '#000000', borderWidth: 2, color: 'transparent' },
-        { type: 'rectangle' as const, x: 45, y: 45, width: 752, height: 505, borderColor: '#000000', borderWidth: 1, color: 'transparent' }
-      ]
-    },
-    {
-      id: 'creative-wave',
-      name: 'Creative Wave',
-      description: 'Artistic wave design',
-      shapes: [
-        { type: 'rectangle' as const, x: 20, y: 20, width: 802, height: 555, borderColor: '#000000', borderWidth: 3, color: 'transparent' },
-        { type: 'line' as const, x: 20, y: 100, x2: 822, y2: 120, borderColor: '#000000', borderWidth: 4 },
-        { type: 'line' as const, x: 20, y: 475, x2: 822, y2: 455, borderColor: '#000000', borderWidth: 4 }
-      ]
-    },
-    {
-      id: 'professional-clean',
-      name: 'Professional Clean',
-      description: 'Clean professional look',
-      shapes: [
-        { type: 'rectangle' as const, x: 40, y: 40, width: 762, height: 515, borderColor: '#000000', borderWidth: 2, color: 'transparent' },
-        { type: 'line' as const, x: 40, y: 60, x2: 802, y2: 60, borderColor: '#000000', borderWidth: 1 },
-        { type: 'line' as const, x: 40, y: 535, x2: 802, y2: 535, borderColor: '#000000', borderWidth: 1 }
-      ]
-    }
-  ];
+  // Predefined frame styles - Dynamic based on page size
+  const getFrameStyles = () => {
+    const w = template.pageSize.width;
+    const h = template.pageSize.height;
+
+    return [
+      {
+        id: 'classic-triple',
+        name: 'Classic Triple Border',
+        description: 'Traditional certificate style',
+        shapes: [
+          { type: 'rectangle' as const, x: 20, y: 20, width: w - 40, height: h - 40, borderColor: '#000000', borderWidth: 6, color: 'transparent' },
+          { type: 'rectangle' as const, x: 30, y: 30, width: w - 60, height: h - 60, borderColor: '#000000', borderWidth: 4, color: 'transparent' },
+          { type: 'rectangle' as const, x: 40, y: 40, width: w - 80, height: h - 80, borderColor: '#000000', borderWidth: 2, color: 'transparent' }
+        ]
+      },
+      {
+        id: 'elegant-double',
+        name: 'Elegant Double',
+        description: 'Clean double border',
+        shapes: [
+          { type: 'rectangle' as const, x: 15, y: 15, width: w - 30, height: h - 30, borderColor: '#000000', borderWidth: 3, color: 'transparent' },
+          { type: 'rectangle' as const, x: 25, y: 25, width: w - 50, height: h - 50, borderColor: '#000000', borderWidth: 2, color: 'transparent' }
+        ]
+      },
+      {
+        id: 'modern-single',
+        name: 'Modern Single',
+        description: 'Minimalist single border',
+        shapes: [
+          { type: 'rectangle' as const, x: 25, y: 25, width: w - 50, height: h - 50, borderColor: '#000000', borderWidth: 4, color: 'transparent' }
+        ]
+      },
+      {
+        id: 'decorative-corners',
+        name: 'Decorative Corners',
+        description: 'Corner accent design',
+        shapes: [
+          { type: 'rectangle' as const, x: 20, y: 20, width: w - 40, height: h - 40, borderColor: '#000000', borderWidth: 2, color: 'transparent' },
+          { type: 'rectangle' as const, x: 20, y: 20, width: 80, height: 80, borderColor: '#000000', borderWidth: 4, color: 'transparent' },
+          { type: 'rectangle' as const, x: w - 100, y: 20, width: 80, height: 80, borderColor: '#000000', borderWidth: 4, color: 'transparent' },
+          { type: 'rectangle' as const, x: 20, y: h - 100, width: 80, height: 80, borderColor: '#000000', borderWidth: 4, color: 'transparent' },
+          { type: 'rectangle' as const, x: w - 100, y: h - 100, width: 80, height: 80, borderColor: '#000000', borderWidth: 4, color: 'transparent' }
+        ]
+      },
+      {
+        id: 'thick-border',
+        name: 'Thick Border',
+        description: 'Bold single thick border',
+        shapes: [
+          { type: 'rectangle' as const, x: 10, y: 10, width: w - 20, height: h - 20, borderColor: '#000000', borderWidth: 8, color: 'transparent' },
+          { type: 'rectangle' as const, x: 20, y: 20, width: w - 40, height: h - 40, borderColor: '#000000', borderWidth: 3, color: 'transparent' },
+          { type: 'rectangle' as const, x: 30, y: 30, width: w - 60, height: h - 60, borderColor: '#000000', borderWidth: 1, color: 'transparent' }
+        ]
+      },
+      {
+        id: 'vintage-ornate',
+        name: 'Vintage Ornate',
+        description: 'Classic ornate style',
+        shapes: [
+          { type: 'rectangle' as const, x: 15, y: 15, width: w - 30, height: h - 30, borderColor: '#000000', borderWidth: 5, color: 'transparent' },
+          { type: 'rectangle' as const, x: 25, y: 25, width: w - 50, height: h - 50, borderColor: '#000000', borderWidth: 2, color: 'transparent' },
+          { type: 'rectangle' as const, x: 35, y: 35, width: w - 70, height: h - 70, borderColor: '#000000', borderWidth: 1, color: 'transparent' }
+        ]
+      },
+      {
+        id: 'tech-modern',
+        name: 'Tech Modern',
+        description: 'Contemporary tech style',
+        shapes: [
+          { type: 'rectangle' as const, x: 30, y: 30, width: w - 60, height: h - 60, borderColor: '#000000', borderWidth: 3, color: 'transparent' },
+          { type: 'line' as const, x: 30, y: 30, x2: 130, y2: 30, borderColor: '#000000', borderWidth: 6 },
+          { type: 'line' as const, x: w - 100, y: 30, x2: w, y2: 30, borderColor: '#000000', borderWidth: 6 },
+          { type: 'line' as const, x: 30, y: h - 30, x2: 130, y2: h - 30, borderColor: '#000000', borderWidth: 6 },
+          { type: 'line' as const, x: w - 100, y: h - 30, x2: w, y2: h - 30, borderColor: '#000000', borderWidth: 6 }
+        ]
+      },
+      {
+        id: 'academic-formal',
+        name: 'Academic Formal',
+        description: 'Traditional academic style',
+        shapes: [
+          { type: 'rectangle' as const, x: 25, y: 25, width: w - 50, height: h - 50, borderColor: '#000000', borderWidth: 4, color: 'transparent' },
+          { type: 'rectangle' as const, x: 35, y: 35, width: w - 70, height: h - 70, borderColor: '#000000', borderWidth: 2, color: 'transparent' },
+          { type: 'rectangle' as const, x: 45, y: 45, width: w - 90, height: h - 90, borderColor: '#000000', borderWidth: 1, color: 'transparent' }
+        ]
+      },
+      {
+        id: 'creative-wave',
+        name: 'Creative Wave',
+        description: 'Artistic wave design',
+        shapes: [
+          { type: 'rectangle' as const, x: 20, y: 20, width: w - 40, height: h - 40, borderColor: '#000000', borderWidth: 3, color: 'transparent' },
+          { type: 'line' as const, x: 20, y: 100, x2: w - 20, y2: 120, borderColor: '#000000', borderWidth: 4 },
+          { type: 'line' as const, x: 20, y: h - 120, x2: w - 20, y2: h - 100, borderColor: '#000000', borderWidth: 4 }
+        ]
+      },
+      {
+        id: 'professional-clean',
+        name: 'Professional Clean',
+        description: 'Clean professional look',
+        shapes: [
+          { type: 'rectangle' as const, x: 40, y: 40, width: w - 80, height: h - 80, borderColor: '#000000', borderWidth: 2, color: 'transparent' },
+          { type: 'line' as const, x: 40, y: 60, x2: w - 40, y2: 60, borderColor: '#000000', borderWidth: 1 },
+          { type: 'line' as const, x: 40, y: h - 60, x2: w - 40, y2: h - 60, borderColor: '#000000', borderWidth: 1 }
+        ]
+      }
+    ];
+  };
+
+  const frameStyles = getFrameStyles();
 
   const applyFrameStyle = (styleId: string) => {
     const style = frameStyles.find(s => s.id === styleId);
@@ -755,6 +779,216 @@ export function CertificateEditor({
                   disabled
                   className="bg-gray-100"
                 />
+              </div>
+
+              {/* Page Size and Orientation */}
+              <div className="pt-4 border-t">
+                <Label className="text-sm font-semibold">Page Format</Label>
+                <div className="mt-2 space-y-2">
+                  <div>
+                    <Label className="text-xs">Page Size</Label>
+                    <Select
+                      value={(() => {
+                        // Normalize dimensions to portrait orientation for matching
+                        const currentW = Math.min(template.pageSize.width, template.pageSize.height);
+                        const currentH = Math.max(template.pageSize.width, template.pageSize.height);
+
+                        const match = PAGE_SIZE_OPTIONS.find(opt =>
+                          opt.width === currentW && opt.height === currentH
+                        );
+                        return match?.name || 'Carta';
+                      })()}
+                      onValueChange={(value) => {
+                        const selectedSize = PAGE_SIZE_OPTIONS.find(opt => opt.name === value);
+                        if (selectedSize) {
+                          // Calculate scale factors
+                          const oldWidth = template.pageSize.width;
+                          const oldHeight = template.pageSize.height;
+
+                          // Apply size based on current orientation
+                          const newWidth = template.pageSize.orientation === 'portrait' ? selectedSize.width : selectedSize.height;
+                          const newHeight = template.pageSize.orientation === 'portrait' ? selectedSize.height : selectedSize.width;
+
+                          const scaleX = newWidth / oldWidth;
+                          const scaleY = newHeight / oldHeight;
+
+                          // Scale all elements
+                          const scaledTextElements = template.textElements.map(el => ({
+                            ...el,
+                            x: el.x * scaleX,
+                            y: el.y * scaleY,
+                            fontSize: el.fontSize * Math.min(scaleX, scaleY)
+                          }));
+
+                          const scaledImageElements = template.imageElements.map(el => ({
+                            ...el,
+                            x: el.x * scaleX,
+                            y: el.y * scaleY,
+                            width: el.width * scaleX,
+                            height: el.height * scaleY
+                          }));
+
+                          const scaledShapeElements = template.shapeElements.map(el => {
+                            const scaled: ShapeElement = {
+                              ...el,
+                              x: el.x * scaleX,
+                              y: el.y * scaleY
+                            };
+
+                            if (el.width) scaled.width = el.width * scaleX;
+                            if (el.height) scaled.height = el.height * scaleY;
+                            if (el.x2) scaled.x2 = el.x2 * scaleX;
+                            if (el.y2) scaled.y2 = el.y2 * scaleY;
+                            if (el.radius) scaled.radius = el.radius * Math.min(scaleX, scaleY);
+                            if (el.borderWidth) scaled.borderWidth = el.borderWidth * Math.min(scaleX, scaleY);
+
+                            return scaled;
+                          });
+
+                          pushToHistory({
+                            ...template,
+                            pageSize: {
+                              ...template.pageSize,
+                              width: newWidth,
+                              height: newHeight
+                            },
+                            textElements: scaledTextElements,
+                            imageElements: scaledImageElements,
+                            shapeElements: scaledShapeElements
+                          });
+                        }
+                      }}
+                    >
+                      <SelectTrigger className="h-8">
+                        <SelectValue placeholder="Select page size" />
+                      </SelectTrigger>
+                      <SelectContent className="bg-white border border-gray-200 shadow-lg">
+                        {PAGE_SIZE_OPTIONS.map((option) => (
+                          <SelectItem key={option.name} value={option.name} className="bg-white hover:bg-gray-50">
+                            {option.name} ({option.description})
+                          </SelectItem>
+                        ))}
+                      </SelectContent>
+                    </Select>
+                  </div>
+
+                  <div>
+                    <Label className="text-xs">Orientation</Label>
+                    <Select
+                      value={template.pageSize.orientation}
+                      onValueChange={(value: 'portrait' | 'landscape') => {
+                        // Check if we already have a saved state for this orientation
+                        const savedState = orientationStates[value];
+
+                        if (savedState) {
+                          // Restore the previously saved state for this orientation
+                          pushToHistory(savedState);
+                        } else {
+                          // First time switching to this orientation - scale content
+                          const oldWidth = template.pageSize.width;
+                          const oldHeight = template.pageSize.height;
+                          const newWidth = template.pageSize.height;
+                          const newHeight = template.pageSize.width;
+
+                          const scaleX = newWidth / oldWidth;
+                          const scaleY = newHeight / oldHeight;
+
+                          // Scale all elements
+                          const scaledTextElements = template.textElements.map(el => ({
+                            ...el,
+                            x: el.x * scaleX,
+                            y: el.y * scaleY,
+                            fontSize: el.fontSize * Math.min(scaleX, scaleY)
+                          }));
+
+                          const scaledImageElements = template.imageElements.map(el => ({
+                            ...el,
+                            x: el.x * scaleX,
+                            y: el.y * scaleY,
+                            width: el.width * scaleX,
+                            height: el.height * scaleY
+                          }));
+
+                          const scaledShapeElements = template.shapeElements.map(el => {
+                            const scaled: ShapeElement = {
+                              ...el,
+                              x: el.x * scaleX,
+                              y: el.y * scaleY
+                            };
+
+                            if (el.width) scaled.width = el.width * scaleX;
+                            if (el.height) scaled.height = el.height * scaleY;
+                            if (el.x2) scaled.x2 = el.x2 * scaleX;
+                            if (el.y2) scaled.y2 = el.y2 * scaleY;
+                            if (el.radius) scaled.radius = el.radius * Math.min(scaleX, scaleY);
+                            if (el.borderWidth) scaled.borderWidth = el.borderWidth * Math.min(scaleX, scaleY);
+
+                            return scaled;
+                          });
+
+                          const newTemplate = {
+                            ...template,
+                            pageSize: {
+                              width: newWidth,
+                              height: newHeight,
+                              orientation: value
+                            },
+                            textElements: scaledTextElements,
+                            imageElements: scaledImageElements,
+                            shapeElements: scaledShapeElements
+                          };
+
+                          // Save current state before switching
+                          setOrientationStates(prev => ({
+                            ...prev,
+                            [template.pageSize.orientation]: template,
+                            [value]: newTemplate
+                          }));
+
+                          pushToHistory(newTemplate);
+                        }
+                      }}
+                    >
+                      <SelectTrigger className="h-8">
+                        <SelectValue placeholder="Select orientation" />
+                      </SelectTrigger>
+                      <SelectContent className="bg-white border border-gray-200 shadow-lg">
+                        <SelectItem value="landscape" className="bg-white hover:bg-gray-50">
+                          Horizontal (Landscape)
+                        </SelectItem>
+                        <SelectItem value="portrait" className="bg-white hover:bg-gray-50">
+                          Vertical (Portrait)
+                        </SelectItem>
+                      </SelectContent>
+                    </Select>
+                  </div>
+
+                  <div>
+                    <Label className="text-xs">Certificates Per Page</Label>
+                    <Select
+                      value={String(template.certificatesPerPage || 1)}
+                      onValueChange={(value) => {
+                        pushToHistory({
+                          ...template,
+                          certificatesPerPage: Number(value)
+                        });
+                      }}
+                    >
+                      <SelectTrigger className="h-8">
+                        <SelectValue />
+                      </SelectTrigger>
+                      <SelectContent className="bg-white border border-gray-200 shadow-lg">
+                        <SelectItem value="1" className="bg-white hover:bg-gray-50">1 certificate per page</SelectItem>
+                        <SelectItem value="2" className="bg-white hover:bg-gray-50">2 certificates per page</SelectItem>
+                        <SelectItem value="3" className="bg-white hover:bg-gray-50">3 certificates per page</SelectItem>
+                      </SelectContent>
+                    </Select>
+                  </div>
+
+                  <div className="text-xs text-gray-500 pt-1">
+                    Current size: {template.pageSize.width} x {template.pageSize.height} pt
+                  </div>
+                </div>
               </div>
 
               {/* Background Options */}

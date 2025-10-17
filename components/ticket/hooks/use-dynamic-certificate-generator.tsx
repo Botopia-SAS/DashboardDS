@@ -2,399 +2,103 @@
 
 import { Student } from "../columns";
 import { useCallback } from "react";
-import { PDFDocument, rgb, StandardFonts } from "pdf-lib";
-import { CertificateTemplate, TextElement, ShapeElement } from "@/components/certificate-editor/types";
-
-// Function to apply grayscale filter to image bytes
-async function applyGrayscaleFilter(imageBytes: ArrayBuffer): Promise<ArrayBuffer> {
-  return new Promise((resolve, reject) => {
-    try {
-      // Create a blob from the image bytes
-      const blob = new Blob([imageBytes]);
-      const url = URL.createObjectURL(blob);
-      
-      // Create an image element
-      const img = new Image();
-      img.crossOrigin = 'anonymous';
-      
-      img.onload = () => {
-        try {
-          // Create a canvas
-          const canvas = document.createElement('canvas');
-          const ctx = canvas.getContext('2d');
-          
-          if (!ctx) {
-            reject(new Error('Could not get canvas context'));
-            return;
-          }
-          
-          canvas.width = img.width;
-          canvas.height = img.height;
-          
-          // Draw the image
-          ctx.drawImage(img, 0, 0);
-          
-          // Get image data
-          const imageData = ctx.getImageData(0, 0, canvas.width, canvas.height);
-          const data = imageData.data;
-          
-          // Apply grayscale filter
-          for (let i = 0; i < data.length; i += 4) {
-            const gray = data[i] * 0.299 + data[i + 1] * 0.587 + data[i + 2] * 0.114;
-            data[i] = gray;     // Red
-            data[i + 1] = gray; // Green
-            data[i + 2] = gray; // Blue
-            // Alpha channel (data[i + 3]) remains unchanged
-          }
-          
-          // Put the modified image data back
-          ctx.putImageData(imageData, 0, 0);
-          
-          // Convert canvas to blob
-          canvas.toBlob((blob) => {
-            if (blob) {
-              blob.arrayBuffer().then(resolve).catch(reject);
-            } else {
-              reject(new Error('Could not convert canvas to blob'));
-            }
-          }, 'image/png');
-          
-        } catch (error) {
-          reject(error);
-        } finally {
-          URL.revokeObjectURL(url);
-        }
-      };
-      
-      img.onerror = () => {
-        URL.revokeObjectURL(url);
-        reject(new Error('Could not load image'));
-      };
-      
-      img.src = url;
-    } catch (error) {
-      reject(error);
-    }
-  });
-}
+import { PDFDocument, PDFPage, rgb, StandardFonts } from "pdf-lib";
+import { CertificateTemplate, TextElement, ShapeElement, ImageElement } from "@/components/certificate-editor/types";
+import { applyGrayscaleFilter } from "./pdf-helpers/image-filters";
+import { hexToRgb, getVariables } from "./pdf-helpers/utils";
+import { drawShapes } from "./pdf-helpers/draw-shapes";
+import { drawImages } from "./pdf-helpers/draw-images";
+import { drawTexts } from "./pdf-helpers/draw-text";
+import { drawBackground } from "./pdf-helpers/draw-background";
 
 export function useDynamicCertificateGenerator() {
   const generateDynamicCertificatePDF = useCallback(async (user: Student, template: CertificateTemplate) => {
     console.log('🎨 Starting dynamic certificate generation');
-    console.log('👤 User data:', { 
-      name: `${user.first_name} ${user.last_name}`, 
-      classType: user.classType,
-      certn: user.certn 
-    });
-    console.log('📋 Template info:', { 
-      name: template.name, 
-      classType: template.classType,
-      elements: {
-        text: template.textElements.length,
-        images: template.imageElements.length,
-        shapes: template.shapeElements.length
-      }
-    });
-
-    const {
-      last_name,
-      first_name,
-      midl,
-      birthDate,
-      certn,
-      courseDate,
-      classTitle,
-      classType,
-      licenseNumber,
-      citation_number,
-      address,
-      courseAddress,
-      courseTime,
-      duration,
-      instructorName,
-    } = user;
+    console.log('👤 User:', `${user.first_name} ${user.last_name}`);
+    console.log('📋 Template:', template.name);
 
     try {
-      // Create PDF document
       const pdfDoc = await PDFDocument.create();
 
-      // Add page with template dimensions
+      // Get certificates per page setting
+      const certsPerPage = template.certificatesPerPage || 1;
+      const rows = certsPerPage;
+      const cols = 1;
+      // FORCE: Keep content at original size
+      const certScaleX = 1;
+      const certScaleY = 1;
+
+      // Create page
       const page = pdfDoc.addPage([template.pageSize.width, template.pageSize.height]);
       const { width, height } = page.getSize();
-      
-      console.log(`📄 Created PDF page: ${width}x${height} (${template.pageSize.orientation})`);
+      console.log(`📄 Page: ${width}x${height}, Certificates: ${certsPerPage}`);
 
       // Embed fonts
-      const helvetica = await pdfDoc.embedFont(StandardFonts.Helvetica);
-      const helveticaBold = await pdfDoc.embedFont(StandardFonts.HelveticaBold);
-      const timesRoman = await pdfDoc.embedFont(StandardFonts.TimesRoman);
-      const timesBold = await pdfDoc.embedFont(StandardFonts.TimesRomanBold);
-      const courier = await pdfDoc.embedFont(StandardFonts.Courier);
-
-      const fontMap: Record<string, any> = {
-        'Helvetica': helvetica,
-        'Helvetica-Bold': helveticaBold,
-        'Times-Roman': timesRoman,
-        'Times-Bold': timesBold,
-        'Courier': courier,
+      const fonts = {
+        helvetica: await pdfDoc.embedFont(StandardFonts.Helvetica),
+        helveticaBold: await pdfDoc.embedFont(StandardFonts.HelveticaBold),
+        timesRoman: await pdfDoc.embedFont(StandardFonts.TimesRoman),
+        timesBold: await pdfDoc.embedFont(StandardFonts.TimesRomanBold),
+        courier: await pdfDoc.embedFont(StandardFonts.Courier),
       };
 
-      // Helper function to get font
+      // Helper to get font
       const getFont = (fontFamily: string, fontWeight: string = 'normal') => {
-        if (fontFamily === 'Helvetica' && fontWeight === 'bold') return helveticaBold;
-        if (fontFamily === 'Times-Roman' && fontWeight === 'bold') return timesBold;
-        return fontMap[fontFamily] || helvetica;
-      };
-
-      // Helper function to convert hex color to RGB
-      const hexToRgb = (hex: string) => {
-        const result = /^#?([a-f\d]{2})([a-f\d]{2})([a-f\d]{2})$/i.exec(hex);
-        return result
-          ? {
-              r: parseInt(result[1], 16) / 255,
-              g: parseInt(result[2], 16) / 255,
-              b: parseInt(result[3], 16) / 255,
-            }
-          : { r: 0, g: 0, b: 0 };
-      };
-
-      // Helper function to replace variables
-      const replaceVariables = (text: string): string => {
-        const studentName = `${(first_name || '').toUpperCase()} ${(midl || '').toUpperCase()} ${(last_name || '').toUpperCase()}`.trim();
-        const formattedBirthDate = birthDate ? new Date(birthDate).toLocaleDateString('en-US') : "";
-        const formattedCourseDate = courseDate
-          ? new Date(courseDate).toLocaleDateString('en-US', { year: 'numeric', month: 'short', day: 'numeric' })
-          : new Date().toLocaleDateString('en-US', { year: 'numeric', month: 'short', day: 'numeric' });
-        const printDate = new Date().toLocaleDateString('en-US', { year: 'numeric', month: 'short', day: 'numeric', timeZone: 'America/New_York' });
-
-        const variables: Record<string, string> = {
-          studentName,
-          firstName: (first_name || '').toUpperCase(),
-          lastName: (last_name || '').toUpperCase(),
-          middleName: (midl || '').toUpperCase(),
-          certn: String(certn || ''),
-          birthDate: formattedBirthDate,
-          courseDate: formattedCourseDate,
-          printDate,
-          classTitle: classTitle || '',
-          classType: (classType || '').toUpperCase(),
-          licenseNumber: licenseNumber || '',
-          citationNumber: citation_number || '',
-          address: address || '', // This comes from locationId → zone
-          courseAddress: courseAddress || '',
-          courseTime: duration || courseTime || '', // Use duration from ticket class, fallback to courseTime
-          instructorName: instructorName || '',
+        if (fontFamily === 'Helvetica' && fontWeight === 'bold') return fonts.helveticaBold;
+        if (fontFamily === 'Times-Roman' && fontWeight === 'bold') return fonts.timesBold;
+        const fontMap: Record<string, any> = {
+          'Helvetica': fonts.helvetica,
+          'Helvetica-Bold': fonts.helveticaBold,
+          'Times-Roman': fonts.timesRoman,
+          'Times-Bold': fonts.timesBold,
+          'Courier': fonts.courier,
         };
+        return fontMap[fontFamily] || fonts.helvetica;
+      };
 
+      // Get variables for text replacement
+      const variables = getVariables(user);
+
+      // Helper to replace variables
+      const replaceVariables = (text: string): string => {
         let result = text;
         Object.entries(variables).forEach(([key, value]) => {
           const regex = new RegExp(`\\{\\{${key}\\}\\}`, 'g');
           result = result.replace(regex, value);
         });
-
         return result;
       };
 
-      // Draw background
-      console.log(`🎨 Drawing background: ${template.background.type} = ${template.background.value}`);
-      if (template.background.type === 'color' && template.background.value) {
-        const bgColor = hexToRgb(template.background.value);
-        console.log(`🌈 Background color:`, bgColor);
-        page.drawRectangle({
-          x: 0,
-          y: 0,
-          width,
-          height,
-          color: rgb(bgColor.r, bgColor.g, bgColor.b),
-        });
-      } else if (template.background.type === 'pdf' && template.background.value) {
-        try {
-          // Load existing PDF template
-          const existingPdfBytes = await fetch(template.background.value).then(res => res.arrayBuffer());
-          const existingPdf = await PDFDocument.load(existingPdfBytes);
-          const [existingPage] = await pdfDoc.copyPages(existingPdf, [0]);
+      // Draw background once
+      await drawBackground(template, page, width, height, pdfDoc);
 
-          // Replace the page with the existing one
-          pdfDoc.removePage(0);
-          pdfDoc.insertPage(0, existingPage);
-        } catch (error) {
-          console.error('Error loading background PDF:', error);
-        }
-      } else if (template.background.type === 'image' && template.background.value) {
-        try {
-          const imageBytes = await fetch(template.background.value).then(res => res.arrayBuffer());
-          let bgImage;
+      // Draw each certificate instance
+      for (let i = 0; i < certsPerPage; i++) {
+        const row = Math.floor(i / cols);
+        const offsetY = row * (height / rows);
+        console.log(`🎫 Drawing certificate ${i + 1}/${certsPerPage}`);
 
-          if (template.background.value.toLowerCase().endsWith('.png')) {
-            bgImage = await pdfDoc.embedPng(imageBytes);
-          } else {
-            bgImage = await pdfDoc.embedJpg(imageBytes);
-          }
+        // Draw shapes
+        drawShapes(template.shapeElements, page, height, certScaleX, certScaleY, offsetY);
 
-          page.drawImage(bgImage, {
-            x: 0,
-            y: 0,
-            width,
-            height,
-          });
-        } catch (error) {
-          console.error('Error loading background image:', error);
-        }
+        // Draw images
+        await drawImages(template.imageElements, page, height, certScaleX, certScaleY, offsetY, pdfDoc);
+
+        // Draw text
+        drawTexts(template.textElements, page, height, certScaleX, certScaleY, offsetY, getFont, replaceVariables);
       }
 
-      // Draw shapes
-      console.log(`🔲 Drawing ${template.shapeElements.length} shapes`);
-      template.shapeElements.forEach((shape: ShapeElement, index) => {
-        // Handle transparent colors properly
-        let color = undefined;
-        if (shape.color && shape.color !== 'transparent') {
-          const rgbColor = hexToRgb(shape.color);
-          color = rgb(rgbColor.r, rgbColor.g, rgbColor.b);
-        }
-
-        const borderColor = shape.borderColor ? hexToRgb(shape.borderColor) : hexToRgb('#000000');
-        console.log(`🔲 Shape ${index + 1}: ${shape.type} at (${shape.x}, ${shape.y}) with border ${shape.borderWidth}px`);
-
-        if (shape.type === 'rectangle') {
-          page.drawRectangle({
-            x: shape.x,
-            y: height - shape.y - (shape.height || 0),
-            width: shape.width || 0,
-            height: shape.height || 0,
-            color: color,
-            borderColor: rgb(borderColor.r, borderColor.g, borderColor.b),
-            borderWidth: shape.borderWidth || 0,
-            // Note: pdf-lib doesn't support border styles like dashed/dotted for rectangles
-          });
-        } else if (shape.type === 'line') {
-          const thickness = shape.borderWidth || 1;
-          const startX = shape.x;
-          const startY = height - shape.y;
-          const endX = shape.x2 || shape.x;
-          const endY = height - (shape.y2 || shape.y);
-          
-          if (shape.borderStyle === 'dashed' || shape.borderStyle === 'dotted') {
-            // Simulate dashed/dotted lines by drawing multiple small segments
-            const dashLength = shape.borderStyle === 'dotted' ? 2 : 8;
-            const gapLength = shape.borderStyle === 'dotted' ? 2 : 4;
-            const totalLength = Math.sqrt(Math.pow(endX - startX, 2) + Math.pow(endY - startY, 2));
-            const segments = Math.floor(totalLength / (dashLength + gapLength));
-            
-            for (let i = 0; i < segments; i++) {
-              const segmentStart = i * (dashLength + gapLength) / totalLength;
-              const segmentEnd = (i * (dashLength + gapLength) + dashLength) / totalLength;
-              
-              const segStartX = startX + (endX - startX) * segmentStart;
-              const segStartY = startY + (endY - startY) * segmentStart;
-              const segEndX = startX + (endX - startX) * segmentEnd;
-              const segEndY = startY + (endY - startY) * segmentEnd;
-              
-              page.drawLine({
-                start: { x: segStartX, y: segStartY },
-                end: { x: segEndX, y: segEndY },
-                thickness: thickness,
-                color: rgb(borderColor.r, borderColor.g, borderColor.b),
-              });
-            }
-          } else {
-            // Solid line (default)
-            page.drawLine({
-              start: { x: startX, y: startY },
-              end: { x: endX, y: endY },
-              thickness: thickness,
-              color: rgb(borderColor.r, borderColor.g, borderColor.b),
-            });
-          }
-        } else if (shape.type === 'circle') {
-          // PDF-lib doesn't have a direct circle drawing, so we use an ellipse
-          page.drawEllipse({
-            x: shape.x + (shape.radius || 0),
-            y: height - shape.y - (shape.radius || 0),
-            xScale: shape.radius || 0,
-            yScale: shape.radius || 0,
-            color: color,
-            borderColor: rgb(borderColor.r, borderColor.g, borderColor.b),
-            borderWidth: shape.borderWidth || 0,
-            // Note: pdf-lib doesn't support border styles like dashed/dotted for ellipses
-          });
-        }
-      });
-
-      // Draw images
-      for (const image of template.imageElements) {
-        try {
-          let imageBytes = await fetch(image.url).then(res => res.arrayBuffer());
-          
-          // Apply grayscale filter if enabled
-          if (image.grayscale) {
-            imageBytes = await applyGrayscaleFilter(imageBytes);
-          }
-          
-          let pdfImage;
-
-          if (image.url.toLowerCase().endsWith('.png')) {
-            pdfImage = await pdfDoc.embedPng(imageBytes);
-          } else {
-            pdfImage = await pdfDoc.embedJpg(imageBytes);
-          }
-
-          page.drawImage(pdfImage, {
-            x: image.x,
-            y: height - image.y - image.height,
-            width: image.width,
-            height: image.height,
-          });
-        } catch (error) {
-          console.error('Error loading image:', image.url, error);
-        }
-      }
-
-      // Draw text
-      console.log(`📝 Drawing ${template.textElements.length} text elements`);
-      template.textElements.forEach((text: TextElement, index) => {
-        const content = replaceVariables(text.content);
-        const font = getFont(text.fontFamily, text.fontWeight);
-        const textColor = hexToRgb(text.color);
-
-        const textWidth = font.widthOfTextAtSize(content, text.fontSize);
-        let xPos = text.x;
-
-        if (text.align === 'center') {
-          xPos = text.x - textWidth / 2;
-        } else if (text.align === 'right') {
-          xPos = text.x - textWidth;
-        }
-
-        // In HTML, text.y is the top of the text element
-        // In PDF, drawText positions by baseline (roughly 80% down from top of text)
-        // So we convert: PDF_y = height - (HTML_y + fontSize * 0.8)
-        const baselineOffset = text.fontSize * 0.8;
-        const pdfY = height - text.y - baselineOffset;
-
-        console.log(`📝 Text ${index + 1}: "${content}" at (${xPos}, ${pdfY.toFixed(1)}) size ${text.fontSize}`);
-
-        page.drawText(content, {
-          x: xPos,
-          y: pdfY,
-          size: text.fontSize,
-          font,
-          color: rgb(textColor.r, textColor.g, textColor.b),
-        });
-      });
-
-      // Serialize the PDF
+      // Serialize PDF
       console.log('💾 Serializing PDF...');
       const pdfBytes = await pdfDoc.save();
-      console.log(`✅ PDF generated successfully: ${pdfBytes.length} bytes`);
+      console.log(`✅ PDF generated: ${pdfBytes.length} bytes`);
 
-      // Create blob - create a new Uint8Array to ensure it's an ArrayBuffer
       const arrayBuffer = pdfBytes.slice().buffer as ArrayBuffer;
       const blob = new Blob([arrayBuffer], { type: 'application/pdf' });
-      console.log('📄 PDF blob created');
       return blob;
 
     } catch (error) {
-      console.error('Error generating dynamic certificate:', error);
+      console.error('Error generating certificate:', error);
       throw error;
     }
   }, []);
