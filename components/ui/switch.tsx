@@ -18,7 +18,7 @@ export const Switch: React.FC<SwitchProps> = ({ checked, onCheckedChange, disabl
       disabled={disabled}
       className={clsx(
         "relative inline-flex h-6 w-11 items-center rounded-full transition",
-        checked ? "bg-blue-600" : "bg-gray-300",
+        checked ? "bg-green-600" : "bg-gray-300",
         disabled && "opacity-50 cursor-not-allowed"
       )}
     >
