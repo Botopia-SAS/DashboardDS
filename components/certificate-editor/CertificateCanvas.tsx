@@ -1,6 +1,6 @@
 "use client";
 
-import { useRef, useState } from "react";
+import { useRef, useState, useEffect } from "react";
 import { CertificateTemplate, DEFAULT_VARIABLES } from "./types";
 
 interface CertificateCanvasProps {
@@ -10,6 +10,7 @@ interface CertificateCanvasProps {
   onUpdateElement: (type: 'text' | 'image' | 'shape', id: string, updates: Record<string, any>) => void;
   previewMode?: boolean;
   showVariables?: boolean;
+  editMode?: boolean;
 }
 
 export function CertificateCanvas({
@@ -19,6 +20,7 @@ export function CertificateCanvas({
   onUpdateElement,
   previewMode = false,
   showVariables = false,
+  editMode = false,
 }: CertificateCanvasProps) {
   const canvasRef = useRef<HTMLDivElement>(null);
   const [dragging, setDragging] = useState<{ type: 'text' | 'image' | 'shape'; id: string } | null>(null);
@@ -35,26 +37,33 @@ export function CertificateCanvas({
     const sidebarWidth = 320; // w-80 = 320px (left sidebar)
     const propertiesWidth = selectedElement.id && !previewMode ? 288 : 0; // w-72 = 288px (right sidebar)
     const padding = 40; // More padding for better visual spacing
-    const headerHeight = 120; // Account for header and margins
+    const headerHeight = (editMode && certsPerPage > 1) ? 140 : 120; // More space for header in edit mode when multiple certs
     
     const availableWidth = window.innerWidth - sidebarWidth - propertiesWidth - padding;
-    const availableHeight = window.innerHeight - headerHeight;
+    const availableHeight = window.innerHeight - headerHeight - ((editMode && certsPerPage > 1) ? 30 : 0); // Extra space for edit mode when multiple certs
     
     // Calculate scale to fit the available space with better proportions
     const widthScale = availableWidth / template.pageSize.width;
     const heightScale = availableHeight / template.pageSize.height;
     
     // Use the smaller scale to ensure it fits perfectly with some margin
-    const optimalScale = Math.min(widthScale, heightScale, 0.9); // Max 90% scale for better fit
+    const optimalScale = Math.min(widthScale, heightScale, 0.85); // Max 85% scale for better fit
     
     // Ensure minimum scale for readability and maximum for usability
     const minScale = 0.4; // Minimum readable scale
-    const maxScale = 0.9; // Maximum scale to prevent overflow
+    const maxScale = 0.85; // Maximum scale to prevent overflow
     
     return Math.min(Math.max(optimalScale, minScale), maxScale);
   };
 
-  const scale = getOptimalScale() * manualZoom;
+  // Calculate layout for multiple certificates per page
+  // Keep original certificatesPerPage value, but only render 1 in edit mode
+  const certsPerPage = template.certificatesPerPage || 1;
+
+  // In edit mode, apply automatic zoom; otherwise use manual zoom
+  // Apply zoom in edit mode ONLY when there are multiple certs per page
+  const baseZoom = (editMode && certsPerPage > 1) ? 1.8 : 1;
+  const scale = getOptimalScale() * (editMode ? baseZoom : manualZoom);
 
   // Handle mouse down on element - simple click to select/deselect
   const handleMouseDown = (
@@ -149,13 +158,15 @@ export function CertificateCanvas({
   };
 
   // Calculate layout for multiple certificates per page
-  const certsPerPage = template.certificatesPerPage || 1;
+  const certsToRender = editMode ? 1 : certsPerPage; // Only render 1 in edit mode
+  
   // 2, 3 certificates are stacked vertically in rows
   const rows = certsPerPage;
   const cols = 1;
   // Scale: Keep FULL WIDTH, only reduce HEIGHT
+  // Always use the same scale to maintain consistent proportions
   const certScaleX = 1; // Full width - NO scaling
-  const certScaleY = 1 / rows; // Divide height by number of rows
+  const certScaleY = 1 / rows; // Always divide by rows to maintain same proportions
 
   // Content scale: use Y scale to fit vertically, X stays full width
   const contentScale = certScaleY;
@@ -165,9 +176,10 @@ export function CertificateCanvas({
     const row = Math.floor(certIndex / cols);
     const col = certIndex % cols;
     const certWidth = template.pageSize.width;
+    // Always use the same height calculation to maintain consistent proportions
     const certHeight = template.pageSize.height / rows;
     const offsetX = 0;
-    const offsetY = row * certHeight;
+    const offsetY = editMode ? 0 : (row * certHeight);
 
     return (
       <div
@@ -368,6 +380,22 @@ export function CertificateCanvas({
   const containerRef = useRef<HTMLDivElement>(null);
   const [viewportPosition, setViewportPosition] = useState({ x: 0, y: 0 });
 
+  // Scroll to top when edit mode is activated and adjust view
+  useEffect(() => {
+    if (editMode && containerRef.current) {
+      // Scroll to the top immediately
+      containerRef.current.scrollTop = 0;
+      containerRef.current.scrollLeft = 0;
+      
+      // After a brief delay, ensure the certificate is at the top and visible
+      setTimeout(() => {
+        if (containerRef.current) {
+          containerRef.current.scrollTop = 0;
+        }
+      }, 100);
+    }
+  }, [editMode]);
+
   // Handle viewport scroll to update minimap
   const handleScroll = (e: React.UIEvent<HTMLDivElement>) => {
     const container = e.currentTarget;
@@ -399,16 +427,24 @@ export function CertificateCanvas({
   return (
     <div
       ref={containerRef}
-      className="relative flex justify-center items-center h-full w-full p-2 bg-gray-50 overflow-auto"
-      onScroll={handleScroll}
+      className="relative flex justify-center items-start h-full w-full p-2 bg-gray-50"
+      onScroll={(editMode && certsPerPage > 1) ? undefined : handleScroll}
+      style={{ 
+        overflow: (editMode && certsPerPage > 1) ? 'hidden' : 'auto',
+        paddingTop: (editMode && certsPerPage > 1) ? '10px' : '2px',
+        paddingBottom: (editMode && certsPerPage > 1) ? '0px' : '2px'
+      }}
     >
       <div
         ref={canvasRef}
         className="relative bg-white shadow-2xl border-4 border-gray-200 focus:outline-none focus:ring-2 focus:ring-blue-500"
         style={{
           width: `${template.pageSize.width * scale}px`,
-          height: `${template.pageSize.height * scale}px`,
+          height: (editMode && certsPerPage > 1)
+            ? `${Math.min(template.pageSize.height * scale, window.innerHeight - 200)}px`
+            : `${template.pageSize.height * scale}px`,
           backgroundColor: template.background.type === 'color' ? template.background.value : '#FFFFFF',
+          overflow: 'hidden'
         }}
         onMouseMove={handleMouseMove}
         onMouseUp={handleMouseUp}
@@ -417,7 +453,7 @@ export function CertificateCanvas({
         tabIndex={0}
       >
         {/* Render all certificate instances */}
-        {Array.from({ length: certsPerPage }).map((_, certIndex) => renderCertificate(certIndex))}
+        {Array.from({ length: certsToRender }).map((_, certIndex) => renderCertificate(certIndex))}
 
         {/* Preview Mode Watermark */}
         {previewMode && (
@@ -430,7 +466,7 @@ export function CertificateCanvas({
       </div>
 
       {/* Navigation Minimap - Above Zoom Controls */}
-      {!previewMode && manualZoom > 1 && (
+      {!previewMode && !editMode && manualZoom > 1 && (
         <div
           className="absolute bottom-20 right-4 bg-white rounded-lg shadow-lg border-2 border-gray-400 overflow-hidden cursor-pointer"
           onClick={handleMinimapClick}
@@ -470,7 +506,7 @@ export function CertificateCanvas({
       )}
 
       {/* Zoom Controls - Bottom Right Corner */}
-      {!previewMode && (
+      {!previewMode && !editMode && (
         <div className="absolute bottom-4 right-4 flex items-center gap-2 bg-white rounded-lg shadow-lg border border-gray-300 px-3 py-2">
           <button
             onClick={() => setManualZoom(prev => Math.max(0.5, prev - 0.1))}

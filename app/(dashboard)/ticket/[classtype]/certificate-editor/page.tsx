@@ -249,7 +249,12 @@ export default function CertificateEditorPage() {
               <Eye className="w-4 h-4 mr-2" />
               {showVariables ? 'Show Examples' : 'Show Variables'}
             </Button>
-            <Button onClick={handlePreviewPDF} variant="outline" className="text-white border-white hover:bg-gray-700">
+            <Button 
+              onClick={handlePreviewPDF} 
+              variant="outline" 
+              className="text-white border-white hover:bg-gray-700"
+              disabled={editMode}
+            >
               <FileText className="w-4 h-4 mr-2" />
               Preview PDF
             </Button>

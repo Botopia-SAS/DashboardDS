@@ -851,11 +851,11 @@ export function CertificateEditor({
             
             <div className="flex-1 overflow-y-auto px-2 pb-2">
               <TabsContent value="settings" className="mt-2">
-                <Card>
-                  <CardHeader>
-                    <CardTitle className="text-lg">Template Settings</CardTitle>
-                  </CardHeader>
-                  <CardContent className="space-y-4">
+          <Card>
+            <CardHeader>
+              <CardTitle className="text-lg">Template Settings</CardTitle>
+            </CardHeader>
+            <CardContent className="space-y-4">
               <div>
                 <Label>Template Name</Label>
                 <Input
@@ -881,6 +881,7 @@ export function CertificateEditor({
                   <div>
                     <Label className="text-xs">Page Size</Label>
                     <Select
+                      disabled={editMode}
                       value={(() => {
                         // Normalize dimensions to portrait orientation for matching
                         const currentW = Math.min(template.pageSize.width, template.pageSize.height);
@@ -968,6 +969,7 @@ export function CertificateEditor({
                   <div>
                     <Label className="text-xs">Orientation</Label>
                     <Select
+                      disabled={editMode}
                       value={template.pageSize.orientation}
                       onValueChange={(value: 'portrait' | 'landscape') => {
                         // Check if we already have a saved state for this orientation
@@ -1152,15 +1154,15 @@ export function CertificateEditor({
                 </div>
               </div>
             </CardContent>
-                </Card>
+          </Card>
               </TabsContent>
 
               <TabsContent value="elements" className="mt-2">
-                <Card>
-                  <CardHeader>
-                    <CardTitle className="text-lg">Add Elements</CardTitle>
-                  </CardHeader>
-                  <CardContent className="space-y-2">
+          <Card>
+            <CardHeader>
+              <CardTitle className="text-lg">Add Elements</CardTitle>
+            </CardHeader>
+            <CardContent className="space-y-2">
               <Button onClick={addTextElement} className="w-full" variant="outline">
                 <Plus className="w-4 h-4 mr-2" />
                 Add Text
@@ -1178,14 +1180,14 @@ export function CertificateEditor({
                 Add Line
               </Button>
             </CardContent>
-                </Card>
+          </Card>
               </TabsContent>
 
               <TabsContent value="frames" className="mt-2">
-                <Card>
-                  <CardHeader>
-                    <CardTitle className="text-lg">Frame Styles</CardTitle>
-                  </CardHeader>
+          <Card>
+            <CardHeader>
+              <CardTitle className="text-lg">Frame Styles</CardTitle>
+            </CardHeader>
             <CardContent className="space-y-3">
               <div>
                 <Label className="text-sm font-semibold">Predefined Styles</Label>
@@ -1305,14 +1307,14 @@ export function CertificateEditor({
                 </div>
               </div>
             </CardContent>
-                </Card>
+          </Card>
               </TabsContent>
 
               <TabsContent value="variables" className="mt-2">
-                <Card>
-                  <CardHeader>
-                    <CardTitle className="text-lg">Available Variables</CardTitle>
-                  </CardHeader>
+          <Card>
+            <CardHeader>
+              <CardTitle className="text-lg">Available Variables</CardTitle>
+            </CardHeader>
             <CardContent>
               <div className="text-xs space-y-2 max-h-48 overflow-y-auto">
                 <p className="text-gray-600 text-xs">Click to insert variable into selected text element</p>
@@ -1330,16 +1332,16 @@ export function CertificateEditor({
                 ))}
               </div>
             </CardContent>
-                </Card>
+          </Card>
               </TabsContent>
             </div>
           </Tabs>
         ) : (
           <div className="p-2 space-y-2 overflow-y-auto flex-1 min-h-0">
-            <Card>
-              <CardHeader>
+          <Card>
+            <CardHeader>
                 <CardTitle className="text-lg">Template Settings</CardTitle>
-              </CardHeader>
+            </CardHeader>
               <CardContent className="space-y-4">
                 <div>
                   <Label>Template Name</Label>
@@ -1366,6 +1368,7 @@ export function CertificateEditor({
                     <div>
                       <Label className="text-xs">Page Size</Label>
                       <Select
+                        disabled={editMode}
                         value={(() => {
                           const currentW = Math.min(template.pageSize.width, template.pageSize.height);
                           const currentH = Math.max(template.pageSize.width, template.pageSize.height);
@@ -1441,11 +1444,12 @@ export function CertificateEditor({
                           ))}
                         </SelectContent>
                       </Select>
-                    </div>
+                </div>
 
                     <div>
                       <Label className="text-xs">Orientation</Label>
                       <Select
+                        disabled={editMode}
                         value={template.pageSize.orientation}
                         onValueChange={(value: 'portrait' | 'landscape') => {
                           const savedState = orientationStates[value];
@@ -1619,11 +1623,11 @@ export function CertificateEditor({
                         />
                       </div>
                     )}
-                  </div>
                 </div>
-              </CardContent>
-            </Card>
-          </div>
+              </div>
+            </CardContent>
+          </Card>
+        </div>
         )}
       </div>
 
@@ -1637,6 +1641,7 @@ export function CertificateEditor({
             onUpdateElement={updateElement}
             previewMode={previewMode}
             showVariables={showVariables}
+            editMode={editMode}
           />
         </div>
       </div>
@@ -1709,7 +1714,7 @@ export function CertificateEditor({
                     <div className="flex justify-between">
                       <span className="text-gray-600">Copy element:</span>
                       <kbd className="px-1 py-0.5 bg-gray-100 rounded text-xs">Ctrl+C</kbd>
-                    </div>
+          </div>
                     <div className="flex justify-between">
                       <span className="text-gray-600">Paste element:</span>
                       <kbd className="px-1 py-0.5 bg-gray-100 rounded text-xs">Ctrl+V</kbd>
