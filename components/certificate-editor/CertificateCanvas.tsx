@@ -62,7 +62,12 @@ export function CertificateCanvas({
 
   // In edit mode, apply automatic zoom; otherwise use manual zoom
   // Apply zoom in edit mode ONLY when there are multiple certs per page
-  const baseZoom = (editMode && certsPerPage > 1) ? 1.8 : 1;
+  // Reduce zoom for landscape orientation in edit mode
+  const isLandscapeEdit = template.pageSize.orientation === 'landscape';
+  let baseZoom = (editMode && certsPerPage > 1) ? 1.8 : 1;
+  if (editMode && isLandscapeEdit && certsPerPage === 1) {
+    baseZoom = 0.7; // Reduce zoom for landscape in edit mode
+  }
   const scale = getOptimalScale() * (editMode ? baseZoom * manualZoom : manualZoom);
 
   // Handle mouse down on element - simple click to select/deselect
@@ -73,7 +78,7 @@ export function CertificateCanvas({
     currentX: number,
     currentY: number
   ) => {
-    if (previewMode) return;
+    if (!editMode || previewMode) return;
 
     e.stopPropagation();
     setJustClickedElement(true);
@@ -102,7 +107,7 @@ export function CertificateCanvas({
 
   // Handle mouse move
   const handleMouseMove = (e: React.MouseEvent) => {
-    if (previewMode) return;
+    if (!editMode || previewMode) return;
 
     // If we have a potential drag but haven't started dragging yet
     if (potentialDrag && !dragging) {
@@ -159,14 +164,20 @@ export function CertificateCanvas({
 
   // Calculate layout for multiple certificates per page
   const certsToRender = editMode ? 1 : certsPerPage; // Only render 1 in edit mode
-  
+
   // 2, 3 certificates are stacked vertically in rows
   const rows = certsPerPage;
   const cols = 1;
   // Scale: Keep FULL WIDTH, only reduce HEIGHT
   // Always use the same scale to maintain consistent proportions
   const certScaleX = 1; // Full width - NO scaling
-  const certScaleY = 1 / rows; // Always divide by rows to maintain same proportions
+  let certScaleY = 1 / rows; // Always divide by rows to maintain same proportions
+
+  // Reduce vertical scale slightly for landscape orientation to fit content better
+  const isLandscape = template.pageSize.orientation === 'landscape';
+  if (isLandscape && certsPerPage >= 2) {
+    certScaleY = certScaleY * 0.92; // Reduce by 8% for landscape with multiple certs
+  }
 
   // Content scale: use Y scale to fit vertically, X stays full width
   const contentScale = certScaleY;
@@ -193,7 +204,7 @@ export function CertificateCanvas({
           height: `${certHeight * scale}px`,
           overflow: 'hidden',
           clipPath: 'inset(0)',
-          pointerEvents: certIndex === 0 ? 'auto' : 'none', // Only first certificate is editable
+          pointerEvents: !editMode || previewMode || certIndex !== 0 ? 'none' : 'auto', // Only editable when edit mode is ON
           opacity: certIndex === 0 ? 1 : 0.7, // Dim copies slightly
         }}
       >
@@ -208,15 +219,28 @@ export function CertificateCanvas({
 
         {/* Render Shape Elements */}
         {template.shapeElements.map((shape) => {
+          // For shapes (especially borders/frames):
+          // Keep width at 100% always, only scale height based on certsPerPage
+          // Adjust scaling based on orientation and number of certificates
+          const isLandscape = template.pageSize.orientation === 'landscape';
+          let heightScale = certScaleY;
+
+          // When landscape with multiple certs, adjust frame height
+          if (isLandscape && certsPerPage === 2) {
+            heightScale = certScaleY * 1.08; // 49.7% for 2 certs landscape (less reduction)
+          } else if (isLandscape && certsPerPage === 3) {
+            heightScale = certScaleY * 1.05; // 32% for 3 certs landscape (keep reduction)
+          }
+
           const scaledShape = {
             ...shape,
             x: shape.x * certScaleX,
             y: shape.y * certScaleY,
-            width: shape.width ? shape.width * certScaleX : undefined,
-            height: shape.height ? shape.height * certScaleY : undefined,
+            width: shape.width, // Always keep original width - NO scaling
+            height: shape.height ? shape.height * heightScale : undefined, // Scale height with adjustment
             x2: shape.x2 ? shape.x2 * certScaleX : undefined,
             y2: shape.y2 ? shape.y2 * certScaleY : undefined,
-            radius: shape.radius ? shape.radius * certScaleY : undefined,
+            radius: shape.radius ? shape.radius * heightScale : undefined, // Scale radius with adjustment
             borderWidth: shape.borderWidth, // DO NOT scale borderWidth - keep original
           };
 
@@ -229,7 +253,7 @@ export function CertificateCanvas({
             style={{
               left: `${scaledShape.x * scale}px`,
               top: `${scaledShape.y * scale}px`,
-              pointerEvents: previewMode || certIndex !== 0 ? 'none' : 'auto',
+              pointerEvents: !editMode || previewMode || certIndex !== 0 ? 'none' : 'auto',
             }}
             onMouseDown={certIndex === 0 ? (e) => handleMouseDown(e, 'shape', shape.id, shape.x, shape.y) : undefined}
           >
@@ -302,7 +326,7 @@ export function CertificateCanvas({
               top: `${scaledImage.y * scale}px`,
               width: `${scaledImage.width * scale}px`,
               height: `${scaledImage.height * scale}px`,
-              pointerEvents: previewMode || certIndex !== 0 ? 'none' : 'auto',
+              pointerEvents: !editMode || previewMode || certIndex !== 0 ? 'none' : 'auto',
             }}
             onMouseDown={certIndex === 0 ? (e) => handleMouseDown(e, 'image', image.id, image.x, image.y) : undefined}
           >
@@ -322,8 +346,22 @@ export function CertificateCanvas({
         {/* Render Text Elements */}
         {template.textElements.map((text) => {
           const displayText = replaceVariables(text.content);
-          // Keep text more readable - minimum scale of 0.7 (70%)
-          const textScaleFactor = Math.max(0.7, contentScale);
+          // Keep text more readable - adjust minimum scale based on orientation and cert count
+          const isLandscape = template.pageSize.orientation === 'landscape';
+          let minTextScale = 0.75; // Default minimum
+
+          // For 1 certificate per page, increase text size for BOTH orientations
+          if (certsPerPage === 1) {
+            minTextScale = isLandscape ? 1.8 : 1.35; // Larger text for 1 cert landscape (180%), vertical (135%)
+          } else if (isLandscape) {
+            if (certsPerPage === 2) {
+              minTextScale = 1.15; // INCREASE text size for 2 certs landscape
+            } else if (certsPerPage === 3) {
+              minTextScale = 0.95; // Reduced 10% for 3 certs landscape
+            }
+          }
+
+          const textScaleFactor = Math.max(minTextScale, contentScale);
           const scaledText = {
             ...text,
             x: text.x * certScaleX,
@@ -349,7 +387,7 @@ export function CertificateCanvas({
                 fontStyle: text.italic ? 'italic' : 'normal',
                 textDecoration: text.underline ? 'underline' : 'none',
                 color: text.color,
-                pointerEvents: previewMode || certIndex !== 0 ? 'none' : 'auto',
+                pointerEvents: !editMode || previewMode || certIndex !== 0 ? 'none' : 'auto',
                 whiteSpace: 'nowrap',
                 lineHeight: '1.2',
                 // Apply transform for center alignment
@@ -460,31 +498,40 @@ export function CertificateCanvas({
   return (
     <div
       ref={containerRef}
-      className="relative flex justify-center items-start h-full w-full p-2 bg-gray-50"
-      onScroll={(editMode && certsPerPage > 1) ? undefined : handleScroll}
-      style={{ 
-        overflow: (editMode && certsPerPage > 1) ? 'hidden' : 'auto',
+      className="relative h-full w-full p-2 bg-gray-50"
+      onScroll={handleScroll}
+      style={{
+        overflow: 'auto', // Always show scroll when content overflows
         paddingTop: (editMode && certsPerPage > 1) ? '10px' : '2px',
-        paddingBottom: (editMode && certsPerPage > 1) ? '0px' : '2px'
+        paddingBottom: (editMode && certsPerPage > 1) ? '0px' : '2px',
       }}
     >
+      {/* Wrapper to enable scrolling - allows content to grow beyond viewport */}
       <div
-        ref={canvasRef}
-        className="relative bg-white shadow-2xl border-4 border-gray-200 focus:outline-none focus:ring-2 focus:ring-blue-500"
         style={{
-          width: `${template.pageSize.width * scale}px`,
-          height: (editMode && certsPerPage > 1)
-            ? `${Math.min(template.pageSize.height * scale, window.innerHeight - 200)}px`
-            : `${template.pageSize.height * scale}px`,
-          backgroundColor: template.background.type === 'color' ? template.background.value : '#FFFFFF',
-          overflow: 'hidden'
+          display: 'inline-block',
+          minWidth: '100%',
+          textAlign: 'center',
         }}
-        onMouseMove={handleMouseMove}
-        onMouseUp={handleMouseUp}
-        onMouseLeave={handleMouseUp}
-        onClick={() => !previewMode && !justClickedElement && onSelectElement({ type: null, id: null })}
-        tabIndex={0}
       >
+        <div
+          ref={canvasRef}
+          className="relative bg-white shadow-2xl border-4 border-gray-200 focus:outline-none focus:ring-2 focus:ring-blue-500"
+          style={{
+            display: 'inline-block', // Allow canvas to define its own width
+            width: `${template.pageSize.width * scale}px`,
+            height: (editMode && certsPerPage > 1)
+              ? `${Math.min(template.pageSize.height * scale, window.innerHeight - 200)}px`
+              : `${template.pageSize.height * scale}px`,
+            backgroundColor: template.background.type === 'color' ? template.background.value : '#FFFFFF',
+            overflow: 'hidden'
+          }}
+          onMouseMove={handleMouseMove}
+          onMouseUp={handleMouseUp}
+          onMouseLeave={handleMouseUp}
+          onClick={() => !previewMode && !justClickedElement && onSelectElement({ type: null, id: null })}
+          tabIndex={0}
+        >
         {/* Render all certificate instances */}
         {Array.from({ length: certsToRender }).map((_, certIndex) => renderCertificate(certIndex))}
 
@@ -503,6 +550,7 @@ export function CertificateCanvas({
             {Math.round(manualZoom * 100)}%
           </div>
         )}
+      </div>
       </div>
 
       {/* Navigation Minimap - Above Zoom Controls */}

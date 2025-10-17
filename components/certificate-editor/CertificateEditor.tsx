@@ -120,11 +120,72 @@ export function CertificateEditor({
   }, [initialTemplate]);
 
   // Update the saved orientation state whenever template changes
+  // This ensures changes persist across orientation switches
   useEffect(() => {
-    setOrientationStates(prev => ({
-      ...prev,
-      [template.pageSize.orientation]: template
-    }));
+    const currentOrientation = template.pageSize.orientation;
+    const otherOrientation = currentOrientation === 'landscape' ? 'portrait' : 'landscape';
+    const otherState = orientationStates[otherOrientation];
+
+    // Always update current orientation state
+    const updatedStates: typeof orientationStates = {
+      ...orientationStates,
+      [currentOrientation]: template
+    };
+
+    // If the other orientation already has a state, synchronize element changes to it
+    if (otherState) {
+      // Calculate scale factors for the other orientation
+      const currentW = template.pageSize.width;
+      const currentH = template.pageSize.height;
+      const otherW = otherState.pageSize.width;
+      const otherH = otherState.pageSize.height;
+      const scaleX = otherW / currentW;
+      const scaleY = otherH / currentH;
+
+      // Sync all elements to the other orientation with proper scaling
+      const syncedTextElements = template.textElements.map(el => ({
+        ...el,
+        x: el.x * scaleX,
+        y: el.y * scaleY,
+        // Keep font size proportional but don't scale too much
+        fontSize: el.fontSize
+      }));
+
+      const syncedImageElements = template.imageElements.map(el => ({
+        ...el,
+        x: el.x * scaleX,
+        y: el.y * scaleY,
+        width: el.width * scaleX,
+        height: el.height * scaleY
+      }));
+
+      const syncedShapeElements = template.shapeElements.map(el => {
+        const synced: ShapeElement = {
+          ...el,
+          x: el.x * scaleX,
+          y: el.y * scaleY
+        };
+
+        if (el.width) synced.width = el.width * scaleX;
+        if (el.height) synced.height = el.height * scaleY;
+        if (el.x2) synced.x2 = el.x2 * scaleX;
+        if (el.y2) synced.y2 = el.y2 * scaleY;
+        if (el.radius) synced.radius = el.radius * Math.min(scaleX, scaleY);
+        if (el.borderWidth) synced.borderWidth = el.borderWidth * Math.min(scaleX, scaleY);
+
+        return synced;
+      });
+
+      updatedStates[otherOrientation] = {
+        ...otherState,
+        textElements: syncedTextElements,
+        imageElements: syncedImageElements,
+        shapeElements: syncedShapeElements,
+        background: template.background // Sync background too
+      };
+    }
+
+    setOrientationStates(updatedStates);
   }, [template]);
 
   // Notify parent component when template changes
@@ -988,12 +1049,12 @@ export function CertificateEditor({
                           const scaleX = newWidth / oldWidth;
                           const scaleY = newHeight / oldHeight;
 
-                          // Scale all elements
+                          // Scale all elements - preserve font size for readability
                           const scaledTextElements = template.textElements.map(el => ({
                             ...el,
                             x: el.x * scaleX,
                             y: el.y * scaleY,
-                            fontSize: el.fontSize * Math.min(scaleX, scaleY)
+                            fontSize: el.fontSize // DO NOT scale font size on orientation change
                           }));
 
                           const scaledImageElements = template.imageElements.map(el => ({
@@ -1646,8 +1707,8 @@ export function CertificateEditor({
         </div>
       </div>
 
-      {/* Right Sidebar - Always visible */}
-      {!previewMode && (
+      {/* Right Sidebar - Only visible when editMode is ON */}
+      {!previewMode && editMode && (
         <div className="w-72 bg-white border-l overflow-y-auto flex-shrink-0 rounded-r-lg">
           <div className="p-2">
             {selectedEl ? (
