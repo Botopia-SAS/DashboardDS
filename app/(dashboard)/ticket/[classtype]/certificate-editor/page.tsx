@@ -219,12 +219,10 @@ export default function CertificateEditorPage() {
               : 'bg-gray-700 border border-gray-600'
           }`}>
             <Switch
-              id="edit-mode"
               checked={editMode}
               onCheckedChange={(checked) => setEditMode(checked)}
             />
             <Label 
-              htmlFor="edit-mode" 
               className={`text-sm font-medium cursor-pointer transition-colors flex items-center gap-2 ${
                 editMode ? 'text-green-400' : 'text-gray-300'
               }`}
