@@ -6,7 +6,9 @@ import { CertificateEditor } from "@/components/certificate-editor";
 import { CertificateTemplate } from "@/components/certificate-editor/types";
 import Loader from "@/components/custom ui/Loader";
 import { Button } from "@/components/ui/button";
-import { ArrowLeftIcon, Eye, Save, FileText } from "lucide-react";
+import { Switch } from "@/components/ui/switch";
+import { Label } from "@/components/ui/label";
+import { ArrowLeftIcon, Eye, Save, FileText, Edit3, Settings } from "lucide-react";
 import toast from "react-hot-toast";
 import { getDefaultBDITemplate } from "@/lib/defaultTemplates/bdiTemplate";
 import { useDynamicCertificateGenerator } from "@/components/ticket/hooks/use-dynamic-certificate-generator";
@@ -22,6 +24,7 @@ export default function CertificateEditorPage() {
   const [loading, setLoading] = useState(true);
   const [showVariables, setShowVariables] = useState(false);
   const [previewMode, setPreviewMode] = useState(false);
+  const [editMode, setEditMode] = useState(true); // Modo edición activo por defecto
   const { generateDynamicCertificatePDF } = useDynamicCertificateGenerator();
 
   const fetchTemplate = async () => {
@@ -36,11 +39,20 @@ export default function CertificateEditorPage() {
         const templates = await response.json();
         if (templates.length > 0) {
           // Template exists in database, use it
-          setTemplate(templates[0]);
+          const fetchedTemplate = templates[0];
+          // Force 1 certificate per page in edit mode
+          if (editMode) {
+            fetchedTemplate.certificatesPerPage = 1;
+          }
+          setTemplate(fetchedTemplate);
         } else {
           // No template exists - Load BDI template as default for ALL types (including ADI)
           const upperClassType = decodedClassType.toUpperCase();
           const bdiTemplate = getDefaultBDITemplate(upperClassType);
+          // Force 1 certificate per page in edit mode
+          if (editMode) {
+            bdiTemplate.certificatesPerPage = 1;
+          }
           setTemplate(bdiTemplate as CertificateTemplate);
           console.log(`Loading BDI template as default for ${upperClassType}`);
         }
@@ -48,6 +60,10 @@ export default function CertificateEditorPage() {
         // Error fetching - use BDI default for all types
         const upperClassType = decodedClassType.toUpperCase();
         const bdiTemplate = getDefaultBDITemplate(upperClassType);
+        // Force 1 certificate per page in edit mode
+        if (editMode) {
+          bdiTemplate.certificatesPerPage = 1;
+        }
         setTemplate(bdiTemplate as CertificateTemplate);
       }
     } catch (error) {
@@ -56,6 +72,10 @@ export default function CertificateEditorPage() {
       // Even on error, load BDI template as default for all types
       const upperClassType = decodedClassType.toUpperCase();
       const bdiTemplate = getDefaultBDITemplate(upperClassType);
+      // Force 1 certificate per page in edit mode
+      if (editMode) {
+        bdiTemplate.certificatesPerPage = 1;
+      }
       setTemplate(bdiTemplate as CertificateTemplate);
       toast.success("Loaded default BDI template");
     } finally {
@@ -67,6 +87,13 @@ export default function CertificateEditorPage() {
     fetchTemplate();
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [classType]);
+
+  // Force 1 certificate per page when in edit mode
+  useEffect(() => {
+    if (template && editMode) {
+      setTemplate(prev => prev ? { ...prev, certificatesPerPage: 1 } : null);
+    }
+  }, [editMode]);
 
   // Prevent body scroll when in certificate editor
   useEffect(() => {
@@ -184,19 +211,62 @@ export default function CertificateEditorPage() {
             </p>
           </div>
         </div>
-        <div className="flex gap-2">
-          <Button onClick={() => setShowVariables(!showVariables)} variant="outline" className="text-white border-white hover:bg-gray-700">
-            <Eye className="w-4 h-4 mr-2" />
-            {showVariables ? 'Show Examples' : 'Show Variables'}
-          </Button>
-          <Button onClick={handlePreviewPDF} variant="outline" className="text-white border-white hover:bg-gray-700">
-            <FileText className="w-4 h-4 mr-2" />
-            Preview PDF
-          </Button>
-          <Button onClick={saveTemplate} className="bg-blue-500 hover:bg-blue-600 text-white">
-            <Save className="w-4 h-4 mr-2" />
-            Save Template
-          </Button>
+        <div className="flex items-center gap-4">
+          {/* Edit Mode Switch */}
+          <div className={`flex items-center gap-3 px-4 py-2 rounded-lg transition-all duration-200 ${
+            editMode 
+              ? 'bg-green-600/20 border border-green-500 shadow-lg shadow-green-500/20' 
+              : 'bg-gray-700 border border-gray-600'
+          }`}>
+            <Switch
+              id="edit-mode"
+              checked={editMode}
+              onCheckedChange={(checked) => setEditMode(checked)}
+            />
+            <Label 
+              htmlFor="edit-mode" 
+              className={`text-sm font-medium cursor-pointer transition-colors flex items-center gap-2 ${
+                editMode ? 'text-green-400' : 'text-gray-300'
+              }`}
+            >
+              {editMode ? (
+                <>
+                  <Edit3 className="w-4 h-4" />
+                  <span>Edit Mode: ON</span>
+                </>
+              ) : (
+                <>
+                  <Settings className="w-4 h-4" />
+                  <span>Edit Mode: OFF</span>
+                </>
+              )}
+            </Label>
+          </div>
+
+          {/* Action Buttons */}
+          <div className="flex gap-2">
+            <Button onClick={() => setShowVariables(!showVariables)} variant="outline" className="text-white border-white hover:bg-gray-700">
+              <Eye className="w-4 h-4 mr-2" />
+              {showVariables ? 'Show Examples' : 'Show Variables'}
+            </Button>
+            <Button 
+              onClick={handlePreviewPDF} 
+              variant="outline" 
+              className="text-white border-white hover:bg-gray-700"
+              disabled={editMode}
+            >
+              <FileText className="w-4 h-4 mr-2" />
+              Preview PDF
+            </Button>
+            <Button 
+              onClick={saveTemplate} 
+              className="bg-blue-500 hover:bg-blue-600 text-white"
+              disabled={editMode}
+            >
+              <Save className="w-4 h-4 mr-2" />
+              Save Template
+            </Button>
+          </div>
         </div>
       </div>
 
@@ -210,6 +280,7 @@ export default function CertificateEditorPage() {
           setShowVariables={setShowVariables}
           previewMode={previewMode}
           setPreviewMode={setPreviewMode}
+          editMode={editMode}
         />
       </div>
     </div>

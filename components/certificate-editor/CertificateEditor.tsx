@@ -7,10 +7,10 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
-// import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
+import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Textarea } from "@/components/ui/textarea";
 import { Switch } from "@/components/ui/switch";
-import { Trash2, Plus } from "lucide-react";
+import { Trash2, Plus, Settings, Type, Square, Keyboard } from "lucide-react";
 import toast from "react-hot-toast";
 import { CertificateTemplate, TextElement, ImageElement, ShapeElement, DEFAULT_VARIABLES, PAGE_SIZE_OPTIONS } from "./types";
 import { CertificateCanvas } from "./CertificateCanvas";
@@ -25,6 +25,7 @@ interface CertificateEditorProps {
   setShowVariables?: (show: boolean) => void;
   previewMode?: boolean;
   setPreviewMode?: (mode: boolean) => void;
+  editMode?: boolean;
 }
 
 export function CertificateEditor({
@@ -34,8 +35,9 @@ export function CertificateEditor({
   initialTemplate,
   showVariables = false,
   // setShowVariables,
-  previewMode = false
+  previewMode = false,
   // setPreviewMode
+  editMode = false
 }: CertificateEditorProps) {
   const router = useRouter();
 
@@ -118,11 +120,72 @@ export function CertificateEditor({
   }, [initialTemplate]);
 
   // Update the saved orientation state whenever template changes
+  // This ensures changes persist across orientation switches
   useEffect(() => {
-    setOrientationStates(prev => ({
-      ...prev,
-      [template.pageSize.orientation]: template
-    }));
+    const currentOrientation = template.pageSize.orientation;
+    const otherOrientation = currentOrientation === 'landscape' ? 'portrait' : 'landscape';
+    const otherState = orientationStates[otherOrientation];
+
+    // Always update current orientation state
+    const updatedStates: typeof orientationStates = {
+      ...orientationStates,
+      [currentOrientation]: template
+    };
+
+    // If the other orientation already has a state, synchronize element changes to it
+    if (otherState) {
+      // Calculate scale factors for the other orientation
+      const currentW = template.pageSize.width;
+      const currentH = template.pageSize.height;
+      const otherW = otherState.pageSize.width;
+      const otherH = otherState.pageSize.height;
+      const scaleX = otherW / currentW;
+      const scaleY = otherH / currentH;
+
+      // Sync all elements to the other orientation with proper scaling
+      const syncedTextElements = template.textElements.map(el => ({
+        ...el,
+        x: el.x * scaleX,
+        y: el.y * scaleY,
+        // Keep font size proportional but don't scale too much
+        fontSize: el.fontSize
+      }));
+
+      const syncedImageElements = template.imageElements.map(el => ({
+        ...el,
+        x: el.x * scaleX,
+        y: el.y * scaleY,
+        width: el.width * scaleX,
+        height: el.height * scaleY
+      }));
+
+      const syncedShapeElements = template.shapeElements.map(el => {
+        const synced: ShapeElement = {
+          ...el,
+          x: el.x * scaleX,
+          y: el.y * scaleY
+        };
+
+        if (el.width) synced.width = el.width * scaleX;
+        if (el.height) synced.height = el.height * scaleY;
+        if (el.x2) synced.x2 = el.x2 * scaleX;
+        if (el.y2) synced.y2 = el.y2 * scaleY;
+        if (el.radius) synced.radius = el.radius * Math.min(scaleX, scaleY);
+        if (el.borderWidth) synced.borderWidth = el.borderWidth * Math.min(scaleX, scaleY);
+
+        return synced;
+      });
+
+      updatedStates[otherOrientation] = {
+        ...otherState,
+        textElements: syncedTextElements,
+        imageElements: syncedImageElements,
+        shapeElements: syncedShapeElements,
+        background: template.background // Sync background too
+      };
+    }
+
+    setOrientationStates(updatedStates);
   }, [template]);
 
   // Notify parent component when template changes
@@ -828,7 +891,27 @@ export function CertificateEditor({
     <div className="flex h-full bg-gray-50 overflow-hidden rounded-lg">
       {/* Left Sidebar - Tools */}
       <div className="w-80 bg-white border-r flex flex-col rounded-l-lg">
-        <div className="p-2 space-y-2 overflow-y-auto flex-1 min-h-0">
+        {editMode ? (
+          <Tabs defaultValue="settings" className="flex flex-col h-full">
+            <div className="px-2 pt-2">
+              <TabsList className="grid w-full grid-cols-4 h-10">
+                <TabsTrigger value="settings" className="text-xs px-1">
+                  <Settings className="w-3 h-3" />
+                </TabsTrigger>
+                <TabsTrigger value="elements" className="text-xs px-1">
+                  <Plus className="w-3 h-3" />
+                </TabsTrigger>
+                <TabsTrigger value="frames" className="text-xs px-1">
+                  <Square className="w-3 h-3" />
+                </TabsTrigger>
+                <TabsTrigger value="variables" className="text-xs px-1">
+                  <Type className="w-3 h-3" />
+                </TabsTrigger>
+              </TabsList>
+            </div>
+            
+            <div className="flex-1 overflow-y-auto px-2 pb-2">
+              <TabsContent value="settings" className="mt-2">
           <Card>
             <CardHeader>
               <CardTitle className="text-lg">Template Settings</CardTitle>
@@ -839,6 +922,7 @@ export function CertificateEditor({
                 <Input
                   value={template.name}
                   onChange={(e) => pushToHistory({ ...template, name: e.target.value })}
+                  className="h-auto min-h-[2.5rem]"
                 />
               </div>
 
@@ -858,6 +942,7 @@ export function CertificateEditor({
                   <div>
                     <Label className="text-xs">Page Size</Label>
                     <Select
+                      disabled={editMode}
                       value={(() => {
                         // Normalize dimensions to portrait orientation for matching
                         const currentW = Math.min(template.pageSize.width, template.pageSize.height);
@@ -929,7 +1014,7 @@ export function CertificateEditor({
                         }
                       }}
                     >
-                      <SelectTrigger className="h-8">
+                      <SelectTrigger className="h-auto min-h-[2.5rem]">
                         <SelectValue placeholder="Select page size" />
                       </SelectTrigger>
                       <SelectContent className="bg-white border border-gray-200 shadow-lg">
@@ -945,6 +1030,7 @@ export function CertificateEditor({
                   <div>
                     <Label className="text-xs">Orientation</Label>
                     <Select
+                      disabled={editMode}
                       value={template.pageSize.orientation}
                       onValueChange={(value: 'portrait' | 'landscape') => {
                         // Check if we already have a saved state for this orientation
@@ -963,12 +1049,12 @@ export function CertificateEditor({
                           const scaleX = newWidth / oldWidth;
                           const scaleY = newHeight / oldHeight;
 
-                          // Scale all elements
+                          // Scale all elements - preserve font size for readability
                           const scaledTextElements = template.textElements.map(el => ({
                             ...el,
                             x: el.x * scaleX,
                             y: el.y * scaleY,
-                            fontSize: el.fontSize * Math.min(scaleX, scaleY)
+                            fontSize: el.fontSize // DO NOT scale font size on orientation change
                           }));
 
                           const scaledImageElements = template.imageElements.map(el => ({
@@ -1019,7 +1105,7 @@ export function CertificateEditor({
                         }
                       }}
                     >
-                      <SelectTrigger className="h-8">
+                      <SelectTrigger className="h-auto min-h-[2.5rem]">
                         <SelectValue placeholder="Select orientation" />
                       </SelectTrigger>
                       <SelectContent className="bg-white border border-gray-200 shadow-lg">
@@ -1043,8 +1129,9 @@ export function CertificateEditor({
                           certificatesPerPage: Number(value)
                         });
                       }}
+                      disabled={editMode}
                     >
-                      <SelectTrigger className="h-8">
+                      <SelectTrigger className="h-auto min-h-[2.5rem]">
                         <SelectValue />
                       </SelectTrigger>
                       <SelectContent className="bg-white border border-gray-200 shadow-lg">
@@ -1074,7 +1161,7 @@ export function CertificateEditor({
                         background: { ...template.background, type: value as 'color' | 'image' | 'pdf' }
                       })}
                     >
-                      <SelectTrigger className="h-8">
+                      <SelectTrigger className="h-auto min-h-[2.5rem]">
                         <SelectValue />
                       </SelectTrigger>
                       <SelectContent className="bg-white border border-gray-200 shadow-lg">
@@ -1129,7 +1216,9 @@ export function CertificateEditor({
               </div>
             </CardContent>
           </Card>
+              </TabsContent>
 
+              <TabsContent value="elements" className="mt-2">
           <Card>
             <CardHeader>
               <CardTitle className="text-lg">Add Elements</CardTitle>
@@ -1153,8 +1242,9 @@ export function CertificateEditor({
               </Button>
             </CardContent>
           </Card>
+              </TabsContent>
 
-          {/* Frame Styles */}
+              <TabsContent value="frames" className="mt-2">
           <Card>
             <CardHeader>
               <CardTitle className="text-lg">Frame Styles</CardTitle>
@@ -1279,7 +1369,9 @@ export function CertificateEditor({
               </div>
             </CardContent>
           </Card>
+              </TabsContent>
 
+              <TabsContent value="variables" className="mt-2">
           <Card>
             <CardHeader>
               <CardTitle className="text-lg">Available Variables</CardTitle>
@@ -1302,33 +1394,302 @@ export function CertificateEditor({
               </div>
             </CardContent>
           </Card>
-
+              </TabsContent>
+            </div>
+          </Tabs>
+        ) : (
+          <div className="p-2 space-y-2 overflow-y-auto flex-1 min-h-0">
           <Card>
             <CardHeader>
-              <CardTitle className="text-lg">Keyboard Shortcuts</CardTitle>
+                <CardTitle className="text-lg">Template Settings</CardTitle>
             </CardHeader>
-            <CardContent>
-              <div className="text-xs space-y-2">
-                <div className="flex justify-between">
-                  <span className="text-gray-600">Copy element:</span>
-                  <kbd className="px-1 py-0.5 bg-gray-100 rounded text-xs">Ctrl+C</kbd>
+              <CardContent className="space-y-4">
+                <div>
+                  <Label>Template Name</Label>
+                  <Input
+                    value={template.name}
+                    onChange={(e) => pushToHistory({ ...template, name: e.target.value })}
+                    className="h-auto min-h-[2.5rem]"
+                  />
                 </div>
-                <div className="flex justify-between">
-                  <span className="text-gray-600">Paste element:</span>
-                  <kbd className="px-1 py-0.5 bg-gray-100 rounded text-xs">Ctrl+V</kbd>
+
+                <div>
+                  <Label>Class Type</Label>
+                  <Input
+                    value={template.classType}
+                    disabled
+                    className="bg-gray-100"
+                  />
                 </div>
-                <div className="flex justify-between">
-                  <span className="text-gray-600">Delete element:</span>
-                  <kbd className="px-1 py-0.5 bg-gray-100 rounded text-xs">Supr</kbd>
+
+                {/* Page Size and Orientation */}
+                <div className="pt-4 border-t">
+                  <Label className="text-sm font-semibold">Page Format</Label>
+                  <div className="mt-2 space-y-2">
+                    <div>
+                      <Label className="text-xs">Page Size</Label>
+                      <Select
+                        disabled={editMode}
+                        value={(() => {
+                          const currentW = Math.min(template.pageSize.width, template.pageSize.height);
+                          const currentH = Math.max(template.pageSize.width, template.pageSize.height);
+                          const match = PAGE_SIZE_OPTIONS.find(opt =>
+                            opt.width === currentW && opt.height === currentH
+                          );
+                          return match?.name || 'Carta';
+                        })()}
+                        onValueChange={(value) => {
+                          const selectedSize = PAGE_SIZE_OPTIONS.find(opt => opt.name === value);
+                          if (selectedSize) {
+                            const oldWidth = template.pageSize.width;
+                            const oldHeight = template.pageSize.height;
+                            const newWidth = template.pageSize.orientation === 'portrait' ? selectedSize.width : selectedSize.height;
+                            const newHeight = template.pageSize.orientation === 'portrait' ? selectedSize.height : selectedSize.width;
+                            const scaleX = newWidth / oldWidth;
+                            const scaleY = newHeight / oldHeight;
+
+                            const scaledTextElements = template.textElements.map(el => ({
+                              ...el,
+                              x: el.x * scaleX,
+                              y: el.y * scaleY,
+                              fontSize: el.fontSize * Math.min(scaleX, scaleY)
+                            }));
+
+                            const scaledImageElements = template.imageElements.map(el => ({
+                              ...el,
+                              x: el.x * scaleX,
+                              y: el.y * scaleY,
+                              width: el.width * scaleX,
+                              height: el.height * scaleY
+                            }));
+
+                            const scaledShapeElements = template.shapeElements.map(el => {
+                              const scaled: ShapeElement = {
+                                ...el,
+                                x: el.x * scaleX,
+                                y: el.y * scaleY
+                              };
+
+                              if (el.width) scaled.width = el.width * scaleX;
+                              if (el.height) scaled.height = el.height * scaleY;
+                              if (el.x2) scaled.x2 = el.x2 * scaleX;
+                              if (el.y2) scaled.y2 = el.y2 * scaleY;
+                              if (el.radius) scaled.radius = el.radius * Math.min(scaleX, scaleY);
+                              if (el.borderWidth) scaled.borderWidth = el.borderWidth * Math.min(scaleX, scaleY);
+
+                              return scaled;
+                            });
+
+                            pushToHistory({
+                              ...template,
+                              pageSize: {
+                                ...template.pageSize,
+                                width: newWidth,
+                                height: newHeight
+                              },
+                              textElements: scaledTextElements,
+                              imageElements: scaledImageElements,
+                              shapeElements: scaledShapeElements
+                            });
+                          }
+                        }}
+                      >
+                        <SelectTrigger className="h-auto min-h-[2.5rem]">
+                          <SelectValue placeholder="Select page size" />
+                        </SelectTrigger>
+                        <SelectContent className="bg-white border border-gray-200 shadow-lg">
+                          {PAGE_SIZE_OPTIONS.map((option) => (
+                            <SelectItem key={option.name} value={option.name} className="bg-white hover:bg-gray-50">
+                              {option.name} ({option.description})
+                            </SelectItem>
+                          ))}
+                        </SelectContent>
+                      </Select>
                 </div>
-                <div className="flex justify-between">
-                  <span className="text-gray-600">Undo:</span>
-                  <kbd className="px-1 py-0.5 bg-gray-100 rounded text-xs">Ctrl+Z</kbd>
+
+                    <div>
+                      <Label className="text-xs">Orientation</Label>
+                      <Select
+                        disabled={editMode}
+                        value={template.pageSize.orientation}
+                        onValueChange={(value: 'portrait' | 'landscape') => {
+                          const savedState = orientationStates[value];
+                          if (savedState) {
+                            pushToHistory(savedState);
+                          } else {
+                            const oldWidth = template.pageSize.width;
+                            const oldHeight = template.pageSize.height;
+                            const newWidth = template.pageSize.height;
+                            const newHeight = template.pageSize.width;
+                            const scaleX = newWidth / oldWidth;
+                            const scaleY = newHeight / oldHeight;
+
+                            const scaledTextElements = template.textElements.map(el => ({
+                              ...el,
+                              x: el.x * scaleX,
+                              y: el.y * scaleY,
+                              fontSize: el.fontSize * Math.min(scaleX, scaleY)
+                            }));
+
+                            const scaledImageElements = template.imageElements.map(el => ({
+                              ...el,
+                              x: el.x * scaleX,
+                              y: el.y * scaleY,
+                              width: el.width * scaleX,
+                              height: el.height * scaleY
+                            }));
+
+                            const scaledShapeElements = template.shapeElements.map(el => {
+                              const scaled: ShapeElement = {
+                                ...el,
+                                x: el.x * scaleX,
+                                y: el.y * scaleY
+                              };
+
+                              if (el.width) scaled.width = el.width * scaleX;
+                              if (el.height) scaled.height = el.height * scaleY;
+                              if (el.x2) scaled.x2 = el.x2 * scaleX;
+                              if (el.y2) scaled.y2 = el.y2 * scaleY;
+                              if (el.radius) scaled.radius = el.radius * Math.min(scaleX, scaleY);
+                              if (el.borderWidth) scaled.borderWidth = el.borderWidth * Math.min(scaleX, scaleY);
+
+                              return scaled;
+                            });
+
+                            const newTemplate = {
+                              ...template,
+                              pageSize: {
+                                width: newWidth,
+                                height: newHeight,
+                                orientation: value
+                              },
+                              textElements: scaledTextElements,
+                              imageElements: scaledImageElements,
+                              shapeElements: scaledShapeElements
+                            };
+
+                            setOrientationStates(prev => ({
+                              ...prev,
+                              [template.pageSize.orientation]: template,
+                              [value]: newTemplate
+                            }));
+
+                            pushToHistory(newTemplate);
+                          }
+                        }}
+                      >
+                        <SelectTrigger className="h-auto min-h-[2.5rem]">
+                          <SelectValue placeholder="Select orientation" />
+                        </SelectTrigger>
+                        <SelectContent className="bg-white border border-gray-200 shadow-lg">
+                          <SelectItem value="landscape" className="bg-white hover:bg-gray-50">
+                            Horizontal (Landscape)
+                          </SelectItem>
+                          <SelectItem value="portrait" className="bg-white hover:bg-gray-50">
+                            Vertical (Portrait)
+                          </SelectItem>
+                        </SelectContent>
+                      </Select>
+                    </div>
+
+                    <div>
+                      <Label className="text-xs">Certificates Per Page</Label>
+                      <Select
+                        value={String(template.certificatesPerPage || 1)}
+                        onValueChange={(value) => {
+                          pushToHistory({
+                            ...template,
+                            certificatesPerPage: Number(value)
+                          });
+                        }}
+                      >
+                        <SelectTrigger className="h-auto min-h-[2.5rem]">
+                          <SelectValue />
+                        </SelectTrigger>
+                        <SelectContent className="bg-white border border-gray-200 shadow-lg">
+                          <SelectItem value="1" className="bg-white hover:bg-gray-50">1 certificate per page</SelectItem>
+                          <SelectItem value="2" className="bg-white hover:bg-gray-50">2 certificates per page</SelectItem>
+                          <SelectItem value="3" className="bg-white hover:bg-gray-50">3 certificates per page</SelectItem>
+                        </SelectContent>
+                      </Select>
+                    </div>
+
+                    <div className="text-xs text-gray-500 pt-1">
+                      Current size: {template.pageSize.width} x {template.pageSize.height} pt
+                    </div>
+                  </div>
+                </div>
+
+                {/* Background Options */}
+                <div className="pt-4 border-t">
+                  <Label className="text-sm font-semibold">Background</Label>
+                  <div className="mt-2 space-y-2">
+                    <div>
+                      <Label className="text-xs">Background Type</Label>
+                      <Select
+                        value={template.background.type}
+                        onValueChange={(value) => pushToHistory({
+                          ...template,
+                          background: { ...template.background, type: value as 'color' | 'image' | 'pdf' }
+                        })}
+                      >
+                        <SelectTrigger className="h-auto min-h-[2.5rem]">
+                          <SelectValue />
+                        </SelectTrigger>
+                        <SelectContent className="bg-white border border-gray-200 shadow-lg">
+                          <SelectItem value="color" className="bg-white hover:bg-gray-50">Color</SelectItem>
+                          <SelectItem value="image" className="bg-white hover:bg-gray-50">Image</SelectItem>
+                          <SelectItem value="pdf" className="bg-white hover:bg-gray-50">PDF Template</SelectItem>
+                        </SelectContent>
+                      </Select>
+                    </div>
+
+                    {template.background.type === 'color' && (
+                      <div>
+                        <Label className="text-xs">Background Color</Label>
+                        <div className="flex gap-2 mt-1">
+                          <Input
+                            type="color"
+                            value={template.background.value || '#FFFFFF'}
+                            onChange={(e) => pushToHistory({
+                              ...template,
+                              background: { ...template.background, value: e.target.value }
+                            })}
+                            className="w-12 h-8 p-1"
+                          />
+                          <Input
+                            value={template.background.value || '#FFFFFF'}
+                            onChange={(e) => pushToHistory({
+                              ...template,
+                              background: { ...template.background, value: e.target.value }
+                            })}
+                            className="flex-1 h-8 text-xs"
+                            placeholder="#FFFFFF"
+                          />
+                        </div>
+                      </div>
+                    )}
+
+                    {(template.background.type === 'image' || template.background.type === 'pdf') && (
+                      <div>
+                        <Label className="text-xs">URL</Label>
+                        <Input
+                          value={template.background.value || ''}
+                          onChange={(e) => pushToHistory({
+                            ...template,
+                            background: { ...template.background, value: e.target.value }
+                          })}
+                          placeholder="/path/to/file.jpg"
+                          className="h-8 text-xs"
+                        />
+                      </div>
+                    )}
                 </div>
               </div>
             </CardContent>
           </Card>
         </div>
+        )}
       </div>
 
       {/* Center - Canvas */}
@@ -1341,12 +1702,13 @@ export function CertificateEditor({
             onUpdateElement={updateElement}
             previewMode={previewMode}
             showVariables={showVariables}
+            editMode={editMode}
           />
         </div>
       </div>
 
-      {/* Right Sidebar - Always visible */}
-      {!previewMode && (
+      {/* Right Sidebar - Only visible when editMode is ON */}
+      {!previewMode && editMode && (
         <div className="w-72 bg-white border-l overflow-y-auto flex-shrink-0 rounded-r-lg">
           <div className="p-2">
             {selectedEl ? (
@@ -1394,6 +1756,42 @@ export function CertificateEditor({
                     <div className="text-6xl mb-4">🖱️</div>
                     <p className="text-sm">Select an element to edit its properties</p>
                     <p className="text-xs mt-2 text-gray-400">Click on any text, image, or shape in the canvas</p>
+                  </div>
+                </CardContent>
+              </Card>
+            )}
+
+            {/* Keyboard Shortcuts - Always visible in edit mode */}
+            {editMode && (
+              <Card className="mt-4">
+                <CardHeader>
+                  <CardTitle className="text-lg flex items-center gap-2">
+                    <Keyboard className="w-4 h-4" />
+                    Keyboard Shortcuts
+                  </CardTitle>
+                </CardHeader>
+                <CardContent>
+                  <div className="text-xs space-y-2">
+                    <div className="flex justify-between">
+                      <span className="text-gray-600">Zoom in/out:</span>
+                      <kbd className="px-1 py-0.5 bg-gray-100 rounded text-xs">Ctrl + Scroll</kbd>
+          </div>
+                    <div className="flex justify-between">
+                      <span className="text-gray-600">Copy element:</span>
+                      <kbd className="px-1 py-0.5 bg-gray-100 rounded text-xs">Ctrl+C</kbd>
+          </div>
+                    <div className="flex justify-between">
+                      <span className="text-gray-600">Paste element:</span>
+                      <kbd className="px-1 py-0.5 bg-gray-100 rounded text-xs">Ctrl+V</kbd>
+                    </div>
+                    <div className="flex justify-between">
+                      <span className="text-gray-600">Delete element:</span>
+                      <kbd className="px-1 py-0.5 bg-gray-100 rounded text-xs">Supr</kbd>
+                    </div>
+                    <div className="flex justify-between">
+                      <span className="text-gray-600">Undo:</span>
+                      <kbd className="px-1 py-0.5 bg-gray-100 rounded text-xs">Ctrl+Z</kbd>
+                    </div>
                   </div>
                 </CardContent>
               </Card>
