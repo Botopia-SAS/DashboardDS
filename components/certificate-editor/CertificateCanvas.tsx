@@ -176,7 +176,7 @@ export function CertificateCanvas({
   // Scale: Keep FULL WIDTH, only reduce HEIGHT
   // Always use the same scale to maintain consistent proportions
   const certScaleX = 1; // Full width - NO scaling
-  let certScaleY = 1 / rows; // Always divide by rows to maintain same proportions
+  const certScaleY = 1 / rows; // Always divide by rows to maintain same proportions
 
   // Content scale: use Y scale to fit vertically, X stays full width
   const contentScale = certScaleY;
@@ -235,7 +235,7 @@ export function CertificateCanvas({
           // Keep width at 100% always, only scale height based on certsPerPage
           // Adjust scaling based on orientation and number of certificates
           const isLandscape = template.pageSize.orientation === 'landscape';
-          let heightScale = certScaleY;
+          const heightScale = certScaleY;
 
           // Reduce border width for multiple certificates (only in portrait)
           let borderWidthScale = 1;
