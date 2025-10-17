@@ -78,8 +78,6 @@ export interface PageSizeOption {
 
 export const PAGE_SIZE_OPTIONS: PageSizeOption[] = [
   { name: 'Carta', width: 612, height: 792, description: '21.6 x 27.9 cm' },
-  { name: 'A4', width: 595, height: 842, description: '21 x 29.7 cm' },
-  { name: 'Oficio', width: 612, height: 1008, description: '21.6 x 35.6 cm' },
 ];
 
 export const DEFAULT_VARIABLES: Variable[] = [

@@ -8,6 +8,7 @@ export const getDefaultBDITemplate = (classType: string): Omit<CertificateTempla
   name: `${classType} Certificate (BDI Style)`,
   classType: classType.toUpperCase(),
   pageSize: { width: 792, height: 612, orientation: 'landscape' },
+  certificatesPerPage: 1,
   background: { type: 'color', value: '#FFFFFF' },
 
   // Triple border frames (scaled for Carta 792x612)
@@ -51,13 +52,13 @@ export const getDefaultBDITemplate = (classType: string): Omit<CertificateTempla
   ],
 
   textElements: [
-    // Header - Title (Top of page) - scaled for Carta
+    // Header - Title (Top of page) - scaled for Carta 792x612 (+20% total)
     {
       id: 'text-title-1',
       content: 'AFFORDABLE DRIVING TRAFFIC SCHOOL',
       x: 396,
-      y: 82,
-      fontSize: 22,
+      y: 95,
+      fontSize: 21,
       fontFamily: 'Helvetica',
       fontWeight: 'bold',
       color: '#000000',
@@ -67,8 +68,8 @@ export const getDefaultBDITemplate = (classType: string): Omit<CertificateTempla
       id: 'text-title-2',
       content: 'CERTIFICATE OF COMPLETION',
       x: 396,
-      y: 118,
-      fontSize: 16,
+      y: 122,
+      fontSize: 14,
       fontFamily: 'Helvetica',
       fontWeight: 'bold',
       color: '#000000',
@@ -78,8 +79,8 @@ export const getDefaultBDITemplate = (classType: string): Omit<CertificateTempla
       id: 'text-address',
       content: '3167 FOREST HILL BLVD. WEST PALM BEACH, FL 33406',
       x: 396,
-      y: 149,
-      fontSize: 12,
+      y: 147,
+      fontSize: 10,
       fontFamily: 'Helvetica',
       color: '#000000',
       align: 'center'
@@ -88,8 +89,8 @@ export const getDefaultBDITemplate = (classType: string): Omit<CertificateTempla
       id: 'text-phones',
       content: '561-969-0150 / 561-330-7007',
       x: 396,
-      y: 170,
-      fontSize: 12,
+      y: 160,
+      fontSize: 10,
       fontFamily: 'Helvetica',
       color: '#000000',
       align: 'center'
@@ -100,8 +101,8 @@ export const getDefaultBDITemplate = (classType: string): Omit<CertificateTempla
       id: 'text-certifies-1',
       content: 'This Certifies that the person named below has successfully completed the Florida Dept.',
       x: 396,
-      y: 206,
-      fontSize: 12,
+      y: 188,
+      fontSize: 10,
       fontFamily: 'Helvetica',
       color: '#000000',
       align: 'center'
@@ -110,171 +111,187 @@ export const getDefaultBDITemplate = (classType: string): Omit<CertificateTempla
       id: 'text-certifies-2',
       content: 'Highway Safety and Motor Vehicles "Drive Safety & Driver Improvement Course"',
       x: 396,
-      y: 224,
-      fontSize: 12,
+      y: 200,
+      fontSize: 10,
       fontFamily: 'Helvetica',
       color: '#000000',
       align: 'center'
     },
 
-    // Left column - Student info
+    // Left column - Student info (+20% total)
     {
       id: 'text-citation-label',
       content: 'Citation No:',
-      x: 75,
-      y: 267,
-      fontSize: 13,
+      x: 85,
+      y: 235,
+      fontSize: 11,
       fontFamily: 'Helvetica',
-      color: '#000000'
+      color: '#000000',
+      align: 'left'
     },
     {
       id: 'text-citation-value',
       content: '{{citationNumber}}',
-      x: 282,
-      y: 267,
-      fontSize: 13,
+      x: 310,
+      y: 235,
+      fontSize: 11,
       fontFamily: 'Helvetica',
-      color: '#000000'
+      color: '#000000',
+      align: 'left'
     },
 
     {
       id: 'text-license-label',
       content: 'Driver License Number:',
-      x: 75,
-      y: 298,
-      fontSize: 13,
+      x: 85,
+      y: 258,
+      fontSize: 11,
       fontFamily: 'Helvetica',
-      color: '#000000'
+      color: '#000000',
+      align: 'left'
     },
     {
       id: 'text-license-value',
       content: '{{licenseNumber}}',
-      x: 282,
-      y: 298,
-      fontSize: 13,
+      x: 310,
+      y: 258,
+      fontSize: 11,
       fontFamily: 'Helvetica',
-      color: '#000000'
+      color: '#000000',
+      align: 'left'
     },
 
     {
       id: 'text-completion-label',
       content: 'Course Completion Date:',
-      x: 75,
-      y: 329,
-      fontSize: 13,
+      x: 85,
+      y: 281,
+      fontSize: 11,
       fontFamily: 'Helvetica',
-      color: '#000000'
+      color: '#000000',
+      align: 'left'
     },
     {
       id: 'text-completion-value',
       content: '{{courseDate}}',
-      x: 282,
-      y: 329,
-      fontSize: 13,
+      x: 310,
+      y: 281,
+      fontSize: 11,
       fontFamily: 'Helvetica',
-      color: '#000000'
+      color: '#000000',
+      align: 'left'
     },
 
     {
       id: 'text-name-label',
       content: 'Name:',
-      x: 75,
-      y: 360,
-      fontSize: 13,
+      x: 85,
+      y: 304,
+      fontSize: 11,
       fontFamily: 'Helvetica',
-      color: '#000000'
+      color: '#000000',
+      align: 'left'
     },
     {
       id: 'text-name-value',
       content: '{{studentName}}',
-      x: 282,
-      y: 360,
-      fontSize: 13,
+      x: 310,
+      y: 304,
+      fontSize: 11,
       fontFamily: 'Helvetica',
       fontWeight: 'bold',
-      color: '#000000'
+      color: '#000000',
+      align: 'left'
     },
 
     {
       id: 'text-location-label',
       content: 'Course Location:',
-      x: 75,
-      y: 391,
-      fontSize: 13,
+      x: 85,
+      y: 327,
+      fontSize: 11,
       fontFamily: 'Helvetica',
-      color: '#000000'
+      color: '#000000',
+      align: 'left'
     },
     {
       id: 'text-location-value',
       content: '{{address}}',
-      x: 282,
-      y: 391,
-      fontSize: 13,
+      x: 310,
+      y: 327,
+      fontSize: 11,
       fontFamily: 'Helvetica',
       fontWeight: 'bold',
-      color: '#000000'
+      color: '#000000',
+      align: 'left'
     },
 
-    // Right side - Certificate number
+    // Right side - Certificate number (+20% total)
     {
       id: 'text-cert-number-label',
       content: 'Certificate #:',
-      x: 517,
-      y: 267,
-      fontSize: 13,
+      x: 555,
+      y: 235,
+      fontSize: 11,
       fontFamily: 'Helvetica',
-      color: '#000000'
+      color: '#000000',
+      align: 'left'
     },
     {
       id: 'text-cert-number-value',
       content: '{{certn}}',
-      x: 621,
-      y: 267,
-      fontSize: 13,
+      x: 650,
+      y: 235,
+      fontSize: 11,
       fontFamily: 'Helvetica',
-      color: '#000000'
+      color: '#000000',
+      align: 'left'
     },
 
-    // Footer - Left side (Bottom of page)
+    // Footer - Left side (Bottom of page) (+20% total)
     {
       id: 'text-instructor-name',
       content: 'N/A',
-      x: 75,
-      y: 525,
-      fontSize: 11,
+      x: 85,
+      y: 545,
+      fontSize: 9,
       fontFamily: 'Helvetica',
       fontWeight: 'bold',
-      color: '#000000'
+      color: '#000000',
+      align: 'left'
     },
     {
       id: 'text-instructor-title',
       content: 'AFFORDABLE DRIVING INSTRUCTOR',
-      x: 75,
-      y: 545,
-      fontSize: 11,
+      x: 85,
+      y: 557,
+      fontSize: 9,
       fontFamily: 'Helvetica',
-      color: '#000000'
+      color: '#000000',
+      align: 'left'
     },
 
-    // Footer - Right side
+    // Footer - Right side (+20% total)
     {
       id: 'text-license-footer',
       content: 'LICENSE #',
-      x: 565,
-      y: 525,
-      fontSize: 11,
+      x: 590,
+      y: 545,
+      fontSize: 9,
       fontFamily: 'Helvetica',
       fontWeight: 'bold',
-      color: '#000000'
+      color: '#000000',
+      align: 'left'
     },
     {
       id: 'text-company-footer',
       content: 'AFFORDABLE DRIVING',
-      x: 565,
-      y: 545,
-      fontSize: 11,
+      x: 590,
+      y: 557,
+      fontSize: 9,
       fontFamily: 'Helvetica',
-      color: '#000000'
+      color: '#000000',
+      align: 'left'
     },
   ],
 

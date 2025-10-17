@@ -94,30 +94,102 @@ export function CertificateEditor({
   const initialTemplateRef = useRef(initialTemplate);
   const hasLoadedFromDb = useRef(false);
 
+  // Normalize template on first load - apply the same logic as orientation change
+  const [isInitialized, setIsInitialized] = useState(false);
+
   // Update template when a NEW initialTemplate is loaded (by checking _id)
   useEffect(() => {
-    if (initialTemplate && initialTemplate._id) {
-      const currentId = initialTemplateRef.current?._id;
-      const newId = initialTemplate._id;
-
-      console.log('🔄 Template update check:', {
-        hasLoadedFromDb: hasLoadedFromDb.current,
-        currentId,
-        newId,
-        certificatesPerPage: initialTemplate.certificatesPerPage
+    if (initialTemplate && !isInitialized) {
+      console.log('🎯 Initial template load:', {
+        hasId: !!initialTemplate._id,
+        orientation: initialTemplate.pageSize.orientation,
+        dimensions: `${initialTemplate.pageSize.width}x${initialTemplate.pageSize.height}`
       });
 
-      // Update if: 1) First time loading from DB, OR 2) The ID changed
-      if (!hasLoadedFromDb.current || currentId !== newId) {
-        console.log('✅ Updating template with certificatesPerPage:', initialTemplate.certificatesPerPage);
+      // For templates WITHOUT _id (default BDI template), apply normalization
+      if (!initialTemplate._id) {
+        // This is a default template - force a "refresh" by toggling orientation logic
+        // This ensures proper scaling is applied
+        const currentOrientation = initialTemplate.pageSize.orientation;
+        const oppositeOrientation = currentOrientation === 'landscape' ? 'portrait' : 'landscape';
+
+        // Temporarily swap to opposite orientation
+        const tempW = initialTemplate.pageSize.height;
+        const tempH = initialTemplate.pageSize.width;
+        const scaleX = tempW / initialTemplate.pageSize.width;
+        const scaleY = tempH / initialTemplate.pageSize.height;
+
+        const tempTextElements = initialTemplate.textElements.map(el => ({
+          ...el,
+          x: el.x * scaleX,
+          y: el.y * scaleY,
+          fontSize: el.fontSize
+        }));
+
+        const tempImageElements = initialTemplate.imageElements.map(el => ({
+          ...el,
+          x: el.x * scaleX,
+          y: el.y * scaleY,
+          width: el.width * scaleX,
+          height: el.height * scaleY
+        }));
+
+        const tempShapeElements = initialTemplate.shapeElements.map(el => {
+          const scaled: ShapeElement = {
+            ...el,
+            x: el.x * scaleX,
+            y: el.y * scaleY
+          };
+          if (el.width) scaled.width = el.width * scaleX;
+          if (el.height) scaled.height = el.height * scaleY;
+          if (el.x2) scaled.x2 = el.x2 * scaleX;
+          if (el.y2) scaled.y2 = el.y2 * scaleY;
+          if (el.radius) scaled.radius = el.radius * Math.min(scaleX, scaleY);
+          if (el.borderWidth) scaled.borderWidth = el.borderWidth;
+          return scaled;
+        });
+
+        // Save both states in orientationStates
+        const tempTemplate = {
+          ...initialTemplate,
+          pageSize: {
+            width: tempW,
+            height: tempH,
+            orientation: oppositeOrientation
+          },
+          textElements: tempTextElements,
+          imageElements: tempImageElements,
+          shapeElements: tempShapeElements
+        };
+
+        setOrientationStates({
+          [currentOrientation]: initialTemplate,
+          [oppositeOrientation]: tempTemplate
+        });
+
         setTemplate(initialTemplate);
         setHistory([initialTemplate]);
         setHistoryIndex(0);
         initialTemplateRef.current = initialTemplate;
-        hasLoadedFromDb.current = true;
+        setIsInitialized(true);
+        console.log('✅ Default template initialized with orientation states');
+      } else {
+        // Template with _id (from database)
+        const currentId = initialTemplateRef.current?._id;
+        const newId = initialTemplate._id;
+
+        if (!hasLoadedFromDb.current || currentId !== newId) {
+          console.log('✅ Database template loaded');
+          setTemplate(initialTemplate);
+          setHistory([initialTemplate]);
+          setHistoryIndex(0);
+          initialTemplateRef.current = initialTemplate;
+          hasLoadedFromDb.current = true;
+          setIsInitialized(true);
+        }
       }
     }
-  }, [initialTemplate]);
+  }, [initialTemplate, isInitialized]);
 
   // Update the saved orientation state whenever template changes
   // This ensures changes persist across orientation switches
@@ -890,7 +962,7 @@ export function CertificateEditor({
   return (
     <div className="flex h-full bg-gray-50 overflow-hidden rounded-lg">
       {/* Left Sidebar - Tools */}
-      <div className="w-80 bg-white border-r flex flex-col rounded-l-lg">
+      <div className={`${editMode ? 'w-80' : 'w-96'} bg-white border-r flex flex-col rounded-l-lg transition-all duration-300`}>
         {editMode ? (
           <Tabs defaultValue="settings" className="flex flex-col h-full">
             <div className="px-2 pt-2">
@@ -941,90 +1013,11 @@ export function CertificateEditor({
                 <div className="mt-2 space-y-2">
                   <div>
                     <Label className="text-xs">Page Size</Label>
-                    <Select
-                      disabled={editMode}
-                      value={(() => {
-                        // Normalize dimensions to portrait orientation for matching
-                        const currentW = Math.min(template.pageSize.width, template.pageSize.height);
-                        const currentH = Math.max(template.pageSize.width, template.pageSize.height);
-
-                        const match = PAGE_SIZE_OPTIONS.find(opt =>
-                          opt.width === currentW && opt.height === currentH
-                        );
-                        return match?.name || 'Carta';
-                      })()}
-                      onValueChange={(value) => {
-                        const selectedSize = PAGE_SIZE_OPTIONS.find(opt => opt.name === value);
-                        if (selectedSize) {
-                          // Calculate scale factors
-                          const oldWidth = template.pageSize.width;
-                          const oldHeight = template.pageSize.height;
-
-                          // Apply size based on current orientation
-                          const newWidth = template.pageSize.orientation === 'portrait' ? selectedSize.width : selectedSize.height;
-                          const newHeight = template.pageSize.orientation === 'portrait' ? selectedSize.height : selectedSize.width;
-
-                          const scaleX = newWidth / oldWidth;
-                          const scaleY = newHeight / oldHeight;
-
-                          // Scale all elements
-                          const scaledTextElements = template.textElements.map(el => ({
-                            ...el,
-                            x: el.x * scaleX,
-                            y: el.y * scaleY,
-                            fontSize: el.fontSize * Math.min(scaleX, scaleY)
-                          }));
-
-                          const scaledImageElements = template.imageElements.map(el => ({
-                            ...el,
-                            x: el.x * scaleX,
-                            y: el.y * scaleY,
-                            width: el.width * scaleX,
-                            height: el.height * scaleY
-                          }));
-
-                          const scaledShapeElements = template.shapeElements.map(el => {
-                            const scaled: ShapeElement = {
-                              ...el,
-                              x: el.x * scaleX,
-                              y: el.y * scaleY
-                            };
-
-                            if (el.width) scaled.width = el.width * scaleX;
-                            if (el.height) scaled.height = el.height * scaleY;
-                            if (el.x2) scaled.x2 = el.x2 * scaleX;
-                            if (el.y2) scaled.y2 = el.y2 * scaleY;
-                            if (el.radius) scaled.radius = el.radius * Math.min(scaleX, scaleY);
-                            if (el.borderWidth) scaled.borderWidth = el.borderWidth * Math.min(scaleX, scaleY);
-
-                            return scaled;
-                          });
-
-                          pushToHistory({
-                            ...template,
-                            pageSize: {
-                              ...template.pageSize,
-                              width: newWidth,
-                              height: newHeight
-                            },
-                            textElements: scaledTextElements,
-                            imageElements: scaledImageElements,
-                            shapeElements: scaledShapeElements
-                          });
-                        }
-                      }}
-                    >
-                      <SelectTrigger className="h-auto min-h-[2.5rem]">
-                        <SelectValue placeholder="Select page size" />
-                      </SelectTrigger>
-                      <SelectContent className="bg-white border border-gray-200 shadow-lg">
-                        {PAGE_SIZE_OPTIONS.map((option) => (
-                          <SelectItem key={option.name} value={option.name} className="bg-white hover:bg-gray-50">
-                            {option.name} ({option.description})
-                          </SelectItem>
-                        ))}
-                      </SelectContent>
-                    </Select>
+                    <Input
+                      value="Carta (21.6 × 27.9 cm)"
+                      disabled
+                      className="bg-gray-100 h-auto min-h-[2.5rem]"
+                    />
                   </div>
 
                   <div>

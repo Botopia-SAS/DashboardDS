@@ -24,7 +24,7 @@ export default function CertificateEditorPage() {
   const [loading, setLoading] = useState(true);
   const [showVariables, setShowVariables] = useState(false);
   const [previewMode, setPreviewMode] = useState(false);
-  const [editMode, setEditMode] = useState(true); // Modo edición activo por defecto
+  const [editMode, setEditMode] = useState(false); // Modo edición desactivado por defecto
   const { generateDynamicCertificatePDF } = useDynamicCertificateGenerator();
 
   const fetchTemplate = async () => {

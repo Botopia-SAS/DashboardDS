@@ -163,21 +163,20 @@ export function CertificateCanvas({
   };
 
   // Calculate layout for multiple certificates per page
-  const certsToRender = editMode ? 1 : certsPerPage; // Only render 1 in edit mode
+  const isLandscape = template.pageSize.orientation === 'landscape';
 
-  // 2, 3 certificates are stacked vertically in rows
-  const rows = certsPerPage;
+  // In horizontal/landscape orientation, always show only 1 certificate per page
+  // In vertical/portrait orientation, allow 1, 2, or 3 certificates per page
+  const effectiveCertsPerPage = isLandscape ? 1 : certsPerPage;
+  const certsToRender = editMode ? 1 : effectiveCertsPerPage; // Only render 1 in edit mode
+
+  // 2, 3 certificates are stacked vertically in rows (only in portrait)
+  const rows = effectiveCertsPerPage;
   const cols = 1;
   // Scale: Keep FULL WIDTH, only reduce HEIGHT
   // Always use the same scale to maintain consistent proportions
   const certScaleX = 1; // Full width - NO scaling
   let certScaleY = 1 / rows; // Always divide by rows to maintain same proportions
-
-  // Reduce vertical scale slightly for landscape orientation to fit content better
-  const isLandscape = template.pageSize.orientation === 'landscape';
-  if (isLandscape && certsPerPage >= 2) {
-    certScaleY = certScaleY * 0.92; // Reduce by 8% for landscape with multiple certs
-  }
 
   // Content scale: use Y scale to fit vertically, X stays full width
   const contentScale = certScaleY;
@@ -190,7 +189,20 @@ export function CertificateCanvas({
     // Always use the same height calculation to maintain consistent proportions
     const certHeight = template.pageSize.height / rows;
     const offsetX = 0;
-    const offsetY = editMode ? 0 : (row * certHeight);
+
+    // Adjust spacing between certificates (only applies in portrait mode)
+    let offsetY = 0;
+    if (!editMode) {
+      if (effectiveCertsPerPage === 2) {
+        // For 2 certs: slight spacing to prevent last line from being cut
+        offsetY = row * certHeight * 1.02;
+      } else if (effectiveCertsPerPage === 3) {
+        // For 3 certs: normal spacing
+        offsetY = row * certHeight * 1.0;
+      } else {
+        offsetY = row * certHeight;
+      }
+    }
 
     return (
       <div
@@ -225,11 +237,12 @@ export function CertificateCanvas({
           const isLandscape = template.pageSize.orientation === 'landscape';
           let heightScale = certScaleY;
 
-          // When landscape with multiple certs, adjust frame height
-          if (isLandscape && certsPerPage === 2) {
-            heightScale = certScaleY * 1.08; // 49.7% for 2 certs landscape (less reduction)
-          } else if (isLandscape && certsPerPage === 3) {
-            heightScale = certScaleY * 1.05; // 32% for 3 certs landscape (keep reduction)
+          // Reduce border width for multiple certificates (only in portrait)
+          let borderWidthScale = 1;
+          if (!isLandscape && effectiveCertsPerPage === 2) {
+            borderWidthScale = 0.65; // Same as text scale for 2 certs
+          } else if (!isLandscape && effectiveCertsPerPage === 3) {
+            borderWidthScale = 0.60; // Same as text scale for 3 certs
           }
 
           const scaledShape = {
@@ -241,7 +254,7 @@ export function CertificateCanvas({
             x2: shape.x2 ? shape.x2 * certScaleX : undefined,
             y2: shape.y2 ? shape.y2 * certScaleY : undefined,
             radius: shape.radius ? shape.radius * heightScale : undefined, // Scale radius with adjustment
-            borderWidth: shape.borderWidth, // DO NOT scale borderWidth - keep original
+            borderWidth: shape.borderWidth ? shape.borderWidth * borderWidthScale : undefined, // Scale border width for multiple certs
           };
 
           return (
@@ -346,18 +359,20 @@ export function CertificateCanvas({
         {/* Render Text Elements */}
         {template.textElements.map((text) => {
           const displayText = replaceVariables(text.content);
-          // Keep text more readable - adjust minimum scale based on orientation and cert count
+          // Increase text size by 10% for better readability in canvas
           const isLandscape = template.pageSize.orientation === 'landscape';
-          let minTextScale = 0.75; // Default minimum
+          let minTextScale = 1.1; // Default: +10% for readability
 
-          // For 1 certificate per page, increase text size for BOTH orientations
-          if (certsPerPage === 1) {
-            minTextScale = isLandscape ? 1.8 : 1.35; // Larger text for 1 cert landscape (180%), vertical (135%)
-          } else if (isLandscape) {
-            if (certsPerPage === 2) {
-              minTextScale = 1.15; // INCREASE text size for 2 certs landscape
-            } else if (certsPerPage === 3) {
-              minTextScale = 0.95; // Reduced 10% for 3 certs landscape
+          // Scale text appropriately based on certificates per page
+          // Only apply scaling adjustments in portrait mode
+          if (effectiveCertsPerPage === 1) {
+            minTextScale = 1.1; // +10% for 1 cert for better canvas readability
+          } else if (!isLandscape) {
+            // Only adjust for portrait mode with multiple certs
+            if (effectiveCertsPerPage === 2) {
+              minTextScale = 0.67; // Increase 3% from 0.65 for 2 certs portrait
+            } else if (effectiveCertsPerPage === 3) {
+              minTextScale = 0.60; // Reduce for 3 certs portrait
             }
           }
 
@@ -400,8 +415,8 @@ export function CertificateCanvas({
           );
         })}
 
-        {/* Division line for multiple certificates */}
-        {certsPerPage > 1 && certIndex < certsPerPage - 1 && (
+        {/* Division line for multiple certificates (only in portrait mode) */}
+        {effectiveCertsPerPage > 1 && certIndex < effectiveCertsPerPage - 1 && (
           <div
             className="absolute bottom-0 left-0 right-0 border-b-2 border-dashed border-gray-400"
             style={{
