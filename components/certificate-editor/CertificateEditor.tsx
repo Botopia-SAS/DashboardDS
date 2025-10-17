@@ -111,7 +111,7 @@ export function CertificateEditor({
         // This is a default template - force a "refresh" by toggling orientation logic
         // This ensures proper scaling is applied
         const currentOrientation = initialTemplate.pageSize.orientation;
-        const oppositeOrientation = currentOrientation === 'landscape' ? 'portrait' : 'landscape';
+        const oppositeOrientation: 'portrait' | 'landscape' = currentOrientation === 'landscape' ? 'portrait' : 'landscape';
 
         // Temporarily swap to opposite orientation
         const tempW = initialTemplate.pageSize.height;
@@ -163,8 +163,8 @@ export function CertificateEditor({
         };
 
         setOrientationStates({
-          [currentOrientation]: initialTemplate,
-          [oppositeOrientation]: tempTemplate
+          landscape: currentOrientation === 'landscape' ? initialTemplate : tempTemplate,
+          portrait: currentOrientation === 'portrait' ? initialTemplate : tempTemplate
         });
 
         setTemplate(initialTemplate);
