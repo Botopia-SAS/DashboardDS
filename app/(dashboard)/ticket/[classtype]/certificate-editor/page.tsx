@@ -114,7 +114,7 @@ export default function CertificateEditorPage() {
   const handleBack = () => {
     // Navigate specifically to the correct classtype page instead of using router.back()
     const normalizedClassType = classType.toLowerCase().replace(/\s+/g, '-');
-    router.push(`/ticket/${normalizedClassType}`);
+    router.push(`/ticket/day-of-class/${normalizedClassType}`);
   };
 
   const saveTemplate = async () => {

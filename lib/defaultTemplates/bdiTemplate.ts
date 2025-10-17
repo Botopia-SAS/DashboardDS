@@ -52,13 +52,13 @@ export const getDefaultBDITemplate = (classType: string): Omit<CertificateTempla
   ],
 
   textElements: [
-    // Header - Title (Top of page) - scaled for Carta 792x612 (+20% total)
+    // Header - Title (Top of page) - scaled for Carta 792x612 (+20% total, +3% font)
     {
       id: 'text-title-1',
       content: 'AFFORDABLE DRIVING TRAFFIC SCHOOL',
       x: 396,
       y: 95,
-      fontSize: 21,
+      fontSize: 22,
       fontFamily: 'Helvetica',
       fontWeight: 'bold',
       color: '#000000',
@@ -118,7 +118,7 @@ export const getDefaultBDITemplate = (classType: string): Omit<CertificateTempla
       align: 'center'
     },
 
-    // Left column - Student info (+20% total)
+    // Left column - Student info (+20% total, +3% font)
     {
       id: 'text-citation-label',
       content: 'Citation No:',
@@ -226,7 +226,7 @@ export const getDefaultBDITemplate = (classType: string): Omit<CertificateTempla
       align: 'left'
     },
 
-    // Right side - Certificate number (+20% total)
+    // Right side - Certificate number (+20% total, +3% font)
     {
       id: 'text-cert-number-label',
       content: 'Certificate #:',
@@ -248,7 +248,7 @@ export const getDefaultBDITemplate = (classType: string): Omit<CertificateTempla
       align: 'left'
     },
 
-    // Footer - Left side (Bottom of page) (+20% total)
+    // Footer - Left side (Bottom of page) (+20% total, +3% font)
     {
       id: 'text-instructor-name',
       content: 'N/A',
@@ -271,7 +271,7 @@ export const getDefaultBDITemplate = (classType: string): Omit<CertificateTempla
       align: 'left'
     },
 
-    // Footer - Right side (+20% total)
+    // Footer - Right side (+20% total, +3% font)
     {
       id: 'text-license-footer',
       content: 'LICENSE #',

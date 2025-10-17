@@ -10,20 +10,19 @@ export function drawTexts(
   certScaleY: number,
   offsetY: number,
   getFont: (family: string, weight?: string) => any,
-  replaceVariables: (text: string) => string
+  replaceVariables: (text: string) => string,
+  textScaleFactor: number = 1
 ) {
   texts.forEach((text: TextElement) => {
     const content = replaceVariables(text.content);
     const font = getFont(text.fontFamily, text.fontWeight);
     const textColor = hexToRgb(text.color);
 
-    // Keep text more readable - don't scale down as much as other elements
-    // Use a minimum scale of 0.7 (70%) to maintain readability
-    const textScaleFactor = Math.max(0.7, certScaleY);
     const scaledFontSize = text.fontSize * textScaleFactor;
     const textWidth = font.widthOfTextAtSize(content, scaledFontSize);
 
     const scaledX = text.x * certScaleX;
+    // Use certScaleY for Y position, then add offsetY
     const scaledY = text.y * certScaleY + offsetY;
 
     let xPos = scaledX;
