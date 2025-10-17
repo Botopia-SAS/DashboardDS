@@ -63,7 +63,7 @@ export function CertificateCanvas({
   // In edit mode, apply automatic zoom; otherwise use manual zoom
   // Apply zoom in edit mode ONLY when there are multiple certs per page
   const baseZoom = (editMode && certsPerPage > 1) ? 1.8 : 1;
-  const scale = getOptimalScale() * (editMode ? baseZoom : manualZoom);
+  const scale = getOptimalScale() * (editMode ? baseZoom * manualZoom : manualZoom);
 
   // Handle mouse down on element - simple click to select/deselect
   const handleMouseDown = (
@@ -383,6 +383,9 @@ export function CertificateCanvas({
   // Scroll to top when edit mode is activated and adjust view
   useEffect(() => {
     if (editMode && containerRef.current) {
+      // Reset manual zoom when entering edit mode
+      setManualZoom(1);
+      
       // Scroll to the top immediately
       containerRef.current.scrollTop = 0;
       containerRef.current.scrollLeft = 0;
@@ -393,6 +396,36 @@ export function CertificateCanvas({
           containerRef.current.scrollTop = 0;
         }
       }, 100);
+    }
+  }, [editMode]);
+
+  // Handle Ctrl + Mouse Wheel Zoom in edit mode
+  useEffect(() => {
+    if (!editMode) return;
+
+    const handleWheelZoom = (e: WheelEvent) => {
+      if (e.ctrlKey || e.metaKey) {
+        e.preventDefault();
+        
+        // Determine zoom direction
+        const zoomFactor = e.deltaY > 0 ? 0.9 : 1.1;
+        
+        // Update manual zoom
+        setManualZoom(prev => {
+          const newZoom = prev * zoomFactor;
+          // Limit zoom between 0.5x and 3x
+          return Math.min(Math.max(newZoom, 0.5), 3);
+        });
+      }
+    };
+
+    const canvas = canvasRef.current;
+    if (canvas) {
+      canvas.addEventListener('wheel', handleWheelZoom, { passive: false });
+      
+      return () => {
+        canvas.removeEventListener('wheel', handleWheelZoom);
+      };
     }
   }, [editMode]);
 
@@ -461,6 +494,13 @@ export function CertificateCanvas({
             <div className="text-6xl font-bold text-gray-200 opacity-20 rotate-45">
               PREVIEW
             </div>
+          </div>
+        )}
+
+        {/* Zoom Indicator in Edit Mode */}
+        {editMode && manualZoom !== 1 && (
+          <div className="absolute top-2 right-2 bg-blue-500 text-white px-3 py-1 rounded-md text-sm font-medium shadow-lg pointer-events-none z-10">
+            {Math.round(manualZoom * 100)}%
           </div>
         )}
       </div>

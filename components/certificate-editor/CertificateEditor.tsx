@@ -1712,6 +1712,10 @@ export function CertificateEditor({
                 <CardContent>
                   <div className="text-xs space-y-2">
                     <div className="flex justify-between">
+                      <span className="text-gray-600">Zoom in/out:</span>
+                      <kbd className="px-1 py-0.5 bg-gray-100 rounded text-xs">Ctrl + Scroll</kbd>
+          </div>
+                    <div className="flex justify-between">
                       <span className="text-gray-600">Copy element:</span>
                       <kbd className="px-1 py-0.5 bg-gray-100 rounded text-xs">Ctrl+C</kbd>
           </div>
