@@ -1,8 +1,6 @@
 "use client";
 
-import { useState } from "react";
 import { Button } from "@/components/ui/button";
-import { PageSelectionModal } from "./PageSelectionModal";
 
 interface TableActionsProps {
   rowSelection: Record<string, boolean>;
@@ -18,18 +16,10 @@ export function TableActions({
   onDownloadXLSX,
 }: TableActionsProps) {
   const selectedCount = Object.keys(rowSelection).length;
-  const [showPageModal, setShowPageModal] = useState(false);
 
+  // Call directly without modal - the function now handles dynamic PDF generation
   const handleDownloadCombined = () => {
-    if (selectedCount > 2) {
-      setShowPageModal(true);
-    } else {
-      onDownloadCombined(1);
-    }
-  };
-
-  const handleConfirmPages = (pages: number) => {
-    onDownloadCombined(pages);
+    onDownloadCombined(1); // Parameter is ignored now, kept for compatibility
   };
   
   return (
@@ -63,13 +53,6 @@ export function TableActions({
           Download XSLX
         </Button>
       </div>
-      
-      <PageSelectionModal
-        isOpen={showPageModal}
-        onClose={() => setShowPageModal(false)}
-        onConfirm={handleConfirmPages}
-        totalStudents={selectedCount}
-      />
     </>
   );
 }

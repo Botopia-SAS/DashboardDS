@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useEffect } from "react";
+import { useState, useEffect, useRef } from "react";
 import { useRouter } from "next/navigation";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -38,11 +38,19 @@ export function CertificateEditor({
   // setPreviewMode
 }: CertificateEditorProps) {
   const router = useRouter();
-  const [template, setTemplate] = useState<CertificateTemplate>(
-    initialTemplate || {
+
+  // Initialize with a function to ensure certificatesPerPage is properly set
+  const [template, setTemplate] = useState<CertificateTemplate>(() => {
+    if (initialTemplate) {
+      console.log('🎯 Initializing with initialTemplate, certificatesPerPage:', initialTemplate.certificatesPerPage);
+      return initialTemplate;
+    }
+    console.log('🎯 Initializing with default template, certificatesPerPage: 1');
+    return {
       name: `${classType} Certificate`,
       classType: classType.toUpperCase(),
       pageSize: { width: 792, height: 612, orientation: 'landscape' },
+      certificatesPerPage: 1, // Default to 1 certificate per page
       background: { type: 'color', value: '#FFFFFF' },
       textElements: [],
       imageElements: [],
@@ -50,8 +58,8 @@ export function CertificateEditor({
       availableVariables: DEFAULT_VARIABLES,
       isDefault: false,
       isActive: true,
-    }
-  );
+    };
+  });
 
   const [selectedElement, setSelectedElement] = useState<{
     type: 'text' | 'image' | 'shape' | null;
@@ -79,6 +87,35 @@ export function CertificateEditor({
     type: 'text' | 'image' | 'shape';
     element: TextElement | ImageElement | ShapeElement;
   } | null>(null);
+
+  // Track the initial template to detect when a NEW template is loaded from DB
+  const initialTemplateRef = useRef(initialTemplate);
+  const hasLoadedFromDb = useRef(false);
+
+  // Update template when a NEW initialTemplate is loaded (by checking _id)
+  useEffect(() => {
+    if (initialTemplate && initialTemplate._id) {
+      const currentId = initialTemplateRef.current?._id;
+      const newId = initialTemplate._id;
+
+      console.log('🔄 Template update check:', {
+        hasLoadedFromDb: hasLoadedFromDb.current,
+        currentId,
+        newId,
+        certificatesPerPage: initialTemplate.certificatesPerPage
+      });
+
+      // Update if: 1) First time loading from DB, OR 2) The ID changed
+      if (!hasLoadedFromDb.current || currentId !== newId) {
+        console.log('✅ Updating template with certificatesPerPage:', initialTemplate.certificatesPerPage);
+        setTemplate(initialTemplate);
+        setHistory([initialTemplate]);
+        setHistoryIndex(0);
+        initialTemplateRef.current = initialTemplate;
+        hasLoadedFromDb.current = true;
+      }
+    }
+  }, [initialTemplate]);
 
   // Update the saved orientation state whenever template changes
   useEffect(() => {

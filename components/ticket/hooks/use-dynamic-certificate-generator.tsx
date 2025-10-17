@@ -73,21 +73,19 @@ export function useDynamicCertificateGenerator() {
       // Draw background once
       await drawBackground(template, page, width, height, pdfDoc);
 
-      // Draw each certificate instance
-      for (let i = 0; i < certsPerPage; i++) {
-        const row = Math.floor(i / cols);
-        const offsetY = row * (height / rows);
-        console.log(`🎫 Drawing certificate ${i + 1}/${certsPerPage}`);
+      // For INDIVIDUAL certificate, only draw ONE certificate in the first position
+      // (even if template has certificatesPerPage > 1)
+      const offsetY = 0; // First position (top)
+      console.log(`🎫 Drawing individual certificate at position 1`);
 
-        // Draw shapes
-        drawShapes(template.shapeElements, page, height, certScaleX, certScaleY, offsetY);
+      // Draw shapes
+      drawShapes(template.shapeElements, page, height, certScaleX, certScaleY, offsetY);
 
-        // Draw images
-        await drawImages(template.imageElements, page, height, certScaleX, certScaleY, offsetY, pdfDoc);
+      // Draw images
+      await drawImages(template.imageElements, page, height, certScaleX, certScaleY, offsetY, pdfDoc);
 
-        // Draw text
-        drawTexts(template.textElements, page, height, certScaleX, certScaleY, offsetY, getFont, replaceVariables);
-      }
+      // Draw text
+      drawTexts(template.textElements, page, height, certScaleX, certScaleY, offsetY, getFont, replaceVariables);
 
       // Serialize PDF
       console.log('💾 Serializing PDF...');
@@ -104,5 +102,97 @@ export function useDynamicCertificateGenerator() {
     }
   }, []);
 
-  return { generateDynamicCertificatePDF };
+  // Generate multiple certificates in one PDF (up to certificatesPerPage per page)
+  const generateMultipleCertificatesPDF = useCallback(async (users: Student[], template: CertificateTemplate) => {
+    console.log('🎨 Starting multiple certificates generation');
+    console.log('👥 Users:', users.length);
+    console.log('📋 Template:', template.name);
+
+    try {
+      const pdfDoc = await PDFDocument.create();
+      const certsPerPage = template.certificatesPerPage || 1;
+      const rows = certsPerPage;
+      const cols = 1;
+      const certScaleX = 1;
+      const certScaleY = 1 / rows;
+
+      // Embed fonts
+      const fonts = {
+        helvetica: await pdfDoc.embedFont(StandardFonts.Helvetica),
+        helveticaBold: await pdfDoc.embedFont(StandardFonts.HelveticaBold),
+        timesRoman: await pdfDoc.embedFont(StandardFonts.TimesRoman),
+        timesBold: await pdfDoc.embedFont(StandardFonts.TimesRomanBold),
+        courier: await pdfDoc.embedFont(StandardFonts.Courier),
+      };
+
+      const getFont = (fontFamily: string, fontWeight: string = 'normal') => {
+        if (fontFamily === 'Helvetica' && fontWeight === 'bold') return fonts.helveticaBold;
+        if (fontFamily === 'Times-Roman' && fontWeight === 'bold') return fonts.timesBold;
+        const fontMap: Record<string, any> = {
+          'Helvetica': fonts.helvetica,
+          'Helvetica-Bold': fonts.helveticaBold,
+          'Times-Roman': fonts.timesRoman,
+          'Times-Bold': fonts.timesBold,
+          'Courier': fonts.courier,
+        };
+        return fontMap[fontFamily] || fonts.helvetica;
+      };
+
+      // Process users in chunks of certsPerPage
+      for (let pageIndex = 0; pageIndex < Math.ceil(users.length / certsPerPage); pageIndex++) {
+        const page = pdfDoc.addPage([template.pageSize.width, template.pageSize.height]);
+        const { width, height } = page.getSize();
+
+        // Draw background once per page
+        await drawBackground(template, page, width, height, pdfDoc);
+
+        const startIdx = pageIndex * certsPerPage;
+        const endIdx = Math.min(startIdx + certsPerPage, users.length);
+
+        console.log(`📄 Page ${pageIndex + 1}: Drawing ${endIdx - startIdx} certificate(s)`);
+
+        for (let i = startIdx; i < endIdx; i++) {
+          const user = users[i];
+          const positionInPage = i - startIdx;
+          const row = Math.floor(positionInPage / cols);
+          const offsetY = row * (height / rows);
+
+          console.log(`🎫 Certificate ${i + 1}/${users.length}: ${user.first_name} ${user.last_name} at position ${positionInPage + 1}`);
+
+          const variables = getVariables(user);
+          const replaceVariables = (text: string): string => {
+            let result = text;
+            Object.entries(variables).forEach(([key, value]) => {
+              const regex = new RegExp(`\\{\\{${key}\\}\\}`, 'g');
+              result = result.replace(regex, value);
+            });
+            return result;
+          };
+
+          // Draw shapes
+          drawShapes(template.shapeElements, page, height, certScaleX, certScaleY, offsetY);
+
+          // Draw images
+          await drawImages(template.imageElements, page, height, certScaleX, certScaleY, offsetY, pdfDoc);
+
+          // Draw text
+          drawTexts(template.textElements, page, height, certScaleX, certScaleY, offsetY, getFont, replaceVariables);
+        }
+      }
+
+      console.log('💾 Serializing multi-certificate PDF...');
+      const pdfBytes = await pdfDoc.save();
+      console.log(`✅ PDF generated: ${pdfBytes.length} bytes`);
+
+      const arrayBuffer = pdfBytes.slice().buffer as ArrayBuffer;
+      const blob = new Blob([arrayBuffer], { type: 'application/pdf' });
+      return blob;
+
+    } catch (error) {
+      console.error('Error generating multiple certificates:', error);
+      throw error;
+    }
+  }, []);
+
+  return { generateDynamicCertificatePDF, generateMultipleCertificatesPDF };
 }
