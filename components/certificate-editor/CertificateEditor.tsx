@@ -2289,7 +2289,7 @@ export function CertificateEditor({
                    selectedEl && 
                    (selectedEl.id === 'text-instructor-name' || (selectedEl as any).content === 'N/A' || (selectedEl as any).content === 'AFFORDABLE DRIVING INSTRUCTOR') && (
                     <div className="border-t pt-4">
-                      <Label className="text-sm font-semibold mb-2 block">Instructor's Signature</Label>
+                      <Label className="text-sm font-semibold mb-2 block">Instructor&apos;s Signature</Label>
                       <Button
                         variant="outline"
                         className="w-full"
@@ -2384,7 +2384,7 @@ export function CertificateEditor({
         <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
           <div className="bg-white rounded-lg p-6 w-[500px] max-w-full mx-4 max-h-[90vh] overflow-y-auto">
             <div className="flex justify-between items-center mb-4">
-              <h3 className="text-lg font-semibold">Instructor's Signature</h3>
+              <h3 className="text-lg font-semibold">Instructor&apos;s Signature</h3>
               <Button
                 variant="ghost"
                 size="sm"
