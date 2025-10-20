@@ -35,6 +35,8 @@ export interface Student {
   license_number?: string;
   dateOfBirth?: string;
   sex?: string;
+  // Allow dynamic fields from certificate templates
+  [key: string]: any;
 }
 
 export const columns: ColumnDef<Student>[] = [

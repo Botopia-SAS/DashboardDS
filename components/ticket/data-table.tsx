@@ -365,7 +365,7 @@ export function DataTable({ columns, data, onUpdate }: DataTableProps) {
         onDownloadXLSX={downloadXLSX}
       />
 
-      <div className="rounded-md border">
+      <div className="rounded-md border overflow-x-auto">
         <Table>
           <TableHeader>
             {table.getHeaderGroups().map((headerGroup) => (
@@ -380,7 +380,7 @@ export function DataTable({ columns, data, onUpdate }: DataTableProps) {
                         )}
                   </TableHead>
                 ))}
-                <TableHead>Actions</TableHead>
+                <TableHead className="sticky right-0 bg-white z-10 shadow-left">Actions</TableHead>
               </TableRow>
             ))}
           </TableHeader>
@@ -396,23 +396,25 @@ export function DataTable({ columns, data, onUpdate }: DataTableProps) {
                   >
                     {row.getVisibleCells().map((cell) => {
                       const columnId = cell.column.id as keyof Student;
+                      const cellValue = rowData[columnId];
+                      
+                      // Make all fields editable when in edit mode (except select checkbox)
+                      const isEditable = isEditing && columnId !== "select";
+                      
                       return (
                         <TableCell key={cell.id}>
-                          {isEditing &&
-                          (columnId === "certn" ||
-                            columnId === "payedAmount" ||
-                            columnId === "citation_number") ? (
+                          {isEditable ? (
                             <input
-                              type={columnId === "citation_number" ? "text" : "text"}
-                              value={rowData[columnId] || ""}
-                              onChange={(e) =>
-                                handleChange(
-                                  row.id, 
-                                  columnId, 
-                                  columnId === "citation_number" ? e.target.value : +e.target.value
-                                )
-                              }
+                              type={typeof cellValue === "number" ? "number" : "text"}
+                              value={cellValue === "N/A" || cellValue === "-" ? "" : (cellValue || "")}
+                              onChange={(e) => {
+                                const value = typeof cellValue === "number" 
+                                  ? (e.target.value === "" ? 0 : +e.target.value)
+                                  : e.target.value;
+                                handleChange(row.id, columnId, value);
+                              }}
                               className="border p-1 w-full"
+                              placeholder="Enter value..."
                             />
                           ) : (
                             flexRender(
@@ -423,19 +425,21 @@ export function DataTable({ columns, data, onUpdate }: DataTableProps) {
                         </TableCell>
                       );
                     })}
-                    <RowActionButtons
-                      actions={{
-                        isEditing,
-                        rowId: row.id,
-                        original: row.original,
-                        onEdit: () => handleEdit(row.id),
-                        onSave: () => handleSave(row.id),
-                        onCancel: handleCancelEdit,
-                        onDownload: () =>
-                          downloadSingleCertificate(row.original),
-                        isSaving,
-                      }}
-                    />
+                    <TableCell className="sticky right-0 bg-white z-10 shadow-left">
+                      <RowActionButtons
+                        actions={{
+                          isEditing,
+                          rowId: row.id,
+                          original: row.original,
+                          onEdit: () => handleEdit(row.id),
+                          onSave: () => handleSave(row.id),
+                          onCancel: handleCancelEdit,
+                          onDownload: () =>
+                            downloadSingleCertificate(row.original),
+                          isSaving,
+                        }}
+                      />
+                    </TableCell>
                   </TableRow>
                 );
               })

@@ -20,7 +20,10 @@ const CertificateSchema = new mongoose.Schema({
   reason: { type: String },
   country_ticket: { type: String },
   course_country: { type: String },
-});
+  // Instructor information
+  instructorName: { type: String },
+  // Allow dynamic fields for certificate templates
+}, { strict: false });
 
 CertificateSchema.index({ studentId: 1, classId: 1 }, { unique: true });
 
