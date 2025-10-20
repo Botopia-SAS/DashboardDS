@@ -10,11 +10,12 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Textarea } from "@/components/ui/textarea";
 import { Switch } from "@/components/ui/switch";
-import { Trash2, Plus, Settings, Type, Square, Keyboard } from "lucide-react";
+import { Trash2, Plus, Settings, Type, Square, Keyboard, Upload, PenTool, X } from "lucide-react";
 import toast from "react-hot-toast";
 import { CertificateTemplate, TextElement, ImageElement, ShapeElement, DEFAULT_VARIABLES, PAGE_SIZE_OPTIONS } from "./types";
 import { CertificateCanvas } from "./CertificateCanvas";
 import { CertificateImageUpload } from "./CertificateImageUpload";
+import { SignatureCanvas } from "./SignatureCanvas";
 
 interface CertificateEditorProps {
   classType: string;
@@ -71,6 +72,9 @@ export function CertificateEditor({
   const [borderLineStyle, setBorderLineStyle] = useState<string>('solid');
   const [borderColor, setBorderColor] = useState<string>('#000000');
   const [selectedFrameStyle, setSelectedFrameStyle] = useState<string>('');
+  const [signatureImage, setSignatureImage] = useState<string | null>(null);
+  const [showSignatureModal, setShowSignatureModal] = useState(false);
+  const [isDrawingMode, setIsDrawingMode] = useState(false);
 
   // Store original template state for each orientation to prevent cumulative scaling
   const [orientationStates, setOrientationStates] = useState<{
@@ -381,6 +385,11 @@ export function CertificateEditor({
     });
 
     setSelectedElement({ type: 'image', id: newElement.id });
+  };
+
+  // Add Signature Element
+  const addSignatureElement = () => {
+    setShowSignatureModal(true);
   };
 
   // Add Shape Element
@@ -863,13 +872,13 @@ export function CertificateEditor({
       ...template,
       textElements: [
         // Header
-        { id: `text-${Date.now()}-1`, content: 'AFFORDABLE DRIVING TRAFFIC SCHOOL', x: w/2, y: 95*scaleY, fontSize: 22*fontScale, fontFamily: 'Helvetica', fontWeight: 'bold', color: '#000000', align: 'center' },
-        { id: `text-${Date.now()}-2`, content: 'CERTIFICATE OF COMPLETION', x: w/2, y: 122*scaleY, fontSize: 14*fontScale, fontFamily: 'Helvetica', fontWeight: 'bold', color: '#000000', align: 'center' },
-        { id: `text-${Date.now()}-3`, content: '3167 FOREST HILL BLVD. WEST PALM BEACH, FL 33406', x: w/2, y: 147*scaleY, fontSize: 10*fontScale, fontFamily: 'Helvetica', color: '#000000', align: 'center' },
-        { id: `text-${Date.now()}-4`, content: '561-969-0150 / 561-330-7007', x: w/2, y: 160*scaleY, fontSize: 10*fontScale, fontFamily: 'Helvetica', color: '#000000', align: 'center' },
+        { id: `text-${Date.now()}-1`, content: 'AFFORDABLE DRIVING TRAFFIC SCHOOL', x: w/2, y: 75*scaleY, fontSize: 16*fontScale, fontFamily: 'Helvetica', fontWeight: 'bold', color: '#000000', align: 'center' },
+        { id: `text-${Date.now()}-2`, content: 'CERTIFICATE OF COMPLETION', x: w/2, y: 110*scaleY, fontSize: 14*fontScale, fontFamily: 'Helvetica', fontWeight: 'bold', color: '#000000', align: 'center' },
+        { id: `text-${Date.now()}-3`, content: '3167 FOREST HILL BLVD. WEST PALM BEACH, FL 33406', x: w/2, y: 135*scaleY, fontSize: 10*fontScale, fontFamily: 'Helvetica', color: '#000000', align: 'center' },
+        { id: `text-${Date.now()}-4`, content: '561-969-0150 / 561-330-7007', x: w/2, y: 148*scaleY, fontSize: 10*fontScale, fontFamily: 'Helvetica', color: '#000000', align: 'center' },
         // Body
-        { id: `text-${Date.now()}-5`, content: 'This Certifies that the person named below has successfully completed the Florida Dept.', x: w/2, y: 188*scaleY, fontSize: 10*fontScale, fontFamily: 'Helvetica', color: '#000000', align: 'center' },
-        { id: `text-${Date.now()}-6`, content: 'Highway Safety and Motor Vehicles "Drive Safety & Driver Improvement Course"', x: w/2, y: 200*scaleY, fontSize: 10*fontScale, fontFamily: 'Helvetica', color: '#000000', align: 'center' },
+        { id: `text-${Date.now()}-5`, content: 'This Certifies that the person named below has successfully completed the Florida Dept.', x: w/2, y: 164*scaleY, fontSize: 10*fontScale, fontFamily: 'Helvetica', color: '#000000', align: 'center' },
+        { id: `text-${Date.now()}-6`, content: 'Highway Safety and Motor Vehicles "Drive Safety & Driver Improvement Course"', x: w/2, y: 188*scaleY, fontSize: 10*fontScale, fontFamily: 'Helvetica', color: '#000000', align: 'center' },
         // Left column
         { id: `text-${Date.now()}-7`, content: 'Citation No:', x: 85*scaleX, y: 235*scaleY, fontSize: 11*fontScale, fontFamily: 'Helvetica', color: '#000000', align: 'left' },
         { id: `text-${Date.now()}-8`, content: 'Driver License Number:', x: 85*scaleX, y: 258*scaleY, fontSize: 11*fontScale, fontFamily: 'Helvetica', color: '#000000', align: 'left' },
@@ -1187,6 +1196,59 @@ export function CertificateEditor({
     setSelectedFrameStyle('');
   };
 
+  // Signature functions
+  const handleSignatureUpload = async (imageData: string) => {
+    try {
+      setSignatureImage(imageData);
+      
+      // Add as a new image element
+      const newElement: ImageElement = {
+        id: `signature-${Date.now()}`,
+        url: imageData,
+        x: 100,
+        y: 500,
+        width: 150,
+        height: 50,
+      };
+
+      pushToHistory({
+        ...template,
+        imageElements: [...template.imageElements, newElement],
+      });
+
+      setSelectedElement({ type: 'image', id: newElement.id });
+      
+      toast.success("Signature uploaded successfully!");
+      setShowSignatureModal(false);
+      setIsDrawingMode(false);
+    } catch (error) {
+      console.error('Error uploading signature:', error);
+      toast.error("Failed to upload signature. Please try again.");
+    }
+  };
+
+  const clearSignature = () => {
+    setSignatureImage(null);
+    const updatedTextElements = template.textElements.map(element => {
+      if (element.id === 'text-instructor-name' || (element as any).type === 'image') {
+        return {
+          ...element,
+          content: 'N/A',
+          type: 'text' as const,
+          imageData: undefined,
+          width: undefined,
+          height: undefined
+        };
+      }
+      return element;
+    });
+    
+    pushToHistory({
+      ...template,
+      textElements: updatedTextElements
+    });
+  };
+
   // Save template
   const saveTemplate = async () => {
     try {
@@ -1261,7 +1323,7 @@ export function CertificateEditor({
               </TabsList>
             </div>
 
-            <div className="flex-1 overflow-y-auto px-2 pb-2">
+            <div className="flex-1 px-2 pb-2">
               <TabsContent value="settings" className="mt-2">
           <Card>
             <CardHeader>
@@ -1500,6 +1562,10 @@ export function CertificateEditor({
                 <Plus className="w-4 h-4 mr-2" />
                 Add Image
               </Button>
+              <Button onClick={() => setShowSignatureModal(true)} className="w-full" variant="outline">
+                <Plus className="w-4 h-4 mr-2" />
+                Add Signature
+              </Button>
               <Button onClick={() => addShapeElement('rectangle')} className="w-full" variant="outline">
                 <Plus className="w-4 h-4 mr-2" />
                 Add Rectangle
@@ -1576,7 +1642,7 @@ export function CertificateEditor({
                     setSelectedFrameStyle('');
                   }
                 }}>
-                  <SelectTrigger className="w-full h-10">
+                  <SelectTrigger className="w-full h-auto min-h-[2.5rem]">
                     <SelectValue placeholder="Choose a background design...">
                       {template.background.type === 'image' && template.background.value === 'https://res.cloudinary.com/dcljjtnxr/image/upload/v1760935342/Blue_Lines_Certificate_of_Completion_1_ryqak1.png' && 'Blue Lines'}
                       {template.background.type === 'image' && template.background.value === 'https://res.cloudinary.com/dcljjtnxr/image/upload/v1760928960/Dise%C3%B1o_sin_t%C3%ADtulo_1_h53ri5.jpg' && 'Elegant Floral'}
@@ -1595,92 +1661,102 @@ export function CertificateEditor({
                       {template.background.type === 'color' && 'No Design'}
                     </SelectValue>
                   </SelectTrigger>
-                  <SelectContent className="bg-white border border-gray-200 shadow-lg z-50" style={{ maxHeight: '300px' }}>
-                    <SelectItem value="none" className="py-2 px-3 bg-white hover:bg-gray-50">
+                  <SelectContent 
+                    className="bg-white border border-gray-200 shadow-lg z-[100]" 
+                    style={{ 
+                      maxHeight: '500px', 
+                      overflowY: 'auto',
+                      scrollBehavior: 'smooth',
+                      position: 'fixed'
+                    }}
+                    position="popper"
+                    sideOffset={4}
+                  >
+                    <SelectItem value="none" className="py-3 px-4 bg-white hover:bg-gray-50 focus:bg-gray-50 focus:outline-none cursor-pointer">
                       <div className="flex flex-col items-start w-full">
                         <span className="font-medium text-sm text-gray-900">No Design</span>
                         <span className="text-xs text-gray-500">Plain background</span>
                       </div>
                     </SelectItem>
-                    <SelectItem value="https://res.cloudinary.com/dcljjtnxr/image/upload/v1760935342/Blue_Lines_Certificate_of_Completion_1_ryqak1.png" className="py-2 px-3 bg-white hover:bg-gray-50">
+                    <SelectItem value="https://res.cloudinary.com/dcljjtnxr/image/upload/v1760935342/Blue_Lines_Certificate_of_Completion_1_ryqak1.png" className="py-3 px-4 bg-white hover:bg-gray-50 focus:bg-gray-50 focus:outline-none cursor-pointer">
                       <div className="flex flex-col items-start w-full">
                         <span className="font-medium text-sm text-gray-900">Blue Lines</span>
                         <span className="text-xs text-gray-500">Modern certificate with blue line decorations</span>
                       </div>
                     </SelectItem>
-                    <SelectItem value="https://res.cloudinary.com/dcljjtnxr/image/upload/v1760928960/Dise%C3%B1o_sin_t%C3%ADtulo_1_h53ri5.jpg" className="py-2 px-3 bg-white hover:bg-gray-50">
+                    <SelectItem value="https://res.cloudinary.com/dcljjtnxr/image/upload/v1760928960/Dise%C3%B1o_sin_t%C3%ADtulo_1_h53ri5.jpg" className="py-3 px-4 bg-white hover:bg-gray-50 focus:bg-gray-50 focus:outline-none cursor-pointer">
                       <div className="flex flex-col items-start w-full">
                         <span className="font-medium text-sm text-gray-900">Elegant Floral</span>
                         <span className="text-xs text-gray-500">Elegant certificate with floral frame</span>
                       </div>
                     </SelectItem>
-                    <SelectItem value="https://res.cloudinary.com/dcljjtnxr/image/upload/v1760937563/Diploma_T%C3%ADtulo_Curso_Profesional_Elegante_Blanco_qnwgwj.png" className="py-2 px-3 bg-white hover:bg-gray-50">
+                    <SelectItem value="https://res.cloudinary.com/dcljjtnxr/image/upload/v1760937563/Diploma_T%C3%ADtulo_Curso_Profesional_Elegante_Blanco_qnwgwj.png" className="py-3 px-4 bg-white hover:bg-gray-50 focus:bg-gray-50 focus:outline-none cursor-pointer">
                       <div className="flex flex-col items-start w-full">
                         <span className="font-medium text-sm text-gray-900">Professional White</span>
                         <span className="text-xs text-gray-500">Professional diploma style certificate</span>
                       </div>
                     </SelectItem>
-                    <SelectItem value="https://res.cloudinary.com/dcljjtnxr/image/upload/v1760937558/Black_and_White_Ornamental_Certificate_of_Achievement_f1z532.png" className="py-2 px-3 bg-white hover:bg-gray-50">
+                    <SelectItem value="https://res.cloudinary.com/dcljjtnxr/image/upload/v1760937558/Black_and_White_Ornamental_Certificate_of_Achievement_f1z532.png" className="py-3 px-4 bg-white hover:bg-gray-50 focus:bg-gray-50 focus:outline-none cursor-pointer">
                       <div className="flex flex-col items-start w-full">
                         <span className="font-medium text-sm text-gray-900">Black & White Ornamental</span>
                         <span className="text-xs text-gray-500">Classic black and white ornamental design</span>
                       </div>
                     </SelectItem>
-                    <SelectItem value="https://res.cloudinary.com/dcljjtnxr/image/upload/v1760937549/Certificado_de_participaci%C3%B3n_nsnmul.png" className="py-2 px-3 bg-white hover:bg-gray-50">
+                    <SelectItem value="https://res.cloudinary.com/dcljjtnxr/image/upload/v1760937549/Certificado_de_participaci%C3%B3n_nsnmul.png" className="py-3 px-4 bg-white hover:bg-gray-50 focus:bg-gray-50 focus:outline-none cursor-pointer">
                       <div className="flex flex-col items-start w-full">
                         <span className="font-medium text-sm text-gray-900">Participation Certificate</span>
                         <span className="text-xs text-gray-500">Certificate of participation design</span>
                       </div>
                     </SelectItem>
-                    <SelectItem value="https://res.cloudinary.com/dcljjtnxr/image/upload/v1760937546/White_and_Golden_Neutral_Minimalist_Vintage_Completion_Certificate_kjq06y.png" className="py-2 px-3 bg-white hover:bg-gray-50">
+                    <SelectItem value="https://res.cloudinary.com/dcljjtnxr/image/upload/v1760937546/White_and_Golden_Neutral_Minimalist_Vintage_Completion_Certificate_kjq06y.png" className="py-3 px-4 bg-white hover:bg-gray-50 focus:bg-gray-50 focus:outline-none cursor-pointer">
                       <div className="flex flex-col items-start w-full">
                         <span className="font-medium text-sm text-gray-900">White & Gold Vintage</span>
                         <span className="text-xs text-gray-500">Minimalist vintage completion certificate</span>
                       </div>
                     </SelectItem>
-                    <SelectItem value="https://res.cloudinary.com/dcljjtnxr/image/upload/v1760937543/Certificado_de_Participaci%C3%B3n_Elegante_Dorado_mmmgn7.png" className="py-2 px-3 bg-white hover:bg-gray-50">
+                    <SelectItem value="https://res.cloudinary.com/dcljjtnxr/image/upload/v1760937543/Certificado_de_Participaci%C3%B3n_Elegante_Dorado_mmmgn7.png" className="py-3 px-4 bg-white hover:bg-gray-50 focus:bg-gray-50 focus:outline-none cursor-pointer">
                       <div className="flex flex-col items-start w-full">
                         <span className="font-medium text-sm text-gray-900">Elegant Gold</span>
                         <span className="text-xs text-gray-500">Elegant golden participation certificate</span>
                       </div>
                     </SelectItem>
-                    <SelectItem value="https://res.cloudinary.com/dcljjtnxr/image/upload/v1760938137/Gold_And_White_Classic_Religious_Completion_Catholic_Catechism_Certificate_1_gdesyl.png" className="py-2 px-3 bg-white hover:bg-gray-50">
+                    <SelectItem value="https://res.cloudinary.com/dcljjtnxr/image/upload/v1760938137/Gold_And_White_Classic_Religious_Completion_Catholic_Catechism_Certificate_1_gdesyl.png" className="py-3 px-4 bg-white hover:bg-gray-50 focus:bg-gray-50 focus:outline-none cursor-pointer">
                       <div className="flex flex-col items-start w-full">
                         <span className="font-medium text-sm text-gray-900">Classic Religious</span>
                         <span className="text-xs text-gray-500">Classic religious completion certificate</span>
                       </div>
                     </SelectItem>
-                    <SelectItem value="https://res.cloudinary.com/dcljjtnxr/image/upload/v1760937851/Gold_and_White_Elegant_Certificate_of_Appreciation_A4_ynfahe.png" className="py-2 px-3 bg-white hover:bg-gray-50">
+                    <SelectItem value="https://res.cloudinary.com/dcljjtnxr/image/upload/v1760937851/Gold_and_White_Elegant_Certificate_of_Appreciation_A4_ynfahe.png" className="py-3 px-4 bg-white hover:bg-gray-50 focus:bg-gray-50 focus:outline-none cursor-pointer">
                       <div className="flex flex-col items-start w-full">
                         <span className="font-medium text-sm text-gray-900">Gold & White Appreciation</span>
                         <span className="text-xs text-gray-500">Elegant appreciation certificate</span>
                       </div>
                     </SelectItem>
-                    <SelectItem value="https://res.cloudinary.com/dcljjtnxr/image/upload/v1760938272/Blue_and_Gold_Modern_Achievement_Certificate_ljx31q.png" className="py-2 px-3 bg-white hover:bg-gray-50">
+                    <SelectItem value="https://res.cloudinary.com/dcljjtnxr/image/upload/v1760938272/Blue_and_Gold_Modern_Achievement_Certificate_ljx31q.png" className="py-3 px-4 bg-white hover:bg-gray-50 focus:bg-gray-50 focus:outline-none cursor-pointer">
                       <div className="flex flex-col items-start w-full">
                         <span className="font-medium text-sm text-gray-900">Blue & Gold Modern</span>
                         <span className="text-xs text-gray-500">Modern achievement certificate</span>
                       </div>
                     </SelectItem>
-                    <SelectItem value="https://res.cloudinary.com/dcljjtnxr/image/upload/v1760938463/Green_and_Gold_Elegant_Certificate_of_Appreciation_A4_wg7prz.png" className="py-2 px-3 bg-white hover:bg-gray-50">
+                    <SelectItem value="https://res.cloudinary.com/dcljjtnxr/image/upload/v1760938463/Green_and_Gold_Elegant_Certificate_of_Appreciation_A4_wg7prz.png" className="py-3 px-4 bg-white hover:bg-gray-50 focus:bg-gray-50 focus:outline-none cursor-pointer">
                       <div className="flex flex-col items-start w-full">
                         <span className="font-medium text-sm text-gray-900">Green & Gold Elegant</span>
                         <span className="text-xs text-gray-500">Elegant green and gold design</span>
                       </div>
                     </SelectItem>
-                    <SelectItem value="https://res.cloudinary.com/dcljjtnxr/image/upload/v1760938661/Teal_Gold_and_White_Simple_Completion_Certificate_sgkfic.png" className="py-2 px-3 bg-white hover:bg-gray-50">
+                    <SelectItem value="https://res.cloudinary.com/dcljjtnxr/image/upload/v1760938661/Teal_Gold_and_White_Simple_Completion_Certificate_sgkfic.png" className="py-3 px-4 bg-white hover:bg-gray-50 focus:bg-gray-50 focus:outline-none cursor-pointer">
                       <div className="flex flex-col items-start w-full">
                         <span className="font-medium text-sm text-gray-900">Teal & Gold Simple</span>
                         <span className="text-xs text-gray-500">Simple teal and gold completion</span>
                       </div>
                     </SelectItem>
-                    <SelectItem value="https://res.cloudinary.com/dcljjtnxr/image/upload/v1760938817/Blue_and_Gold_Modern_Luxury_Certificate_of_Participation_vzqbiv.png" className="py-2 px-3 bg-white hover:bg-gray-50">
+                    <SelectItem value="https://res.cloudinary.com/dcljjtnxr/image/upload/v1760938817/Blue_and_Gold_Modern_Luxury_Certificate_of_Participation_vzqbiv.png" className="py-3 px-4 bg-white hover:bg-gray-50 focus:bg-gray-50 focus:outline-none cursor-pointer">
                       <div className="flex flex-col items-start w-full">
                         <span className="font-medium text-sm text-gray-900">Blue & Gold Luxury</span>
                         <span className="text-xs text-gray-500">Modern luxury participation certificate</span>
                       </div>
                     </SelectItem>
-                    <SelectItem value="https://res.cloudinary.com/dcljjtnxr/image/upload/v1760938914/Blue_Elegant_Traditional_Artwork_Authenticity_Certificate_sg3bbt.png" className="py-2 px-3 bg-white hover:bg-gray-50">
+                    <SelectItem value="https://res.cloudinary.com/dcljjtnxr/image/upload/v1760938914/Blue_Elegant_Traditional_Artwork_Authenticity_Certificate_sg3bbt.png" className="py-3 px-4 bg-white hover:bg-gray-50 focus:bg-gray-50 focus:outline-none cursor-pointer">
                       <div className="flex flex-col items-start w-full">
                         <span className="font-medium text-sm text-gray-900">Blue Traditional</span>
                         <span className="text-xs text-gray-500">Elegant traditional blue artwork design</span>
@@ -1807,43 +1883,53 @@ export function CertificateEditor({
                   else if (value === 'modern') applyModernTemplate();
                   else if (value === 'professional') applyProfessionalTemplate();
                 }}>
-                  <SelectTrigger className="w-full h-10">
+                  <SelectTrigger className="w-full h-auto min-h-[2.5rem]">
                     <SelectValue placeholder="Choose a text template..." />
                   </SelectTrigger>
-                  <SelectContent className="bg-white border border-gray-200 shadow-lg" style={{ maxHeight: '300px' }}>
-                    <SelectItem value="bdi" className="py-2 px-3 bg-white hover:bg-gray-50">
+                  <SelectContent 
+                    className="bg-white border border-gray-200 shadow-lg z-[100]" 
+                    style={{ 
+                      maxHeight: '400px', 
+                      overflowY: 'auto',
+                      scrollBehavior: 'smooth',
+                      position: 'fixed'
+                    }}
+                    position="popper"
+                    sideOffset={4}
+                  >
+                    <SelectItem value="bdi" className="py-3 px-4 bg-white hover:bg-gray-50 focus:bg-gray-50 focus:outline-none cursor-pointer">
                       <div className="flex flex-col items-start w-full">
-                        <span className="font-medium text-sm">BDI Default Layout</span>
+                        <span className="font-medium text-sm text-gray-900">BDI Default Layout</span>
                         <span className="text-xs text-gray-500">Classic driving school format</span>
                       </div>
                     </SelectItem>
-                    <SelectItem value="simple" className="py-2 px-3 bg-white hover:bg-gray-50">
+                    <SelectItem value="simple" className="py-3 px-4 bg-white hover:bg-gray-50 focus:bg-gray-50 focus:outline-none cursor-pointer">
                       <div className="flex flex-col items-start w-full">
-                        <span className="font-medium text-sm">Simple Centered</span>
+                        <span className="font-medium text-sm text-gray-900">Simple Centered</span>
                         <span className="text-xs text-gray-500">Clean centered text layout</span>
                       </div>
                     </SelectItem>
-                    <SelectItem value="government" className="py-2 px-3 bg-white hover:bg-gray-50">
+                    <SelectItem value="government" className="py-3 px-4 bg-white hover:bg-gray-50 focus:bg-gray-50 focus:outline-none cursor-pointer">
                       <div className="flex flex-col items-start w-full">
-                        <span className="font-medium text-sm">Government Form</span>
+                        <span className="font-medium text-sm text-gray-900">Government Form</span>
                         <span className="text-xs text-gray-500">Official form-style layout</span>
                       </div>
                     </SelectItem>
-                    <SelectItem value="elegant" className="py-2 px-3 bg-white hover:bg-gray-50">
+                    <SelectItem value="elegant" className="py-3 px-4 bg-white hover:bg-gray-50 focus:bg-gray-50 focus:outline-none cursor-pointer">
                       <div className="flex flex-col items-start w-full">
-                        <span className="font-medium text-sm">Elegant Centered</span>
+                        <span className="font-medium text-sm text-gray-900">Elegant Centered</span>
                         <span className="text-xs text-gray-500">Sophisticated achievement style</span>
                       </div>
                     </SelectItem>
-                    <SelectItem value="modern" className="py-2 px-3 bg-white hover:bg-gray-50">
+                    <SelectItem value="modern" className="py-3 px-4 bg-white hover:bg-gray-50 focus:bg-gray-50 focus:outline-none cursor-pointer">
                       <div className="flex flex-col items-start w-full">
-                        <span className="font-medium text-sm">Modern Minimalist</span>
+                        <span className="font-medium text-sm text-gray-900">Modern Minimalist</span>
                         <span className="text-xs text-gray-500">Contemporary clean design</span>
                       </div>
                     </SelectItem>
-                    <SelectItem value="professional" className="py-2 px-3 bg-white hover:bg-gray-50">
+                    <SelectItem value="professional" className="py-3 px-4 bg-white hover:bg-gray-50 focus:bg-gray-50 focus:outline-none cursor-pointer">
                       <div className="flex flex-col items-start w-full">
-                        <span className="font-medium text-sm">Professional Left-Aligned</span>
+                        <span className="font-medium text-sm text-gray-900">Professional Left-Aligned</span>
                         <span className="text-xs text-gray-500">Business document style</span>
                       </div>
                     </SelectItem>
@@ -1854,7 +1940,7 @@ export function CertificateEditor({
               {/* Variables List */}
               <div className="pt-1">
                 <p className="text-gray-600 text-xs mb-2">Click to insert variable into selected text element</p>
-                <div className="text-xs space-y-2 max-h-48 overflow-y-auto">
+                <div className="text-xs space-y-2 h-[calc(100vh-500px)] overflow-y-auto">
                   {DEFAULT_VARIABLES.map((v) => (
                     <button
                       key={v.key}
@@ -1875,7 +1961,7 @@ export function CertificateEditor({
             </div>
           </Tabs>
         ) : (
-          <div className="p-2 space-y-2 overflow-y-auto flex-1 min-h-0">
+          <div className="p-2 space-y-2 flex-1 min-h-0">
           <Card>
             <CardHeader>
                 <CardTitle className="text-lg">Template Settings</CardTitle>
@@ -2198,6 +2284,23 @@ export function CertificateEditor({
                   </Button>
                 </CardHeader>
                 <CardContent className="space-y-4">
+                  {/* Signature button for instructor element */}
+                  {selectedElement.type === 'text' && 
+                   selectedEl && 
+                   (selectedEl.id === 'text-instructor-name' || (selectedEl as any).content === 'N/A' || (selectedEl as any).content === 'AFFORDABLE DRIVING INSTRUCTOR') && (
+                    <div className="border-t pt-4">
+                      <Label className="text-sm font-semibold mb-2 block">Instructor's Signature</Label>
+                      <Button
+                        variant="outline"
+                        className="w-full"
+                        onClick={() => setShowSignatureModal(true)}
+                      >
+                        <PenTool className="w-4 h-4 mr-2" />
+                        Add Signature
+                      </Button>
+                    </div>
+                  )}
+
                   {selectedElement.type === 'text' && (
                     <TextElementProperties
                       element={selectedEl as TextElement}
@@ -2272,6 +2375,36 @@ export function CertificateEditor({
                 </CardContent>
               </Card>
             )}
+          </div>
+        </div>
+      )}
+
+      {/* Signature Modal */}
+      {showSignatureModal && (
+        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
+          <div className="bg-white rounded-lg p-6 w-[500px] max-w-full mx-4 max-h-[90vh] overflow-y-auto">
+            <div className="flex justify-between items-center mb-4">
+              <h3 className="text-lg font-semibold">Instructor's Signature</h3>
+              <Button
+                variant="ghost"
+                size="sm"
+                onClick={() => {
+                  setShowSignatureModal(false);
+                  setIsDrawingMode(false);
+                }}
+              >
+                <X className="w-4 h-4" />
+              </Button>
+            </div>
+            
+            <div className="space-y-4">
+              <SignatureCanvas
+                onSave={handleSignatureUpload}
+                onClear={() => setSignatureImage(null)}
+                width={400}
+                height={200}
+              />
+            </div>
           </div>
         </div>
       )}
