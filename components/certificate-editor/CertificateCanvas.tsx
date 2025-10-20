@@ -225,7 +225,20 @@ export function CertificateCanvas({
           <img
             src={template.background.value}
             alt="Background"
-            className="absolute inset-0 w-full h-full object-cover pointer-events-none"
+            className="absolute pointer-events-none select-none"
+            style={{
+              top: 0,
+              left: 0,
+              width: '100%',
+              height: '100%',
+              objectFit: 'fill',
+              zIndex: 0,
+              userSelect: 'none',
+              WebkitUserSelect: 'none',
+              MozUserSelect: 'none',
+              msUserSelect: 'none'
+            }}
+            draggable={false}
           />
         )}
 
@@ -267,6 +280,7 @@ export function CertificateCanvas({
               left: `${scaledShape.x * scale}px`,
               top: `${scaledShape.y * scale}px`,
               pointerEvents: !editMode || previewMode || certIndex !== 0 ? 'none' : 'auto',
+              zIndex: 5,
             }}
             onMouseDown={certIndex === 0 ? (e) => handleMouseDown(e, 'shape', shape.id, shape.x, shape.y) : undefined}
           >
@@ -340,6 +354,7 @@ export function CertificateCanvas({
               width: `${scaledImage.width * scale}px`,
               height: `${scaledImage.height * scale}px`,
               pointerEvents: !editMode || previewMode || certIndex !== 0 ? 'none' : 'auto',
+              zIndex: 8,
             }}
             onMouseDown={certIndex === 0 ? (e) => handleMouseDown(e, 'image', image.id, image.x, image.y) : undefined}
           >
@@ -403,8 +418,9 @@ export function CertificateCanvas({
                 textDecoration: text.underline ? 'underline' : 'none',
                 color: text.color,
                 pointerEvents: !editMode || previewMode || certIndex !== 0 ? 'none' : 'auto',
-                whiteSpace: 'nowrap',
+                whiteSpace: 'pre-wrap',
                 lineHeight: '1.2',
+                zIndex: 10,
                 // Apply transform for center alignment
                 transform: text.align === 'center' ? 'translateX(-50%)' : text.align === 'right' ? 'translateX(-100%)' : 'none',
               }}
@@ -416,7 +432,8 @@ export function CertificateCanvas({
         })}
 
         {/* Division line for multiple certificates (only in portrait mode) */}
-        {effectiveCertsPerPage > 1 && certIndex < effectiveCertsPerPage - 1 && (
+        {/* Hidden in preview mode to avoid showing in PDF */}
+        {effectiveCertsPerPage > 1 && certIndex < effectiveCertsPerPage - 1 && !previewMode && (
           <div
             className="absolute bottom-0 left-0 right-0 border-b-2 border-dashed border-gray-400"
             style={{
@@ -436,13 +453,21 @@ export function CertificateCanvas({
   // Scroll to top when edit mode is activated and adjust view
   useEffect(() => {
     if (editMode && containerRef.current) {
-      // Reset manual zoom when entering edit mode
-      setManualZoom(1.5);
-      
+      // Adjust manual zoom based on orientation when entering edit mode
+      const isVertical = template.pageSize.orientation !== 'landscape';
+
+      if (isVertical) {
+        // For vertical/portrait orientation, use lower zoom to fit better
+        setManualZoom(0.8);
+      } else {
+        // For landscape orientation, use default zoom
+        setManualZoom(1.5);
+      }
+
       // Scroll to the top immediately
       containerRef.current.scrollTop = 0;
       containerRef.current.scrollLeft = 0;
-      
+
       // After a brief delay, ensure the certificate is at the top and visible
       setTimeout(() => {
         if (containerRef.current) {
@@ -450,7 +475,7 @@ export function CertificateCanvas({
         }
       }, 100);
     }
-  }, [editMode]);
+  }, [editMode, template.pageSize.orientation]);
 
   // Handle Ctrl + Mouse Wheel Zoom in edit mode
   useEffect(() => {

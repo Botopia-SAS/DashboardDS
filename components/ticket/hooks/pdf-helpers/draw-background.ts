@@ -7,7 +7,8 @@ export async function drawBackground(
   page: PDFPage,
   width: number,
   height: number,
-  pdfDoc: PDFDocument
+  pdfDoc: PDFDocument,
+  offsetY: number = 0
 ) {
   console.log(`🎨 Drawing background: ${template.background.type}`);
 
@@ -15,7 +16,7 @@ export async function drawBackground(
     const bgColor = hexToRgb(template.background.value);
     page.drawRectangle({
       x: 0,
-      y: 0,
+      y: offsetY,
       width,
       height,
       color: rgb(bgColor.r, bgColor.g, bgColor.b),
@@ -39,7 +40,15 @@ export async function drawBackground(
       } else {
         bgImage = await pdfDoc.embedJpg(imageBytes);
       }
-      page.drawImage(bgImage, { x: 0, y: 0, width, height });
+
+      // Draw image to fill the entire area (like object-fill in CSS)
+      // This stretches the image to cover the full width and height
+      page.drawImage(bgImage, {
+        x: 0,
+        y: offsetY,
+        width: width,
+        height: height
+      });
     } catch (error) {
       console.error('Error loading background image:', error);
     }
