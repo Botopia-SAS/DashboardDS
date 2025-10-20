@@ -106,7 +106,7 @@ export function CertificateImageUpload({ onUpload }: CertificateImageUploadProps
           size="sm"
         >
           <Upload className="h-3 w-3 mr-1" />
-          Upload to Cloudinary
+          Upload another image
         </Button>
       )}
     </CldUploadWidget>

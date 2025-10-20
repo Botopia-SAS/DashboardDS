@@ -70,9 +70,6 @@ export function useDynamicCertificateGenerator() {
         return result;
       };
 
-      // Draw background once
-      await drawBackground(template, page, width, height, pdfDoc);
-
       // Calculate scaling factors to match canvas behavior
       const isLandscape = template.pageSize.orientation === 'landscape';
       const textScaleFactor = rows === 1 ? 1 : rows === 2 ? 0.85 : 0.80;
@@ -81,9 +78,15 @@ export function useDynamicCertificateGenerator() {
       // Draw all certificates according to template.certificatesPerPage
       for (let certIndex = 0; certIndex < certsPerPage; certIndex++) {
         const row = Math.floor(certIndex / cols);
-        // offsetY is the start position of each certificate slot
+        // offsetY is the start position of each certificate slot (top-down coordinates for shapes/text/images)
         const offsetY = row * (height / rows);
         console.log(`🎫 Drawing certificate ${certIndex + 1}/${certsPerPage} at position ${certIndex + 1}`);
+
+        // Draw background for this certificate with scaled dimensions
+        // For backgrounds, we need PDF coordinates (bottom-up), so invert the offsetY
+        const certHeight = height / rows;
+        const backgroundOffsetY = height - (row + 1) * certHeight;
+        await drawBackground(template, page, width, certHeight, pdfDoc, backgroundOffsetY);
 
         // Draw shapes
         drawShapes(template.shapeElements, page, height, certScaleX, certScaleY, offsetY, borderWidthScale);
@@ -156,9 +159,6 @@ export function useDynamicCertificateGenerator() {
         const page = pdfDoc.addPage([template.pageSize.width, template.pageSize.height]);
         const { width, height } = page.getSize();
 
-        // Draw background once per page
-        await drawBackground(template, page, width, height, pdfDoc);
-
         const startIdx = pageIndex * certsPerPage;
         const endIdx = Math.min(startIdx + certsPerPage, users.length);
 
@@ -168,7 +168,7 @@ export function useDynamicCertificateGenerator() {
           const user = users[i];
           const positionInPage = i - startIdx;
           const row = Math.floor(positionInPage / cols);
-          // offsetY is the start position of each certificate slot
+          // offsetY is the start position of each certificate slot (top-down coordinates for shapes/text/images)
           const offsetY = row * (height / rows);
 
           console.log(`🎫 Certificate ${i + 1}/${users.length}: ${user.first_name} ${user.last_name} at position ${positionInPage + 1}`);
@@ -182,6 +182,12 @@ export function useDynamicCertificateGenerator() {
             });
             return result;
           };
+
+          // Draw background for this certificate with scaled dimensions
+          // For backgrounds, we need PDF coordinates (bottom-up), so invert the offsetY
+          const certHeight = height / rows;
+          const backgroundOffsetY = height - (row + 1) * certHeight;
+          await drawBackground(template, page, width, certHeight, pdfDoc, backgroundOffsetY);
 
           // Draw shapes
           drawShapes(template.shapeElements, page, height, certScaleX, certScaleY, offsetY, borderWidthScale);

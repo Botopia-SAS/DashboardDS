@@ -13,13 +13,29 @@ export async function drawImages(
 ) {
   for (const image of images) {
     try {
-      let imageBytes = await fetch(image.url).then(res => res.arrayBuffer());
+      console.log('🖼️ Drawing image:', image.url);
+      
+      // Fetch image with proper headers for Cloudinary
+      const response = await fetch(image.url, {
+        mode: 'cors',
+        headers: {
+          'Accept': 'image/*',
+        },
+      });
+      
+      if (!response.ok) {
+        console.error('❌ Failed to fetch image:', image.url, response.status);
+        continue;
+      }
+      
+      let imageBytes = await response.arrayBuffer();
+      
       if (image.grayscale) {
         imageBytes = await applyGrayscaleFilter(imageBytes);
       }
 
       let pdfImage;
-      if (image.url.toLowerCase().endsWith('.png')) {
+      if (image.url.toLowerCase().endsWith('.png') || image.url.includes('image/png')) {
         pdfImage = await pdfDoc.embedPng(imageBytes);
       } else {
         pdfImage = await pdfDoc.embedJpg(imageBytes);
@@ -56,8 +72,10 @@ export async function drawImages(
         width: finalWidth,
         height: finalHeight,
       });
+      
+      console.log('✅ Image drawn successfully');
     } catch (error) {
-      console.error('Error loading image:', image.url, error);
+      console.error('❌ Error loading image:', image.url, error);
     }
   }
 }
