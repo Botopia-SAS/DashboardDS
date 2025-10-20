@@ -758,88 +758,22 @@ export function CertificateEditor({
   };
 
   const applyGovernmentStyleTemplate = () => {
-    // Always use landscape orientation and 1 certificate per page for text templates
-    const w = 792; // Landscape width
-    const h = 612; // Landscape height
-    const baseW = 612;
-    const baseH = 792;
-    const scaleX = w / baseW;
-    const scaleY = h / baseH;
-    const fontScale = Math.min(scaleX, scaleY);
-
-    pushToHistory({
-      ...template,
-      pageSize: { width: 792, height: 612, orientation: 'landscape' },
-      certificatesPerPage: 1, // Always set to 1 certificate per page
-      textElements: [
-        // Title
-        { id: `text-${Date.now()}-1`, content: 'CERTIFICATE OF COMPLETION', x: w/2, y: 60*scaleY, fontSize: 24*fontScale, fontFamily: 'Arial', fontWeight: 'bold', color: '#cc0000', align: 'center' },
-        
-        // Description text
-        { id: `text-${Date.now()}-2`, content: 'This certificate validates that the named person has successfully completed a', x: w/2, y: 95*scaleY, fontSize: 9*fontScale, fontFamily: 'Arial', color: '#cc0000', align: 'center', italic: true },
-        { id: `text-${Date.now()}-3`, content: 'DTA STUDENT TRAFFIC OFFENDER PROGRAM (STOP)', x: w/2, y: 110*scaleY, fontSize: 9*fontScale, fontFamily: 'Arial', fontWeight: 'bold', color: '#cc0000', align: 'center' },
-        { id: `text-${Date.now()}-4`, content: 'AN UNDER 25 YOUTHFUL OFFENDER COURSE', x: w/2, y: 125*scaleY, fontSize: 9*fontScale, fontFamily: 'Arial', color: '#000000', align: 'center' },
-        
-        // Course Time
-        { id: `text-${Date.now()}-5`, content: 'COURSE TIME:', x: 80*scaleX, y: 155*scaleY, fontSize: 10*fontScale, fontFamily: 'Arial', fontWeight: 'bold', color: '#cc0000', align: 'left' },
-        { id: `text-${Date.now()}-6`, content: '☐ 4hr  ☐ 6hr  ☐ 8hr', x: 200*scaleX, y: 155*scaleY, fontSize: 10*fontScale, fontFamily: 'Arial', color: '#000000', align: 'left' },
-        
-        // Citation/Case No, Court, County
-        { id: `text-${Date.now()}-7`, content: 'Citation/Case No: _____________', x: 80*scaleX, y: 180*scaleY, fontSize: 9*fontScale, fontFamily: 'Arial', color: '#000000', align: 'left' },
-        { id: `text-${Date.now()}-8`, content: 'Court: _____________', x: 80*scaleX, y: 200*scaleY, fontSize: 9*fontScale, fontFamily: 'Arial', color: '#000000', align: 'left' },
-        { id: `text-${Date.now()}-9`, content: 'County: _____________', x: 80*scaleX, y: 220*scaleY, fontSize: 9*fontScale, fontFamily: 'Arial', color: '#000000', align: 'left' },
-        
-        // Certificate Number
-        { id: `text-${Date.now()}-10`, content: 'Certificate Number: {{certn}}', x: w - 100*scaleX, y: 180*scaleY, fontSize: 9*fontScale, fontFamily: 'Arial', color: '#000000', align: 'right' },
-        
-        // Attendance
-        { id: `text-${Date.now()}-11`, content: 'Attendance: (reason other than election)', x: 80*scaleX, y: 245*scaleY, fontSize: 9*fontScale, fontFamily: 'Arial', color: '#000000', align: 'left' },
-        { id: `text-${Date.now()}-12`, content: '☐ Court Order  ☐ Volunteer  ☐ Ticket/Citation', x: 80*scaleX, y: 260*scaleY, fontSize: 9*fontScale, fontFamily: 'Arial', color: '#000000', align: 'left' },
-        
-        // Name section
-        { id: `text-${Date.now()}-13`, content: 'NAME:', x: 80*scaleX, y: 290*scaleY, fontSize: 10*fontScale, fontFamily: 'Arial', fontWeight: 'bold', color: '#cc0000', align: 'left' },
-        { id: `text-${Date.now()}-14`, content: 'FIRST', x: 80*scaleX, y: 310*scaleY, fontSize: 8*fontScale, fontFamily: 'Arial', color: '#666666', align: 'left' },
-        { id: `text-${Date.now()}-15`, content: '{{firstName}}', x: 80*scaleX, y: 325*scaleY, fontSize: 11*fontScale, fontFamily: 'Arial', fontWeight: 'bold', color: '#000000', align: 'left' },
-        { id: `text-${Date.now()}-16`, content: 'MI', x: 280*scaleX, y: 310*scaleY, fontSize: 8*fontScale, fontFamily: 'Arial', color: '#666666', align: 'left' },
-        { id: `text-${Date.now()}-17`, content: '{{middleInitial}}', x: 280*scaleX, y: 325*scaleY, fontSize: 11*fontScale, fontFamily: 'Arial', fontWeight: 'bold', color: '#000000', align: 'left' },
-        { id: `text-${Date.now()}-18`, content: 'LAST', x: 380*scaleX, y: 310*scaleY, fontSize: 8*fontScale, fontFamily: 'Arial', color: '#666666', align: 'left' },
-        { id: `text-${Date.now()}-19`, content: '{{lastName}}', x: 380*scaleX, y: 325*scaleY, fontSize: 11*fontScale, fontFamily: 'Arial', fontWeight: 'bold', color: '#000000', align: 'left' },
-        { id: `text-${Date.now()}-20`, content: 'In Person Class', x: 80*scaleX, y: 350*scaleY, fontSize: 8*fontScale, fontFamily: 'Arial', color: '#666666', align: 'left', italic: true },
-        
-        // Drivers License and Completion Date
-        { id: `text-${Date.now()}-21`, content: 'Drivers License No: {{licenseNumber}}', x: 80*scaleX, y: 380*scaleY, fontSize: 9*fontScale, fontFamily: 'Arial', color: '#000000', align: 'left' },
-        { id: `text-${Date.now()}-22`, content: 'Completion Date: {{courseDate}}', x: 80*scaleX, y: 400*scaleY, fontSize: 9*fontScale, fontFamily: 'Arial', color: '#000000', align: 'left' },
-        
-        // Instructor's Signature
-        { id: `text-${Date.now()}-23`, content: 'Instructor\'s Signature: _____________', x: 80*scaleX, y: 430*scaleY, fontSize: 9*fontScale, fontFamily: 'Arial', color: '#000000', align: 'left' },
-        { id: `text-${Date.now()}-24`, content: 'Instructor\'s School Name: _____________', x: 80*scaleX, y: 450*scaleY, fontSize: 9*fontScale, fontFamily: 'Arial', color: '#000000', align: 'left' },
-        
-        // Footer - Course Provider
-        { id: `text-${Date.now()}-25`, content: 'COURSE PROVIDER DRIVER TRAINING ASSOCIATES, INC. 1-800-222-9199', x: 80*scaleX, y: h - 60*scaleY, fontSize: 8*fontScale, fontFamily: 'Arial', color: '#000000', align: 'left' },
-        { id: `text-${Date.now()}-26`, content: 'Affordable Driving & Traffic School (561) 969-0150', x: w - 100*scaleX, y: h - 60*scaleY, fontSize: 8*fontScale, fontFamily: 'Arial', color: '#000000', align: 'right' },
-      ],
-      imageElements: [
-        // Logo top left - Driver Training Associates
-        {
-          id: 'logo-top-left',
-          url: 'https://res.cloudinary.com/dcljjtnxr/image/upload/v1760993149/Captura_kj3mog.png',
-          x: 50,
-          y: 20,
-          width: 100,
-          height: 100,
-        },
-        // Logo top right - DI logo
-        {
-          id: 'logo-top-right',
-          url: 'https://res.cloudinary.com/dcljjtnxr/image/upload/v1760993117/Captura_jhhp3k.png',
-          x: 692,
-          y: 20,
-          width: 100,
-          height: 100,
-        },
-      ],
-      shapeElements: [], // Remove all frames/borders
-      background: template.background // Keep background
+    // Import and use the GOV template
+    import('@/lib/defaultTemplates/govTemplate').then(({ getGovTemplate }) => {
+      const govTemplate = getGovTemplate(template.classType);
+      
+      pushToHistory({
+        ...template,
+        ...govTemplate,
+        classType: template.classType, // Keep current class type
+        background: template.background, // Keep existing background
+        shapeElements: [...template.shapeElements, ...govTemplate.shapeElements], // Merge shapes
+      });
+      
+      toast.success('Government Form template applied successfully!');
+    }).catch(error => {
+      console.error('Error loading GOV template:', error);
+      toast.error('Failed to load Government Form template');
     });
   };
 
