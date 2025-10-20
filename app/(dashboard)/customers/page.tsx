@@ -18,11 +18,25 @@ const CustomersDashboard = () => {
     try {
       setLoading(true);
       const res = await fetch("/api/customers", { method: "GET" });
-      const data = await res.json();
+
+      if (!res.ok) {
+        throw new Error(`HTTP error! status: ${res.status}`);
+      }
+
+      const text = await res.text();
+      if (!text) {
+        console.warn("[customers_GET] Empty response");
+        setCustomers([]);
+        return;
+      }
+
+      const data = JSON.parse(text);
       setCustomers(data);
-      setLoading(false);
     } catch (err) {
       console.error("[customers_GET]", err);
+      setCustomers([]);
+    } finally {
+      setLoading(false);
     }
   };
 

@@ -1,12 +1,42 @@
 "use client";
 
-import { useState, useEffect } from "react";
+import React, { useState, useEffect } from "react";
 import { cn } from "@/lib/utils";
 
 type ClassTabType = "traffic-school" | "driving-test" | "driving-lesson";
 
 interface ClassHistoryProps {
   customerId: string;
+}
+
+interface ChecklistItem {
+  name: string;
+  completed: boolean;
+  rating?: number;
+  comments?: string;
+  tally?: number;
+}
+
+interface ChecklistNote {
+  text: string;
+  date: string;
+}
+
+interface SessionChecklistData {
+  _id: string;
+  checklistType: string;
+  sessionId: string;
+  studentId: string;
+  instructorId: string;
+  instructorName: string;
+  instructorEmail?: string;
+  items: ChecklistItem[];
+  notes: ChecklistNote[];
+  status: "pending" | "in_progress" | "completed";
+  createdAt: string;
+  updatedAt: string;
+  progress: number;
+  averageRating: string;
 }
 
 const ClassHistory = ({ customerId }: ClassHistoryProps) => {
@@ -467,55 +497,60 @@ const DrivingTestHistory = ({ customerId }: { customerId: string }) => {
   );
 };
 
-// Driving Lesson History Component
+// Driving Lesson History Component with Session Checklists
 const DrivingLessonHistory = ({ customerId }: { customerId: string }) => {
-  const [lessons, setLessons] = useState<any[]>([]);
-  const [filteredLessons, setFilteredLessons] = useState<any[]>([]);
+  const [checklists, setChecklists] = useState<SessionChecklistData[]>([]);
+  const [filteredChecklists, setFilteredChecklists] = useState<SessionChecklistData[]>([]);
   const [loading, setLoading] = useState(true);
   const [dateFilter, setDateFilter] = useState("");
   const [statusFilter, setStatusFilter] = useState("");
+  const [expandedChecklist, setExpandedChecklist] = useState<string | null>(null);
 
   useEffect(() => {
-    const fetchLessons = async () => {
+    const fetchChecklists = async () => {
       try {
-        const res = await fetch(`/api/customers/${customerId}/driving-lessons`);
-        if (!res.ok) throw new Error("Failed to fetch driving lessons");
+        const res = await fetch(`/api/customers/${customerId}/session-checklists`);
+        if (!res.ok) throw new Error("Failed to fetch session checklists");
         const data = await res.json();
-        setLessons(data);
-        setFilteredLessons(data);
+        setChecklists(data);
+        setFilteredChecklists(data);
       } catch (err) {
-        console.error("Error fetching driving lessons:", err);
+        console.error("Error fetching session checklists:", err);
       } finally {
         setLoading(false);
       }
     };
 
-    fetchLessons();
+    fetchChecklists();
   }, [customerId]);
 
   useEffect(() => {
-    let filtered = lessons;
+    let filtered = checklists;
 
     if (dateFilter) {
-      filtered = filtered.filter((lesson) => {
+      filtered = filtered.filter((checklist) => {
         // Extract date without timezone issues
-        const date = new Date(lesson.date);
+        const date = new Date(checklist.createdAt);
         const year = date.getFullYear();
         const month = String(date.getMonth() + 1).padStart(2, '0');
         const day = String(date.getDate()).padStart(2, '0');
-        const lessonDate = `${year}-${month}-${day}`;
-        return lessonDate === dateFilter;
+        const checklistDate = `${year}-${month}-${day}`;
+        return checklistDate === dateFilter;
       });
     }
 
     if (statusFilter) {
-      filtered = filtered.filter((lesson) => {
-        return lesson.status === statusFilter;
+      filtered = filtered.filter((checklist) => {
+        return checklist.status === statusFilter;
       });
     }
 
-    setFilteredLessons(filtered);
-  }, [dateFilter, statusFilter, lessons]);
+    setFilteredChecklists(filtered);
+  }, [dateFilter, statusFilter, checklists]);
+
+  const toggleChecklistDetails = (checklistId: string) => {
+    setExpandedChecklist(expandedChecklist === checklistId ? null : checklistId);
+  };
 
   if (loading) {
     return (
@@ -528,7 +563,7 @@ const DrivingLessonHistory = ({ customerId }: { customerId: string }) => {
   return (
     <div>
       <h3 className="text-lg font-semibold mb-4">Driving Lesson</h3>
-      
+
       {/* Filters */}
       <div className="mb-4 flex flex-col sm:flex-row gap-3">
         <div className="flex-1">
@@ -552,9 +587,9 @@ const DrivingLessonHistory = ({ customerId }: { customerId: string }) => {
             className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
           >
             <option value="">All Status</option>
-            <option value="booked">Booked</option>
             <option value="pending">Pending</option>
-            <option value="cancelled">Cancelled</option>
+            <option value="in_progress">In Progress</option>
+            <option value="completed">Completed</option>
           </select>
         </div>
         {(dateFilter || statusFilter) && (
@@ -572,11 +607,11 @@ const DrivingLessonHistory = ({ customerId }: { customerId: string }) => {
         )}
       </div>
 
-      {lessons.length === 0 ? (
+      {checklists.length === 0 ? (
         <div className="text-gray-500 dark:text-gray-400">
           No driving lessons found for this customer.
         </div>
-      ) : filteredLessons.length === 0 ? (
+      ) : filteredChecklists.length === 0 ? (
         <div className="text-gray-500 dark:text-gray-400">
           No driving lessons match the selected filters.
         </div>
@@ -585,88 +620,171 @@ const DrivingLessonHistory = ({ customerId }: { customerId: string }) => {
           <table className="min-w-full divide-y divide-gray-200">
             <thead className="bg-gray-50">
               <tr>
-                <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                  Instructor
-                </th>
-                <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
                   Date
                 </th>
-                <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                  Time
+                <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                  Instructor
                 </th>
-                <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                  Pickup
+                <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                  Checklist Type
                 </th>
-                <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                  Dropoff
+                <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                  Progress
                 </th>
-                <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                  Paid
+                <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                  Avg Rating
                 </th>
-                <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
                   Status
+                </th>
+                <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                  Actions
                 </th>
               </tr>
             </thead>
             <tbody className="bg-white divide-y divide-gray-200">
-              {filteredLessons.map((lesson) => (
-                <tr key={lesson._id}>
-                  <td className="px-6 py-4 whitespace-nowrap text-sm font-medium text-gray-900">
-                    {lesson.instructorName}
-                  </td>
-                  <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
-                    {new Date(lesson.date).toLocaleDateString()}
-                  </td>
-                  <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
-                    {lesson.startTime} - {lesson.endTime}
-                  </td>
-                  <td className="px-6 py-4 text-sm text-gray-500 max-w-xs truncate">
-                    {lesson.pickupLocation || "N/A"}
-                  </td>
-                  <td className="px-6 py-4 text-sm text-gray-500 max-w-xs truncate">
-                    {lesson.dropoffLocation || "N/A"}
-                  </td>
-                  <td className="px-6 py-4 whitespace-nowrap text-sm">
-                    <span
-                      className={cn(
-                        "px-3 py-1 inline-flex text-xs font-semibold rounded-md border-2 bg-transparent",
-                        lesson.paid
-                          ? "border-green-500 text-green-600"
-                          : "border-yellow-500 text-yellow-600"
-                      )}
-                    >
-                      {lesson.paid ? "Paid" : "Pending"}
-                    </span>
-                  </td>
-                  <td className="px-6 py-4 whitespace-nowrap text-sm">
-                    <span
-                      className={cn(
-                        "px-3 py-1 inline-flex text-xs font-semibold rounded-md border-2 bg-transparent",
-                        lesson.status === "student"
-                          ? "border-blue-500 text-blue-600"
-                          : lesson.status === "studentcancel"
-                          ? "border-red-500 text-red-600"
-                          : lesson.status === "requeststude"
-                          ? "border-yellow-500 text-yellow-600"
-                          : lesson.status === "available"
-                          ? "border-green-500 text-green-600"
-                          : lesson.status === "cancelled"
-                          ? "border-red-500 text-red-600"
-                          : lesson.status === "booked"
-                          ? "border-blue-500 text-blue-600"
-                          : "border-gray-400 text-gray-600"
-                      )}
-                    >
-                      {lesson.status === "student" || lesson.status === "available"
-                        ? "Assigned" 
-                        : lesson.status === "studentcancel" 
-                        ? "Cancelled" 
-                        : lesson.status === "requeststude" 
-                        ? "Pending" 
-                        : lesson.status}
-                    </span>
-                  </td>
-                </tr>
+              {filteredChecklists.map((checklist) => (
+                <React.Fragment key={checklist._id}>
+                  <tr className="hover:bg-gray-50">
+                    <td className="px-4 py-4 whitespace-nowrap text-sm text-gray-900">
+                      {new Date(checklist.createdAt).toLocaleDateString()}
+                    </td>
+                    <td className="px-4 py-4 whitespace-nowrap text-sm text-gray-900">
+                      {checklist.instructorName}
+                    </td>
+                    <td className="px-4 py-4 text-sm text-gray-900">
+                      {checklist.checklistType}
+                    </td>
+                    <td className="px-4 py-4 whitespace-nowrap text-sm">
+                      <div className="flex items-center gap-2">
+                        <div className="w-full bg-gray-200 rounded-full h-2 max-w-[100px]">
+                          <div
+                            className="bg-blue-600 h-2 rounded-full"
+                            style={{ width: `${checklist.progress}%` }}
+                          />
+                        </div>
+                        <span className="text-xs text-gray-600">{checklist.progress}%</span>
+                      </div>
+                    </td>
+                    <td className="px-4 py-4 whitespace-nowrap text-sm text-gray-900">
+                      <span className="font-semibold">{checklist.averageRating}</span>/10
+                    </td>
+                    <td className="px-4 py-4 whitespace-nowrap text-sm">
+                      <span
+                        className={cn(
+                          "px-3 py-1 inline-flex text-xs font-semibold rounded-md border-2 bg-transparent",
+                          checklist.status === "completed"
+                            ? "border-green-500 text-green-600"
+                            : checklist.status === "in_progress"
+                            ? "border-blue-500 text-blue-600"
+                            : "border-yellow-500 text-yellow-600"
+                        )}
+                      >
+                        {checklist.status === "in_progress"
+                          ? "In Progress"
+                          : checklist.status
+                          ? checklist.status.charAt(0).toUpperCase() + checklist.status.slice(1)
+                          : "Unknown"}
+                      </span>
+                    </td>
+                    <td className="px-4 py-4 whitespace-nowrap text-sm">
+                      <button
+                        onClick={() => toggleChecklistDetails(checklist._id)}
+                        className="px-3 py-1 bg-blue-600 text-white rounded-md hover:bg-blue-700 transition-colors text-xs"
+                      >
+                        {expandedChecklist === checklist._id ? "Hide Details" : "View Details"}
+                      </button>
+                    </td>
+                  </tr>
+
+                  {/* Expanded Details Row */}
+                  {expandedChecklist === checklist._id && (
+                    <tr>
+                      <td colSpan={7} className="px-4 py-4 bg-gray-50">
+                        <div className="space-y-4">
+                          {/* Checklist Items */}
+                          <div>
+                            <h4 className="font-semibold text-sm mb-3 text-gray-700">Assessment Items:</h4>
+                            <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
+                              {checklist.items.map((item, idx: number) => (
+                                <div
+                                  key={idx}
+                                  className="p-3 bg-white border border-gray-200 rounded-lg"
+                                >
+                                  <div className="flex items-start justify-between mb-2">
+                                    <div className="flex-1">
+                                      <h5 className="font-medium text-sm text-gray-900">
+                                        {item.name}
+                                      </h5>
+                                      {item.rating !== undefined && item.rating !== null && (
+                                        <div className="mt-1 flex items-center gap-2">
+                                          <div className="flex items-center">
+                                            {[...Array(10)].map((_, i) => (
+                                              <span
+                                                key={i}
+                                                className={cn(
+                                                  "text-xs",
+                                                  i < (item.rating ?? 0)
+                                                    ? "text-yellow-500"
+                                                    : "text-gray-300"
+                                                )}
+                                              >
+                                                ★
+                                              </span>
+                                            ))}
+                                          </div>
+                                          <span className="text-xs font-semibold text-gray-700">
+                                            {item.rating}/10
+                                          </span>
+                                        </div>
+                                      )}
+                                    </div>
+                                    {item.completed && (
+                                      <span className="px-2 py-0.5 bg-green-100 text-green-700 text-xs rounded-full">
+                                        ✓ Done
+                                      </span>
+                                    )}
+                                  </div>
+                                  {item.comments && (
+                                    <p className="text-xs text-gray-600 mt-2 italic">
+                                      &quot;{item.comments}&quot;
+                                    </p>
+                                  )}
+                                  {item.tally !== undefined && item.tally > 0 && (
+                                    <p className="text-xs text-gray-500 mt-1">
+                                      Tally: {item.tally}
+                                    </p>
+                                  )}
+                                </div>
+                              ))}
+                            </div>
+                          </div>
+
+                          {/* Notes */}
+                          {checklist.notes && checklist.notes.length > 0 && (
+                            <div>
+                              <h4 className="font-semibold text-sm mb-2 text-gray-700">Instructor Notes:</h4>
+                              <div className="space-y-2">
+                                {checklist.notes.map((note, idx: number) => (
+                                  <div
+                                    key={idx}
+                                    className="p-3 bg-white border-l-4 border-blue-500 rounded"
+                                  >
+                                    <p className="text-sm text-gray-800">{note.text}</p>
+                                    <p className="text-xs text-gray-500 mt-1">
+                                      {new Date(note.date).toLocaleString()}
+                                    </p>
+                                  </div>
+                                ))}
+                              </div>
+                            </div>
+                          )}
+                        </div>
+                      </td>
+                    </tr>
+                  )}
+                </React.Fragment>
               ))}
             </tbody>
           </table>
