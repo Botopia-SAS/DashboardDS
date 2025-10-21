@@ -4,13 +4,10 @@ import { Button } from "@/components/ui/button";
 
 import {
   ColumnDef,
-  ColumnFiltersState,
-  getFilteredRowModel,
   flexRender,
   getCoreRowModel,
   useReactTable,
   getPaginationRowModel,
-  globalFilterFn,
 } from "@tanstack/react-table";
 
 import {
@@ -35,32 +32,25 @@ export function MultiSearchTable<TData, TValue>({
   data,
   searchKeys,
 }: MultiSearchTableProps<TData, TValue>) {
-  const [columnFilters, setColumnFilters] = useState<ColumnFiltersState>([]);
   const [globalFilter, setGlobalFilter] = useState("");
 
+  // Filter data based on search term
+  const filteredData = data.filter((row: any) => {
+    if (!globalFilter) return true;
+    
+    const searchValue = globalFilter.toLowerCase();
+    return searchKeys.some(key => {
+      const cellValue = row[key];
+      if (cellValue === null || cellValue === undefined) return false;
+      return String(cellValue).toLowerCase().includes(searchValue);
+    });
+  });
+
   const table = useReactTable({
-    data,
+    data: filteredData,
     columns,
     getCoreRowModel: getCoreRowModel(),
-    onColumnFiltersChange: setColumnFilters,
     getPaginationRowModel: getPaginationRowModel(),
-    getFilteredRowModel: getFilteredRowModel(),
-    onGlobalFilterChange: setGlobalFilter,
-    globalFilterFn: (row, columnId, value) => {
-      // Custom global filter that searches across multiple fields
-      const searchValue = value.toLowerCase();
-      const searchableFields = searchKeys;
-      
-      return searchableFields.some(field => {
-        const cellValue = row.getValue(field);
-        if (cellValue === null || cellValue === undefined) return false;
-        return String(cellValue).toLowerCase().includes(searchValue);
-      });
-    },
-    state: {
-      columnFilters,
-      globalFilter,
-    },
   });
 
   return (
@@ -68,7 +58,7 @@ export function MultiSearchTable<TData, TValue>({
       <div className="flex items-center py-4">
         <Input
           placeholder="Search by name, email, or license number..."
-          value={globalFilter ?? ""}
+          value={globalFilter}
           onChange={(event) => setGlobalFilter(event.target.value)}
           className="max-w-sm"
         />
