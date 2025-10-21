@@ -11,6 +11,7 @@ export type CustomerClassType = {
   email: string;
   role: string;
   name: string;
+  licenseNumber?: string;
   createdAt: string;
 };
 
@@ -33,6 +34,15 @@ export const customersColumns: ColumnDef<CustomerClassType>[] = [
     header: "Email",
     cell: ({ row }) => (
       <p className="font-medium text-gray-700">{row.original.email}</p>
+    ),
+  },
+  {
+    accessorKey: "licenseNumber",
+    header: "License Number",
+    cell: ({ row }) => (
+      <p className="font-medium text-gray-700">
+        {row.original.licenseNumber || "Not available"}
+      </p>
     ),
   },
   {

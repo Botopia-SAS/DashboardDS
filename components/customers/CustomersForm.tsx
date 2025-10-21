@@ -236,7 +236,11 @@ const CustomersForm = ({ initialData }: CustomersFormProps) => {
       ssnLast4: initialData?.ssnLast4 || "",
       hasLicense: initialData?.hasLicense || false,
       licenseNumber: initialData?.licenseNumber || "",
-      birthDate: initialData?.birthDate || "",
+      birthDate: initialData?.birthDate ? 
+        (typeof initialData.birthDate === 'string' ? 
+          initialData.birthDate.split('T')[0] : 
+          new Date(initialData.birthDate).toISOString().split('T')[0]) 
+        : "",
       streetAddress: initialData?.streetAddress || "",
       apartmentNumber: initialData?.apartmentNumber || "",
       city: initialData?.city || "",

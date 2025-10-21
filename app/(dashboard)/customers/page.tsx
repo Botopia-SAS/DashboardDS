@@ -1,5 +1,5 @@
 "use client";
-import { DataTable } from "@/components/custom ui/DataTable";
+import { MultiSearchTable } from "@/components/custom ui/MultiSearchTable";
 import { customersColumns } from "@/components/customers/CustomersColumns";
 import { Button } from "@/components/ui/button";
 import { Separator } from "@radix-ui/react-separator";
@@ -60,7 +60,11 @@ const CustomersDashboard = () => {
       <div className="mt-6">
         <div className="mt-6">
           <Separator className="bg-gray-400 my-4" />
-          <DataTable columns={customersColumns} data={customers} searchKey="name" />
+          <MultiSearchTable 
+            columns={customersColumns} 
+            data={customers} 
+            searchKeys={["name", "email", "licenseNumber"]} 
+          />
         </div>
       </div>
     </div>
