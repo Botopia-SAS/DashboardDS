@@ -42,6 +42,23 @@ interface ShapeElement {
   borderWidth?: number;
 }
 
+// Interface for checkbox elements
+interface CheckboxElement {
+  id: string;
+  title: string;
+  x: number;
+  y: number;
+  orientation: 'horizontal' | 'vertical';
+  options: string[];
+  variableKey: string;
+  fontSize?: number;
+  fontFamily?: string;
+  color?: string;
+  borderColor?: string;
+  borderWidth?: number;
+  checkboxSize?: number;
+}
+
 // Main schema for Certificate Templates
 const CertificateTemplateSchema = new mongoose.Schema({
   // Name of the template
@@ -122,6 +139,23 @@ const CertificateTemplateSchema = new mongoose.Schema({
     borderWidth: Number,
   }],
 
+  // Checkbox elements
+  checkboxElements: [{
+    id: String,
+    title: String,
+    x: Number,
+    y: Number,
+    orientation: { type: String, enum: ['horizontal', 'vertical'], default: 'horizontal' },
+    options: [String],
+    variableKey: String,
+    fontSize: { type: Number, default: 10 },
+    fontFamily: { type: String, default: 'Times-Bold' },
+    color: { type: String, default: '#c94a3a' },
+    borderColor: { type: String, default: '#c94a3a' },
+    borderWidth: { type: Number, default: 1.5 },
+    checkboxSize: { type: Number, default: 12 },
+  }],
+
   // Available variables that can be used in this template
   availableVariables: [{
     key: String, // e.g., "studentName"
@@ -176,4 +210,4 @@ const CertificateTemplate = mongoose.models.CertificateTemplate ||
   mongoose.model("CertificateTemplate", CertificateTemplateSchema);
 
 export default CertificateTemplate;
-export type { TextElement, ImageElement, ShapeElement };
+export type { TextElement, ImageElement, ShapeElement, CheckboxElement };

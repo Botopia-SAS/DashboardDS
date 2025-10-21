@@ -96,6 +96,9 @@ export function useDynamicCertificateGenerator() {
 
         // Draw text
         drawTexts(template.textElements, page, height, certScaleX, certScaleY, offsetY, getFont, replaceVariables, textScaleFactor);
+        
+        // Draw checkbox titles
+        drawCheckboxTitles(template.checkboxElements || [], page, height, certScaleX, certScaleY, offsetY, getFont, textScaleFactor);
       }
 
       // Serialize PDF
@@ -213,6 +216,57 @@ export function useDynamicCertificateGenerator() {
       throw error;
     }
   }, []);
+
+  // Helper function to draw checkbox titles
+  const drawCheckboxTitles = (
+    checkboxElements: any[],
+    page: any,
+    height: number,
+    certScaleX: number,
+    certScaleY: number,
+    offsetY: number,
+    getFont: any,
+    textScaleFactor: number
+  ) => {
+    checkboxElements.forEach((checkbox) => {
+      const font = getFont(checkbox.fontFamily || 'Times-Bold', 'bold');
+      const textColor = hexToRgb(checkbox.color || '#c94a3a');
+      
+      const scaledFontSize = (checkbox.fontSize || 10) * textScaleFactor;
+      const scaledX = checkbox.x * certScaleX;
+      const scaledY = checkbox.y * certScaleY + offsetY;
+      
+      const baselineOffset = scaledFontSize * 0.8;
+      const pdfY = height - scaledY - baselineOffset;
+      
+      // Draw the title with a colon
+      page.drawText(`${checkbox.title}:`, {
+        x: scaledX,
+        y: pdfY,
+        size: scaledFontSize,
+        font,
+        color: rgb(textColor.r, textColor.g, textColor.b),
+      });
+      
+      // Draw the option labels
+      checkbox.options.forEach((option: string, index: number) => {
+        const optionX = checkbox.x + (checkbox.orientation === 'horizontal' ? index * 50 : 0);
+        const optionY = checkbox.y + (checkbox.orientation === 'vertical' ? (index + 1) * 20 : 0) + 15; // Offset below checkbox
+        
+        const scaledOptionX = optionX * certScaleX;
+        const scaledOptionY = optionY * certScaleY + offsetY;
+        const optionPdfY = height - scaledOptionY - baselineOffset;
+        
+        page.drawText(option, {
+          x: scaledOptionX,
+          y: optionPdfY,
+          size: scaledFontSize * 0.8, // Slightly smaller for options
+          font: getFont(checkbox.fontFamily || 'Times-Bold', 'normal'),
+          color: rgb(textColor.r, textColor.g, textColor.b),
+        });
+      });
+    });
+  };
 
   return { generateDynamicCertificatePDF, generateMultipleCertificatesPDF };
 }

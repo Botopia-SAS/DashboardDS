@@ -55,6 +55,7 @@ export function CheckboxConfigModal({ open, onOpenChange, onSave }: CheckboxConf
       color: '#c94a3a',
       borderColor: '#c94a3a',
       borderWidth: 1.5,
+      checkboxSize: 12,
     };
 
     onSave(checkboxElement);
