@@ -33,14 +33,22 @@ interface DataTableProps {
   columns: ColumnDef<Student>[];
   data: Student[];
   onUpdate: (updatedData: Partial<Student>[]) => Promise<void>;
+  template?: any; // Add template to access variable options
 }
 
 // Main component
-export function DataTable({ columns, data, onUpdate }: DataTableProps) {
+export function DataTable({ columns, data, onUpdate, template }: DataTableProps) {
   const [rowSelection, setRowSelection] = useState({});
   const [validationModalOpen, setValidationModalOpen] = useState(false);
   const [pendingUser, setPendingUser] = useState<Student | null>(null);
   const [pendingTemplate, setPendingTemplate] = useState<any>(null);
+
+  // Helper function to get options for a variable
+  const getVariableOptions = (columnId: string) => {
+    if (!template?.availableVariables) return null;
+    const variable = template.availableVariables.find((v: any) => v.key === columnId);
+    return variable?.options || null;
+  };
 
   const {
     tableData,
@@ -389,6 +397,12 @@ export function DataTable({ columns, data, onUpdate }: DataTableProps) {
               table.getRowModel().rows.map((row) => {
                 const isEditing = editingRow === row.id;
                 const rowData = isEditing ? editedData[row.id] : row.original;
+                
+                // Debug: Log available columns when editing
+                if (isEditing) {
+                  console.log('📋 Available columns:', row.getVisibleCells().map(cell => cell.column.id));
+                }
+                
                 return (
                   <TableRow
                     key={row.id}
@@ -398,49 +412,54 @@ export function DataTable({ columns, data, onUpdate }: DataTableProps) {
                       const columnId = cell.column.id as keyof Student;
                       const cellValue = rowData[columnId];
                       
+                      // Debug logs
+                      if (isEditing && (columnId === "courseTime" || columnId === "attendanceReason")) {
+                        console.log('🔍 Editing cell:', columnId, 'value:', cellValue, 'isEditable:', isEditing);
+                      }
+                      
                       // Make all fields editable when in edit mode (except select checkbox)
                       const isEditable = isEditing && columnId !== "select";
                       
                       return (
                         <TableCell key={cell.id}>
                           {isEditable ? (
-                            // Special dropdowns for checkbox-related fields
-                            columnId === "courseTime" ? (
-                              <select
-                                value={cellValue || ""}
-                                onChange={(e) => handleChange(row.id, columnId, e.target.value)}
-                                className="border p-1 w-full"
-                              >
-                                <option value="">Select...</option>
-                                <option value="4hr">4hr</option>
-                                <option value="6hr">6hr</option>
-                                <option value="8hr">8hr</option>
-                              </select>
-                            ) : columnId === "attendanceReason" ? (
-                              <select
-                                value={cellValue || ""}
-                                onChange={(e) => handleChange(row.id, columnId, e.target.value)}
-                                className="border p-1 w-full"
-                              >
-                                <option value="">Select...</option>
-                                <option value="court_order">Court Order</option>
-                                <option value="volunteer">Volunteer</option>
-                                <option value="ticket">Ticket/Citation</option>
-                              </select>
-                            ) : (
-                              <input
-                                type={typeof cellValue === "number" ? "number" : "text"}
-                                value={cellValue === "N/A" || cellValue === "-" ? "" : (cellValue || "")}
-                                onChange={(e) => {
-                                  const value = typeof cellValue === "number" 
-                                    ? (e.target.value === "" ? 0 : +e.target.value)
-                                    : e.target.value;
-                                  handleChange(row.id, columnId, value);
-                                }}
-                                className="border p-1 w-full"
-                                placeholder="Enter value..."
-                              />
-                            )
+                            // Check if this column has options (checkbox variable)
+                            (() => {
+                              const options = getVariableOptions(columnId as string);
+                              if (options && options.length > 0) {
+                                // Render as dropdown for checkbox variables
+                                return (
+                                  <select
+                                    value={cellValue || ""}
+                                    onChange={(e) => handleChange(row.id, columnId, e.target.value)}
+                                    className="border p-1 w-full"
+                                  >
+                                    <option value="">Select...</option>
+                                    {options.map((option: string) => (
+                                      <option key={option} value={option}>
+                                        {option}
+                                      </option>
+                                    ))}
+                                  </select>
+                                );
+                              } else {
+                                // Render as regular input for other fields
+                                return (
+                                  <input
+                                    type={typeof cellValue === "number" ? "number" : "text"}
+                                    value={cellValue === "N/A" || cellValue === "-" ? "" : (cellValue || "")}
+                                    onChange={(e) => {
+                                      const value = typeof cellValue === "number" 
+                                        ? (e.target.value === "" ? 0 : +e.target.value)
+                                        : e.target.value;
+                                      handleChange(row.id, columnId, value);
+                                    }}
+                                    className="border p-1 w-full"
+                                    placeholder="Enter value..."
+                                  />
+                                );
+                              }
+                            })()
                           ) : (
                             flexRender(
                               cell.column.columnDef.cell,

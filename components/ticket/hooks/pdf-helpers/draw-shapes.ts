@@ -12,6 +12,9 @@ export function drawShapes(
   borderWidthScale: number = 1,
   variables: Record<string, any> = {}
 ) {
+  console.log('🔲 drawShapes called with variables:', variables);
+  console.log('🔲 courseTime:', variables.courseTime, 'attendanceReason:', variables.attendanceReason);
+  
   shapes.forEach((shape: ShapeElement) => {
     const scaledShape = {
       x: shape.x * certScaleX,
@@ -35,21 +38,20 @@ export function drawShapes(
     // Check if this checkbox should be marked based on variables
     let shouldMarkCheckbox = false;
     if (shape.id) {
-      // Course Time checkboxes
-      if (shape.id === 'checkbox-4hr' && variables.courseTime === '4hr') {
-        shouldMarkCheckbox = true;
-      } else if (shape.id === 'checkbox-6hr' && variables.courseTime === '6hr') {
-        shouldMarkCheckbox = true;
-      } else if (shape.id === 'checkbox-8hr' && variables.courseTime === '8hr') {
-        shouldMarkCheckbox = true;
-      }
-      // Attendance Reason checkboxes
-      else if (shape.id === 'checkbox-court-order' && variables.attendanceReason === 'court_order') {
-        shouldMarkCheckbox = true;
-      } else if (shape.id === 'checkbox-volunteer' && variables.attendanceReason === 'volunteer') {
-        shouldMarkCheckbox = true;
-      } else if (shape.id === 'checkbox-ticket' && variables.attendanceReason === 'ticket') {
-        shouldMarkCheckbox = true;
+      console.log('🔍 Processing shape:', shape.id, 'type:', shape.type);
+      
+      // Dynamic checkbox matching - works for any checkbox variable
+      if (shape.id.startsWith('checkbox-')) {
+        // Extract option from shape ID (e.g., checkbox-4hr -> 4hr)
+        const optionFromId = shape.id.replace('checkbox-', '');
+        
+        // Check all variables to see if any match this option
+        Object.entries(variables).forEach(([varKey, varValue]) => {
+          if (varValue === optionFromId) {
+            shouldMarkCheckbox = true;
+            console.log(`✅ Marking ${optionFromId} checkbox for ${varKey}`);
+          }
+        });
       }
     }
 

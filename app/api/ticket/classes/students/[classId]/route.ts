@@ -80,6 +80,8 @@ export async function GET(req: NextRequest) {
       classId,
     }).exec();
     
+    console.log('🔍 Raw certificate from DB:', cert?.toObject());
+    
     // Build student object with base fields
     const studentData: any = {
       id: user.id,
@@ -117,12 +119,20 @@ export async function GET(req: NextRequest) {
     // Add dynamic fields from certificate if they exist
     if (cert) {
       const certObj = cert.toObject();
+      console.log('📋 Loading certificate data for student:', user.firstName, certObj);
+      console.log('🔍 Certificate has courseTime:', certObj.courseTime);
+      console.log('🔍 Certificate has attendanceReason:', certObj.attendanceReason);
       Object.keys(certObj).forEach((key) => {
         // Skip fields that are already in studentData
         if (!['_id', 'studentId', 'classId', 'number', 'citation_number', '__v'].includes(key)) {
           studentData[key] = certObj[key];
+          if (key === 'courseTime' || key === 'attendanceReason') {
+            console.log('✅ Loaded', key, ':', certObj[key]);
+          }
         }
       });
+    } else {
+      console.log('❌ No certificate found for student:', user.firstName);
     }
     
     students.push(studentData);
@@ -188,10 +198,27 @@ export async function PATCH(req: NextRequest) {
       // Update all other dynamic fields
       Object.entries(dynamicFields).forEach(([key, value]) => {
         cert[key] = value;
+        if (key === 'courseTime' || key === 'attendanceReason') {
+          console.log('💾 Saving', key, ':', value);
+        }
       });
+      
+      // Force save attendanceReason specifically
+      if (dynamicFields.attendanceReason !== undefined) {
+        cert.attendanceReason = dynamicFields.attendanceReason;
+        console.log('🔧 FORCING attendanceReason save:', dynamicFields.attendanceReason);
+      }
       
       await cert.save();
       console.log('Certificate updated with all fields');
+      
+      // Verify the save worked
+      const savedCert = await Certificate.findOne({
+        studentId: user._id,
+        classId,
+      }).exec();
+      console.log('🔍 Verification - Saved certificate:', savedCert?.toObject());
+      console.log('🔍 Verification - attendanceReason specifically:', savedCert?.attendanceReason);
     }
 
     // Check if there's an existing payment record to update

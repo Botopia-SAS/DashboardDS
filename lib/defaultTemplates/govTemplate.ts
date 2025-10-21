@@ -570,6 +570,7 @@ export function getGovTemplate(classType: string = "DATE"): CertificateTemplate 
         borderWidth: 1.5,
       },
     ],
+    checkboxElements: [],
     availableVariables: [
       { key: 'firstName', label: 'First Name', example: 'JOHN' },
       { key: 'middleInitial', label: 'Middle Initial', example: 'M' },

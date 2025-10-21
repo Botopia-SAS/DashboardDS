@@ -12,10 +12,11 @@ import { Textarea } from "@/components/ui/textarea";
 import { Switch } from "@/components/ui/switch";
 import { Trash2, Plus, Settings, Type, Square, Keyboard, Upload, PenTool, X } from "lucide-react";
 import toast from "react-hot-toast";
-import { CertificateTemplate, TextElement, ImageElement, ShapeElement, DEFAULT_VARIABLES, PAGE_SIZE_OPTIONS } from "./types";
+import { CertificateTemplate, TextElement, ImageElement, ShapeElement, CheckboxElement, DEFAULT_VARIABLES, PAGE_SIZE_OPTIONS } from "./types";
 import { CertificateCanvas } from "./CertificateCanvas";
 import { CertificateImageUpload } from "./CertificateImageUpload";
 import { SignatureCanvas } from "./SignatureCanvas";
+import { CheckboxConfigModal } from "./CheckboxConfigModal";
 
 interface CertificateEditorProps {
   classType: string;
@@ -58,6 +59,7 @@ export function CertificateEditor({
       textElements: [],
       imageElements: [],
       shapeElements: [],
+      checkboxElements: [], // Add checkboxElements
       availableVariables: DEFAULT_VARIABLES,
       isDefault: false,
       isActive: true,
@@ -65,7 +67,7 @@ export function CertificateEditor({
   });
 
   const [selectedElement, setSelectedElement] = useState<{
-    type: 'text' | 'image' | 'shape' | null;
+    type: 'text' | 'image' | 'shape' | 'checkbox' | null;
     id: string | null;
   }>({ type: null, id: null });
 
@@ -74,6 +76,7 @@ export function CertificateEditor({
   const [selectedFrameStyle, setSelectedFrameStyle] = useState<string>('');
   const [signatureImage, setSignatureImage] = useState<string | null>(null);
   const [showSignatureModal, setShowSignatureModal] = useState(false);
+  const [showCheckboxModal, setShowCheckboxModal] = useState(false);
   const [isDrawingMode, setIsDrawingMode] = useState(false);
 
   // Store original template state for each orientation to prevent cumulative scaling
@@ -91,8 +94,8 @@ export function CertificateEditor({
 
   // Clipboard for copy/paste functionality
   const [clipboard, setClipboard] = useState<{
-    type: 'text' | 'image' | 'shape';
-    element: TextElement | ImageElement | ShapeElement;
+    type: 'text' | 'image' | 'shape' | 'checkbox';
+    element: TextElement | ImageElement | ShapeElement | CheckboxElement;
   } | null>(null);
 
   // Track the initial template to detect when a NEW template is loaded from DB
@@ -416,8 +419,42 @@ export function CertificateEditor({
     setSelectedElement({ type: 'shape', id: newElement.id });
   };
 
+  // Add Checkbox Element
+  const addCheckboxElement = (checkboxElement: CheckboxElement) => {
+    // Generate individual shape elements for each option
+    const newShapeElements = checkboxElement.options.map((option, index) => ({
+      id: `checkbox-${option}`, // Dynamic ID based on option
+      type: 'rectangle' as const,
+      x: checkboxElement.x + (checkboxElement.orientation === 'horizontal' ? index * 50 : 0),
+      y: checkboxElement.y + (checkboxElement.orientation === 'vertical' ? (index + 1) * 20 : 0),
+      width: 12,
+      height: 12,
+      color: 'transparent',
+      borderColor: checkboxElement.borderColor || '#c94a3a',
+      borderWidth: checkboxElement.borderWidth || 1.5,
+    }));
+
+    pushToHistory({
+      ...template,
+      checkboxElements: [...(template.checkboxElements || []), checkboxElement],
+      shapeElements: [...template.shapeElements, ...newShapeElements],
+      // Add the variable to availableVariables
+      availableVariables: [
+        ...template.availableVariables,
+        {
+          key: checkboxElement.variableKey,
+          label: checkboxElement.title,
+          example: checkboxElement.options[0] || 'Option 1',
+          options: checkboxElement.options,
+        }
+      ],
+    });
+
+    setSelectedElement({ type: 'checkbox', id: checkboxElement.id });
+  };
+
   // Update element
-  const updateElement = (type: 'text' | 'image' | 'shape', id: string, updates: any) => {
+  const updateElement = (type: 'text' | 'image' | 'shape' | 'checkbox', id: string, updates: any) => {
     if (type === 'text') {
       pushToHistory({
         ...template,
@@ -439,11 +476,18 @@ export function CertificateEditor({
           el.id === id ? { ...el, ...updates } : el
         ),
       });
+    } else if (type === 'checkbox') {
+      pushToHistory({
+        ...template,
+        checkboxElements: (template.checkboxElements || []).map(el =>
+          el.id === id ? { ...el, ...updates } : el
+        ),
+      });
     }
   };
 
   // Delete element
-  const deleteElement = (type: 'text' | 'image' | 'shape', id: string) => {
+  const deleteElement = (type: 'text' | 'image' | 'shape' | 'checkbox', id: string) => {
     if (type === 'text') {
       pushToHistory({
         ...template,
@@ -458,6 +502,11 @@ export function CertificateEditor({
       pushToHistory({
         ...template,
         shapeElements: template.shapeElements.filter(el => el.id !== id),
+      });
+    } else if (type === 'checkbox') {
+      pushToHistory({
+        ...template,
+        checkboxElements: template.checkboxElements.filter(el => el.id !== id),
       });
     }
 
@@ -1313,6 +1362,8 @@ export function CertificateEditor({
       return template.imageElements.find(el => el.id === selectedElement.id);
     } else if (selectedElement.type === 'shape') {
       return template.shapeElements.find(el => el.id === selectedElement.id);
+    } else if (selectedElement.type === 'checkbox') {
+      return template.checkboxElements?.find(el => el.id === selectedElement.id);
     }
 
     return null;
@@ -1593,6 +1644,10 @@ export function CertificateEditor({
               <Button onClick={() => addShapeElement('line')} className="w-full" variant="outline">
                 <Plus className="w-4 h-4 mr-2" />
                 Add Line
+              </Button>
+              <Button onClick={() => setShowCheckboxModal(true)} className="w-full" variant="outline">
+                <Plus className="w-4 h-4 mr-2" />
+                Add Checkbox
               </Button>
             </CardContent>
           </Card>
@@ -2428,6 +2483,13 @@ export function CertificateEditor({
           </div>
         </div>
       )}
+
+      {/* Checkbox Config Modal */}
+      <CheckboxConfigModal
+        open={showCheckboxModal}
+        onOpenChange={setShowCheckboxModal}
+        onSave={addCheckboxElement}
+      />
     </div>
   );
 }
@@ -2821,6 +2883,7 @@ function ShapeElementProperties({ element, onUpdate }: { element: ShapeElement; 
           />
         </div>
       )}
+
     </>
   );
 }

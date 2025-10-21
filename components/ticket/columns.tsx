@@ -24,6 +24,7 @@ export interface Student {
   courseAddress?: string;
   courseTime?: string;
   attendanceReason?: string; // Attendance reason for certificate checkboxes
+  hourt?: string; // Hourts checkbox variable
   address?: string;
   duration?: string; // Duration from ticket class (e.g., "2h")
   locationId?: string; // Location ID from ticket class

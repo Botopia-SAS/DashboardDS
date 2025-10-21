@@ -29,7 +29,12 @@ export const getVariables = (user: Student): Record<string, string> => {
     duration,
     instructorName,
     attendanceReason,
+    hourt, // Add hourt to destructuring
+    // Add any other dynamic fields
+    ...otherFields
   } = user;
+
+  console.log('🔍 getVariables - Raw user data:', { courseTime, attendanceReason, duration, hourt, otherFields });
 
   const studentName = `${(first_name || '').toUpperCase()} ${(midl || '').toUpperCase()} ${(last_name || '').toUpperCase()}`.trim();
   const formattedBirthDate = birthDate ? new Date(birthDate).toLocaleDateString('en-US') : "";
@@ -38,7 +43,7 @@ export const getVariables = (user: Student): Record<string, string> => {
     : new Date().toLocaleDateString('en-US', { year: 'numeric', month: 'short', day: 'numeric' });
   const printDate = new Date().toLocaleDateString('en-US', { year: 'numeric', month: 'short', day: 'numeric', timeZone: 'America/New_York' });
 
-  return {
+  const variables = {
     studentName,
     firstName: (first_name || '').toUpperCase(),
     lastName: (last_name || '').toUpperCase(),
@@ -56,8 +61,9 @@ export const getVariables = (user: Student): Record<string, string> => {
     citationNumber: citation_number || '',
     address: address || '',
     courseAddress: courseAddress || '',
-    courseTime: duration || courseTime || '',
+    courseTime: courseTime || duration || '',
     attendanceReason: attendanceReason || '',
+    hourt: hourt || '', // Add hourt variable
     instructorName: instructorName || '',
     instructorSignature: instructorName || '',
     instructorSchoolName: 'Affordable Driving & Traffic School',
@@ -65,5 +71,12 @@ export const getVariables = (user: Student): Record<string, string> => {
     providerPhone: '(561) 969-0150',
     court: '',
     county: '',
+    // Add all other dynamic fields, converting to strings
+    ...Object.fromEntries(
+      Object.entries(otherFields).map(([key, value]) => [key, String(value || '')])
+    ),
   };
+
+  console.log('🔍 getVariables - Final variables:', { courseTime: variables.courseTime, attendanceReason: variables.attendanceReason, hourt: variables.hourt });
+  return variables;
 };

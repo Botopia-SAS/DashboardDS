@@ -170,9 +170,11 @@ export default function Page() {
         console.log('📋 Templates found:', templates.length);
         if (templates.length > 0) {
           fetchedTemplate = templates[0];
-          console.log('✅ Template loaded:', fetchedTemplate.name);
-          console.log('📝 Available variables:', fetchedTemplate.availableVariables?.length);
-          console.log('🔲 Shape elements (checkboxes):', fetchedTemplate.shapeElements?.length);
+          if (fetchedTemplate) {
+            console.log('✅ Template loaded:', fetchedTemplate.name);
+            console.log('📝 Available variables:', fetchedTemplate.availableVariables?.length);
+            console.log('🔲 Shape elements (checkboxes):', fetchedTemplate.shapeElements?.length);
+          }
         }
       }
 
@@ -268,7 +270,7 @@ export default function Page() {
         </div>
       </div>
       <div className="p-6">
-        <DataTable columns={columns} data={students} onUpdate={onUpdate} />
+        <DataTable columns={columns} data={students} onUpdate={onUpdate} template={template} />
       </div>
     </>
   );
