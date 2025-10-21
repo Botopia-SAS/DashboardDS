@@ -487,11 +487,11 @@ export function CertificateCanvas({
                     {/* Checkbox */}
                     <div
                       style={{
-                        width: '12px',
-                        height: '12px',
-                        border: `1.5px solid ${checkbox.borderColor || '#c94a3a'}`,
+                        width: `${(checkbox.checkboxSize || 12) * scale}px`,
+                        height: `${(checkbox.checkboxSize || 12) * scale}px`,
+                        border: `${(checkbox.borderWidth || 1.5) * scale}px solid ${checkbox.borderColor || '#c94a3a'}`,
                         backgroundColor: 'transparent',
-                        borderRadius: '2px',
+                        borderRadius: `${2 * scale}px`,
                       }}
                     />
                     {/* Option text */}

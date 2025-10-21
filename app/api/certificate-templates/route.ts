@@ -76,6 +76,7 @@ export async function POST(req: NextRequest) {
       textElements,
       imageElements,
       shapeElements,
+      checkboxElements,
       availableVariables,
       createdBy,
     } = body;
@@ -92,6 +93,7 @@ export async function POST(req: NextRequest) {
     console.log(`📝 Text elements: ${textElements?.length || 0}`);
     console.log(`🖼️ Image elements: ${imageElements?.length || 0}`);
     console.log(`🔲 Shape elements: ${shapeElements?.length || 0}`);
+    console.log(`☑️ Checkbox elements: ${checkboxElements?.length || 0}`);
 
     // UPSERT: Find existing template for this classType and update it, or create new one
     const template = await CertificateTemplate.findOneAndUpdate(
@@ -105,6 +107,7 @@ export async function POST(req: NextRequest) {
         textElements: textElements || [],
         imageElements: imageElements || [],
         shapeElements: shapeElements || [],
+        checkboxElements: checkboxElements || [],
         availableVariables: availableVariables || [],
         isDefault: true, // Always set as default (it's the only one for this classType)
         isActive: true,  // Always active

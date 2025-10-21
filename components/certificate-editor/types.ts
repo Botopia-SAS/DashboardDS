@@ -51,6 +51,7 @@ export interface CheckboxElement {
   color?: string;
   borderColor?: string;
   borderWidth?: number;
+  checkboxSize?: number; // Size of individual checkboxes
 }
 
 export interface Variable {

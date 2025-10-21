@@ -427,8 +427,8 @@ export function CertificateEditor({
       type: 'rectangle' as const,
       x: checkboxElement.x + (checkboxElement.orientation === 'horizontal' ? index * 50 : 0),
       y: checkboxElement.y + (checkboxElement.orientation === 'vertical' ? (index + 1) * 20 : 0),
-      width: 12,
-      height: 12,
+      width: checkboxElement.checkboxSize || 12,
+      height: checkboxElement.checkboxSize || 12,
       color: 'transparent',
       borderColor: checkboxElement.borderColor || '#c94a3a',
       borderWidth: checkboxElement.borderWidth || 1.5,
@@ -477,11 +477,42 @@ export function CertificateEditor({
         ),
       });
     } else if (type === 'checkbox') {
+      const updatedCheckbox = (template.checkboxElements || []).find(el => el.id === id);
+      if (!updatedCheckbox) return;
+
+      const newCheckbox = { ...updatedCheckbox, ...updates };
+      
+      // Update checkbox elements
+      const updatedCheckboxElements = (template.checkboxElements || []).map(el =>
+        el.id === id ? newCheckbox : el
+      );
+
+      // Update corresponding shape elements if size, color, or position changed
+      const updatedShapeElements = template.shapeElements.map(shapeEl => {
+        // Check if this shape element belongs to the updated checkbox
+        const optionMatch = newCheckbox.options.find((option: string) =>
+          shapeEl.id === `checkbox-${option}`
+        );
+        
+        if (optionMatch) {
+          const optionIndex = newCheckbox.options.indexOf(optionMatch);
+          return {
+            ...shapeEl,
+            x: newCheckbox.x + (newCheckbox.orientation === 'horizontal' ? optionIndex * 50 : 0),
+            y: newCheckbox.y + (newCheckbox.orientation === 'vertical' ? (optionIndex + 1) * 20 : 0),
+            width: newCheckbox.checkboxSize || 12,
+            height: newCheckbox.checkboxSize || 12,
+            borderColor: newCheckbox.borderColor || '#c94a3a',
+            borderWidth: newCheckbox.borderWidth || 1.5,
+          };
+        }
+        return shapeEl;
+      });
+
       pushToHistory({
         ...template,
-        checkboxElements: (template.checkboxElements || []).map(el =>
-          el.id === id ? { ...el, ...updates } : el
-        ),
+        checkboxElements: updatedCheckboxElements,
+        shapeElements: updatedShapeElements,
       });
     }
   };
@@ -2398,6 +2429,13 @@ export function CertificateEditor({
                       onUpdate={(updates) => updateElement('shape', selectedElement.id!, updates)}
                     />
                   )}
+
+                  {selectedElement.type === 'checkbox' && (
+                    <CheckboxElementProperties
+                      element={selectedEl as CheckboxElement}
+                      onUpdate={(updates) => updateElement('checkbox', selectedElement.id!, updates)}
+                    />
+                  )}
                 </CardContent>
               </Card>
             ) : (
@@ -2884,6 +2922,121 @@ function ShapeElementProperties({ element, onUpdate }: { element: ShapeElement; 
         </div>
       )}
 
+    </>
+  );
+}
+
+// Checkbox Element Properties Component
+function CheckboxElementProperties({ element, onUpdate }: { element: CheckboxElement; onUpdate: (updates: Partial<CheckboxElement>) => void }) {
+  return (
+    <>
+      <div>
+        <Label>Checkbox Title</Label>
+        <Input
+          value={element.title}
+          onChange={(e) => onUpdate({ title: e.target.value })}
+        />
+      </div>
+
+      <div>
+        <Label>Variable Key</Label>
+        <Input
+          value={element.variableKey}
+          onChange={(e) => onUpdate({ variableKey: e.target.value })}
+        />
+      </div>
+
+      <div className="grid grid-cols-2 gap-2">
+        <div>
+          <Label>X Position</Label>
+          <Input
+            type="number"
+            value={element.x}
+            onChange={(e) => onUpdate({ x: Number(e.target.value) })}
+          />
+        </div>
+        <div>
+          <Label>Y Position</Label>
+          <Input
+            type="number"
+            value={element.y}
+            onChange={(e) => onUpdate({ y: Number(e.target.value) })}
+          />
+        </div>
+      </div>
+
+      <div>
+        <Label>Orientation</Label>
+        <Select value={element.orientation} onValueChange={(value: 'horizontal' | 'vertical') => onUpdate({ orientation: value })}>
+          <SelectTrigger>
+            <SelectValue />
+          </SelectTrigger>
+          <SelectContent className="bg-white border border-gray-200 shadow-lg">
+            <SelectItem value="horizontal" className="bg-white hover:bg-gray-50">Horizontal</SelectItem>
+            <SelectItem value="vertical" className="bg-white hover:bg-gray-50">Vertical</SelectItem>
+          </SelectContent>
+        </Select>
+      </div>
+
+      <div>
+        <Label>Font Size</Label>
+        <Input
+          type="number"
+          value={element.fontSize || 10}
+          onChange={(e) => onUpdate({ fontSize: Number(e.target.value) })}
+        />
+      </div>
+
+      <div>
+        <Label>Font Family</Label>
+        <Select value={element.fontFamily || 'Times-Bold'} onValueChange={(value) => onUpdate({ fontFamily: value })}>
+          <SelectTrigger>
+            <SelectValue />
+          </SelectTrigger>
+          <SelectContent className="bg-white border border-gray-200 shadow-lg">
+            <SelectItem value="Times-Bold" className="bg-white hover:bg-gray-50">Times Bold</SelectItem>
+            <SelectItem value="Times-Roman" className="bg-white hover:bg-gray-50">Times Roman</SelectItem>
+            <SelectItem value="Helvetica" className="bg-white hover:bg-gray-50">Helvetica</SelectItem>
+          </SelectContent>
+        </Select>
+      </div>
+
+      <div>
+        <Label>Text Color</Label>
+        <Input
+          type="color"
+          value={element.color || '#c94a3a'}
+          onChange={(e) => onUpdate({ color: e.target.value })}
+        />
+      </div>
+
+      <div>
+        <Label>Checkbox Size</Label>
+        <Input
+          type="number"
+          value={element.checkboxSize || 12}
+          onChange={(e) => onUpdate({ checkboxSize: Number(e.target.value) })}
+        />
+      </div>
+
+      <div>
+        <Label>Border Color</Label>
+        <Input
+          type="color"
+          value={element.borderColor || '#c94a3a'}
+          onChange={(e) => onUpdate({ borderColor: e.target.value })}
+        />
+      </div>
+
+      <div>
+        <Label>Border Width</Label>
+        <Input
+          type="number"
+          step="0.1"
+          value={element.borderWidth || 1.5}
+          onChange={(e) => onUpdate({ borderWidth: Number(e.target.value) })}
+        />
+      </div>
     </>
   );
 }

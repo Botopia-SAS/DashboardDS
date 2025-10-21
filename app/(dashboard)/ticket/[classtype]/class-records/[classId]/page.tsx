@@ -111,6 +111,11 @@ export default function Page() {
         }
 
         console.log('    ✅ Adding column:', variable.key, variable.label);
+        
+        // Check if this variable has options (checkbox dropdown)
+        const hasOptions = variable.options && variable.options.length > 0;
+        console.log('    📋 Variable options:', variable.options);
+        
         baseColumns.push({
           accessorKey: variable.key as keyof Student,
           header: variable.label,
@@ -182,6 +187,56 @@ export default function Page() {
       if (!fetchedTemplate) {
         const { getDefaultBDITemplate } = await import("@/lib/defaultTemplates/bdiTemplate");
         fetchedTemplate = getDefaultBDITemplate(certType);
+      }
+
+      // Ensure checkbox variables have options and add checkboxElements as variables
+      if (fetchedTemplate) {
+        // First, add options to existing variables
+        if (fetchedTemplate.availableVariables) {
+          fetchedTemplate.availableVariables = fetchedTemplate.availableVariables.map(variable => {
+            // Add options for known checkbox variables
+            if (variable.key === 'courseTime' && !variable.options) {
+              return { ...variable, options: ['4hr', '6hr', '8hr'] };
+            }
+            if (variable.key === 'attendanceReason' && !variable.options) {
+              return { ...variable, options: ['court_order', 'volunteer', 'ticket'] };
+            }
+            return variable;
+          });
+        }
+
+        // Add checkboxElements as variables with their options
+        if (fetchedTemplate.checkboxElements && fetchedTemplate.checkboxElements.length > 0) {
+          console.log('🔲 Found checkboxElements:', fetchedTemplate.checkboxElements.length);
+          const checkboxVariables = fetchedTemplate.checkboxElements.map(checkbox => ({
+            key: checkbox.variableKey,
+            label: checkbox.title,
+            example: checkbox.options[0] || 'Option 1',
+            options: checkbox.options
+          }));
+
+          console.log('📋 Checkbox variables to add:', checkboxVariables);
+
+          // Add checkbox variables to availableVariables if they don't already exist
+          checkboxVariables.forEach(checkboxVar => {
+            const exists = fetchedTemplate.availableVariables?.some(v => v.key === checkboxVar.key);
+            if (!exists) {
+              if (!fetchedTemplate.availableVariables) {
+                fetchedTemplate.availableVariables = [];
+              }
+              fetchedTemplate.availableVariables.push(checkboxVar);
+              console.log('✅ Added new checkbox variable:', checkboxVar.key, 'with options:', checkboxVar.options);
+            } else {
+              // Update existing variable with options if it doesn't have them
+              fetchedTemplate.availableVariables = fetchedTemplate.availableVariables.map(v => 
+                v.key === checkboxVar.key && !v.options 
+                  ? { ...v, options: checkboxVar.options }
+                  : v
+              );
+              console.log('🔄 Updated existing variable with options:', checkboxVar.key);
+            }
+          });
+        }
       }
 
       setTemplate(fetchedTemplate);
