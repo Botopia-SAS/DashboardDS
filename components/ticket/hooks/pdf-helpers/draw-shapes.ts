@@ -9,7 +9,8 @@ export function drawShapes(
   certScaleX: number,
   certScaleY: number,
   offsetY: number,
-  borderWidthScale: number = 1
+  borderWidthScale: number = 1,
+  variables: Record<string, any> = {}
 ) {
   shapes.forEach((shape: ShapeElement) => {
     const scaledShape = {
@@ -31,6 +32,27 @@ export function drawShapes(
 
     const borderColor = shape.borderColor ? hexToRgb(shape.borderColor) : hexToRgb('#000000');
 
+    // Check if this checkbox should be marked based on variables
+    let shouldMarkCheckbox = false;
+    if (shape.id) {
+      // Course Time checkboxes
+      if (shape.id === 'checkbox-4hr' && variables.courseTime === '4hr') {
+        shouldMarkCheckbox = true;
+      } else if (shape.id === 'checkbox-6hr' && variables.courseTime === '6hr') {
+        shouldMarkCheckbox = true;
+      } else if (shape.id === 'checkbox-8hr' && variables.courseTime === '8hr') {
+        shouldMarkCheckbox = true;
+      }
+      // Attendance Reason checkboxes
+      else if (shape.id === 'checkbox-court-order' && variables.attendanceReason === 'court_order') {
+        shouldMarkCheckbox = true;
+      } else if (shape.id === 'checkbox-volunteer' && variables.attendanceReason === 'volunteer') {
+        shouldMarkCheckbox = true;
+      } else if (shape.id === 'checkbox-ticket' && variables.attendanceReason === 'ticket') {
+        shouldMarkCheckbox = true;
+      }
+    }
+
     if (shape.type === 'rectangle') {
       page.drawRectangle({
         x: scaledShape.x,
@@ -41,6 +63,28 @@ export function drawShapes(
         borderColor: rgb(borderColor.r, borderColor.g, borderColor.b),
         borderWidth: scaledShape.borderWidth || 0,
       });
+
+      // Draw checkmark if checkbox should be marked
+      if (shouldMarkCheckbox) {
+        const checkboxSize = scaledShape.width || 12;
+        const centerX = scaledShape.x + checkboxSize / 2;
+        const centerY = height - scaledShape.y - checkboxSize / 2;
+        const checkSize = checkboxSize * 0.4;
+        
+        // Draw checkmark using two lines
+        page.drawLine({
+          start: { x: centerX - checkSize / 2, y: centerY },
+          end: { x: centerX - checkSize / 6, y: centerY - checkSize / 2 },
+          thickness: 1.5,
+          color: rgb(borderColor.r, borderColor.g, borderColor.b),
+        });
+        page.drawLine({
+          start: { x: centerX - checkSize / 6, y: centerY - checkSize / 2 },
+          end: { x: centerX + checkSize / 2, y: centerY + checkSize / 2 },
+          thickness: 1.5,
+          color: rgb(borderColor.r, borderColor.g, borderColor.b),
+        });
+      }
     } else if (shape.type === 'line') {
       const thickness = scaledShape.borderWidth || 1;
       const startX = scaledShape.x;

@@ -28,6 +28,7 @@ export const getVariables = (user: Student): Record<string, string> => {
     courseTime,
     duration,
     instructorName,
+    attendanceReason,
   } = user;
 
   const studentName = `${(first_name || '').toUpperCase()} ${(midl || '').toUpperCase()} ${(last_name || '').toUpperCase()}`.trim();
@@ -42,17 +43,27 @@ export const getVariables = (user: Student): Record<string, string> => {
     firstName: (first_name || '').toUpperCase(),
     lastName: (last_name || '').toUpperCase(),
     middleName: (midl || '').toUpperCase(),
+    middleInitial: (midl || '').toUpperCase().charAt(0),
     certn: String(certn || ''),
     birthDate: formattedBirthDate,
     courseDate: formattedCourseDate,
+    completionDate: formattedCourseDate,
     printDate,
     classTitle: classTitle || '',
+    courseTitle: classTitle || '',
     classType: (classType || '').toUpperCase(),
     licenseNumber: licenseNumber || '',
     citationNumber: citation_number || '',
     address: address || '',
     courseAddress: courseAddress || '',
     courseTime: duration || courseTime || '',
+    attendanceReason: attendanceReason || '',
     instructorName: instructorName || '',
+    instructorSignature: instructorName || '',
+    instructorSchoolName: 'Affordable Driving & Traffic School',
+    providerName: 'Affordable Driving & Traffic School',
+    providerPhone: '(561) 969-0150',
+    court: '',
+    county: '',
   };
 };

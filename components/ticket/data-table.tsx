@@ -404,18 +404,43 @@ export function DataTable({ columns, data, onUpdate }: DataTableProps) {
                       return (
                         <TableCell key={cell.id}>
                           {isEditable ? (
-                            <input
-                              type={typeof cellValue === "number" ? "number" : "text"}
-                              value={cellValue === "N/A" || cellValue === "-" ? "" : (cellValue || "")}
-                              onChange={(e) => {
-                                const value = typeof cellValue === "number" 
-                                  ? (e.target.value === "" ? 0 : +e.target.value)
-                                  : e.target.value;
-                                handleChange(row.id, columnId, value);
-                              }}
-                              className="border p-1 w-full"
-                              placeholder="Enter value..."
-                            />
+                            // Special dropdowns for checkbox-related fields
+                            columnId === "courseTime" ? (
+                              <select
+                                value={cellValue || ""}
+                                onChange={(e) => handleChange(row.id, columnId, e.target.value)}
+                                className="border p-1 w-full"
+                              >
+                                <option value="">Select...</option>
+                                <option value="4hr">4hr</option>
+                                <option value="6hr">6hr</option>
+                                <option value="8hr">8hr</option>
+                              </select>
+                            ) : columnId === "attendanceReason" ? (
+                              <select
+                                value={cellValue || ""}
+                                onChange={(e) => handleChange(row.id, columnId, e.target.value)}
+                                className="border p-1 w-full"
+                              >
+                                <option value="">Select...</option>
+                                <option value="court_order">Court Order</option>
+                                <option value="volunteer">Volunteer</option>
+                                <option value="ticket">Ticket/Citation</option>
+                              </select>
+                            ) : (
+                              <input
+                                type={typeof cellValue === "number" ? "number" : "text"}
+                                value={cellValue === "N/A" || cellValue === "-" ? "" : (cellValue || "")}
+                                onChange={(e) => {
+                                  const value = typeof cellValue === "number" 
+                                    ? (e.target.value === "" ? 0 : +e.target.value)
+                                    : e.target.value;
+                                  handleChange(row.id, columnId, value);
+                                }}
+                                className="border p-1 w-full"
+                                placeholder="Enter value..."
+                              />
+                            )
                           ) : (
                             flexRender(
                               cell.column.columnDef.cell,

@@ -64,7 +64,10 @@ export default function Page() {
 
     // Add dynamic columns based on template variables
     if (template && template.availableVariables) {
+      console.log('📋 Generating columns from template variables:', template.availableVariables.length);
       template.availableVariables.forEach((variable) => {
+        console.log('  - Processing variable:', variable.key, variable.label);
+        
         // Skip variables that are already in base columns or redundant
         const skipKeys = [
           'last_name', 
@@ -103,9 +106,11 @@ export default function Page() {
                           skipLabels.some(label => variable.label.toLowerCase().includes(label));
         
         if (shouldSkip) {
+          console.log('    ⏭️ Skipping variable:', variable.key);
           return;
         }
 
+        console.log('    ✅ Adding column:', variable.key, variable.label);
         baseColumns.push({
           accessorKey: variable.key as keyof Student,
           header: variable.label,
@@ -116,6 +121,8 @@ export default function Page() {
         });
       });
     }
+    
+    console.log('📊 Total columns generated:', baseColumns.length);
 
     return baseColumns;
   }, []);
@@ -154,13 +161,18 @@ export default function Page() {
       
       // Fetch certificate template
       const certType = (drivingClassData.data.classType || certificateType).toUpperCase();
+      console.log('🔍 Fetching template for classType:', certType);
       const templateResponse = await fetch(`/api/certificate-templates?classType=${certType}`);
       let fetchedTemplate: CertificateTemplate | null = null;
 
       if (templateResponse.ok) {
         const templates = await templateResponse.json();
+        console.log('📋 Templates found:', templates.length);
         if (templates.length > 0) {
           fetchedTemplate = templates[0];
+          console.log('✅ Template loaded:', fetchedTemplate.name);
+          console.log('📝 Available variables:', fetchedTemplate.availableVariables?.length);
+          console.log('🔲 Shape elements (checkboxes):', fetchedTemplate.shapeElements?.length);
         }
       }
 

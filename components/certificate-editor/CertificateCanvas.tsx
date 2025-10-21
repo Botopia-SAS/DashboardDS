@@ -255,7 +255,7 @@ export function CertificateCanvas({
           if (!isLandscape && effectiveCertsPerPage === 2) {
             borderWidthScale = 0.85; // Same as text scale for 2 certs
           } else if (!isLandscape && effectiveCertsPerPage === 3) {
-            borderWidthScale = 0.80; // Same as text scale for 3 certs
+            borderWidthScale = 0.795; // Same as text scale for 3 certs
           }
 
           const scaledShape = {
@@ -387,7 +387,7 @@ export function CertificateCanvas({
             if (effectiveCertsPerPage === 2) {
               minTextScale = 0.85; // Increased for better readability with 2 certs
             } else if (effectiveCertsPerPage === 3) {
-              minTextScale = 0.80; // Increased for better readability with 3 certs
+              minTextScale = 0.795; // Increased for better readability with 3 certs
             }
           }
 

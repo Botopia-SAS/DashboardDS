@@ -451,9 +451,9 @@ export function getGovTemplate(classType: string = "DATE"): CertificateTemplate 
       },
       {
         id: 'text-school-name',
-        content: '{{providerName}}',
-        x: 740,
-        y: 490,
+        content: 'Affordable Driving & Traffic School',
+        x: 720,
+        y: 488,
         fontSize: 8,
         fontFamily: 'Times-Bold',
         fontWeight: 'bold',
@@ -462,9 +462,9 @@ export function getGovTemplate(classType: string = "DATE"): CertificateTemplate 
       },
       {
         id: 'text-school-phone',
-        content: '{{providerPhone}}',
-        x: 740,
-        y: 500,
+        content: '(561) 969-0150',
+        x: 720,
+        y: 502,
         fontSize: 8,
         fontFamily: 'Times-Bold',
         fontWeight: 'bold',
@@ -495,29 +495,79 @@ export function getGovTemplate(classType: string = "DATE"): CertificateTemplate 
       },
     ],
     shapeElements: [
-      // Outer border
+      // Checkboxes para Course Time
+      // Checkbox para 4hr (justo después del texto)
       {
-        id: 'shape-outer-border',
+        id: 'checkbox-4hr',
         type: 'rectangle',
-        x: 10,
-        y: 10,
-        width: 772,
-        height: 592,
-        fill: 'none',
-        stroke: '#c94a3a',
-        strokeWidth: 3,
+        x: 405,
+        y: 180,
+        width: 12,
+        height: 12,
+        color: 'transparent',
+        borderColor: '#c94a3a',
+        borderWidth: 1.5,
       },
-      // Inner border
+      // Checkbox para 6hr (justo después del texto)
       {
-        id: 'shape-inner-border',
+        id: 'checkbox-6hr',
         type: 'rectangle',
-        x: 15,
-        y: 15,
-        width: 762,
-        height: 582,
-        fill: 'none',
-        stroke: '#e06b57',
-        strokeWidth: 1,
+        x: 455,
+        y: 180,
+        width: 12,
+        height: 12,
+        color: 'transparent',
+        borderColor: '#c94a3a',
+        borderWidth: 1.5,
+      },
+      // Checkbox para 8hr (justo después del texto)
+      {
+        id: 'checkbox-8hr',
+        type: 'rectangle',
+        x: 505,
+        y: 180,
+        width: 12,
+        height: 12,
+        color: 'transparent',
+        borderColor: '#c94a3a',
+        borderWidth: 1.5,
+      },
+      // Checkboxes para Attendance
+      // Checkbox para Court Order (justo después del texto)
+      {
+        id: 'checkbox-court-order',
+        type: 'rectangle',
+        x: 375,
+        y: 240,
+        width: 12,
+        height: 12,
+        color: 'transparent',
+        borderColor: '#c94a3a',
+        borderWidth: 1.5,
+      },
+      // Checkbox para Volunteer (justo después del texto)
+      {
+        id: 'checkbox-volunteer',
+        type: 'rectangle',
+        x: 470,
+        y: 240,
+        width: 12,
+        height: 12,
+        color: 'transparent',
+        borderColor: '#c94a3a',
+        borderWidth: 1.5,
+      },
+      // Checkbox para Ticket/Citation (justo después del texto)
+      {
+        id: 'checkbox-ticket',
+        type: 'rectangle',
+        x: 570,
+        y: 240,
+        width: 12,
+        height: 12,
+        color: 'transparent',
+        borderColor: '#c94a3a',
+        borderWidth: 1.5,
       },
     ],
     availableVariables: [
@@ -536,9 +586,19 @@ export function getGovTemplate(classType: string = "DATE"): CertificateTemplate 
       { key: 'instructorSchoolName', label: 'Instructor School Name', example: 'ABC Driving School' },
       { key: 'providerName', label: 'Provider Name', example: 'Affordable Driving & Traffic School' },
       { key: 'providerPhone', label: 'Provider Phone', example: '(561) 969-0150' },
-      // Checkbox variables
-      { key: 'courseTime', label: 'Course Time (4hr/6hr/8hr)', example: '4hr' },
-      { key: 'attendanceReason', label: 'Attendance Reason (court_order/volunteer/ticket)', example: 'ticket' },
+      // Checkbox variables - se usan para marcar los checkboxes automáticamente
+      { 
+        key: 'courseTime', 
+        label: 'Course Time', 
+        example: '4hr',
+        options: ['4hr', '6hr', '8hr']
+      },
+      { 
+        key: 'attendanceReason', 
+        label: 'Attendance Reason', 
+        example: 'ticket',
+        options: ['court_order', 'volunteer', 'ticket']
+      },
     ],
     isDefault: false,
     isActive: true,

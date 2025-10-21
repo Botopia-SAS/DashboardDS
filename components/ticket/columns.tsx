@@ -23,6 +23,7 @@ export interface Student {
   userAddress?: string;
   courseAddress?: string;
   courseTime?: string;
+  attendanceReason?: string; // Attendance reason for certificate checkboxes
   address?: string;
   duration?: string; // Duration from ticket class (e.g., "2h")
   locationId?: string; // Location ID from ticket class
@@ -85,6 +86,22 @@ export const columns: ColumnDef<Student>[] = [
     cell: ({ row }) => {
       const citationNumber = row.getValue("citation_number") as string;
       return citationNumber || "-";
+    },
+  },
+  {
+    accessorKey: "courseTime",
+    header: "Course Time",
+    cell: ({ row }) => {
+      const courseTime = row.getValue("courseTime") as string;
+      return courseTime || "-";
+    },
+  },
+  {
+    accessorKey: "attendanceReason",
+    header: "Attendance Reason",
+    cell: ({ row }) => {
+      const attendanceReason = row.getValue("attendanceReason") as string;
+      return attendanceReason || "-";
     },
   },
 ];

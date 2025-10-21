@@ -752,7 +752,7 @@ export function CertificateEditor({
         { id: `text-${Date.now()}-10`, content: 'Location: {{address}}', x: w/2, y: 460*scaleY, fontSize: 11*fontScale, fontFamily: 'Arial', color: '#999999', align: 'center' },
       ],
       imageElements: [], // Clear all images and signatures
-      shapeElements: template.shapeElements, // Keep frames/borders
+      shapeElements: [], // Clear all shapes (including checkboxes)
       background: template.background // Keep background
     });
   };
@@ -767,7 +767,7 @@ export function CertificateEditor({
         ...govTemplate,
         classType: template.classType, // Keep current class type
         background: template.background, // Keep existing background
-        shapeElements: [...template.shapeElements, ...govTemplate.shapeElements], // Merge shapes
+        shapeElements: govTemplate.shapeElements, // Replace shapes completely (don't merge)
       });
       
       toast.success('Government Form template applied successfully!');
@@ -803,7 +803,7 @@ export function CertificateEditor({
         { id: `text-${Date.now()}-9`, content: '{{address}}', x: w/2, y: h - 60*scaleY, fontSize: 10*fontScale, fontFamily: 'Arial', color: '#95a5a6', align: 'center' },
       ],
       imageElements: [], // Clear all images and signatures
-      shapeElements: template.shapeElements, // Keep frames/borders
+      shapeElements: [], // Clear all shapes (including checkboxes)
       background: template.background // Keep background
     });
   };
@@ -834,7 +834,7 @@ export function CertificateEditor({
         { id: `text-${Date.now()}-9`, content: '{{address}}', x: w/2, y: h - 55*scaleY, fontSize: 10*fontScale, fontFamily: 'Arial', color: '#ecf0f1', align: 'center' },
       ],
       imageElements: [], // Clear all images and signatures
-      shapeElements: template.shapeElements, // Keep frames/borders
+      shapeElements: [], // Clear all shapes (including checkboxes)
       background: template.background // Keep background
     });
   };
@@ -916,7 +916,7 @@ export function CertificateEditor({
         { id: `text-${Date.now()}-21`, content: 'AFFORDABLE DRIVING', x: w - 202*scaleX, y: h - 55*scaleY, fontSize: 9*fontScale, fontFamily: 'Helvetica', color: '#000000', align: 'left' },
       ],
       imageElements: [], // Clear all images and signatures
-      shapeElements: template.shapeElements, // Keep frames/borders
+      shapeElements: [], // Clear all shapes (including checkboxes)
       background: template.background // Keep background
     });
   };
