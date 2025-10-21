@@ -24,6 +24,7 @@ export async function GET() {
           firstName: user.firstName,
           lastName: user.lastName,
           middleName: user.middleName,
+          licenseNumber: user.licenseNumber,
           createdAt: user.createdAt, // Asegurando que la fecha de registro se envía en la respuesta
         };
       });

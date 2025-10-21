@@ -90,6 +90,7 @@ export default function PersonalInformation({ form }: { form: any }) {
                 <Input
                   {...field}
                   type="date"
+                  placeholder="YYYY-MM-DD"
                   className="border-gray-300 focus:ring-blue-500 focus:border-blue-500"
                 />
               </FormControl>
