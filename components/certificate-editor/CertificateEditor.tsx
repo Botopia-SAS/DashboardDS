@@ -12,10 +12,11 @@ import { Textarea } from "@/components/ui/textarea";
 import { Switch } from "@/components/ui/switch";
 import { Trash2, Plus, Settings, Type, Square, Keyboard, Upload, PenTool, X } from "lucide-react";
 import toast from "react-hot-toast";
-import { CertificateTemplate, TextElement, ImageElement, ShapeElement, DEFAULT_VARIABLES, PAGE_SIZE_OPTIONS } from "./types";
+import { CertificateTemplate, TextElement, ImageElement, ShapeElement, CheckboxElement, DEFAULT_VARIABLES, PAGE_SIZE_OPTIONS } from "./types";
 import { CertificateCanvas } from "./CertificateCanvas";
 import { CertificateImageUpload } from "./CertificateImageUpload";
 import { SignatureCanvas } from "./SignatureCanvas";
+import { CheckboxConfigModal } from "./CheckboxConfigModal";
 
 interface CertificateEditorProps {
   classType: string;
@@ -58,6 +59,7 @@ export function CertificateEditor({
       textElements: [],
       imageElements: [],
       shapeElements: [],
+      checkboxElements: [], // Add checkboxElements
       availableVariables: DEFAULT_VARIABLES,
       isDefault: false,
       isActive: true,
@@ -65,7 +67,7 @@ export function CertificateEditor({
   });
 
   const [selectedElement, setSelectedElement] = useState<{
-    type: 'text' | 'image' | 'shape' | null;
+    type: 'text' | 'image' | 'shape' | 'checkbox' | null;
     id: string | null;
   }>({ type: null, id: null });
 
@@ -74,6 +76,7 @@ export function CertificateEditor({
   const [selectedFrameStyle, setSelectedFrameStyle] = useState<string>('');
   const [signatureImage, setSignatureImage] = useState<string | null>(null);
   const [showSignatureModal, setShowSignatureModal] = useState(false);
+  const [showCheckboxModal, setShowCheckboxModal] = useState(false);
   const [isDrawingMode, setIsDrawingMode] = useState(false);
 
   // Store original template state for each orientation to prevent cumulative scaling
@@ -91,8 +94,8 @@ export function CertificateEditor({
 
   // Clipboard for copy/paste functionality
   const [clipboard, setClipboard] = useState<{
-    type: 'text' | 'image' | 'shape';
-    element: TextElement | ImageElement | ShapeElement;
+    type: 'text' | 'image' | 'shape' | 'checkbox';
+    element: TextElement | ImageElement | ShapeElement | CheckboxElement;
   } | null>(null);
 
   // Track the initial template to detect when a NEW template is loaded from DB
@@ -416,8 +419,42 @@ export function CertificateEditor({
     setSelectedElement({ type: 'shape', id: newElement.id });
   };
 
+  // Add Checkbox Element
+  const addCheckboxElement = (checkboxElement: CheckboxElement) => {
+    // Generate individual shape elements for each option
+    const newShapeElements = checkboxElement.options.map((option, index) => ({
+      id: `checkbox-${option}`, // Dynamic ID based on option
+      type: 'rectangle' as const,
+      x: checkboxElement.x + (checkboxElement.orientation === 'horizontal' ? index * 50 : 0),
+      y: checkboxElement.y + (checkboxElement.orientation === 'vertical' ? (index + 1) * 20 : 0),
+      width: 12,
+      height: 12,
+      color: 'transparent',
+      borderColor: checkboxElement.borderColor || '#c94a3a',
+      borderWidth: checkboxElement.borderWidth || 1.5,
+    }));
+
+    pushToHistory({
+      ...template,
+      checkboxElements: [...(template.checkboxElements || []), checkboxElement],
+      shapeElements: [...template.shapeElements, ...newShapeElements],
+      // Add the variable to availableVariables
+      availableVariables: [
+        ...template.availableVariables,
+        {
+          key: checkboxElement.variableKey,
+          label: checkboxElement.title,
+          example: checkboxElement.options[0] || 'Option 1',
+          options: checkboxElement.options,
+        }
+      ],
+    });
+
+    setSelectedElement({ type: 'checkbox', id: checkboxElement.id });
+  };
+
   // Update element
-  const updateElement = (type: 'text' | 'image' | 'shape', id: string, updates: any) => {
+  const updateElement = (type: 'text' | 'image' | 'shape' | 'checkbox', id: string, updates: any) => {
     if (type === 'text') {
       pushToHistory({
         ...template,
@@ -439,11 +476,18 @@ export function CertificateEditor({
           el.id === id ? { ...el, ...updates } : el
         ),
       });
+    } else if (type === 'checkbox') {
+      pushToHistory({
+        ...template,
+        checkboxElements: (template.checkboxElements || []).map(el =>
+          el.id === id ? { ...el, ...updates } : el
+        ),
+      });
     }
   };
 
   // Delete element
-  const deleteElement = (type: 'text' | 'image' | 'shape', id: string) => {
+  const deleteElement = (type: 'text' | 'image' | 'shape' | 'checkbox', id: string) => {
     if (type === 'text') {
       pushToHistory({
         ...template,
@@ -458,6 +502,11 @@ export function CertificateEditor({
       pushToHistory({
         ...template,
         shapeElements: template.shapeElements.filter(el => el.id !== id),
+      });
+    } else if (type === 'checkbox') {
+      pushToHistory({
+        ...template,
+        checkboxElements: template.checkboxElements.filter(el => el.id !== id),
       });
     }
 
@@ -726,8 +775,9 @@ export function CertificateEditor({
   // Text Template Functions - Only replace text elements, keep background and shapes
   // Base reference size: Carta Portrait (612x792)
   const applySimpleTextTemplate = () => {
-    const w = template.pageSize.width;
-    const h = template.pageSize.height;
+    // Always use landscape orientation and 1 certificate per page for text templates
+    const w = 792; // Landscape width
+    const h = 612; // Landscape height
     const baseW = 612; // Carta width
     const baseH = 792; // Carta height
     const scaleX = w / baseW;
@@ -736,6 +786,8 @@ export function CertificateEditor({
 
     pushToHistory({
       ...template,
+      pageSize: { width: 792, height: 612, orientation: 'landscape' },
+      certificatesPerPage: 1, // Always set to 1 certificate per page
       textElements: [
         { id: `text-${Date.now()}-1`, content: 'CERTIFICATE OF COMPLETION', x: w/2, y: 80*scaleY, fontSize: 28*fontScale, fontFamily: 'Times New Roman', fontWeight: 'bold', color: '#000000', align: 'center' },
         { id: `text-${Date.now()}-2`, content: 'This certificate validates that', x: w/2, y: 140*scaleY, fontSize: 14*fontScale, fontFamily: 'Arial', color: '#333333', align: 'center' },
@@ -747,43 +799,37 @@ export function CertificateEditor({
         { id: `text-${Date.now()}-8`, content: 'Completion Date: {{courseDate}}', x: w/2, y: 400*scaleY, fontSize: 14*fontScale, fontFamily: 'Arial', color: '#000000', align: 'center' },
         { id: `text-${Date.now()}-9`, content: 'Certificate No: {{certn}}', x: w/2, y: 430*scaleY, fontSize: 11*fontScale, fontFamily: 'Arial', color: '#999999', align: 'center' },
         { id: `text-${Date.now()}-10`, content: 'Location: {{address}}', x: w/2, y: 460*scaleY, fontSize: 11*fontScale, fontFamily: 'Arial', color: '#999999', align: 'center' },
-      ]
+      ],
+      imageElements: [], // Clear all images and signatures
+      shapeElements: [], // Clear all shapes (including checkboxes)
+      background: template.background // Keep background
     });
   };
 
   const applyGovernmentStyleTemplate = () => {
-    const w = template.pageSize.width;
-    const h = template.pageSize.height;
-    const baseW = 612;
-    const baseH = 792;
-    const scaleX = w / baseW;
-    const scaleY = h / baseH;
-    const fontScale = Math.min(scaleX, scaleY);
-
-    pushToHistory({
-      ...template,
-      textElements: [
-        { id: `text-${Date.now()}-1`, content: 'CERTIFICATE OF COMPLETION', x: w/2, y: 100*scaleY, fontSize: 24*fontScale, fontFamily: 'Arial', fontWeight: 'bold', color: '#cc0000', align: 'center' },
-        { id: `text-${Date.now()}-2`, content: 'This certificate validates that the named person has successfully completed a', x: w/2, y: 150*scaleY, fontSize: 12*fontScale, fontFamily: 'Arial', color: '#cc0000', align: 'center', italic: true },
-        { id: `text-${Date.now()}-3`, content: '{{classTitle}}', x: w/2, y: 175*scaleY, fontSize: 13*fontScale, fontFamily: 'Arial', fontWeight: 'bold', color: '#cc0000', align: 'center' },
-        { id: `text-${Date.now()}-4`, content: 'AN UNDER 25 YOUTHFUL OFFENDER COURSE', x: w/2, y: 195*scaleY, fontSize: 11*fontScale, fontFamily: 'Arial', color: '#000000', align: 'center' },
-        { id: `text-${Date.now()}-5`, content: 'COURSE TIME: {{courseTime}}', x: 100*scaleX, y: 240*scaleY, fontSize: 10*fontScale, fontFamily: 'Arial', fontWeight: 'bold', color: '#cc0000', align: 'left' },
-        { id: `text-${Date.now()}-6`, content: 'Citation/Case No: __________', x: 80*scaleX, y: 280*scaleY, fontSize: 10*fontScale, fontFamily: 'Arial', color: '#000000', align: 'left' },
-        { id: `text-${Date.now()}-7`, content: 'Court: ________', x: 250*scaleX, y: 280*scaleY, fontSize: 10*fontScale, fontFamily: 'Arial', color: '#000000', align: 'left' },
-        { id: `text-${Date.now()}-8`, content: 'County: ________', x: 400*scaleX, y: 280*scaleY, fontSize: 10*fontScale, fontFamily: 'Arial', color: '#000000', align: 'left' },
-        { id: `text-${Date.now()}-9`, content: 'Certificate Number: {{certn}}', x: w - 100*scaleX, y: 280*scaleY, fontSize: 10*fontScale, fontFamily: 'Arial', color: '#000000', align: 'right' },
-        { id: `text-${Date.now()}-10`, content: 'NAME:', x: 80*scaleX, y: 330*scaleY, fontSize: 10*fontScale, fontFamily: 'Arial', fontWeight: 'bold', color: '#cc0000', align: 'left' },
-        { id: `text-${Date.now()}-11`, content: '{{firstName}} {{lastName}}', x: w/2, y: 360*scaleY, fontSize: 16*fontScale, fontFamily: 'Arial', fontWeight: 'bold', color: '#000000', align: 'center' },
-        { id: `text-${Date.now()}-12`, content: 'Drivers License No: {{licenseNumber}}', x: 80*scaleX, y: 400*scaleY, fontSize: 10*fontScale, fontFamily: 'Arial', color: '#cc0000', align: 'left' },
-        { id: `text-${Date.now()}-13`, content: 'Completion Date: {{courseDate}}', x: 350*scaleX, y: 400*scaleY, fontSize: 10*fontScale, fontFamily: 'Arial', color: '#000000', align: 'left' },
-        { id: `text-${Date.now()}-14`, content: '{{address}}', x: w/2, y: h - 80*scaleY, fontSize: 11*fontScale, fontFamily: 'Arial', fontWeight: 'bold', color: '#1a5490', align: 'center' },
-      ]
+    // Import and use the GOV template
+    import('@/lib/defaultTemplates/govTemplate').then(({ getGovTemplate }) => {
+      const govTemplate = getGovTemplate(template.classType);
+      
+      pushToHistory({
+        ...template,
+        ...govTemplate,
+        classType: template.classType, // Keep current class type
+        background: template.background, // Keep existing background
+        shapeElements: govTemplate.shapeElements, // Replace shapes completely (don't merge)
+      });
+      
+      toast.success('Government Form template applied successfully!');
+    }).catch(error => {
+      console.error('Error loading GOV template:', error);
+      toast.error('Failed to load Government Form template');
     });
   };
 
   const applyElegantTemplate = () => {
-    const w = template.pageSize.width;
-    const h = template.pageSize.height;
+    // Always use landscape orientation and 1 certificate per page for text templates
+    const w = 792; // Landscape width
+    const h = 612; // Landscape height
     const baseW = 612;
     const baseH = 792;
     const scaleX = w / baseW;
@@ -792,6 +838,8 @@ export function CertificateEditor({
 
     pushToHistory({
       ...template,
+      pageSize: { width: 792, height: 612, orientation: 'landscape' },
+      certificatesPerPage: 1, // Always set to 1 certificate per page
       textElements: [
         { id: `text-${Date.now()}-1`, content: 'Certificate of Achievement', x: w/2, y: 80*scaleY, fontSize: 32*fontScale, fontFamily: 'Times New Roman', fontWeight: 'bold', color: '#2c3e50', align: 'center', italic: true },
         { id: `text-${Date.now()}-2`, content: 'PROUDLY PRESENTED TO', x: w/2, y: 160*scaleY, fontSize: 12*fontScale, fontFamily: 'Arial', color: '#7f8c8d', align: 'center' },
@@ -802,13 +850,17 @@ export function CertificateEditor({
         { id: `text-${Date.now()}-7`, content: 'License: {{licenseNumber}}', x: 100*scaleX, y: h - 60*scaleY, fontSize: 10*fontScale, fontFamily: 'Arial', color: '#95a5a6', align: 'left' },
         { id: `text-${Date.now()}-8`, content: 'Certificate #{{certn}}', x: w - 100*scaleX, y: h - 60*scaleY, fontSize: 10*fontScale, fontFamily: 'Arial', color: '#95a5a6', align: 'right' },
         { id: `text-${Date.now()}-9`, content: '{{address}}', x: w/2, y: h - 60*scaleY, fontSize: 10*fontScale, fontFamily: 'Arial', color: '#95a5a6', align: 'center' },
-      ]
+      ],
+      imageElements: [], // Clear all images and signatures
+      shapeElements: [], // Clear all shapes (including checkboxes)
+      background: template.background // Keep background
     });
   };
 
   const applyModernTemplate = () => {
-    const w = template.pageSize.width;
-    const h = template.pageSize.height;
+    // Always use landscape orientation and 1 certificate per page for text templates
+    const w = 792; // Landscape width
+    const h = 612; // Landscape height
     const baseW = 612;
     const baseH = 792;
     const scaleX = w / baseW;
@@ -817,6 +869,8 @@ export function CertificateEditor({
 
     pushToHistory({
       ...template,
+      pageSize: { width: 792, height: 612, orientation: 'landscape' },
+      certificatesPerPage: 1, // Always set to 1 certificate per page
       textElements: [
         { id: `text-${Date.now()}-1`, content: 'CERTIFICATE', x: w/2, y: 50*scaleY, fontSize: 36*fontScale, fontFamily: 'Arial', fontWeight: 'bold', color: '#FFFFFF', align: 'center' },
         { id: `text-${Date.now()}-2`, content: 'OF COMPLETION', x: w/2, y: 85*scaleY, fontSize: 18*fontScale, fontFamily: 'Arial', color: '#e8f4f8', align: 'center' },
@@ -827,13 +881,17 @@ export function CertificateEditor({
         { id: `text-${Date.now()}-7`, content: 'Course Duration: {{courseTime}} | Completion: {{courseDate}}', x: w/2, y: 380*scaleY, fontSize: 12*fontScale, fontFamily: 'Arial', color: '#34495e', align: 'center' },
         { id: `text-${Date.now()}-8`, content: 'Certificate #{{certn}}', x: w/2, y: h - 35*scaleY, fontSize: 11*fontScale, fontFamily: 'Arial', color: '#FFFFFF', align: 'center' },
         { id: `text-${Date.now()}-9`, content: '{{address}}', x: w/2, y: h - 55*scaleY, fontSize: 10*fontScale, fontFamily: 'Arial', color: '#ecf0f1', align: 'center' },
-      ]
+      ],
+      imageElements: [], // Clear all images and signatures
+      shapeElements: [], // Clear all shapes (including checkboxes)
+      background: template.background // Keep background
     });
   };
 
   const applyProfessionalTemplate = () => {
-    const w = template.pageSize.width;
-    const h = template.pageSize.height;
+    // Always use landscape orientation and 1 certificate per page for text templates
+    const w = 792; // Landscape width
+    const h = 612; // Landscape height
     const baseW = 612;
     const baseH = 792;
     const scaleX = w / baseW;
@@ -842,6 +900,8 @@ export function CertificateEditor({
 
     pushToHistory({
       ...template,
+      pageSize: { width: 792, height: 612, orientation: 'landscape' },
+      certificatesPerPage: 1, // Always set to 1 certificate per page
       textElements: [
         { id: `text-${Date.now()}-1`, content: 'CERTIFICATE', x: 80*scaleX, y: 100*scaleY, fontSize: 28*fontScale, fontFamily: 'Arial', fontWeight: 'bold', color: '#1a5490', align: 'left' },
         { id: `text-${Date.now()}-2`, content: 'of Course Completion', x: 80*scaleX, y: 135*scaleY, fontSize: 16*fontScale, fontFamily: 'Arial', color: '#7f8c8d', align: 'left' },
@@ -854,13 +914,17 @@ export function CertificateEditor({
         { id: `text-${Date.now()}-9`, content: 'Date of Completion: {{courseDate}}', x: 80*scaleX, y: 430*scaleY, fontSize: 11*fontScale, fontFamily: 'Arial', color: '#34495e', align: 'left' },
         { id: `text-${Date.now()}-10`, content: 'Location: {{address}}', x: 80*scaleX, y: 460*scaleY, fontSize: 11*fontScale, fontFamily: 'Arial', color: '#34495e', align: 'left' },
         { id: `text-${Date.now()}-11`, content: 'Certificate Number: {{certn}}', x: w - 80*scaleX, y: h - 70*scaleY, fontSize: 10*fontScale, fontFamily: 'Arial', color: '#95a5a6', align: 'right' },
-      ]
+      ],
+      imageElements: [], // Clear all images and signatures
+      shapeElements: template.shapeElements, // Keep frames/borders
+      background: template.background // Keep background
     });
   };
 
   const applyBDIDefaultTemplate = () => {
-    const w = template.pageSize.width;
-    const h = template.pageSize.height;
+    // Always use landscape orientation and 1 certificate per page for text templates
+    const w = 792; // Landscape width
+    const h = 612; // Landscape height
     // BDI template is designed for landscape 792x612
     const baseW = 792;
     const baseH = 612;
@@ -870,6 +934,8 @@ export function CertificateEditor({
 
     pushToHistory({
       ...template,
+      pageSize: { width: 792, height: 612, orientation: 'landscape' },
+      certificatesPerPage: 1, // Always set to 1 certificate per page
       textElements: [
         // Header
         { id: `text-${Date.now()}-1`, content: 'AFFORDABLE DRIVING TRAFFIC SCHOOL', x: w/2, y: 75*scaleY, fontSize: 16*fontScale, fontFamily: 'Helvetica', fontWeight: 'bold', color: '#000000', align: 'center' },
@@ -897,7 +963,10 @@ export function CertificateEditor({
         { id: `text-${Date.now()}-19`, content: 'AFFORDABLE DRIVING INSTRUCTOR', x: 85*scaleX, y: h - 55*scaleY, fontSize: 9*fontScale, fontFamily: 'Helvetica', color: '#000000', align: 'left' },
         { id: `text-${Date.now()}-20`, content: 'LICENSE #', x: w - 202*scaleX, y: h - 67*scaleY, fontSize: 9*fontScale, fontFamily: 'Helvetica', fontWeight: 'bold', color: '#000000', align: 'left' },
         { id: `text-${Date.now()}-21`, content: 'AFFORDABLE DRIVING', x: w - 202*scaleX, y: h - 55*scaleY, fontSize: 9*fontScale, fontFamily: 'Helvetica', color: '#000000', align: 'left' },
-      ]
+      ],
+      imageElements: [], // Clear all images and signatures
+      shapeElements: [], // Clear all shapes (including checkboxes)
+      background: template.background // Keep background
     });
   };
 
@@ -1293,6 +1362,8 @@ export function CertificateEditor({
       return template.imageElements.find(el => el.id === selectedElement.id);
     } else if (selectedElement.type === 'shape') {
       return template.shapeElements.find(el => el.id === selectedElement.id);
+    } else if (selectedElement.type === 'checkbox') {
+      return template.checkboxElements?.find(el => el.id === selectedElement.id);
     }
 
     return null;
@@ -1573,6 +1644,10 @@ export function CertificateEditor({
               <Button onClick={() => addShapeElement('line')} className="w-full" variant="outline">
                 <Plus className="w-4 h-4 mr-2" />
                 Add Line
+              </Button>
+              <Button onClick={() => setShowCheckboxModal(true)} className="w-full" variant="outline">
+                <Plus className="w-4 h-4 mr-2" />
+                Add Checkbox
               </Button>
             </CardContent>
           </Card>
@@ -1871,74 +1946,8 @@ export function CertificateEditor({
               <CardTitle className="text-lg">Available Variables</CardTitle>
             </CardHeader>
             <CardContent className="space-y-3">
-              {/* Text Templates Dropdown */}
-              <div className="pb-3 border-b">
-                <Label className="text-sm font-semibold mb-1.5 block">Text Templates</Label>
-                <p className="text-xs text-gray-500 mb-3">Apply pre-designed layouts</p>
-                <Select onValueChange={(value) => {
-                  if (value === 'bdi') applyBDIDefaultTemplate();
-                  else if (value === 'simple') applySimpleTextTemplate();
-                  else if (value === 'government') applyGovernmentStyleTemplate();
-                  else if (value === 'elegant') applyElegantTemplate();
-                  else if (value === 'modern') applyModernTemplate();
-                  else if (value === 'professional') applyProfessionalTemplate();
-                }}>
-                  <SelectTrigger className="w-full h-auto min-h-[2.5rem]">
-                    <SelectValue placeholder="Choose a text template..." />
-                  </SelectTrigger>
-                  <SelectContent 
-                    className="bg-white border border-gray-200 shadow-lg z-[100]" 
-                    style={{ 
-                      maxHeight: '400px', 
-                      overflowY: 'auto',
-                      scrollBehavior: 'smooth',
-                      position: 'fixed'
-                    }}
-                    position="popper"
-                    sideOffset={4}
-                  >
-                    <SelectItem value="bdi" className="py-3 px-4 bg-white hover:bg-gray-50 focus:bg-gray-50 focus:outline-none cursor-pointer">
-                      <div className="flex flex-col items-start w-full">
-                        <span className="font-medium text-sm text-gray-900">BDI Default Layout</span>
-                        <span className="text-xs text-gray-500">Classic driving school format</span>
-                      </div>
-                    </SelectItem>
-                    <SelectItem value="simple" className="py-3 px-4 bg-white hover:bg-gray-50 focus:bg-gray-50 focus:outline-none cursor-pointer">
-                      <div className="flex flex-col items-start w-full">
-                        <span className="font-medium text-sm text-gray-900">Simple Centered</span>
-                        <span className="text-xs text-gray-500">Clean centered text layout</span>
-                      </div>
-                    </SelectItem>
-                    <SelectItem value="government" className="py-3 px-4 bg-white hover:bg-gray-50 focus:bg-gray-50 focus:outline-none cursor-pointer">
-                      <div className="flex flex-col items-start w-full">
-                        <span className="font-medium text-sm text-gray-900">Government Form</span>
-                        <span className="text-xs text-gray-500">Official form-style layout</span>
-                      </div>
-                    </SelectItem>
-                    <SelectItem value="elegant" className="py-3 px-4 bg-white hover:bg-gray-50 focus:bg-gray-50 focus:outline-none cursor-pointer">
-                      <div className="flex flex-col items-start w-full">
-                        <span className="font-medium text-sm text-gray-900">Elegant Centered</span>
-                        <span className="text-xs text-gray-500">Sophisticated achievement style</span>
-                      </div>
-                    </SelectItem>
-                    <SelectItem value="modern" className="py-3 px-4 bg-white hover:bg-gray-50 focus:bg-gray-50 focus:outline-none cursor-pointer">
-                      <div className="flex flex-col items-start w-full">
-                        <span className="font-medium text-sm text-gray-900">Modern Minimalist</span>
-                        <span className="text-xs text-gray-500">Contemporary clean design</span>
-                      </div>
-                    </SelectItem>
-                    <SelectItem value="professional" className="py-3 px-4 bg-white hover:bg-gray-50 focus:bg-gray-50 focus:outline-none cursor-pointer">
-                      <div className="flex flex-col items-start w-full">
-                        <span className="font-medium text-sm text-gray-900">Professional Left-Aligned</span>
-                        <span className="text-xs text-gray-500">Business document style</span>
-                      </div>
-                    </SelectItem>
-                  </SelectContent>
-                </Select>
-              </div>
-
               {/* Variables List */}
-              <div className="pt-1">
+              <div>
                 <p className="text-gray-600 text-xs mb-2">Click to insert variable into selected text element</p>
                 <div className="text-xs space-y-2 h-[calc(100vh-500px)] overflow-y-auto">
                   {DEFAULT_VARIABLES.map((v) => (
@@ -1983,6 +1992,72 @@ export function CertificateEditor({
                     disabled
                     className="bg-gray-100"
                   />
+                </div>
+
+                {/* Text Templates Dropdown - Only show when Edit Mode is OFF */}
+                <div className="mt-4">
+                  <Label className="text-sm font-semibold mb-1.5 block">Text Template</Label>
+                  <p className="text-xs text-gray-500 mb-3">Apply pre-designed layout</p>
+                  <Select onValueChange={(value) => {
+                    if (value === 'bdi') applyBDIDefaultTemplate();
+                    else if (value === 'simple') applySimpleTextTemplate();
+                    else if (value === 'government') applyGovernmentStyleTemplate();
+                    else if (value === 'elegant') applyElegantTemplate();
+                    else if (value === 'modern') applyModernTemplate();
+                    else if (value === 'professional') applyProfessionalTemplate();
+                  }}>
+                    <SelectTrigger className="w-full h-auto min-h-[2.5rem]">
+                      <SelectValue placeholder="Choose a text template..." />
+                    </SelectTrigger>
+                    <SelectContent 
+                      className="bg-white border border-gray-200 shadow-lg z-[100]" 
+                      style={{ 
+                        maxHeight: '400px', 
+                        overflowY: 'auto',
+                        scrollBehavior: 'smooth',
+                        position: 'fixed'
+                      }}
+                      position="popper"
+                      sideOffset={4}
+                    >
+                      <SelectItem value="bdi" className="py-3 px-4 bg-white hover:bg-gray-50 focus:bg-gray-50 focus:outline-none cursor-pointer">
+                        <div className="flex flex-col items-start w-full">
+                          <span className="font-medium text-sm text-gray-900">BDI Default Layout</span>
+                          <span className="text-xs text-gray-500">Classic driving school format</span>
+                        </div>
+                      </SelectItem>
+                      <SelectItem value="simple" className="py-3 px-4 bg-white hover:bg-gray-50 focus:bg-gray-50 focus:outline-none cursor-pointer">
+                        <div className="flex flex-col items-start w-full">
+                          <span className="font-medium text-sm text-gray-900">Simple Centered</span>
+                          <span className="text-xs text-gray-500">Clean centered text layout</span>
+                        </div>
+                      </SelectItem>
+                      <SelectItem value="government" className="py-3 px-4 bg-white hover:bg-gray-50 focus:bg-gray-50 focus:outline-none cursor-pointer">
+                        <div className="flex flex-col items-start w-full">
+                          <span className="font-medium text-sm text-gray-900">Government Form</span>
+                          <span className="text-xs text-gray-500">Official form-style layout</span>
+                        </div>
+                      </SelectItem>
+                      <SelectItem value="elegant" className="py-3 px-4 bg-white hover:bg-gray-50 focus:bg-gray-50 focus:outline-none cursor-pointer">
+                        <div className="flex flex-col items-start w-full">
+                          <span className="font-medium text-sm text-gray-900">Elegant Centered</span>
+                          <span className="text-xs text-gray-500">Sophisticated achievement style</span>
+                        </div>
+                      </SelectItem>
+                      <SelectItem value="modern" className="py-3 px-4 bg-white hover:bg-gray-50 focus:bg-gray-50 focus:outline-none cursor-pointer">
+                        <div className="flex flex-col items-start w-full">
+                          <span className="font-medium text-sm text-gray-900">Modern Minimalist</span>
+                          <span className="text-xs text-gray-500">Contemporary clean design</span>
+                        </div>
+                      </SelectItem>
+                      <SelectItem value="professional" className="py-3 px-4 bg-white hover:bg-gray-50 focus:bg-gray-50 focus:outline-none cursor-pointer">
+                        <div className="flex flex-col items-start w-full">
+                          <span className="font-medium text-sm text-gray-900">Professional Left-Aligned</span>
+                          <span className="text-xs text-gray-500">Business document style</span>
+                        </div>
+                      </SelectItem>
+                    </SelectContent>
+                  </Select>
                 </div>
 
                 {/* Page Size and Orientation */}
@@ -2408,6 +2483,13 @@ export function CertificateEditor({
           </div>
         </div>
       )}
+
+      {/* Checkbox Config Modal */}
+      <CheckboxConfigModal
+        open={showCheckboxModal}
+        onOpenChange={setShowCheckboxModal}
+        onSave={addCheckboxElement}
+      />
     </div>
   );
 }
@@ -2801,6 +2883,7 @@ function ShapeElementProperties({ element, onUpdate }: { element: ShapeElement; 
           />
         </div>
       )}
+
     </>
   );
 }

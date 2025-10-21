@@ -15,12 +15,16 @@ const CertificateSchema = new mongoose.Schema({
   userAddress: { type: String },
   courseAddress: { type: String },
   courseTime: { type: String },
+  attendanceReason: { type: String }, // Explicitly add attendanceReason field
   courseFee: { type: Number, default: 100 },
   // Common fields used by all certificate types
   reason: { type: String },
   country_ticket: { type: String },
   course_country: { type: String },
-});
+  // Instructor information
+  instructorName: { type: String },
+  // Allow dynamic fields for certificate templates
+}, { strict: false });
 
 CertificateSchema.index({ studentId: 1, classId: 1 }, { unique: true });
 

@@ -312,6 +312,8 @@ export const getDefaultBDITemplate = (classType: string): Omit<CertificateTempla
     { key: 'classType', label: 'Class Type', example: classType.toUpperCase() },
   ],
 
+  checkboxElements: [],
+
   isDefault: true,
   isActive: true,
 });

@@ -33,14 +33,22 @@ interface DataTableProps {
   columns: ColumnDef<Student>[];
   data: Student[];
   onUpdate: (updatedData: Partial<Student>[]) => Promise<void>;
+  template?: any; // Add template to access variable options
 }
 
 // Main component
-export function DataTable({ columns, data, onUpdate }: DataTableProps) {
+export function DataTable({ columns, data, onUpdate, template }: DataTableProps) {
   const [rowSelection, setRowSelection] = useState({});
   const [validationModalOpen, setValidationModalOpen] = useState(false);
   const [pendingUser, setPendingUser] = useState<Student | null>(null);
   const [pendingTemplate, setPendingTemplate] = useState<any>(null);
+
+  // Helper function to get options for a variable
+  const getVariableOptions = (columnId: string) => {
+    if (!template?.availableVariables) return null;
+    const variable = template.availableVariables.find((v: any) => v.key === columnId);
+    return variable?.options || null;
+  };
 
   const {
     tableData,
@@ -365,7 +373,7 @@ export function DataTable({ columns, data, onUpdate }: DataTableProps) {
         onDownloadXLSX={downloadXLSX}
       />
 
-      <div className="rounded-md border">
+      <div className="rounded-md border overflow-x-auto">
         <Table>
           <TableHeader>
             {table.getHeaderGroups().map((headerGroup) => (
@@ -380,7 +388,7 @@ export function DataTable({ columns, data, onUpdate }: DataTableProps) {
                         )}
                   </TableHead>
                 ))}
-                <TableHead>Actions</TableHead>
+                <TableHead className="sticky right-0 bg-white z-10 shadow-left">Actions</TableHead>
               </TableRow>
             ))}
           </TableHeader>
@@ -389,6 +397,12 @@ export function DataTable({ columns, data, onUpdate }: DataTableProps) {
               table.getRowModel().rows.map((row) => {
                 const isEditing = editingRow === row.id;
                 const rowData = isEditing ? editedData[row.id] : row.original;
+                
+                // Debug: Log available columns when editing
+                if (isEditing) {
+                  console.log('📋 Available columns:', row.getVisibleCells().map(cell => cell.column.id));
+                }
+                
                 return (
                   <TableRow
                     key={row.id}
@@ -396,24 +410,56 @@ export function DataTable({ columns, data, onUpdate }: DataTableProps) {
                   >
                     {row.getVisibleCells().map((cell) => {
                       const columnId = cell.column.id as keyof Student;
+                      const cellValue = rowData[columnId];
+                      
+                      // Debug logs
+                      if (isEditing && (columnId === "courseTime" || columnId === "attendanceReason")) {
+                        console.log('🔍 Editing cell:', columnId, 'value:', cellValue, 'isEditable:', isEditing);
+                      }
+                      
+                      // Make all fields editable when in edit mode (except select checkbox)
+                      const isEditable = isEditing && columnId !== "select";
+                      
                       return (
                         <TableCell key={cell.id}>
-                          {isEditing &&
-                          (columnId === "certn" ||
-                            columnId === "payedAmount" ||
-                            columnId === "citation_number") ? (
-                            <input
-                              type={columnId === "citation_number" ? "text" : "text"}
-                              value={rowData[columnId] || ""}
-                              onChange={(e) =>
-                                handleChange(
-                                  row.id, 
-                                  columnId, 
-                                  columnId === "citation_number" ? e.target.value : +e.target.value
-                                )
+                          {isEditable ? (
+                            // Check if this column has options (checkbox variable)
+                            (() => {
+                              const options = getVariableOptions(columnId as string);
+                              if (options && options.length > 0) {
+                                // Render as dropdown for checkbox variables
+                                return (
+                                  <select
+                                    value={cellValue || ""}
+                                    onChange={(e) => handleChange(row.id, columnId, e.target.value)}
+                                    className="border p-1 w-full"
+                                  >
+                                    <option value="">Select...</option>
+                                    {options.map((option: string) => (
+                                      <option key={option} value={option}>
+                                        {option}
+                                      </option>
+                                    ))}
+                                  </select>
+                                );
+                              } else {
+                                // Render as regular input for other fields
+                                return (
+                                  <input
+                                    type={typeof cellValue === "number" ? "number" : "text"}
+                                    value={cellValue === "N/A" || cellValue === "-" ? "" : (cellValue || "")}
+                                    onChange={(e) => {
+                                      const value = typeof cellValue === "number" 
+                                        ? (e.target.value === "" ? 0 : +e.target.value)
+                                        : e.target.value;
+                                      handleChange(row.id, columnId, value);
+                                    }}
+                                    className="border p-1 w-full"
+                                    placeholder="Enter value..."
+                                  />
+                                );
                               }
-                              className="border p-1 w-full"
-                            />
+                            })()
                           ) : (
                             flexRender(
                               cell.column.columnDef.cell,
@@ -423,19 +469,21 @@ export function DataTable({ columns, data, onUpdate }: DataTableProps) {
                         </TableCell>
                       );
                     })}
-                    <RowActionButtons
-                      actions={{
-                        isEditing,
-                        rowId: row.id,
-                        original: row.original,
-                        onEdit: () => handleEdit(row.id),
-                        onSave: () => handleSave(row.id),
-                        onCancel: handleCancelEdit,
-                        onDownload: () =>
-                          downloadSingleCertificate(row.original),
-                        isSaving,
-                      }}
-                    />
+                    <TableCell className="sticky right-0 bg-white z-10 shadow-left">
+                      <RowActionButtons
+                        actions={{
+                          isEditing,
+                          rowId: row.id,
+                          original: row.original,
+                          onEdit: () => handleEdit(row.id),
+                          onSave: () => handleSave(row.id),
+                          onCancel: handleCancelEdit,
+                          onDownload: () =>
+                            downloadSingleCertificate(row.original),
+                          isSaving,
+                        }}
+                      />
+                    </TableCell>
                   </TableRow>
                 );
               })

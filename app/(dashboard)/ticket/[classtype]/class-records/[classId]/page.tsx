@@ -1,13 +1,15 @@
 "use client";
 
 import Loader from "@/components/custom ui/Loader";
-import { columns, Student } from "@/components/ticket/columns";
+import { Student } from "@/components/ticket/columns";
 import { DataTable } from "@/components/ticket/data-table";
 import { Button } from "@/components/ui/button";
 import { ArrowLeftIcon } from "lucide-react";
 import { useParams, useRouter } from "next/navigation";
 import { useCallback, useEffect, useRef, useState } from "react";
 import toast from "react-hot-toast";
+import { ColumnDef } from "@tanstack/react-table";
+import { CertificateTemplate } from "@/components/certificate-editor/types";
 
 export default function Page() {
   const params = useParams();
@@ -15,8 +17,115 @@ export default function Page() {
   const classType = (params.classtype || params.classType) as string; // Support both lowercase and uppercase
   const [students, setStudents] = useState<Student[]>([]);
   const [loading, setLoading] = useState(false);
+  const [columns, setColumns] = useState<ColumnDef<Student>[]>([]);
+  const [template, setTemplate] = useState<CertificateTemplate | null>(null);
   const router = useRouter();
   const isMounted = useRef(false);
+
+  // Function to generate dynamic columns based on template
+  const generateColumns = useCallback((template: CertificateTemplate): ColumnDef<Student>[] => {
+    const baseColumns: ColumnDef<Student>[] = [
+      {
+        id: "select",
+        header: ({ table }) => (
+          <input
+            type="checkbox"
+            checked={table.getIsAllPageRowsSelected()}
+            onChange={table.getToggleAllPageRowsSelectedHandler()}
+            aria-label="Select all"
+          />
+        ),
+        cell: ({ row }) => (
+          <input
+            type="checkbox"
+            checked={row.getIsSelected()}
+            onChange={row.getToggleSelectedHandler()}
+            aria-label="Select row"
+          />
+        ),
+      },
+      {
+        accessorKey: "last_name",
+        header: "Last Name",
+      },
+      {
+        accessorKey: "first_name",
+        header: "First Name",
+      },
+      {
+        accessorKey: "midl",
+        header: "Middle Name",
+      },
+      {
+        accessorKey: "certn",
+        header: "Certificate Number",
+      },
+    ];
+
+    // Add dynamic columns based on template variables
+    if (template && template.availableVariables) {
+      console.log('📋 Generating columns from template variables:', template.availableVariables.length);
+      template.availableVariables.forEach((variable) => {
+        console.log('  - Processing variable:', variable.key, variable.label);
+        
+        // Skip variables that are already in base columns or redundant
+        const skipKeys = [
+          'last_name', 
+          'lastName',
+          'first_name', 
+          'firstName',
+          'midl',
+          'middleName',
+          'middle_name',
+          'payedAmount', 
+          'payed_amount',
+          'certn',
+          'certificateNumber',
+          'certificate_number',
+          'studentName',
+          'studentFullName',
+          'fullName',
+          'student_name',
+          'student_full_name'
+        ];
+        
+        // Also check if the label contains these words
+        const skipLabels = [
+          'first name',
+          'last name',
+          'middle name',
+          'student name',
+          'student full name',
+          'full name',
+          'payed amount',
+          'paid amount',
+          'certificate number'
+        ];
+        
+        const shouldSkip = skipKeys.includes(variable.key.toLowerCase()) || 
+                          skipLabels.some(label => variable.label.toLowerCase().includes(label));
+        
+        if (shouldSkip) {
+          console.log('    ⏭️ Skipping variable:', variable.key);
+          return;
+        }
+
+        console.log('    ✅ Adding column:', variable.key, variable.label);
+        baseColumns.push({
+          accessorKey: variable.key as keyof Student,
+          header: variable.label,
+          cell: ({ row }) => {
+            const value = row.getValue(variable.key) as any;
+            return value || "-";
+          },
+        });
+      });
+    }
+    
+    console.log('📊 Total columns generated:', baseColumns.length);
+
+    return baseColumns;
+  }, []);
 
   const fetchInfo = useCallback(async () => {
     setLoading(true);
@@ -45,6 +154,37 @@ export default function Page() {
       // Decode class type for display
       const decodedClassType = decodeURIComponent(classType);
       
+      // Determine certificate type - use default (date) for non-ADI/BDI types
+      const certificateType = (decodedClassType.toLowerCase() === 'adi' || decodedClassType.toLowerCase() === 'bdi') 
+        ? decodedClassType.toLowerCase() 
+        : 'date';
+      
+      // Fetch certificate template
+      const certType = (drivingClassData.data.classType || certificateType).toUpperCase();
+      console.log('🔍 Fetching template for classType:', certType);
+      const templateResponse = await fetch(`/api/certificate-templates?classType=${certType}`);
+      let fetchedTemplate: CertificateTemplate | null = null;
+
+      if (templateResponse.ok) {
+        const templates = await templateResponse.json();
+        console.log('📋 Templates found:', templates.length);
+        if (templates.length > 0) {
+          fetchedTemplate = templates[0];
+          if (fetchedTemplate) {
+            console.log('✅ Template loaded:', fetchedTemplate.name);
+            console.log('📝 Available variables:', fetchedTemplate.availableVariables?.length);
+            console.log('🔲 Shape elements (checkboxes):', fetchedTemplate.shapeElements?.length);
+          }
+        }
+      }
+
+      // If no template found, use default
+      if (!fetchedTemplate) {
+        const { getDefaultBDITemplate } = await import("@/lib/defaultTemplates/bdiTemplate");
+        fetchedTemplate = getDefaultBDITemplate(certType);
+      }
+
+      setTemplate(fetchedTemplate);
       
       // Finally, get the students
       const studentsResponse = await fetch(`/api/ticket/classes/students/${classId}`);
@@ -53,11 +193,6 @@ export default function Page() {
       }
       
       const studentsData = await studentsResponse.json();
-      
-      // Determine certificate type - use default (date) for non-ADI/BDI types
-      const certificateType = (decodedClassType.toLowerCase() === 'adi' || decodedClassType.toLowerCase() === 'bdi') 
-        ? decodedClassType.toLowerCase() 
-        : 'date';
       
       // Add class information to each student
       const studentsWithClassInfo = studentsData.map((student: Student) => ({
@@ -74,7 +209,7 @@ export default function Page() {
     } finally {
       setLoading(false);
     }
-  }, [classId, classType]);
+  }, [classId, classType, generateColumns]);
 
   useEffect(() => {
     if (!isMounted.current) {
@@ -82,6 +217,14 @@ export default function Page() {
       isMounted.current = true;
     }
   }, [classId, classType, fetchInfo]);
+
+  // Update columns when template changes
+  useEffect(() => {
+    if (template) {
+      const dynamicColumns = generateColumns(template);
+      setColumns(dynamicColumns);
+    }
+  }, [template, generateColumns]);
 
   if (loading) {
     return <Loader />;
@@ -127,7 +270,7 @@ export default function Page() {
         </div>
       </div>
       <div className="p-6">
-        <DataTable columns={columns} data={students} onUpdate={onUpdate} />
+        <DataTable columns={columns} data={students} onUpdate={onUpdate} template={template} />
       </div>
     </>
   );

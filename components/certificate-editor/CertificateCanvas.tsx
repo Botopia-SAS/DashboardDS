@@ -1,13 +1,13 @@
 "use client";
 
 import { useRef, useState, useEffect } from "react";
-import { CertificateTemplate, DEFAULT_VARIABLES } from "./types";
+import { CertificateTemplate, DEFAULT_VARIABLES, CheckboxElement } from "./types";
 
 interface CertificateCanvasProps {
   template: CertificateTemplate;
-  selectedElement: { type: 'text' | 'image' | 'shape' | null; id: string | null };
-  onSelectElement: (element: { type: 'text' | 'image' | 'shape' | null; id: string | null }) => void;
-  onUpdateElement: (type: 'text' | 'image' | 'shape', id: string, updates: Record<string, any>) => void;
+  selectedElement: { type: 'text' | 'image' | 'shape' | 'checkbox' | null; id: string | null };
+  onSelectElement: (element: { type: 'text' | 'image' | 'shape' | 'checkbox' | null; id: string | null }) => void;
+  onUpdateElement: (type: 'text' | 'image' | 'shape' | 'checkbox', id: string, updates: Record<string, any>) => void;
   previewMode?: boolean;
   showVariables?: boolean;
   editMode?: boolean;
@@ -23,9 +23,9 @@ export function CertificateCanvas({
   editMode = false,
 }: CertificateCanvasProps) {
   const canvasRef = useRef<HTMLDivElement>(null);
-  const [dragging, setDragging] = useState<{ type: 'text' | 'image' | 'shape'; id: string } | null>(null);
+  const [dragging, setDragging] = useState<{ type: 'text' | 'image' | 'shape' | 'checkbox'; id: string } | null>(null);
   const [dragStart, setDragStart] = useState<{ x: number; y: number } | null>(null);
-  const [potentialDrag, setPotentialDrag] = useState<{ type: 'text' | 'image' | 'shape'; id: string; x: number; y: number; startX: number; startY: number } | null>(null);
+  const [potentialDrag, setPotentialDrag] = useState<{ type: 'text' | 'image' | 'shape' | 'checkbox'; id: string; x: number; y: number; startX: number; startY: number } | null>(null);
   const [justClickedElement, setJustClickedElement] = useState(false);
   const [manualZoom, setManualZoom] = useState<number>(1.5); // 1.5 = 150%
 
@@ -73,7 +73,7 @@ export function CertificateCanvas({
   // Handle mouse down on element - simple click to select/deselect
   const handleMouseDown = (
     e: React.MouseEvent,
-    type: 'text' | 'image' | 'shape',
+    type: 'text' | 'image' | 'shape' | 'checkbox',
     id: string,
     currentX: number,
     currentY: number
@@ -255,7 +255,7 @@ export function CertificateCanvas({
           if (!isLandscape && effectiveCertsPerPage === 2) {
             borderWidthScale = 0.85; // Same as text scale for 2 certs
           } else if (!isLandscape && effectiveCertsPerPage === 3) {
-            borderWidthScale = 0.80; // Same as text scale for 3 certs
+            borderWidthScale = 0.795; // Same as text scale for 3 certs
           }
 
           const scaledShape = {
@@ -387,7 +387,7 @@ export function CertificateCanvas({
             if (effectiveCertsPerPage === 2) {
               minTextScale = 0.85; // Increased for better readability with 2 certs
             } else if (effectiveCertsPerPage === 3) {
-              minTextScale = 0.80; // Increased for better readability with 3 certs
+              minTextScale = 0.795; // Increased for better readability with 3 certs
             }
           }
 
@@ -427,6 +427,87 @@ export function CertificateCanvas({
               onMouseDown={certIndex === 0 ? (e) => handleMouseDown(e, 'text', text.id, text.x, text.y) : undefined}
             >
               {displayText}
+            </div>
+          );
+        })}
+
+        {/* Render Checkbox Elements */}
+        {(template.checkboxElements || []).map((checkbox) => {
+          const scaledCheckbox = {
+            ...checkbox,
+            x: checkbox.x * certScaleX,
+            y: checkbox.y * certScaleY,
+            fontSize: checkbox.fontSize || 10,
+          };
+
+          return (
+            <div
+              key={`${checkbox.id}-${certIndex}`}
+              className={`absolute ${certIndex === 0 && dragging && dragging.id === checkbox.id ? 'cursor-move' : certIndex === 0 ? 'cursor-pointer' : ''} ${
+                certIndex === 0 && selectedElement.id === checkbox.id && !previewMode ? 'ring-2 ring-blue-500 bg-blue-50' : ''
+              }`}
+              style={{
+                left: `${scaledCheckbox.x * scale}px`,
+                top: `${scaledCheckbox.y * scale}px`,
+                pointerEvents: !editMode || previewMode || certIndex !== 0 ? 'none' : 'auto',
+                zIndex: 10,
+              }}
+              onMouseDown={certIndex === 0 ? (e) => handleMouseDown(e, 'checkbox', checkbox.id, checkbox.x, checkbox.y) : undefined}
+            >
+              {/* Title */}
+              <div
+                style={{
+                  fontSize: `${scaledCheckbox.fontSize * scale}px`,
+                  fontFamily: checkbox.fontFamily || 'Times-Bold',
+                  fontWeight: 'bold',
+                  color: checkbox.color || '#c94a3a',
+                  marginBottom: '5px',
+                }}
+              >
+                {checkbox.title}:
+              </div>
+              
+              {/* Options */}
+              <div
+                style={{
+                  display: 'flex',
+                  flexDirection: checkbox.orientation === 'vertical' ? 'column' : 'row',
+                  gap: checkbox.orientation === 'vertical' ? '8px' : '20px',
+                }}
+              >
+                {checkbox.options.map((option, index) => (
+                  <div
+                    key={index}
+                    style={{
+                      display: 'flex',
+                      alignItems: 'center',
+                      gap: '5px',
+                    }}
+                  >
+                    {/* Checkbox */}
+                    <div
+                      style={{
+                        width: '12px',
+                        height: '12px',
+                        border: `1.5px solid ${checkbox.borderColor || '#c94a3a'}`,
+                        backgroundColor: 'transparent',
+                        borderRadius: '2px',
+                      }}
+                    />
+                    {/* Option text */}
+                    <span
+                      style={{
+                        fontSize: `${scaledCheckbox.fontSize * scale}px`,
+                        fontFamily: checkbox.fontFamily || 'Times-Bold',
+                        fontWeight: 'bold',
+                        color: checkbox.color || '#c94a3a',
+                      }}
+                    >
+                      {option}
+                    </span>
+                  </div>
+                ))}
+              </div>
             </div>
           );
         })}

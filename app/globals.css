@@ -44,6 +44,11 @@ body,
   height: 100%;
 }
 
+/* Sticky Actions Column Shadow */
+.shadow-left {
+  box-shadow: -4px 0 8px -2px rgba(0, 0, 0, 0.1);
+}
+
 /* Certificate Editor - No scroll */
 .certificate-editor-page {
   overflow: hidden !important;

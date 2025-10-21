@@ -79,7 +79,11 @@ export async function GET(req: NextRequest) {
       studentId: user.id,
       classId,
     }).exec();
-    students.push({
+    
+    console.log('🔍 Raw certificate from DB:', cert?.toObject());
+    
+    // Build student object with base fields
+    const studentData: any = {
       id: user.id,
       mfl_affiliate: 158996,
       schoolid: 1453,
@@ -110,7 +114,28 @@ export async function GET(req: NextRequest) {
       type: ticketClass.type,
       hour: ticketClass.hour,
       endHour: ticketClass.endHour,
-    });
+    };
+    
+    // Add dynamic fields from certificate if they exist
+    if (cert) {
+      const certObj = cert.toObject();
+      console.log('📋 Loading certificate data for student:', user.firstName, certObj);
+      console.log('🔍 Certificate has courseTime:', certObj.courseTime);
+      console.log('🔍 Certificate has attendanceReason:', certObj.attendanceReason);
+      Object.keys(certObj).forEach((key) => {
+        // Skip fields that are already in studentData
+        if (!['_id', 'studentId', 'classId', 'number', 'citation_number', '__v'].includes(key)) {
+          studentData[key] = certObj[key];
+          if (key === 'courseTime' || key === 'attendanceReason') {
+            console.log('✅ Loaded', key, ':', certObj[key]);
+          }
+        }
+      });
+    } else {
+      console.log('❌ No certificate found for student:', user.firstName);
+    }
+    
+    students.push(studentData);
   }
   
   return NextResponse.json(students, { status: 200 });
@@ -120,8 +145,11 @@ export async function PATCH(req: NextRequest) {
   try {
     await connectToDB();
     const classId = req.url.split("/").pop();
-    const { id, certn, payedAmount, paymentMethod, citation_number } = await req.json();
-    console.log('API received citation_number:', citation_number);
+    const body = await req.json();
+    const { id, certn, payedAmount, paymentMethod, citation_number, ...dynamicFields } = body;
+    console.log('API received data:', body);
+    console.log('Dynamic fields:', dynamicFields);
+    
     const user = await User.findOne({ _id: id }).exec();
     if (!user) {
       return NextResponse.json(
@@ -142,33 +170,55 @@ export async function PATCH(req: NextRequest) {
       );
     }
 
-    // Save citation number in Certificate table if provided
-    if (citation_number !== undefined) {
-      console.log('About to save citation_number:', citation_number, 'for student:', user._id, 'class:', classId);
+    // Find or create certificate for this student and class
+    let cert = await Certificate.findOne({
+      studentId: user._id,
+      classId,
+    }).exec();
+
+    // If no certificate exists yet, create one
+    if (!cert) {
+      cert = await Certificate.create({
+        studentId: user._id,
+        classId,
+        number: Number(certn) || 0,
+      });
+      console.log('Created new certificate for student:', user._id);
+    }
+
+    // Save ALL dynamic fields to certificate
+    if (Object.keys(dynamicFields).length > 0 || citation_number !== undefined) {
+      console.log('Saving dynamic fields to certificate:', { ...dynamicFields, citation_number });
       
-      // Find existing certificate for this student and class
-      const cert = await Certificate.findOne({
+      // Update citation number if provided
+      if (citation_number !== undefined) {
+        cert.citation_number = citation_number;
+      }
+      
+      // Update all other dynamic fields
+      Object.entries(dynamicFields).forEach(([key, value]) => {
+        cert[key] = value;
+        if (key === 'courseTime' || key === 'attendanceReason') {
+          console.log('💾 Saving', key, ':', value);
+        }
+      });
+      
+      // Force save attendanceReason specifically
+      if (dynamicFields.attendanceReason !== undefined) {
+        cert.attendanceReason = dynamicFields.attendanceReason;
+        console.log('🔧 FORCING attendanceReason save:', dynamicFields.attendanceReason);
+      }
+      
+      await cert.save();
+      console.log('Certificate updated with all fields');
+      
+      // Verify the save worked
+      const savedCert = await Certificate.findOne({
         studentId: user._id,
         classId,
       }).exec();
-
-      if (cert) {
-        // Update existing certificate with citation number
-        cert.citation_number = citation_number;
-        await cert.save();
-        console.log('Certificate updated with citation_number:', cert.citation_number);
-      } else {
-        // Create new certificate with citation number (if certn is also provided)
-        if (certn) {
-          await Certificate.create({
-            studentId: user._id,
-            classId,
-            number: Number(certn),
-            citation_number: citation_number,
-          });
-          console.log('New certificate created with citation_number:', citation_number);
-        }
-      }
+      console.log('🔍 Verification - Saved certificate:', savedCert?.toObject());
+      console.log('🔍 Verification - attendanceReason specifically:', savedCert?.attendanceReason);
     }
 
     // Check if there's an existing payment record to update
@@ -196,9 +246,9 @@ export async function PATCH(req: NextRequest) {
         }
       }
 
-    // Procesamos el número de certificado independientemente del estado del pago
+    // Update certificate number if provided
     if (certn) {
-      // If certificate number is provided, check if it's already used by another certificate
+      // Check if certificate number is already used by another student
       const existingCertWithNumber = await Certificate.findOne({
         number: Number(certn),
         studentId: { $ne: user._id }, // Not by this student
@@ -211,40 +261,10 @@ export async function PATCH(req: NextRequest) {
         );
       }
 
-      // Find existing certificate for this student and class
-      const cert = await Certificate.findOne({
-        studentId: user._id,
-        classId,
-      }).exec();
-
-      if (cert) {
-        // Update existing certificate
-        cert.number = Number(certn);
-        await cert.save();
-      } else {
-        // Verificar si existe un pago válido antes de crear un certificado
-        // Buscar pago válido directamente en la tabla Payment
-        const existingPayment = await Payment.findOne({
-          user_id: user._id,
-        }).exec();
-        
-        if (!existingPayment && (!payedAmount || payedAmount <= 0)) {
-          return NextResponse.json(
-            {
-              success: false,
-              message: `Cannot assign certificate without valid payment.`,
-            },
-            { status: 400 }
-          );
-        }
-
-        // Create new certificate
-        await Certificate.create({
-          studentId: user.id,
-          classId,
-          number: Number(certn),
-        });
-      }
+      // Update the certificate number
+      cert.number = Number(certn);
+      await cert.save();
+      console.log('Certificate number updated to:', certn);
     }
 
     return NextResponse.json({ success: true }, { status: 200 });

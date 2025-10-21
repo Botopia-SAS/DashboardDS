@@ -72,8 +72,8 @@ export function useDynamicCertificateGenerator() {
 
       // Calculate scaling factors to match canvas behavior
       const isLandscape = template.pageSize.orientation === 'landscape';
-      const textScaleFactor = rows === 1 ? 1 : rows === 2 ? 0.85 : 0.80;
-      const borderWidthScale = rows === 1 ? 1 : (!isLandscape && rows === 2) ? 0.85 : (!isLandscape && rows === 3) ? 0.80 : 1;
+      const textScaleFactor = rows === 1 ? 1 : rows === 2 ? 0.85 : 0.795;
+      const borderWidthScale = rows === 1 ? 1 : (!isLandscape && rows === 2) ? 0.85 : (!isLandscape && rows === 3) ? 0.795 : 1;
 
       // Draw all certificates according to template.certificatesPerPage
       for (let certIndex = 0; certIndex < certsPerPage; certIndex++) {
@@ -88,8 +88,8 @@ export function useDynamicCertificateGenerator() {
         const backgroundOffsetY = height - (row + 1) * certHeight;
         await drawBackground(template, page, width, certHeight, pdfDoc, backgroundOffsetY);
 
-        // Draw shapes
-        drawShapes(template.shapeElements, page, height, certScaleX, certScaleY, offsetY, borderWidthScale);
+        // Draw shapes (pass variables for checkbox marking)
+        drawShapes(template.shapeElements, page, height, certScaleX, certScaleY, offsetY, borderWidthScale, variables);
 
         // Draw images
         await drawImages(template.imageElements, page, height, certScaleX, certScaleY, offsetY, pdfDoc);
@@ -151,8 +151,8 @@ export function useDynamicCertificateGenerator() {
 
       // Calculate scaling factors to match canvas behavior
       const isLandscape = template.pageSize.orientation === 'landscape';
-      const textScaleFactor = rows === 1 ? 1 : rows === 2 ? 0.85 : 0.80;
-      const borderWidthScale = rows === 1 ? 1 : (!isLandscape && rows === 2) ? 0.85 : (!isLandscape && rows === 3) ? 0.80 : 1;
+      const textScaleFactor = rows === 1 ? 1 : rows === 2 ? 0.85 : 0.795;
+      const borderWidthScale = rows === 1 ? 1 : (!isLandscape && rows === 2) ? 0.85 : (!isLandscape && rows === 3) ? 0.795 : 1;
 
       // Process users in chunks of certsPerPage
       for (let pageIndex = 0; pageIndex < Math.ceil(users.length / certsPerPage); pageIndex++) {
@@ -189,8 +189,8 @@ export function useDynamicCertificateGenerator() {
           const backgroundOffsetY = height - (row + 1) * certHeight;
           await drawBackground(template, page, width, certHeight, pdfDoc, backgroundOffsetY);
 
-          // Draw shapes
-          drawShapes(template.shapeElements, page, height, certScaleX, certScaleY, offsetY, borderWidthScale);
+          // Draw shapes (pass variables for checkbox marking)
+          drawShapes(template.shapeElements, page, height, certScaleX, certScaleY, offsetY, borderWidthScale, variables);
 
           // Draw images
           await drawImages(template.imageElements, page, height, certScaleX, certScaleY, offsetY, pdfDoc);

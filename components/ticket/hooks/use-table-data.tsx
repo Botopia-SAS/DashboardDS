@@ -54,6 +54,8 @@ export function useTableData({ initialData, onUpdate }: UseTableDataProps) {
       // Debug: Log the data being sent
       console.log('Saving data for row:', rowId, updatedRow);
       console.log('Citation number specifically:', updatedRow.citation_number);
+      console.log('CourseTime specifically:', updatedRow.courseTime);
+      console.log('AttendanceReason specifically:', updatedRow.attendanceReason);
 
       try {
         setTableData((currentData) =>

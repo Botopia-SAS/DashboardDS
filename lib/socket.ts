@@ -75,7 +75,7 @@ export const config = {
 export const socketServer = io;
 
 // Notification events
-export const emitNotification = (type: 'new_request' | 'request_accepted' | 'request_declined', data: any) => {
+export const emitNotification = (type: 'new_request' | 'request_accepted' | 'request_declined', data: Record<string, unknown>) => {
   io.emit('notification', { type, data, timestamp: new Date().toISOString() });
 };
 

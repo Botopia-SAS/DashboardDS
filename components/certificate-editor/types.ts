@@ -38,10 +38,26 @@ export interface ShapeElement {
   borderStyle?: string;
 }
 
+export interface CheckboxElement {
+  id: string;
+  title: string;
+  x: number;
+  y: number;
+  orientation: 'horizontal' | 'vertical';
+  options: string[];
+  variableKey: string;
+  fontSize?: number;
+  fontFamily?: string;
+  color?: string;
+  borderColor?: string;
+  borderWidth?: number;
+}
+
 export interface Variable {
   key: string;
   label: string;
   example: string;
+  options?: string[]; // Optional array of options for dropdown/checkbox variables
 }
 
 export interface CertificateTemplate {
@@ -61,6 +77,7 @@ export interface CertificateTemplate {
   textElements: TextElement[];
   imageElements: ImageElement[];
   shapeElements: ShapeElement[];
+  checkboxElements: CheckboxElement[];
   availableVariables: Variable[];
   isDefault: boolean;
   isActive: boolean;
