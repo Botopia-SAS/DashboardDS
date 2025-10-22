@@ -85,22 +85,22 @@ export function DataTable({ columns, data, onUpdate, template }: DataTableProps)
       return;
     }
 
-    // Filtering students that paid and have a certificate number
+    // Filtering students that have a certificate number (including 0)
     const validStudents = selectedRows.filter(
-      (student) => student.payedAmount > 0 && student.certn && student.certn > 0
+      (student) => student.certn !== null && student.certn !== undefined
     );
 
     const invalidStudents = selectedRows.filter(
-      (student) => student.payedAmount === 0 || !student.certn || student.certn === 0
+      (student) => student.certn === null || student.certn === undefined
     );
 
     if (validStudents.length === 0) {
-      toast.error("No hay estudiantes válidos para descargar certificados. Verifique que hayan pagado y tengan número de certificado.");
+      toast.error("No hay estudiantes válidos para descargar certificados. Verifique que tengan número de certificado.");
       return;
     }
 
     if (invalidStudents.length > 0) {
-      toast(`${invalidStudents.length} estudiante(s) fueron omitidos por no cumplir los requisitos (pago o número de certificado).`, {
+      toast(`${invalidStudents.length} estudiante(s) fueron omitidos por no tener número de certificado.`, {
         icon: '⚠️',
         style: {
           background: '#fff3cd',
@@ -146,22 +146,22 @@ export function DataTable({ columns, data, onUpdate, template }: DataTableProps)
       return;
     }
 
-    // Filtering students that paid and have a certificate number
+    // Filtering students that have a certificate number (including 0)
     const validStudents = selectedRows.filter(
-      (student) => student.payedAmount > 0 && student.certn && student.certn > 0
+      (student) => student.certn !== null && student.certn !== undefined
     );
 
     const invalidStudents = selectedRows.filter(
-      (student) => student.payedAmount === 0 || !student.certn || student.certn === 0
+      (student) => student.certn === null || student.certn === undefined
     );
 
     if (validStudents.length === 0) {
-      toast.error("No hay estudiantes válidos para descargar certificados. Verifique que hayan pagado y tengan número de certificado.");
+      toast.error("No hay estudiantes válidos para descargar certificados. Verifique que tengan número de certificado.");
       return;
     }
 
     if (invalidStudents.length > 0) {
-      toast(`${invalidStudents.length} estudiante(s) fueron omitidos por no cumplir los requisitos (pago o número de certificado).`, {
+      toast(`${invalidStudents.length} estudiante(s) fueron omitidos por no tener número de certificado.`, {
         icon: '⚠️',
         style: {
           background: '#fff3cd',
@@ -248,8 +248,8 @@ export function DataTable({ columns, data, onUpdate, template }: DataTableProps)
 
   const downloadSingleCertificate = useCallback(
     async (user: Student) => {
-      // Validación básica - solo verificar número de certificado
-      if (!user.certn || user.certn === 0) {
+      // Validación básica - solo verificar que el número de certificado exista (puede ser 0)
+      if (user.certn === null || user.certn === undefined) {
         toast.error(`El estudiante ${user.first_name} ${user.last_name} no tiene número de certificado asignado. Contacte al administrador.`);
         return;
       }
