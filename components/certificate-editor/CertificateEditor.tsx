@@ -1433,16 +1433,22 @@ export function CertificateEditor({
   // Save template
   const saveTemplate = async () => {
     try {
-      const url = template._id
-        ? `/api/certificate-templates/${template._id}`
+      // Filtrar shapeElements de checkboxes antes de guardar
+      const templateToSave = {
+        ...template,
+        shapeElements: template.shapeElements.filter(shape => !shape.id?.startsWith('checkbox-'))
+      };
+      
+      const url = templateToSave._id
+        ? `/api/certificate-templates/${templateToSave._id}`
         : '/api/certificate-templates';
 
-      const method = template._id ? 'PUT' : 'POST';
+      const method = templateToSave._id ? 'PUT' : 'POST';
 
       const response = await fetch(url, {
         method,
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify(template),
+        body: JSON.stringify(templateToSave),
       });
 
       if (!response.ok) {

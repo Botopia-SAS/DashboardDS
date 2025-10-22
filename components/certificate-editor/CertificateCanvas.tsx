@@ -433,28 +433,38 @@ export function CertificateCanvas({
 
         {/* Render Checkbox Elements */}
         {(template.checkboxElements || []).map((checkbox) => {
-          // Apply same text scaling logic as text elements
+          // Aplicar el mismo escalado que los elementos de texto
           const isLandscape = template.pageSize.orientation === 'landscape';
-          let minTextScale = 1.1; // Default: +10% for readability
+          let textScaleFactor = 1.0;
           
           if (effectiveCertsPerPage === 1) {
-            minTextScale = 1.1; // +10% for 1 cert for better canvas readability
+            textScaleFactor = 1.0;
           } else if (!isLandscape) {
             if (effectiveCertsPerPage === 2) {
-              minTextScale = 0.85; // Match text element scaling
+              textScaleFactor = 0.85;
             } else if (effectiveCertsPerPage === 3) {
-              minTextScale = 0.75; // Match text element scaling
+              textScaleFactor = 0.795;
             }
           }
           
-          const scaledCheckbox = {
-            ...checkbox,
-            x: checkbox.x * certScaleX,
-            y: checkbox.y * certScaleY,
-            fontSize: (checkbox.fontSize || 10) * certScaleY * minTextScale, // Scale with text scale
-            checkboxSize: (checkbox.checkboxSize || 12) * certScaleY, // Scale checkboxSize
-            borderWidth: (checkbox.borderWidth || 1.5) * certScaleY, // Scale borderWidth
-          };
+          const baseFontSize = checkbox.fontSize || 10;
+          const scaledFontSize = baseFontSize * textScaleFactor;
+          
+          // IMPORTANTE: Hacer que TODO sea proporcional al fontSize
+          // Usar el fontSize como base para calcular tamaños y distancias
+          const fontSizeRatio = baseFontSize / 10; // 10 es el tamaño base
+          
+          const baseCheckboxSize = (checkbox.checkboxSize || 12) * fontSizeRatio;
+          const scaledCheckboxSize = baseCheckboxSize * textScaleFactor;
+          
+          const baseBorderWidth = (checkbox.borderWidth || 1.5) * fontSizeRatio;
+          const scaledBorderWidth = baseBorderWidth * textScaleFactor;
+          
+          // Escalar las distancias proporcionalmente al fontSize
+          const scaledGap = 5 * fontSizeRatio * textScaleFactor;
+          const scaledSpacing = 60 * fontSizeRatio * textScaleFactor;
+          const scaledVerticalGap = 8 * fontSizeRatio * textScaleFactor;
+          const scaledTitleMargin = 8 * fontSizeRatio * textScaleFactor;
 
           return (
             <div
@@ -463,66 +473,84 @@ export function CertificateCanvas({
                 certIndex === 0 && selectedElement.type === 'checkbox' && selectedElement.id === checkbox.id && !previewMode ? 'ring-2 ring-blue-500 bg-blue-50' : ''
               }`}
               style={{
-                left: `${scaledCheckbox.x * scale}px`,
-                top: `${scaledCheckbox.y * scale}px`,
+                left: `${checkbox.x * certScaleX * scale}px`,
+                top: `${checkbox.y * certScaleY * scale}px`,
                 pointerEvents: !editMode || previewMode || certIndex !== 0 ? 'none' : 'auto',
                 zIndex: 10,
               }}
               onMouseDown={certIndex === 0 ? (e) => handleMouseDown(e, 'checkbox', checkbox.id, checkbox.x, checkbox.y) : undefined}
             >
               {/* Title */}
-              <div
-                style={{
-                  fontSize: `${scaledCheckbox.fontSize * scale}px`,
-                  fontFamily: checkbox.fontFamily || 'Times-Bold',
-                  fontWeight: 'bold',
-                  color: checkbox.color || '#c94a3a',
-                  marginBottom: `${5 * certScaleY * scale}px`, // Scale margin
-                }}
-              >
-                {checkbox.title}:
-              </div>
+              {checkbox.title && (
+                <div
+                  style={{
+                    fontSize: `${scaledFontSize * scale}px`,
+                    fontFamily: checkbox.fontFamily || 'Times-Bold',
+                    fontWeight: 'bold',
+                    color: checkbox.color || '#c94a3a',
+                    marginBottom: `${scaledTitleMargin * scale}px`,
+                  }}
+                >
+                  {checkbox.title}:
+                </div>
+              )}
               
               {/* Options */}
-              <div
-                style={{
-                  display: 'flex',
-                  flexDirection: checkbox.orientation === 'vertical' ? 'column' : 'row',
-                  gap: checkbox.orientation === 'vertical' ? `${8 * certScaleY * scale}px` : `${20 * certScaleX * scale}px`, // Scale gaps
-                }}
-              >
-                {checkbox.options.map((option, index) => (
-                  <div
-                    key={index}
-                    style={{
-                      display: 'flex',
-                      alignItems: 'center',
-                      gap: `${5 * certScaleX * scale}px`, // Scale gap between checkbox and text
-                    }}
-                  >
-                    {/* Checkbox */}
+              <div style={{ position: 'relative' }}>
+                {checkbox.options.map((option, index) => {
+                  let posX = 0;
+                  let posY = 0;
+                  
+                  if (checkbox.orientation === 'horizontal') {
+                    // Horizontal: calcular posición X acumulada con distancias escaladas
+                    if (index > 0) {
+                      for (let i = 0; i < index; i++) {
+                        const prevText = checkbox.options[i];
+                        const approxWidth = prevText.length * scaledFontSize * 0.6;
+                        posX += scaledCheckboxSize + scaledGap + approxWidth + scaledSpacing;
+                      }
+                    }
+                  } else {
+                    // Vertical: calcular posición Y acumulada con distancias escaladas
+                    posY = index * (scaledCheckboxSize + scaledVerticalGap);
+                  }
+                  
+                  return (
                     <div
+                      key={index}
                       style={{
-                        width: `${scaledCheckbox.checkboxSize * scale}px`,
-                        height: `${scaledCheckbox.checkboxSize * scale}px`,
-                        border: `${scaledCheckbox.borderWidth * scale}px solid ${checkbox.borderColor || '#c94a3a'}`,
-                        backgroundColor: 'transparent',
-                        borderRadius: `${2 * certScaleY * scale}px`, // Scale border radius
-                      }}
-                    />
-                    {/* Option text */}
-                    <span
-                      style={{
-                        fontSize: `${scaledCheckbox.fontSize * scale}px`,
-                        fontFamily: checkbox.fontFamily || 'Times-Bold',
-                        fontWeight: 'bold',
-                        color: checkbox.color || '#c94a3a',
+                        position: 'absolute',
+                        left: `${posX * scale}px`,
+                        top: `${posY * scale}px`,
+                        display: 'flex',
+                        alignItems: 'center',
+                        gap: `${scaledGap * scale}px`,
                       }}
                     >
-                      {option}
-                    </span>
-                  </div>
-                ))}
+                      {/* Checkbox cuadrado */}
+                      <div
+                        style={{
+                          width: `${scaledCheckboxSize * scale}px`,
+                          height: `${scaledCheckboxSize * scale}px`,
+                          border: `${scaledBorderWidth * scale}px solid ${checkbox.borderColor || '#c94a3a'}`,
+                          backgroundColor: 'transparent',
+                          flexShrink: 0,
+                        }}
+                      />
+                      {/* Texto de la opción */}
+                      <span
+                        style={{
+                          fontSize: `${scaledFontSize * scale}px`,
+                          fontFamily: checkbox.fontFamily || 'Times-Bold',
+                          color: checkbox.color || '#c94a3a',
+                          whiteSpace: 'nowrap',
+                        }}
+                      >
+                        {option}
+                      </span>
+                    </div>
+                  );
+                })}
               </div>
             </div>
           );

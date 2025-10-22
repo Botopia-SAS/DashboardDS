@@ -88,8 +88,9 @@ export function useDynamicCertificateGenerator() {
         const backgroundOffsetY = height - (row + 1) * certHeight;
         await drawBackground(template, page, width, certHeight, pdfDoc, backgroundOffsetY);
 
-        // Draw shapes (pass variables for checkbox marking and checkboxElements for positioning)
-        drawShapes(template.shapeElements, page, height, certScaleX, certScaleY, offsetY, borderWidthScale, variables, template.checkboxElements || [], getFont);
+        // Draw shapes (filtrar checkboxes porque se generan dinámicamente)
+        const nonCheckboxShapes = template.shapeElements.filter(shape => !shape.id?.startsWith('checkbox-'));
+        drawShapes(nonCheckboxShapes, page, height, certScaleX, certScaleY, offsetY, borderWidthScale, variables, template.checkboxElements || [], getFont);
 
         // Draw images
         await drawImages(template.imageElements, page, height, certScaleX, certScaleY, offsetY, pdfDoc);
@@ -192,8 +193,9 @@ export function useDynamicCertificateGenerator() {
           const backgroundOffsetY = height - (row + 1) * certHeight;
           await drawBackground(template, page, width, certHeight, pdfDoc, backgroundOffsetY);
 
-          // Draw shapes (pass variables for checkbox marking and checkboxElements for positioning)
-          drawShapes(template.shapeElements, page, height, certScaleX, certScaleY, offsetY, borderWidthScale, variables, template.checkboxElements || [], getFont);
+          // Draw shapes (filtrar checkboxes porque se generan dinámicamente)
+          const nonCheckboxShapes = template.shapeElements.filter(shape => !shape.id?.startsWith('checkbox-'));
+          drawShapes(nonCheckboxShapes, page, height, certScaleX, certScaleY, offsetY, borderWidthScale, variables, template.checkboxElements || [], getFont);
 
           // Draw images
           await drawImages(template.imageElements, page, height, certScaleX, certScaleY, offsetY, pdfDoc);
@@ -231,97 +233,76 @@ export function useDynamicCertificateGenerator() {
   ) => {
     checkboxElements.forEach((checkbox) => {
       const font = getFont(checkbox.fontFamily || 'Times-Bold', 'bold');
-      const normalFont = getFont(checkbox.fontFamily || 'Times-Bold', 'normal');
       const textColor = hexToRgb(checkbox.color || '#c94a3a');
       
       const baseFontSize = checkbox.fontSize || 10;
       const scaledFontSize = baseFontSize * textScaleFactor;
-      const checkboxSize = checkbox.checkboxSize || 12;
       
-      // Start position
-      let currentX = checkbox.x;
+      // Hacer que TODO sea proporcional al fontSize
+      const fontSizeRatio = baseFontSize / 10;
+      
+      const baseCheckboxSize = (checkbox.checkboxSize || 12) * fontSizeRatio;
+      const scaledCheckboxSize = baseCheckboxSize * textScaleFactor;
+      
+      // Escalar las distancias proporcionalmente al fontSize
+      const scaledGap = 5 * fontSizeRatio * textScaleFactor;
+      const scaledSpacing = 60 * fontSizeRatio * textScaleFactor;
+      const scaledVerticalGap = 8 * fontSizeRatio * textScaleFactor;
+      const scaledTitleMargin = 8 * fontSizeRatio * textScaleFactor;
+      
       let currentY = checkbox.y;
       
-      // Draw title - centered above checkboxes
-      if (checkbox.title && checkbox.title.trim() !== '') {
+      // Draw title
+      if (checkbox.title) {
         const titleText = checkbox.title.endsWith(':') ? checkbox.title : `${checkbox.title}:`;
-        
-        // Calculate total width of all options to center the title
-        let totalWidth = 0;
-        if (checkbox.orientation === 'horizontal') {
-          checkbox.options.forEach((option: string, index: number) => {
-            const textWidth = normalFont.widthOfTextAtSize(option, scaledFontSize);
-            totalWidth += checkboxSize + 5 + textWidth; // gap reduced to 5px
-            if (index < checkbox.options.length - 1) {
-              totalWidth += 60; // spacing between options 60px
-            }
-          });
-        } else {
-          // For vertical, use the widest option
-          let maxWidth = 0;
-          checkbox.options.forEach((option: string) => {
-            const textWidth = normalFont.widthOfTextAtSize(option, scaledFontSize);
-            const optionWidth = checkboxSize + 5 + textWidth; // gap reduced to 5px
-            if (optionWidth > maxWidth) maxWidth = optionWidth;
-          });
-          totalWidth = maxWidth;
-        }
-        
-        // Center title above options
-        const titleWidth = font.widthOfTextAtSize(titleText, scaledFontSize);
-        const titleX = currentX + (totalWidth / 2) - (titleWidth / 2);
-        
-        const scaledTitleX = titleX * certScaleX;
-        const scaledTitleY = currentY * certScaleY + offsetY;
-        const titlePdfY = height - scaledTitleY - scaledFontSize;
+        const scaledX = checkbox.x * certScaleX;
+        const scaledY = currentY * certScaleY + offsetY;
+        const pdfY = height - scaledY - scaledFontSize;
         
         page.drawText(titleText, {
-          x: scaledTitleX,
-          y: titlePdfY,
+          x: scaledX,
+          y: pdfY,
           size: scaledFontSize,
           font,
           color: rgb(textColor.r, textColor.g, textColor.b),
         });
         
-        // Move Y down for options (title height + margin)
-        currentY += scaledFontSize + 8; // increased margin from 5 to 8
+        // Mover Y hacia abajo: altura del texto + margen
+        currentY += scaledFontSize + scaledTitleMargin;
       }
       
       // Draw options
       checkbox.options.forEach((option: string, index: number) => {
-        // Calculate position for this option
-        let optionX = currentX;
+        let optionX = checkbox.x;
         let optionY = currentY;
         
-        if (checkbox.orientation === 'vertical') {
-          // Stack vertically
-          optionY += index * (checkboxSize + 8);
-        } else {
-          // Horizontal layout
+        if (checkbox.orientation === 'horizontal') {
+          // Horizontal: calcular X acumulada con distancias escaladas
           if (index > 0) {
-            // Calculate width of previous options
             for (let i = 0; i < index; i++) {
-              const prevOption = checkbox.options[i];
-              const prevTextWidth = normalFont.widthOfTextAtSize(prevOption, scaledFontSize);
-              optionX += checkboxSize + 5 + prevTextWidth + 60; // checkbox + gap (5px) + text + spacing 60px
+              const prevText = checkbox.options[i];
+              const approxWidth = prevText.length * scaledFontSize * 0.6;
+              optionX += scaledCheckboxSize + scaledGap + approxWidth + scaledSpacing;
             }
           }
+        } else {
+          // Vertical: calcular Y acumulada con distancias escaladas
+          optionY += index * (scaledCheckboxSize + scaledVerticalGap);
         }
         
-        // Draw option text (to the right of where checkbox will be)
-        const textX = optionX + checkboxSize + 5; // Gap reduced to 5px
-        const textY = optionY + (checkboxSize / 2); // Center text vertically with checkbox
+        // Dibujar texto de la opción
+        const textX = optionX + scaledCheckboxSize + scaledGap;
+        const textY = optionY + (scaledCheckboxSize / 2);
         
         const scaledTextX = textX * certScaleX;
         const scaledTextY = textY * certScaleY + offsetY;
-        // PDF coordinates are bottom-up, so we need to flip Y and adjust for font baseline
-        const textPdfY = height - scaledTextY - (scaledFontSize * 0.3);
+        const pdfY = height - scaledTextY - (scaledFontSize * 0.3);
         
         page.drawText(option, {
           x: scaledTextX,
-          y: textPdfY,
+          y: pdfY,
           size: scaledFontSize,
-          font: normalFont,
+          font,
           color: rgb(textColor.r, textColor.g, textColor.b),
         });
       });

@@ -19,28 +19,37 @@ export function drawTexts(
     const textColor = hexToRgb(text.color);
 
     const scaledFontSize = text.fontSize * textScaleFactor;
-    const textWidth = font.widthOfTextAtSize(content, scaledFontSize);
+    
+    // Split content by newlines to handle multi-line text
+    const lines = content.split('\n');
+    const lineHeight = scaledFontSize * 1.2; // Standard line height multiplier
 
-    const scaledX = text.x * certScaleX;
-    // Use certScaleY for Y position, then add offsetY
-    const scaledY = text.y * certScaleY + offsetY;
+    lines.forEach((line, lineIndex) => {
+      // Skip empty lines but preserve spacing
+      const lineContent = line || ' ';
+      const textWidth = font.widthOfTextAtSize(lineContent, scaledFontSize);
 
-    let xPos = scaledX;
-    if (text.align === 'center') {
-      xPos = scaledX - textWidth / 2;
-    } else if (text.align === 'right') {
-      xPos = scaledX - textWidth;
-    }
+      const scaledX = text.x * certScaleX;
+      // Use certScaleY for Y position, then add offsetY and line offset
+      const scaledY = text.y * certScaleY + offsetY + (lineIndex * lineHeight);
 
-    const baselineOffset = scaledFontSize * 0.8;
-    const pdfY = height - scaledY - baselineOffset;
+      let xPos = scaledX;
+      if (text.align === 'center') {
+        xPos = scaledX - textWidth / 2;
+      } else if (text.align === 'right') {
+        xPos = scaledX - textWidth;
+      }
 
-    page.drawText(content, {
-      x: xPos,
-      y: pdfY,
-      size: scaledFontSize,
-      font,
-      color: rgb(textColor.r, textColor.g, textColor.b),
+      const baselineOffset = scaledFontSize * 0.8;
+      const pdfY = height - scaledY - baselineOffset;
+
+      page.drawText(lineContent, {
+        x: xPos,
+        y: pdfY,
+        size: scaledFontSize,
+        font,
+        color: rgb(textColor.r, textColor.g, textColor.b),
+      });
     });
   });
 }

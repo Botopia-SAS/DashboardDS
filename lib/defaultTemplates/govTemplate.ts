@@ -8,9 +8,9 @@ import { CertificateTemplate } from "@/components/certificate-editor/types";
 export function getGovTemplate(classType: string = "DATE"): CertificateTemplate {
   
   // Define checkboxes based on classType
-  let checkboxElements = [];
-  let shapeElements = [];
-  let textElements = [];
+  let checkboxElements: any[] = [];
+  let shapeElements: any[] = [];
+  let textElements: any[] = [];
   
   // Base text elements (always present)
   const baseTextElements = [
@@ -397,11 +397,8 @@ export function getGovTemplate(classType: string = "DATE"): CertificateTemplate 
       },
     ];
 
-    shapeElements = [
-      { id: 'checkbox-attendanceReason-Court Order', type: 'rectangle' as const, x: 250, y: 235, width: 12, height: 12, color: 'transparent', borderColor: '#c94a3a', borderWidth: 1.5 },
-      { id: 'checkbox-attendanceReason-Volunteer', type: 'rectangle' as const, x: 330, y: 235, width: 12, height: 12, color: 'transparent', borderColor: '#c94a3a', borderWidth: 1.5 },
-      { id: 'checkbox-attendanceReason-Ticket/Citation', type: 'rectangle' as const, x: 410, y: 235, width: 12, height: 12, color: 'transparent', borderColor: '#c94a3a', borderWidth: 1.5 },
-    ];
+    // Los shapeElements de checkboxes se calculan dinámicamente en draw-shapes.ts
+    shapeElements = [];
   } else {
     // For DATE and other classes - show both Course Time and Attendance checkboxes
     textElements = [
@@ -441,14 +438,8 @@ export function getGovTemplate(classType: string = "DATE"): CertificateTemplate 
       },
     ];
 
-    shapeElements = [
-      { id: 'checkbox-courseTime-4hr', type: 'rectangle' as const, x: 280, y: 155, width: 12, height: 12, color: 'transparent', borderColor: '#c94a3a', borderWidth: 1.5 },
-      { id: 'checkbox-courseTime-6hr', type: 'rectangle' as const, x: 360, y: 155, width: 12, height: 12, color: 'transparent', borderColor: '#c94a3a', borderWidth: 1.5 },
-      { id: 'checkbox-courseTime-8hr', type: 'rectangle' as const, x: 440, y: 155, width: 12, height: 12, color: 'transparent', borderColor: '#c94a3a', borderWidth: 1.5 },
-      { id: 'checkbox-attendanceReason-Court Order', type: 'rectangle' as const, x: 250, y: 235, width: 12, height: 12, color: 'transparent', borderColor: '#c94a3a', borderWidth: 1.5 },
-      { id: 'checkbox-attendanceReason-Volunteer', type: 'rectangle' as const, x: 330, y: 235, width: 12, height: 12, color: 'transparent', borderColor: '#c94a3a', borderWidth: 1.5 },
-      { id: 'checkbox-attendanceReason-Ticket/Citation', type: 'rectangle' as const, x: 410, y: 235, width: 12, height: 12, color: 'transparent', borderColor: '#c94a3a', borderWidth: 1.5 },
-    ];
+    // Los shapeElements de checkboxes se calculan dinámicamente en draw-shapes.ts
+    shapeElements = [];
   }
   
   return {
