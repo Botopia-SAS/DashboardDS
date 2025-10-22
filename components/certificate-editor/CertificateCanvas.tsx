@@ -433,11 +433,27 @@ export function CertificateCanvas({
 
         {/* Render Checkbox Elements */}
         {(template.checkboxElements || []).map((checkbox) => {
+          // Apply same text scaling logic as text elements
+          const isLandscape = template.pageSize.orientation === 'landscape';
+          let minTextScale = 1.1; // Default: +10% for readability
+          
+          if (effectiveCertsPerPage === 1) {
+            minTextScale = 1.1; // +10% for 1 cert for better canvas readability
+          } else if (!isLandscape) {
+            if (effectiveCertsPerPage === 2) {
+              minTextScale = 0.85; // Match text element scaling
+            } else if (effectiveCertsPerPage === 3) {
+              minTextScale = 0.75; // Match text element scaling
+            }
+          }
+          
           const scaledCheckbox = {
             ...checkbox,
             x: checkbox.x * certScaleX,
             y: checkbox.y * certScaleY,
-            fontSize: checkbox.fontSize || 10,
+            fontSize: (checkbox.fontSize || 10) * certScaleY * minTextScale, // Scale with text scale
+            checkboxSize: (checkbox.checkboxSize || 12) * certScaleY, // Scale checkboxSize
+            borderWidth: (checkbox.borderWidth || 1.5) * certScaleY, // Scale borderWidth
           };
 
           return (
@@ -461,7 +477,7 @@ export function CertificateCanvas({
                   fontFamily: checkbox.fontFamily || 'Times-Bold',
                   fontWeight: 'bold',
                   color: checkbox.color || '#c94a3a',
-                  marginBottom: '5px',
+                  marginBottom: `${5 * certScaleY * scale}px`, // Scale margin
                 }}
               >
                 {checkbox.title}:
@@ -472,7 +488,7 @@ export function CertificateCanvas({
                 style={{
                   display: 'flex',
                   flexDirection: checkbox.orientation === 'vertical' ? 'column' : 'row',
-                  gap: checkbox.orientation === 'vertical' ? '8px' : '20px',
+                  gap: checkbox.orientation === 'vertical' ? `${8 * certScaleY * scale}px` : `${20 * certScaleX * scale}px`, // Scale gaps
                 }}
               >
                 {checkbox.options.map((option, index) => (
@@ -481,17 +497,17 @@ export function CertificateCanvas({
                     style={{
                       display: 'flex',
                       alignItems: 'center',
-                      gap: '5px',
+                      gap: `${5 * certScaleX * scale}px`, // Scale gap between checkbox and text
                     }}
                   >
                     {/* Checkbox */}
                     <div
                       style={{
-                        width: `${(checkbox.checkboxSize || 12) * scale}px`,
-                        height: `${(checkbox.checkboxSize || 12) * scale}px`,
-                        border: `${(checkbox.borderWidth || 1.5) * scale}px solid ${checkbox.borderColor || '#c94a3a'}`,
+                        width: `${scaledCheckbox.checkboxSize * scale}px`,
+                        height: `${scaledCheckbox.checkboxSize * scale}px`,
+                        border: `${scaledCheckbox.borderWidth * scale}px solid ${checkbox.borderColor || '#c94a3a'}`,
                         backgroundColor: 'transparent',
-                        borderRadius: `${2 * scale}px`,
+                        borderRadius: `${2 * certScaleY * scale}px`, // Scale border radius
                       }}
                     />
                     {/* Option text */}
