@@ -46,14 +46,16 @@ export function drawShapes(
     const scaledGap = 5 * fontSizeRatio * textScaleFactor;
     const scaledSpacing = 60 * fontSizeRatio * textScaleFactor;
     const scaledVerticalGap = 8 * fontSizeRatio * textScaleFactor;
-    const scaledTitleMargin = 8 * fontSizeRatio * textScaleFactor;
+    // Aumentar margen más cuando hay múltiples certificados por página
+    const baseTitleMargin = rows === 1 ? 12 : rows === 2 ? 18 : 20;
+    const scaledTitleMargin = baseTitleMargin * fontSizeRatio * textScaleFactor;
     
     let currentY = checkbox.y;
     
-    // Si hay título, ajustar Y con margen escalado
+    // Si hay título, ajustar Y con margen SIN escalar (se escalará después)
     if (checkbox.title) {
       console.log(`📦 Checkbox "${checkbox.title}": Y inicial=${currentY}, fontSize=${scaledFontSize}, margin=${scaledTitleMargin}`);
-      currentY += scaledFontSize + scaledTitleMargin;
+      currentY += (scaledFontSize / textScaleFactor) + (scaledTitleMargin / textScaleFactor);
       console.log(`📦 Después del título: Y=${currentY}`);
     }
     

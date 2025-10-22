@@ -99,7 +99,7 @@ export function useDynamicCertificateGenerator() {
         drawTexts(template.textElements, page, height, certScaleX, certScaleY, offsetY, getFont, replaceVariables, textScaleFactor);
         
         // Draw checkbox titles
-        drawCheckboxTitles(template.checkboxElements || [], template.shapeElements, page, height, certScaleX, certScaleY, offsetY, getFont, textScaleFactor);
+        drawCheckboxTitles(template.checkboxElements || [], template.shapeElements, page, height, certScaleX, certScaleY, offsetY, getFont, textScaleFactor, certsPerPage);
       }
 
       // Serialize PDF
@@ -202,6 +202,9 @@ export function useDynamicCertificateGenerator() {
 
           // Draw text
           drawTexts(template.textElements, page, height, certScaleX, certScaleY, offsetY, getFont, replaceVariables, textScaleFactor);
+          
+          // Draw checkbox titles
+          drawCheckboxTitles(template.checkboxElements || [], template.shapeElements, page, height, certScaleX, certScaleY, offsetY, getFont, textScaleFactor, certsPerPage);
         }
       }
 
@@ -229,7 +232,8 @@ export function useDynamicCertificateGenerator() {
     certScaleY: number,
     offsetY: number,
     getFont: any,
-    textScaleFactor: number
+    textScaleFactor: number,
+    certsPerPage: number
   ) => {
     checkboxElements.forEach((checkbox) => {
       const font = getFont(checkbox.fontFamily || 'Times-Bold', 'bold');
@@ -248,14 +252,41 @@ export function useDynamicCertificateGenerator() {
       const scaledGap = 5 * fontSizeRatio * textScaleFactor;
       const scaledSpacing = 60 * fontSizeRatio * textScaleFactor;
       const scaledVerticalGap = 8 * fontSizeRatio * textScaleFactor;
-      const scaledTitleMargin = 8 * fontSizeRatio * textScaleFactor;
+      // Aumentar margen más cuando hay múltiples certificados por página
+      const rows = certsPerPage;
+      const baseTitleMargin = rows === 1 ? 20 : rows === 2 ? 28 : 32;
+      const scaledTitleMargin = baseTitleMargin * fontSizeRatio * textScaleFactor;
       
       let currentY = checkbox.y;
       
       // Draw title
       if (checkbox.title) {
         const titleText = checkbox.title.endsWith(':') ? checkbox.title : `${checkbox.title}:`;
-        const scaledX = checkbox.x * certScaleX;
+        
+        // Calcular el ancho total de las opciones para la alineación
+        let totalWidth = 0;
+        if (checkbox.orientation === 'horizontal') {
+          checkbox.options.forEach((option: string, index: number) => {
+            const approxWidth = option.length * scaledFontSize * 0.6;
+            totalWidth += scaledCheckboxSize + scaledGap + approxWidth;
+            if (index < checkbox.options.length - 1) {
+              totalWidth += scaledSpacing;
+            }
+          });
+        }
+        
+        // Calcular posición X basada en la alineación
+        let titleX = checkbox.x;
+        const titleAlign = checkbox.titleAlign || 'left';
+        const titleWidth = font.widthOfTextAtSize(titleText, scaledFontSize);
+        
+        if (titleAlign === 'center' && checkbox.orientation === 'horizontal') {
+          titleX = checkbox.x + (totalWidth / 2) - (titleWidth / 2);
+        } else if (titleAlign === 'right' && checkbox.orientation === 'horizontal') {
+          titleX = checkbox.x + totalWidth - titleWidth;
+        }
+        
+        const scaledX = titleX * certScaleX;
         const scaledY = currentY * certScaleY + offsetY;
         const pdfY = height - scaledY - scaledFontSize;
         
@@ -267,8 +298,8 @@ export function useDynamicCertificateGenerator() {
           color: rgb(textColor.r, textColor.g, textColor.b),
         });
         
-        // Mover Y hacia abajo: altura del texto + margen
-        currentY += scaledFontSize + scaledTitleMargin;
+        // Mover Y hacia abajo ANTES de escalar: altura del texto + margen
+        currentY += (scaledFontSize / textScaleFactor) + (scaledTitleMargin / textScaleFactor);
       }
       
       // Draw options

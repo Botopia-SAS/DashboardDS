@@ -489,6 +489,13 @@ export function CertificateCanvas({
                     fontWeight: 'bold',
                     color: checkbox.color || '#c94a3a',
                     marginBottom: `${scaledTitleMargin * scale}px`,
+                    textAlign: checkbox.titleAlign || 'left',
+                    width: checkbox.orientation === 'horizontal' 
+                      ? `${checkbox.options.reduce((total, opt) => {
+                          const optWidth = opt.length * scaledFontSize * 0.6;
+                          return total + scaledCheckboxSize + scaledGap + optWidth + scaledSpacing;
+                        }, 0) * scale}px`
+                      : 'auto',
                   }}
                 >
                   {checkbox.title}:

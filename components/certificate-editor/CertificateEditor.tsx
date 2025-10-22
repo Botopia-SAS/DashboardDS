@@ -3053,6 +3053,20 @@ function CheckboxElementProperties({ element, onUpdate }: { element: CheckboxEle
       </div>
 
       <div>
+        <Label>Title Alignment</Label>
+        <Select value={element.titleAlign || 'left'} onValueChange={(value: 'left' | 'center' | 'right') => onUpdate({ titleAlign: value })}>
+          <SelectTrigger>
+            <SelectValue />
+          </SelectTrigger>
+          <SelectContent className="bg-white border border-gray-200 shadow-lg">
+            <SelectItem value="left" className="bg-white hover:bg-gray-50">Left</SelectItem>
+            <SelectItem value="center" className="bg-white hover:bg-gray-50">Center</SelectItem>
+            <SelectItem value="right" className="bg-white hover:bg-gray-50">Right</SelectItem>
+          </SelectContent>
+        </Select>
+      </div>
+
+      <div>
         <Label>Orientation</Label>
         <Select value={element.orientation} onValueChange={(value: 'horizontal' | 'vertical') => onUpdate({ orientation: value })}>
           <SelectTrigger>
