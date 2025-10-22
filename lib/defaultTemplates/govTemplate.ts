@@ -22,9 +22,9 @@ export function getGovTemplate(classType: string = "DATE"): CertificateTemplate 
       y: 80,
       fontSize: 18,
       fontFamily: 'Times-Bold',
-      fontWeight: 'bold',
+      fontWeight: 'bold' as const,
       color: '#c94a3a',
-      align: 'center',
+      align: 'center' as const,
     },
     {
       id: 'text-header-subtitle',
@@ -34,7 +34,7 @@ export function getGovTemplate(classType: string = "DATE"): CertificateTemplate 
       fontSize: 9,
       fontFamily: 'Times-Italic',
       color: '#7a3a2e',
-      align: 'center',
+      align: 'center' as const,
       italic: true,
     },
     {
@@ -44,9 +44,9 @@ export function getGovTemplate(classType: string = "DATE"): CertificateTemplate 
       y: 120,
       fontSize: 14,
       fontFamily: 'Times-BoldItalic',
-      fontWeight: 'bold',
+      fontWeight: 'bold' as const,
       color: '#c94a3a',
-      align: 'center',
+      align: 'center' as const,
       italic: true,
     },
     {
@@ -57,7 +57,7 @@ export function getGovTemplate(classType: string = "DATE"): CertificateTemplate 
       fontSize: 9,
       fontFamily: 'Times-Italic',
       color: '#7a3a2e',
-      align: 'center',
+      align: 'center' as const,
       italic: true,
     },
 
@@ -69,9 +69,9 @@ export function getGovTemplate(classType: string = "DATE"): CertificateTemplate 
       y: 210,
       fontSize: 10,
       fontFamily: 'Times-Bold',
-      fontWeight: 'bold',
+      fontWeight: 'bold' as const,
       color: '#c94a3a',
-      align: 'left',
+      align: 'left' as const,
     },
     {
       id: 'text-court-label',
@@ -80,9 +80,9 @@ export function getGovTemplate(classType: string = "DATE"): CertificateTemplate 
       y: 210,
       fontSize: 10,
       fontFamily: 'Times-Bold',
-      fontWeight: 'bold',
+      fontWeight: 'bold' as const,
       color: '#c94a3a',
-      align: 'left',
+      align: 'left' as const,
     },
     {
       id: 'text-county-label',
@@ -91,9 +91,9 @@ export function getGovTemplate(classType: string = "DATE"): CertificateTemplate 
       y: 210,
       fontSize: 10,
       fontFamily: 'Times-Bold',
-      fontWeight: 'bold',
+      fontWeight: 'bold' as const,
       color: '#c94a3a',
-      align: 'left',
+      align: 'left' as const,
     },
     {
       id: 'text-cert-number-label',
@@ -102,9 +102,9 @@ export function getGovTemplate(classType: string = "DATE"): CertificateTemplate 
       y: 210,
       fontSize: 10,
       fontFamily: 'Times-Bold',
-      fontWeight: 'bold',
+      fontWeight: 'bold' as const,
       color: '#c94a3a',
-      align: 'left',
+      align: 'left' as const,
     },
 
     // Citation/Case No, Court, County, Certificate Number - Values (same Y as labels)
@@ -116,7 +116,7 @@ export function getGovTemplate(classType: string = "DATE"): CertificateTemplate 
       fontSize: 10,
       fontFamily: 'Times-Roman',
       color: '#000000',
-      align: 'left',
+      align: 'left' as const,
     },
     {
       id: 'text-court-value',
@@ -126,7 +126,7 @@ export function getGovTemplate(classType: string = "DATE"): CertificateTemplate 
       fontSize: 10,
       fontFamily: 'Times-Roman',
       color: '#000000',
-      align: 'left',
+      align: 'left' as const,
     },
     {
       id: 'text-county-value',
@@ -136,7 +136,7 @@ export function getGovTemplate(classType: string = "DATE"): CertificateTemplate 
       fontSize: 10,
       fontFamily: 'Times-Roman',
       color: '#000000',
-      align: 'left',
+      align: 'left' as const,
     },
     {
       id: 'text-cert-number-value',
@@ -145,9 +145,9 @@ export function getGovTemplate(classType: string = "DATE"): CertificateTemplate 
       y: 225,
       fontSize: 10,
       fontFamily: 'Times-Bold',
-      fontWeight: 'bold',
+      fontWeight: 'bold' as const,
       color: '#000000',
-      align: 'left',
+      align: 'left' as const,
     },
 
     // Name
@@ -158,9 +158,9 @@ export function getGovTemplate(classType: string = "DATE"): CertificateTemplate 
       y: 280,
       fontSize: 12,
       fontFamily: 'Times-Bold',
-      fontWeight: 'bold',
+      fontWeight: 'bold' as const,
       color: '#c94a3a',
-      align: 'left',
+      align: 'left' as const,
     },
     {
       id: 'text-name-first',
@@ -169,9 +169,9 @@ export function getGovTemplate(classType: string = "DATE"): CertificateTemplate 
       y: 280,
       fontSize: 12,
       fontFamily: 'Times-Bold',
-      fontWeight: 'bold',
+      fontWeight: 'bold' as const,
       color: '#000000',
-      align: 'left',
+      align: 'left' as const,
     },
     {
       id: 'text-name-first-label',
@@ -181,7 +181,7 @@ export function getGovTemplate(classType: string = "DATE"): CertificateTemplate 
       fontSize: 8,
       fontFamily: 'Times-Roman',
       color: '#c94a3a',
-      align: 'left',
+      align: 'left' as const,
     },
     {
       id: 'text-name-middle',
@@ -190,9 +190,9 @@ export function getGovTemplate(classType: string = "DATE"): CertificateTemplate 
       y: 280,
       fontSize: 12,
       fontFamily: 'Times-Bold',
-      fontWeight: 'bold',
+      fontWeight: 'bold' as const,
       color: '#000000',
-      align: 'left',
+      align: 'left' as const,
     },
     {
       id: 'text-name-middle-label',
@@ -202,7 +202,7 @@ export function getGovTemplate(classType: string = "DATE"): CertificateTemplate 
       fontSize: 8,
       fontFamily: 'Times-Roman',
       color: '#c94a3a',
-      align: 'left',
+      align: 'left' as const,
     },
     {
       id: 'text-name-last',
@@ -211,9 +211,9 @@ export function getGovTemplate(classType: string = "DATE"): CertificateTemplate 
       y: 280,
       fontSize: 12,
       fontFamily: 'Times-Bold',
-      fontWeight: 'bold',
+      fontWeight: 'bold' as const,
       color: '#000000',
-      align: 'left',
+      align: 'left' as const,
     },
     {
       id: 'text-name-last-label',
@@ -223,7 +223,7 @@ export function getGovTemplate(classType: string = "DATE"): CertificateTemplate 
       fontSize: 8,
       fontFamily: 'Times-Roman',
       color: '#c94a3a',
-      align: 'left',
+      align: 'left' as const,
     },
 
     // Drivers License
@@ -234,9 +234,9 @@ export function getGovTemplate(classType: string = "DATE"): CertificateTemplate 
       y: 350,
       fontSize: 10,
       fontFamily: 'Times-Bold',
-      fontWeight: 'bold',
+      fontWeight: 'bold' as const,
       color: '#c94a3a',
-      align: 'left',
+      align: 'left' as const,
     },
     {
       id: 'text-license-value',
@@ -246,7 +246,7 @@ export function getGovTemplate(classType: string = "DATE"): CertificateTemplate 
       fontSize: 10,
       fontFamily: 'Times-Roman',
       color: '#000000',
-      align: 'left',
+      align: 'left' as const,
     },
 
     // Completion Date
@@ -257,9 +257,9 @@ export function getGovTemplate(classType: string = "DATE"): CertificateTemplate 
       y: 350,
       fontSize: 10,
       fontFamily: 'Times-Bold',
-      fontWeight: 'bold',
+      fontWeight: 'bold' as const,
       color: '#c94a3a',
-      align: 'left',
+      align: 'left' as const,
     },
     {
       id: 'text-completion-value',
@@ -269,7 +269,7 @@ export function getGovTemplate(classType: string = "DATE"): CertificateTemplate 
       fontSize: 10,
       fontFamily: 'Times-Roman',
       color: '#000000',
-      align: 'left',
+      align: 'left' as const,
     },
 
     // Instructor Signature
@@ -281,7 +281,7 @@ export function getGovTemplate(classType: string = "DATE"): CertificateTemplate 
       fontSize: 9,
       fontFamily: 'Times-Roman',
       color: '#c94a3a',
-      align: 'left',
+      align: 'left' as const,
     },
     {
       id: 'text-instructor-signature-value',
@@ -291,7 +291,7 @@ export function getGovTemplate(classType: string = "DATE"): CertificateTemplate 
       fontSize: 10,
       fontFamily: 'Times-Italic',
       color: '#000000',
-      align: 'left',
+      align: 'left' as const,
       italic: true,
     },
 
@@ -304,7 +304,7 @@ export function getGovTemplate(classType: string = "DATE"): CertificateTemplate 
       fontSize: 9,
       fontFamily: 'Times-Roman',
       color: '#c94a3a',
-      align: 'left',
+      align: 'left' as const,
     },
     {
       id: 'text-instructor-school-value',
@@ -314,7 +314,7 @@ export function getGovTemplate(classType: string = "DATE"): CertificateTemplate 
       fontSize: 10,
       fontFamily: 'Times-Roman',
       color: '#000000',
-      align: 'left',
+      align: 'left' as const,
     },
 
     // Footer - Provider Info
@@ -325,9 +325,9 @@ export function getGovTemplate(classType: string = "DATE"): CertificateTemplate 
       y: 490,
       fontSize: 8,
       fontFamily: 'Times-Bold',
-      fontWeight: 'bold',
+      fontWeight: 'bold' as const,
       color: '#c94a3a',
-      align: 'left',
+      align: 'left' as const,
     },
     {
       id: 'text-provider-name',
@@ -336,9 +336,9 @@ export function getGovTemplate(classType: string = "DATE"): CertificateTemplate 
       y: 500,
       fontSize: 8,
       fontFamily: 'Times-Bold',
-      fontWeight: 'bold',
+      fontWeight: 'bold' as const,
       color: '#c94a3a',
-      align: 'left',
+      align: 'left' as const,
     },
     {
       id: 'text-provider-phone',
@@ -348,7 +348,7 @@ export function getGovTemplate(classType: string = "DATE"): CertificateTemplate 
       fontSize: 8,
       fontFamily: 'Times-Roman',
       color: '#c94a3a',
-      align: 'left',
+      align: 'left' as const,
     },
     {
       id: 'text-school-name',
@@ -357,9 +357,9 @@ export function getGovTemplate(classType: string = "DATE"): CertificateTemplate 
       y: 488,
       fontSize: 8,
       fontFamily: 'Times-Bold',
-      fontWeight: 'bold',
+      fontWeight: 'bold' as const,
       color: '#0000ff',
-      align: 'right',
+      align: 'right' as const,
     },
     {
       id: 'text-school-phone',
@@ -368,9 +368,9 @@ export function getGovTemplate(classType: string = "DATE"): CertificateTemplate 
       y: 502,
       fontSize: 8,
       fontFamily: 'Times-Bold',
-      fontWeight: 'bold',
+      fontWeight: 'bold' as const,
       color: '#0000ff',
-      align: 'right',
+      align: 'right' as const,
     },
   ];
 
@@ -387,7 +387,7 @@ export function getGovTemplate(classType: string = "DATE"): CertificateTemplate 
         title: 'Attendance',
         x: 320,
         y: 245,
-        orientation: 'horizontal',
+        orientation: 'horizontal' as const,
         options: ['Court Order', 'Volunteer', 'Ticket/Citation'],
         variableKey: 'attendanceReason',
         fontSize: 10,
@@ -400,9 +400,9 @@ export function getGovTemplate(classType: string = "DATE"): CertificateTemplate 
     ];
 
     shapeElements = [
-      { id: 'checkbox-attendanceReason-Court Order', type: 'rectangle', x: 320, y: 245, width: 12, height: 12, color: 'transparent', borderColor: '#c94a3a', borderWidth: 1.5 },
-      { id: 'checkbox-attendanceReason-Volunteer', type: 'rectangle', x: 400, y: 245, width: 12, height: 12, color: 'transparent', borderColor: '#c94a3a', borderWidth: 1.5 },
-      { id: 'checkbox-attendanceReason-Ticket/Citation', type: 'rectangle', x: 480, y: 245, width: 12, height: 12, color: 'transparent', borderColor: '#c94a3a', borderWidth: 1.5 },
+      { id: 'checkbox-attendanceReason-Court Order', type: 'rectangle' as const, x: 320, y: 245, width: 12, height: 12, color: 'transparent', borderColor: '#c94a3a', borderWidth: 1.5 },
+      { id: 'checkbox-attendanceReason-Volunteer', type: 'rectangle' as const, x: 400, y: 245, width: 12, height: 12, color: 'transparent', borderColor: '#c94a3a', borderWidth: 1.5 },
+      { id: 'checkbox-attendanceReason-Ticket/Citation', type: 'rectangle' as const, x: 480, y: 245, width: 12, height: 12, color: 'transparent', borderColor: '#c94a3a', borderWidth: 1.5 },
     ];
   } else {
     // For DATE and other classes - show both Course Time and Attendance checkboxes
@@ -416,7 +416,7 @@ export function getGovTemplate(classType: string = "DATE"): CertificateTemplate 
         title: 'COURSE TIME',
         x: 80,
         y: 185,
-        orientation: 'horizontal',
+        orientation: 'horizontal' as const,
         options: ['4hr', '6hr', '8hr'],
         variableKey: 'courseTime',
         fontSize: 10,
@@ -431,7 +431,7 @@ export function getGovTemplate(classType: string = "DATE"): CertificateTemplate 
         title: 'Attendance',
         x: 320,
         y: 245,
-        orientation: 'horizontal',
+        orientation: 'horizontal' as const,
         options: ['Court Order', 'Volunteer', 'Ticket/Citation'],
         variableKey: 'attendanceReason',
         fontSize: 10,
@@ -444,12 +444,12 @@ export function getGovTemplate(classType: string = "DATE"): CertificateTemplate 
     ];
 
     shapeElements = [
-      { id: 'checkbox-courseTime-4hr', type: 'rectangle', x: 80, y: 185, width: 12, height: 12, color: 'transparent', borderColor: '#c94a3a', borderWidth: 1.5 },
-      { id: 'checkbox-courseTime-6hr', type: 'rectangle', x: 160, y: 185, width: 12, height: 12, color: 'transparent', borderColor: '#c94a3a', borderWidth: 1.5 },
-      { id: 'checkbox-courseTime-8hr', type: 'rectangle', x: 240, y: 185, width: 12, height: 12, color: 'transparent', borderColor: '#c94a3a', borderWidth: 1.5 },
-      { id: 'checkbox-attendanceReason-Court Order', type: 'rectangle', x: 320, y: 245, width: 12, height: 12, color: 'transparent', borderColor: '#c94a3a', borderWidth: 1.5 },
-      { id: 'checkbox-attendanceReason-Volunteer', type: 'rectangle', x: 400, y: 245, width: 12, height: 12, color: 'transparent', borderColor: '#c94a3a', borderWidth: 1.5 },
-      { id: 'checkbox-attendanceReason-Ticket/Citation', type: 'rectangle', x: 480, y: 245, width: 12, height: 12, color: 'transparent', borderColor: '#c94a3a', borderWidth: 1.5 },
+      { id: 'checkbox-courseTime-4hr', type: 'rectangle' as const, x: 80, y: 185, width: 12, height: 12, color: 'transparent', borderColor: '#c94a3a', borderWidth: 1.5 },
+      { id: 'checkbox-courseTime-6hr', type: 'rectangle' as const, x: 160, y: 185, width: 12, height: 12, color: 'transparent', borderColor: '#c94a3a', borderWidth: 1.5 },
+      { id: 'checkbox-courseTime-8hr', type: 'rectangle' as const, x: 240, y: 185, width: 12, height: 12, color: 'transparent', borderColor: '#c94a3a', borderWidth: 1.5 },
+      { id: 'checkbox-attendanceReason-Court Order', type: 'rectangle' as const, x: 320, y: 245, width: 12, height: 12, color: 'transparent', borderColor: '#c94a3a', borderWidth: 1.5 },
+      { id: 'checkbox-attendanceReason-Volunteer', type: 'rectangle' as const, x: 400, y: 245, width: 12, height: 12, color: 'transparent', borderColor: '#c94a3a', borderWidth: 1.5 },
+      { id: 'checkbox-attendanceReason-Ticket/Citation', type: 'rectangle' as const, x: 480, y: 245, width: 12, height: 12, color: 'transparent', borderColor: '#c94a3a', borderWidth: 1.5 },
     ];
   }
   
