@@ -10,15 +10,85 @@ export function drawShapes(
   certScaleY: number,
   offsetY: number,
   borderWidthScale: number = 1,
-  variables: Record<string, any> = {}
+  variables: Record<string, any> = {},
+  checkboxElements: any[] = [],
+  getFont?: (fontFamily: string, fontWeight?: string) => any
 ) {
   console.log('🔲 drawShapes called with variables:', variables);
   console.log('🔲 courseTime:', variables.courseTime, 'attendanceReason:', variables.attendanceReason);
   
+  // Build a map of checkbox positions for accurate rendering
+  const checkboxPositions = new Map<string, { x: number; y: number }>();
+  checkboxElements.forEach((checkbox) => {
+    const baseFontSize = checkbox.fontSize || 10;
+    const checkboxSize = checkbox.checkboxSize || 12;
+    
+    // Calculate text scale factor
+    const rows = 1 / certScaleY;
+    let textScaleFactor = 1;
+    if (rows === 1) {
+      textScaleFactor = 1;
+    } else if (rows === 2) {
+      textScaleFactor = 0.85;
+    } else if (rows === 3) {
+      textScaleFactor = 0.795;
+    }
+    
+    const scaledFontSize = baseFontSize * textScaleFactor;
+    
+    // Start position
+    let currentX = checkbox.x;
+    let currentY = checkbox.y;
+    
+    // Account for title if present
+    if (checkbox.title && checkbox.title.trim() !== '') {
+      currentY += scaledFontSize + 8; // title height + margin (increased from 5 to 8)
+    }
+    
+    // Calculate position for each option
+    checkbox.options.forEach((option: string, index: number) => {
+      let optionX = currentX;
+      let optionY = currentY;
+      
+      if (checkbox.orientation === 'vertical') {
+        optionY += index * (checkboxSize + 8);
+      } else {
+        // Horizontal - calculate exact width using font
+        if (index > 0) {
+          for (let i = 0; i < index; i++) {
+            const prevOption = checkbox.options[i];
+            let prevTextWidth;
+            if (getFont) {
+              const normalFont = getFont(checkbox.fontFamily || 'Times-Bold', 'normal');
+              prevTextWidth = normalFont.widthOfTextAtSize(prevOption, scaledFontSize);
+            } else {
+              // Fallback to approximation if font not available
+              prevTextWidth = prevOption.length * (scaledFontSize / 10) * 6;
+            }
+            optionX += checkboxSize + 5 + prevTextWidth + 60; // gap 5px + spacing 60px
+          }
+        }
+      }
+      
+      const shapeId = `checkbox-${checkbox.variableKey}-${option}`;
+      checkboxPositions.set(shapeId, { x: optionX, y: optionY });
+    });
+  });
+  
   shapes.forEach((shape: ShapeElement) => {
+    // Use calculated position for checkboxes if available
+    let shapeX = shape.x;
+    let shapeY = shape.y;
+    
+    if (shape.id && shape.id.startsWith('checkbox-') && checkboxPositions.has(shape.id)) {
+      const pos = checkboxPositions.get(shape.id)!;
+      shapeX = pos.x;
+      shapeY = pos.y;
+    }
+    
     const scaledShape = {
-      x: shape.x * certScaleX,
-      y: shape.y * certScaleY + offsetY,
+      x: shapeX * certScaleX,
+      y: shapeY * certScaleY + offsetY,
       width: shape.width ? shape.width * certScaleX : undefined,
       height: shape.height ? shape.height * certScaleY : undefined,
       x2: shape.x2 ? shape.x2 * certScaleX : undefined,

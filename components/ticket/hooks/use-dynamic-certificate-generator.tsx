@@ -88,8 +88,8 @@ export function useDynamicCertificateGenerator() {
         const backgroundOffsetY = height - (row + 1) * certHeight;
         await drawBackground(template, page, width, certHeight, pdfDoc, backgroundOffsetY);
 
-        // Draw shapes (pass variables for checkbox marking)
-        drawShapes(template.shapeElements, page, height, certScaleX, certScaleY, offsetY, borderWidthScale, variables);
+        // Draw shapes (pass variables for checkbox marking and checkboxElements for positioning)
+        drawShapes(template.shapeElements, page, height, certScaleX, certScaleY, offsetY, borderWidthScale, variables, template.checkboxElements || [], getFont);
 
         // Draw images
         await drawImages(template.imageElements, page, height, certScaleX, certScaleY, offsetY, pdfDoc);
@@ -98,7 +98,7 @@ export function useDynamicCertificateGenerator() {
         drawTexts(template.textElements, page, height, certScaleX, certScaleY, offsetY, getFont, replaceVariables, textScaleFactor);
         
         // Draw checkbox titles
-        drawCheckboxTitles(template.checkboxElements || [], page, height, certScaleX, certScaleY, offsetY, getFont, textScaleFactor);
+        drawCheckboxTitles(template.checkboxElements || [], template.shapeElements, page, height, certScaleX, certScaleY, offsetY, getFont, textScaleFactor);
       }
 
       // Serialize PDF
@@ -192,8 +192,8 @@ export function useDynamicCertificateGenerator() {
           const backgroundOffsetY = height - (row + 1) * certHeight;
           await drawBackground(template, page, width, certHeight, pdfDoc, backgroundOffsetY);
 
-          // Draw shapes (pass variables for checkbox marking)
-          drawShapes(template.shapeElements, page, height, certScaleX, certScaleY, offsetY, borderWidthScale, variables);
+          // Draw shapes (pass variables for checkbox marking and checkboxElements for positioning)
+          drawShapes(template.shapeElements, page, height, certScaleX, certScaleY, offsetY, borderWidthScale, variables, template.checkboxElements || [], getFont);
 
           // Draw images
           await drawImages(template.imageElements, page, height, certScaleX, certScaleY, offsetY, pdfDoc);
@@ -217,9 +217,10 @@ export function useDynamicCertificateGenerator() {
     }
   }, []);
 
-  // Helper function to draw checkbox titles
+  // Helper function to draw checkbox titles and labels
   const drawCheckboxTitles = (
     checkboxElements: any[],
+    shapeElements: any[],
     page: any,
     height: number,
     certScaleX: number,
@@ -230,52 +231,97 @@ export function useDynamicCertificateGenerator() {
   ) => {
     checkboxElements.forEach((checkbox) => {
       const font = getFont(checkbox.fontFamily || 'Times-Bold', 'bold');
+      const normalFont = getFont(checkbox.fontFamily || 'Times-Bold', 'normal');
       const textColor = hexToRgb(checkbox.color || '#c94a3a');
       
-      const scaledFontSize = (checkbox.fontSize || 10) * textScaleFactor;
-      const scaledX = checkbox.x * certScaleX;
-      const scaledY = checkbox.y * certScaleY + offsetY;
+      const baseFontSize = checkbox.fontSize || 10;
+      const scaledFontSize = baseFontSize * textScaleFactor;
+      const checkboxSize = checkbox.checkboxSize || 12;
       
-      const baselineOffset = scaledFontSize * 0.8;
-      const pdfY = height - scaledY - baselineOffset;
+      // Start position
+      let currentX = checkbox.x;
+      let currentY = checkbox.y;
       
-      // Draw the title with a colon (only if title is not empty) - ABOVE checkboxes
+      // Draw title - centered above checkboxes
       if (checkbox.title && checkbox.title.trim() !== '') {
-        // Add colon only if title doesn't already end with one
         const titleText = checkbox.title.endsWith(':') ? checkbox.title : `${checkbox.title}:`;
-        // Position title ABOVE checkboxes by adding to Y position
-        const titleY = checkbox.y - 15; // 15px above checkboxes
-        const scaledTitleY = titleY * certScaleY + offsetY;
-        const titlePdfY = height - scaledTitleY - baselineOffset;
+        
+        // Calculate total width of all options to center the title
+        let totalWidth = 0;
+        if (checkbox.orientation === 'horizontal') {
+          checkbox.options.forEach((option: string, index: number) => {
+            const textWidth = normalFont.widthOfTextAtSize(option, scaledFontSize);
+            totalWidth += checkboxSize + 5 + textWidth; // gap reduced to 5px
+            if (index < checkbox.options.length - 1) {
+              totalWidth += 60; // spacing between options 60px
+            }
+          });
+        } else {
+          // For vertical, use the widest option
+          let maxWidth = 0;
+          checkbox.options.forEach((option: string) => {
+            const textWidth = normalFont.widthOfTextAtSize(option, scaledFontSize);
+            const optionWidth = checkboxSize + 5 + textWidth; // gap reduced to 5px
+            if (optionWidth > maxWidth) maxWidth = optionWidth;
+          });
+          totalWidth = maxWidth;
+        }
+        
+        // Center title above options
+        const titleWidth = font.widthOfTextAtSize(titleText, scaledFontSize);
+        const titleX = currentX + (totalWidth / 2) - (titleWidth / 2);
+        
+        const scaledTitleX = titleX * certScaleX;
+        const scaledTitleY = currentY * certScaleY + offsetY;
+        const titlePdfY = height - scaledTitleY - scaledFontSize;
         
         page.drawText(titleText, {
-          x: scaledX,
+          x: scaledTitleX,
           y: titlePdfY,
           size: scaledFontSize,
           font,
           color: rgb(textColor.r, textColor.g, textColor.b),
         });
+        
+        // Move Y down for options (title height + margin)
+        currentY += scaledFontSize + 8; // increased margin from 5 to 8
       }
       
-      // Draw the option labels (positioned exactly like in canvas - text to the right of checkbox)
+      // Draw options
       checkbox.options.forEach((option: string, index: number) => {
-        // Calculate checkbox square position (same as shapeElement)
-        const squareX = checkbox.x + (checkbox.orientation === 'horizontal' ? index * 80 : 0);
-        const squareY = checkbox.y + (checkbox.orientation === 'vertical' ? (index + 1) * 25 : 0);
+        // Calculate position for this option
+        let optionX = currentX;
+        let optionY = currentY;
         
-        // Position text to the right of the checkbox square (like in canvas)
-        const textX = squareX + 20; // 20px to the right of checkbox
-        const textY = squareY; // Same Y as checkbox (vertically aligned)
+        if (checkbox.orientation === 'vertical') {
+          // Stack vertically
+          optionY += index * (checkboxSize + 8);
+        } else {
+          // Horizontal layout
+          if (index > 0) {
+            // Calculate width of previous options
+            for (let i = 0; i < index; i++) {
+              const prevOption = checkbox.options[i];
+              const prevTextWidth = normalFont.widthOfTextAtSize(prevOption, scaledFontSize);
+              optionX += checkboxSize + 5 + prevTextWidth + 60; // checkbox + gap (5px) + text + spacing 60px
+            }
+          }
+        }
+        
+        // Draw option text (to the right of where checkbox will be)
+        const textX = optionX + checkboxSize + 5; // Gap reduced to 5px
+        const textY = optionY + (checkboxSize / 2); // Center text vertically with checkbox
         
         const scaledTextX = textX * certScaleX;
         const scaledTextY = textY * certScaleY + offsetY;
-        const textPdfY = height - scaledTextY - baselineOffset;
+        // PDF coordinates are bottom-up, so we need to flip Y and adjust for font baseline
+        const textPdfY = height - scaledTextY - (scaledFontSize * 0.3);
         
         page.drawText(option, {
           x: scaledTextX,
           y: textPdfY,
-          size: scaledFontSize, // Same size as title to match canvas
-          font: getFont(checkbox.fontFamily || 'Times-Bold', 'normal'),
+          size: scaledFontSize,
+          font: normalFont,
           color: rgb(textColor.r, textColor.g, textColor.b),
         });
       });
