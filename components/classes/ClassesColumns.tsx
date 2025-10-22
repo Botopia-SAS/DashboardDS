@@ -40,6 +40,8 @@ export const columns: ColumnDef<DrivingClassType>[] = [
   {
     accessorKey: "price",
     header: "Price ($)",
+
+
     cell: ({ row }) => (
       <p className="font-medium text-gray-700">${(row.original.price ?? 0).toFixed(2)}</p>
     ),

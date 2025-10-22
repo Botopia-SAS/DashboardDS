@@ -52,6 +52,7 @@ export interface CheckboxElement {
   borderColor?: string;
   borderWidth?: number;
   checkboxSize?: number; // Size of individual checkboxes
+  titleAlign?: 'left' | 'center' | 'right'; // Alignment of the title
 }
 
 export interface Variable {

@@ -1433,16 +1433,22 @@ export function CertificateEditor({
   // Save template
   const saveTemplate = async () => {
     try {
-      const url = template._id
-        ? `/api/certificate-templates/${template._id}`
+      // Filtrar shapeElements de checkboxes antes de guardar
+      const templateToSave = {
+        ...template,
+        shapeElements: template.shapeElements.filter(shape => !shape.id?.startsWith('checkbox-'))
+      };
+      
+      const url = templateToSave._id
+        ? `/api/certificate-templates/${templateToSave._id}`
         : '/api/certificate-templates';
 
-      const method = template._id ? 'PUT' : 'POST';
+      const method = templateToSave._id ? 'PUT' : 'POST';
 
       const response = await fetch(url, {
         method,
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify(template),
+        body: JSON.stringify(templateToSave),
       });
 
       if (!response.ok) {
@@ -3044,6 +3050,20 @@ function CheckboxElementProperties({ element, onUpdate }: { element: CheckboxEle
             onChange={(e) => onUpdate({ y: Number(e.target.value) })}
           />
         </div>
+      </div>
+
+      <div>
+        <Label>Title Alignment</Label>
+        <Select value={element.titleAlign || 'left'} onValueChange={(value: 'left' | 'center' | 'right') => onUpdate({ titleAlign: value })}>
+          <SelectTrigger>
+            <SelectValue />
+          </SelectTrigger>
+          <SelectContent className="bg-white border border-gray-200 shadow-lg">
+            <SelectItem value="left" className="bg-white hover:bg-gray-50">Left</SelectItem>
+            <SelectItem value="center" className="bg-white hover:bg-gray-50">Center</SelectItem>
+            <SelectItem value="right" className="bg-white hover:bg-gray-50">Right</SelectItem>
+          </SelectContent>
+        </Select>
       </div>
 
       <div>

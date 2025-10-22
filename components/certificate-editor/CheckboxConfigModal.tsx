@@ -17,6 +17,7 @@ interface CheckboxConfigModalProps {
 
 export function CheckboxConfigModal({ open, onOpenChange, onSave }: CheckboxConfigModalProps) {
   const [title, setTitle] = useState("");
+  const [titleAlign, setTitleAlign] = useState<'left' | 'center' | 'right'>('left');
   const [orientation, setOrientation] = useState<'horizontal' | 'vertical'>('horizontal');
   const [options, setOptions] = useState<string[]>(['Option 1', 'Option 2']);
   const [variableKey, setVariableKey] = useState("");
@@ -56,12 +57,14 @@ export function CheckboxConfigModal({ open, onOpenChange, onSave }: CheckboxConf
       borderColor: '#c94a3a',
       borderWidth: 1.5,
       checkboxSize: 12,
+      titleAlign,
     };
 
     onSave(checkboxElement);
     
     // Reset form
     setTitle("");
+    setTitleAlign('left');
     setOrientation('horizontal');
     setOptions(['Option 1', 'Option 2']);
     setVariableKey("");
@@ -98,6 +101,20 @@ export function CheckboxConfigModal({ open, onOpenChange, onSave }: CheckboxConf
             <p className="text-xs text-gray-500 mt-1">
               This will be used to save the selected option as a variable
             </p>
+          </div>
+
+          <div>
+            <Label htmlFor="titleAlign">Title Alignment</Label>
+            <Select value={titleAlign} onValueChange={(value: 'left' | 'center' | 'right') => setTitleAlign(value)}>
+              <SelectTrigger>
+                <SelectValue />
+              </SelectTrigger>
+              <SelectContent className="bg-white border border-gray-200 shadow-lg z-50">
+                <SelectItem value="left" className="bg-white hover:bg-gray-50">Left</SelectItem>
+                <SelectItem value="center" className="bg-white hover:bg-gray-50">Center</SelectItem>
+                <SelectItem value="right" className="bg-white hover:bg-gray-50">Right</SelectItem>
+              </SelectContent>
+            </Select>
           </div>
 
           <div>
