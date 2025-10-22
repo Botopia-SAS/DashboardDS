@@ -43,11 +43,80 @@ export function CertificateEditor({
 }: CertificateEditorProps) {
   const router = useRouter();
 
+  // Function to clean up duplicate shape elements from checkboxElements
+  const cleanDuplicateShapeElements = (template: CertificateTemplate): CertificateTemplate => {
+    if (!template.checkboxElements || template.checkboxElements.length === 0) {
+      return template;
+    }
+
+    // Get all checkbox-related shape IDs that should exist
+    const validCheckboxShapeIds = new Set<string>();
+    template.checkboxElements.forEach(checkbox => {
+      checkbox.options.forEach(option => {
+        validCheckboxShapeIds.add(`checkbox-${checkbox.variableKey}-${option}`);
+      });
+    });
+
+    // Filter out old checkbox shape elements that don't match the new pattern
+    const cleanedShapeElements = template.shapeElements.filter(shape => {
+      if (shape.id && shape.id.startsWith('checkbox-')) {
+        // Only keep if it matches the new pattern and is valid
+        return validCheckboxShapeIds.has(shape.id);
+      }
+      // Keep all non-checkbox shapes
+      return true;
+    });
+
+    console.log('🧹 Cleaned shape elements:', {
+      original: template.shapeElements.length,
+      cleaned: cleanedShapeElements.length,
+      removed: template.shapeElements.length - cleanedShapeElements.length
+    });
+
+    return {
+      ...template,
+      shapeElements: cleanedShapeElements
+    };
+  };
+
+  // Function to completely clean all checkbox-related elements when switching templates
+  const cleanAllCheckboxElements = (template: CertificateTemplate): CertificateTemplate => {
+    // Remove all checkbox-related shape elements
+    const cleanedShapeElements = template.shapeElements.filter(shape => {
+      return !(shape.id && shape.id.startsWith('checkbox-'));
+    });
+
+    // Remove all checkbox elements
+    const cleanedCheckboxElements: any[] = [];
+
+    // Filter availableVariables to remove checkbox-related variables
+    const cleanedAvailableVariables = template.availableVariables.filter(variable => {
+      return !['courseTime', 'attendanceReason', 'prueba', 'test', 'ejme', 's'].includes(variable.key);
+    });
+
+    console.log('🧹 Cleaned all checkbox elements:', {
+      originalShapes: template.shapeElements.length,
+      cleanedShapes: cleanedShapeElements.length,
+      removedShapes: template.shapeElements.length - cleanedShapeElements.length,
+      originalCheckboxes: template.checkboxElements?.length || 0,
+      originalVariables: template.availableVariables.length,
+      cleanedVariables: cleanedAvailableVariables.length
+    });
+
+    return {
+      ...template,
+      shapeElements: cleanedShapeElements,
+      checkboxElements: cleanedCheckboxElements,
+      availableVariables: cleanedAvailableVariables
+    };
+  };
+
   // Initialize with a function to ensure certificatesPerPage is properly set
   const [template, setTemplate] = useState<CertificateTemplate>(() => {
     if (initialTemplate) {
       console.log('🎯 Initializing with initialTemplate, certificatesPerPage:', initialTemplate.certificatesPerPage);
-      return initialTemplate;
+      const cleanedTemplate = cleanDuplicateShapeElements(initialTemplate);
+      return cleanedTemplate;
     }
     console.log('🎯 Initializing with default template, certificatesPerPage: 1');
     return {
@@ -421,17 +490,17 @@ export function CertificateEditor({
 
   // Add Checkbox Element
   const addCheckboxElement = (checkboxElement: CheckboxElement) => {
-    // Generate individual shape elements for each option
+    // Generate individual shape elements for each option (for rendering in PDF)
     const newShapeElements = checkboxElement.options.map((option, index) => ({
-      id: `checkbox-${option}`, // Dynamic ID based on option
+      id: `checkbox-${checkboxElement.variableKey}-${option}`, // More specific ID to avoid conflicts
       type: 'rectangle' as const,
-      x: checkboxElement.x + (checkboxElement.orientation === 'horizontal' ? index * 50 : 0),
-      y: checkboxElement.y + (checkboxElement.orientation === 'vertical' ? (index + 1) * 20 : 0),
+      x: checkboxElement.x + (checkboxElement.orientation === 'horizontal' ? index * 80 : 0),
+      y: checkboxElement.y + (checkboxElement.orientation === 'vertical' ? (index + 1) * 25 : 0),
       width: checkboxElement.checkboxSize || 12,
       height: checkboxElement.checkboxSize || 12,
       color: 'transparent',
-      borderColor: checkboxElement.borderColor || '#c94a3a',
-      borderWidth: checkboxElement.borderWidth || 1.5,
+      borderColor: checkboxElement.borderColor || '#c94a3a', // Use checkbox border color
+      borderWidth: checkboxElement.borderWidth || 1.5, // Use checkbox border width
     }));
 
     pushToHistory({
@@ -488,22 +557,22 @@ export function CertificateEditor({
       );
 
       // Update corresponding shape elements if size, color, or position changed
-      const updatedShapeElements = template.shapeElements.map(shapeEl => {
-        // Check if this shape element belongs to the updated checkbox
-        const optionMatch = newCheckbox.options.find((option: string) =>
-          shapeEl.id === `checkbox-${option}`
-        );
+        const updatedShapeElements = template.shapeElements.map(shapeEl => {
+          // Check if this shape element belongs to the updated checkbox
+          const optionMatch = newCheckbox.options.find((option: string) =>
+            shapeEl.id === `checkbox-${newCheckbox.variableKey}-${option}`
+          );
         
         if (optionMatch) {
           const optionIndex = newCheckbox.options.indexOf(optionMatch);
           return {
             ...shapeEl,
-            x: newCheckbox.x + (newCheckbox.orientation === 'horizontal' ? optionIndex * 50 : 0),
-            y: newCheckbox.y + (newCheckbox.orientation === 'vertical' ? (optionIndex + 1) * 20 : 0),
+            x: newCheckbox.x + (newCheckbox.orientation === 'horizontal' ? optionIndex * 80 : 0),
+            y: newCheckbox.y + (newCheckbox.orientation === 'vertical' ? (optionIndex + 1) * 25 : 0),
             width: newCheckbox.checkboxSize || 12,
             height: newCheckbox.checkboxSize || 12,
-            borderColor: newCheckbox.borderColor || '#c94a3a',
-            borderWidth: newCheckbox.borderWidth || 1.5,
+            borderColor: newCheckbox.borderColor || '#c94a3a', // Use checkbox border color
+            borderWidth: newCheckbox.borderWidth || 1.5, // Use checkbox border width
           };
         }
         return shapeEl;
@@ -833,6 +902,7 @@ export function CertificateEditor({
       ],
       imageElements: [], // Clear all images and signatures
       shapeElements: [], // Clear all shapes (including checkboxes)
+      checkboxElements: [], // Clear all checkboxes
       background: template.background // Keep background
     });
   };
@@ -842,12 +912,19 @@ export function CertificateEditor({
     import('@/lib/defaultTemplates/govTemplate').then(({ getGovTemplate }) => {
       const govTemplate = getGovTemplate(template.classType);
       
+      // Clean the template to remove all checkbox-related elements
+      const cleanedTemplate = cleanAllCheckboxElements(template);
+      
       pushToHistory({
-        ...template,
+        ...cleanedTemplate,
         ...govTemplate,
         classType: template.classType, // Keep current class type
         background: template.background, // Keep existing background
         shapeElements: govTemplate.shapeElements, // Replace shapes completely (don't merge)
+        textElements: govTemplate.textElements, // Replace text completely (don't merge)
+        imageElements: govTemplate.imageElements, // Replace images completely (don't merge)
+        availableVariables: govTemplate.availableVariables, // Replace variables completely
+        checkboxElements: govTemplate.checkboxElements, // Replace checkbox elements completely
       });
       
       toast.success('Government Form template applied successfully!');
@@ -884,6 +961,7 @@ export function CertificateEditor({
       ],
       imageElements: [], // Clear all images and signatures
       shapeElements: [], // Clear all shapes (including checkboxes)
+      checkboxElements: [], // Clear all checkboxes
       background: template.background // Keep background
     });
   };
@@ -915,6 +993,7 @@ export function CertificateEditor({
       ],
       imageElements: [], // Clear all images and signatures
       shapeElements: [], // Clear all shapes (including checkboxes)
+      checkboxElements: [], // Clear all checkboxes
       background: template.background // Keep background
     });
   };
@@ -948,6 +1027,7 @@ export function CertificateEditor({
       ],
       imageElements: [], // Clear all images and signatures
       shapeElements: template.shapeElements, // Keep frames/borders
+      checkboxElements: [], // Clear all checkboxes
       background: template.background // Keep background
     });
   };
@@ -997,6 +1077,7 @@ export function CertificateEditor({
       ],
       imageElements: [], // Clear all images and signatures
       shapeElements: [], // Clear all shapes (including checkboxes)
+      checkboxElements: [], // Clear all checkboxes
       background: template.background // Keep background
     });
   };

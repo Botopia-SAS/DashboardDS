@@ -239,28 +239,42 @@ export function useDynamicCertificateGenerator() {
       const baselineOffset = scaledFontSize * 0.8;
       const pdfY = height - scaledY - baselineOffset;
       
-      // Draw the title with a colon
-      page.drawText(`${checkbox.title}:`, {
-        x: scaledX,
-        y: pdfY,
-        size: scaledFontSize,
-        font,
-        color: rgb(textColor.r, textColor.g, textColor.b),
-      });
-      
-      // Draw the option labels
-      checkbox.options.forEach((option: string, index: number) => {
-        const optionX = checkbox.x + (checkbox.orientation === 'horizontal' ? index * 50 : 0);
-        const optionY = checkbox.y + (checkbox.orientation === 'vertical' ? (index + 1) * 20 : 0) + 15; // Offset below checkbox
+      // Draw the title with a colon (only if title is not empty) - ABOVE checkboxes
+      if (checkbox.title && checkbox.title.trim() !== '') {
+        // Add colon only if title doesn't already end with one
+        const titleText = checkbox.title.endsWith(':') ? checkbox.title : `${checkbox.title}:`;
+        // Position title ABOVE checkboxes by adding to Y position
+        const titleY = checkbox.y - 15; // 15px above checkboxes
+        const scaledTitleY = titleY * certScaleY + offsetY;
+        const titlePdfY = height - scaledTitleY - baselineOffset;
         
-        const scaledOptionX = optionX * certScaleX;
-        const scaledOptionY = optionY * certScaleY + offsetY;
-        const optionPdfY = height - scaledOptionY - baselineOffset;
+        page.drawText(titleText, {
+          x: scaledX,
+          y: titlePdfY,
+          size: scaledFontSize,
+          font,
+          color: rgb(textColor.r, textColor.g, textColor.b),
+        });
+      }
+      
+      // Draw the option labels (positioned exactly like in canvas - text to the right of checkbox)
+      checkbox.options.forEach((option: string, index: number) => {
+        // Calculate checkbox square position (same as shapeElement)
+        const squareX = checkbox.x + (checkbox.orientation === 'horizontal' ? index * 80 : 0);
+        const squareY = checkbox.y + (checkbox.orientation === 'vertical' ? (index + 1) * 25 : 0);
+        
+        // Position text to the right of the checkbox square (like in canvas)
+        const textX = squareX + 20; // 20px to the right of checkbox
+        const textY = squareY; // Same Y as checkbox (vertically aligned)
+        
+        const scaledTextX = textX * certScaleX;
+        const scaledTextY = textY * certScaleY + offsetY;
+        const textPdfY = height - scaledTextY - baselineOffset;
         
         page.drawText(option, {
-          x: scaledOptionX,
-          y: optionPdfY,
-          size: scaledFontSize * 0.8, // Slightly smaller for options
+          x: scaledTextX,
+          y: textPdfY,
+          size: scaledFontSize, // Same size as title to match canvas
           font: getFont(checkbox.fontFamily || 'Times-Bold', 'normal'),
           color: rgb(textColor.r, textColor.g, textColor.b),
         });
