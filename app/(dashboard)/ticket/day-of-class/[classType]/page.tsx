@@ -12,7 +12,11 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
-import { ArrowLeftIcon, MapPin, Users } from "lucide-react";
+import { ArrowLeftIcon, MapPin, Users, CalendarIcon, ChevronLeft, ChevronRight } from "lucide-react";
+import { cn } from "@/lib/utils";
+import { format } from "date-fns";
+import { DayPicker } from "react-day-picker";
+import "react-day-picker/dist/style.css";
 import { useRouter, useParams } from "next/navigation";
 import {
   Dialog,
@@ -23,6 +27,11 @@ import {
   DialogTitle,
 } from "@/components/ui/dialog";
 import { useEffect, useState } from "react";
+import {
+  Popover,
+  PopoverContent,
+  PopoverTrigger,
+} from "@/components/ui/popover";
 
 // Helper function to normalize class type for comparison (same as calendar)
 const normalizeClassType = (type: string): string => {
@@ -47,9 +56,18 @@ interface Class {
 
 export default function Page() {
   const [classes, setClasses] = useState<Class[]>([]);
+  const [filteredClasses, setFilteredClasses] = useState<Class[]>([]);
   const [loading, setLoading] = useState(false);
   const [selectedClassText, setSelectedClassText] = useState<string>("");
   const [showSelectClassModal, setShowSelectClassModal] = useState(false);
+  const [dateRange, setDateRange] = useState<{ from: Date | undefined; to?: Date | undefined }>({ from: undefined, to: undefined });
+  const [classNameFilter, setClassNameFilter] = useState<string>("all");
+  const [leftMonth, setLeftMonth] = useState<Date>(new Date());
+  const [rightMonth, setRightMonth] = useState<Date>(() => {
+    const next = new Date();
+    next.setMonth(next.getMonth() + 1);
+    return next;
+  });
   const { setClassId, classId } = useClassStore();
   const router = useRouter();
   const params = useParams();
@@ -67,27 +85,28 @@ export default function Page() {
         // Decode URL parameter and normalize for comparison using the same logic as calendar
         const decodedClassType = decodeURIComponent(classType);
         const normalizedClassType = normalizeClassType(decodedClassType);
-        
+
         console.log('🔍 Day of Class - Filtering classes:');
         console.log('  - URL classType:', classType);
         console.log('  - Decoded classType:', decodedClassType);
         console.log('  - Normalized classType:', normalizedClassType);
         console.log('  - Total classes from API:', data.length);
-        
+
         const filteredClasses = data.filter((c: Class) => {
           const normalizedTicketType = normalizeClassType(c.type);
           const matches = normalizedTicketType === normalizedClassType;
-          
+
           if (matches) {
             const className = typeof c.classId === 'object' ? c.classId?.title : 'Unknown';
             console.log(`✅ Class matched: "${className}" (type: "${c.type}" → "${normalizedTicketType}") matches "${normalizedClassType}"`);
           }
-          
+
           return matches;
         });
-        
+
         console.log('  - Filtered classes count:', filteredClasses.length);
         setClasses(filteredClasses);
+        setFilteredClasses(filteredClasses);
         setLoading(false);
       })
       .catch((error) => {
@@ -95,6 +114,37 @@ export default function Page() {
         setLoading(false);
       });
   }, [setClassId, classType]);
+
+  // Apply filters whenever dateRange, classNameFilter, or classes change
+  useEffect(() => {
+    let filtered = [...classes];
+
+    // Apply date range filter
+    if (dateRange.from) {
+      filtered = filtered.filter((c) => {
+        const classDate = new Date(c.date);
+        classDate.setHours(0, 0, 0, 0);
+        const fromDate = new Date(dateRange.from!);
+        fromDate.setHours(0, 0, 0, 0);
+
+        if (dateRange.to) {
+          const toDate = new Date(dateRange.to);
+          toDate.setHours(0, 0, 0, 0);
+          return classDate >= fromDate && classDate <= toDate;
+        } else {
+          // Si solo hay fecha de inicio, filtrar por esa fecha exacta
+          return classDate.getTime() === fromDate.getTime();
+        }
+      });
+    }
+
+    // Apply class name filter
+    if (classNameFilter !== "all") {
+      filtered = filtered.filter((c) => getClassName(c) === classNameFilter);
+    }
+
+    setFilteredClasses(filtered);
+  }, [dateRange, classNameFilter, classes]);
   if (loading) {
     return <Loader />;
   }
@@ -115,7 +165,7 @@ export default function Page() {
     setClassId(value);
 
     // Encontrar la clase seleccionada y formatear el texto
-    const selectedClass = classes.find(c => c._id === value);
+    const selectedClass = filteredClasses.find(c => c._id === value);
     if (selectedClass) {
       const studentCount = Array.isArray(selectedClass.students) ? selectedClass.students.length : 0;
       const totalSpots = selectedClass.spots || 30;
@@ -151,6 +201,41 @@ export default function Page() {
     return c.locationName || 'Unknown Location';
   };
 
+  // Funciones para navegar los meses
+  const handleLeftMonthPrev = () => {
+    const newMonth = new Date(leftMonth);
+    newMonth.setMonth(newMonth.getMonth() - 1);
+    setLeftMonth(newMonth);
+  };
+
+  const handleLeftMonthNext = () => {
+    const newMonth = new Date(leftMonth);
+    newMonth.setMonth(newMonth.getMonth() + 1);
+
+    // Asegurar que el mes izquierdo sea siempre menor que el derecho (no pueden ser iguales)
+    if (newMonth.getFullYear() < rightMonth.getFullYear() ||
+      (newMonth.getFullYear() === rightMonth.getFullYear() && newMonth.getMonth() < rightMonth.getMonth())) {
+      setLeftMonth(newMonth);
+    }
+  };
+
+  const handleRightMonthPrev = () => {
+    const newMonth = new Date(rightMonth);
+    newMonth.setMonth(newMonth.getMonth() - 1);
+
+    // Asegurar que el mes derecho sea siempre mayor que el izquierdo (no pueden ser iguales)
+    if (newMonth.getFullYear() > leftMonth.getFullYear() ||
+      (newMonth.getFullYear() === leftMonth.getFullYear() && newMonth.getMonth() > leftMonth.getMonth())) {
+      setRightMonth(newMonth);
+    }
+  };
+
+  const handleRightMonthNext = () => {
+    const newMonth = new Date(rightMonth);
+    newMonth.setMonth(newMonth.getMonth() + 1);
+    setRightMonth(newMonth);
+  };
+
   return (
     <>
       <div className="p-6">
@@ -164,6 +249,153 @@ export default function Page() {
         </div>
       </div>
       <div className="p-6">
+        {/* Filters Section */}
+        <div className="mb-4 grid grid-cols-1 md:grid-cols-2 gap-4">
+          <div>
+            <label className="block text-sm font-medium text-gray-700 mb-2">
+              Filter by Date
+            </label>
+            <Popover>
+              <PopoverTrigger asChild>
+                <Button
+                  variant={"outline"}
+                  className={cn(
+                    "w-full justify-start text-left font-normal",
+                    !dateRange.from && "text-muted-foreground"
+                  )}
+                >
+                  <CalendarIcon className="mr-2 h-4 w-4" />
+                  {dateRange.from ? (
+                    dateRange.to ? (
+                      <>
+                        {format(dateRange.from, "LLL dd, y")} -{" "}
+                        {format(dateRange.to, "LLL dd, y")}
+                      </>
+                    ) : (
+                      format(dateRange.from, "LLL dd, y")
+                    )
+                  ) : (
+                    <span>Pick a date range</span>
+                  )}
+                </Button>
+              </PopoverTrigger>
+              <PopoverContent className="w-auto p-0 bg-white" align="start">
+                <div className="flex">
+                  {/* Left Calendar */}
+                  <div className="border-r">
+                    <div className="flex items-center justify-between p-3 border-b">
+                      <Button
+                        variant="ghost"
+                        size="icon"
+                        onClick={handleLeftMonthPrev}
+                        className="h-7 w-7"
+                      >
+                        <ChevronLeft className="h-4 w-4" />
+                      </Button>
+                      <div className="font-semibold">
+                        {format(leftMonth, "MMMM yyyy")}
+                      </div>
+                      <Button
+                        variant="ghost"
+                        size="icon"
+                        onClick={handleLeftMonthNext}
+                        className="h-7 w-7"
+                        disabled={
+                          leftMonth.getFullYear() === rightMonth.getFullYear() &&
+                          leftMonth.getMonth() >= rightMonth.getMonth()
+                        }
+                      >
+                        <ChevronRight className="h-4 w-4" />
+                      </Button>
+                    </div>
+                    <div className="[&_.rdp-caption]:hidden [&_.rdp-nav]:hidden">
+                      <DayPicker
+                        mode="range"
+                        selected={dateRange}
+                        onSelect={(range) => setDateRange(range || { from: undefined, to: undefined })}
+                        month={leftMonth}
+                        onMonthChange={setLeftMonth}
+                        className="p-3"
+                        numberOfMonths={1}
+                      />
+                    </div>
+                  </div>
+
+                  {/* Right Calendar */}
+                  <div>
+                    <div className="flex items-center justify-between p-3 border-b">
+                      <Button
+                        variant="ghost"
+                        size="icon"
+                        onClick={handleRightMonthPrev}
+                        className="h-7 w-7"
+                        disabled={
+                          rightMonth.getFullYear() === leftMonth.getFullYear() &&
+                          rightMonth.getMonth() <= leftMonth.getMonth()
+                        }
+                      >
+                        <ChevronLeft className="h-4 w-4" />
+                      </Button>
+                      <div className="font-semibold">
+                        {format(rightMonth, "MMMM yyyy")}
+                      </div>
+                      <Button
+                        variant="ghost"
+                        size="icon"
+                        onClick={handleRightMonthNext}
+                        className="h-7 w-7"
+                      >
+                        <ChevronRight className="h-4 w-4" />
+                      </Button>
+                    </div>
+                    <div className="[&_.rdp-caption]:hidden [&_.rdp-nav]:hidden">
+                      <DayPicker
+                        mode="range"
+                        selected={dateRange}
+                        onSelect={(range) => setDateRange(range || { from: undefined, to: undefined })}
+                        month={rightMonth}
+                        onMonthChange={setRightMonth}
+                        className="p-3"
+                        numberOfMonths={1}
+                      />
+                    </div>
+                  </div>
+                </div>
+                {dateRange.from && (
+                  <div className="p-3 border-t">
+                    <Button
+                      variant="ghost"
+                      className="w-full"
+                      onClick={() => setDateRange({ from: undefined, to: undefined })}
+                    >
+                      Clear filter
+                    </Button>
+                  </div>
+                )}
+              </PopoverContent>
+            </Popover>
+          </div>
+          <div>
+            <label className="block text-sm font-medium text-gray-700 mb-2">
+              Filter by Class Name
+            </label>
+            <Select value={classNameFilter} onValueChange={setClassNameFilter}>
+              <SelectTrigger>
+                <SelectValue placeholder="All Classes" />
+              </SelectTrigger>
+              <SelectContent className="bg-white">
+                <SelectItem value="all">All Classes</SelectItem>
+                {Array.from(new Set(classes.map(c => getClassName(c)))).map((name) => (
+                  <SelectItem key={name} value={name}>
+                    {name}
+                  </SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
+          </div>
+        </div>
+
+        {/* Class Selection Dropdown */}
         <Select onValueChange={handleClassSelect}>
           <SelectTrigger>
             <SelectValue
@@ -173,12 +405,12 @@ export default function Page() {
             </SelectValue>
           </SelectTrigger>
           <SelectContent className="bg-white">
-            {classes.length === 0 ? (
+            {filteredClasses.length === 0 ? (
               <SelectItem value="no-classes" disabled>
                 No {decodedClassType.toUpperCase()} classes available
               </SelectItem>
             ) : (
-              classes.map((c) => {
+              filteredClasses.map((c) => {
                 const studentCount = Array.isArray(c.students) ? c.students.length : 0;
                 const totalSpots = c.spots || 30;
                 const formatTime = (hour: string) => {
@@ -207,7 +439,7 @@ export default function Page() {
                       </div>
                       <div className="text-xs text-gray-500 flex items-center gap-1">
                         <MapPin className="w-3 h-3 text-gray-500" />
-                        {getLocationName(c)} | 
+                        {getLocationName(c)} |
                         <Users className="w-3 h-3 text-gray-500 ml-1" />
                         {studentCount}/{totalSpots} students
                       </div>
@@ -249,7 +481,7 @@ export default function Page() {
             </DialogDescription>
           </DialogHeader>
           <DialogFooter>
-            <Button 
+            <Button
               onClick={() => setShowSelectClassModal(false)}
               className="bg-blue-600 hover:bg-blue-700 text-white"
             >
