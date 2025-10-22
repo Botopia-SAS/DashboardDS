@@ -242,8 +242,8 @@ export function CertificateCanvas({
           />
         )}
 
-        {/* Render Shape Elements */}
-        {template.shapeElements.map((shape) => {
+        {/* Render Shape Elements (excluding checkbox shapes) */}
+        {template.shapeElements.filter(shape => !shape.id?.startsWith('checkbox-')).map((shape) => {
           // For shapes (especially borders/frames):
           // Keep width at 100% always, only scale height based on certsPerPage
           // Adjust scaling based on orientation and number of certificates
@@ -444,7 +444,7 @@ export function CertificateCanvas({
             <div
               key={`${checkbox.id}-${certIndex}`}
               className={`absolute ${certIndex === 0 && dragging && dragging.id === checkbox.id ? 'cursor-move' : certIndex === 0 ? 'cursor-pointer' : ''} ${
-                certIndex === 0 && selectedElement.id === checkbox.id && !previewMode ? 'ring-2 ring-blue-500 bg-blue-50' : ''
+                certIndex === 0 && selectedElement.type === 'checkbox' && selectedElement.id === checkbox.id && !previewMode ? 'ring-2 ring-blue-500 bg-blue-50' : ''
               }`}
               style={{
                 left: `${scaledCheckbox.x * scale}px`,

@@ -106,9 +106,9 @@ export function CheckboxConfigModal({ open, onOpenChange, onSave }: CheckboxConf
               <SelectTrigger>
                 <SelectValue />
               </SelectTrigger>
-              <SelectContent>
-                <SelectItem value="horizontal">Horizontal</SelectItem>
-                <SelectItem value="vertical">Vertical</SelectItem>
+              <SelectContent className="bg-white border border-gray-200 shadow-lg z-50">
+                <SelectItem value="horizontal" className="bg-white hover:bg-gray-50">Horizontal</SelectItem>
+                <SelectItem value="vertical" className="bg-white hover:bg-gray-50">Vertical</SelectItem>
               </SelectContent>
             </Select>
           </div>

@@ -42,16 +42,19 @@ export function drawShapes(
       
       // Dynamic checkbox matching - works for any checkbox variable
       if (shape.id.startsWith('checkbox-')) {
-        // Extract option from shape ID (e.g., checkbox-4hr -> 4hr)
-        const optionFromId = shape.id.replace('checkbox-', '');
-        
-        // Check all variables to see if any match this option
-        Object.entries(variables).forEach(([varKey, varValue]) => {
-          if (varValue === optionFromId) {
+        // Extract variable key and option from shape ID (e.g., checkbox-courseTime-4hr -> courseTime, 4hr)
+        const parts = shape.id.replace('checkbox-', '').split('-');
+        if (parts.length >= 2) {
+          const varKey = parts[0];
+          const optionFromId = parts.slice(1).join('-'); // Handle options with hyphens
+          
+          // Check if this specific variable matches this option (case-insensitive)
+          const varValue = String(variables[varKey] || '');
+          if (varValue.toLowerCase() === optionFromId.toLowerCase()) {
             shouldMarkCheckbox = true;
-            console.log(`✅ Marking ${optionFromId} checkbox for ${varKey}`);
+            console.log(`✅ Marking ${optionFromId} checkbox for ${varKey} (value: ${varValue})`);
           }
-        });
+        }
       }
     }
 
