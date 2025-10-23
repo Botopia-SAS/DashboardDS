@@ -1,7 +1,6 @@
 "use client";
 
 import { Button } from "@/components/ui/button";
-
 import {
   ColumnDef,
   flexRender,
@@ -9,7 +8,6 @@ import {
   useReactTable,
   getPaginationRowModel,
 } from "@tanstack/react-table";
-
 import {
   Table,
   TableBody,
@@ -18,7 +16,6 @@ import {
   TableHeader,
   TableRow,
 } from "@/components/ui/table";
-import { Input } from "../ui/input";
 import { useState } from "react";
 
 interface MultiSearchTableProps<TData, TValue> {
@@ -32,19 +29,19 @@ export function MultiSearchTable<TData, TValue>({
   data,
   searchKeys,
 }: MultiSearchTableProps<TData, TValue>) {
-  const [globalFilter, setGlobalFilter] = useState("");
+  const [searchValue, setSearchValue] = useState("");
 
-  // Filter data based on search term
-  const filteredData = data.filter((row: any) => {
-    if (!globalFilter) return true;
-    
-    const searchValue = globalFilter.toLowerCase();
-    return searchKeys.some(key => {
-      const cellValue = row[key];
-      if (cellValue === null || cellValue === undefined) return false;
-      return String(cellValue).toLowerCase().includes(searchValue);
-    });
-  });
+  // Simple filter - only runs when data or searchValue changes
+  const filteredData = searchValue.trim() === "" 
+    ? data 
+    : data.filter((row: any) => {
+        const search = searchValue.toLowerCase();
+        return searchKeys.some(key => {
+          const value = row[key];
+          if (!value) return false;
+          return String(value).toLowerCase().includes(search);
+        });
+      });
 
   const table = useReactTable({
     data: filteredData,
@@ -56,11 +53,12 @@ export function MultiSearchTable<TData, TValue>({
   return (
     <div className="py-5">
       <div className="flex items-center py-4">
-        <Input
+        <input
+          type="text"
           placeholder="Search by name, email, or license number..."
-          value={globalFilter}
-          onChange={(event) => setGlobalFilter(event.target.value)}
-          className="max-w-sm"
+          value={searchValue}
+          onChange={(e) => setSearchValue(e.target.value)}
+          className="flex h-10 w-full max-w-sm rounded-md border border-input bg-background px-3 py-2 text-sm ring-offset-background placeholder:text-muted-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring disabled:cursor-not-allowed disabled:opacity-50"
         />
       </div>
 
@@ -69,18 +67,16 @@ export function MultiSearchTable<TData, TValue>({
           <TableHeader>
             {table.getHeaderGroups().map((headerGroup) => (
               <TableRow key={headerGroup.id}>
-                {headerGroup.headers.map((header) => {
-                  return (
-                    <TableHead key={header.id}>
-                      {header.isPlaceholder
-                        ? null
-                        : flexRender(
-                            header.column.columnDef.header,
-                            header.getContext()
-                          )}
-                    </TableHead>
-                  );
-                })}
+                {headerGroup.headers.map((header) => (
+                  <TableHead key={header.id}>
+                    {header.isPlaceholder
+                      ? null
+                      : flexRender(
+                          header.column.columnDef.header,
+                          header.getContext()
+                        )}
+                  </TableHead>
+                ))}
               </TableRow>
             ))}
           </TableHeader>

@@ -1,13 +1,15 @@
 "use client";
-import { MultiSearchTable } from "@/components/custom ui/MultiSearchTable";
-import { customersColumns } from "@/components/customers/CustomersColumns";
+import { SimpleDataTable } from "@/components/custom ui/SimpleDataTable";
 import { Button } from "@/components/ui/button";
 import { Separator } from "@radix-ui/react-separator";
-import { Plus } from "lucide-react";
+import { Plus, ArrowUpRight } from "lucide-react";
 import React, { useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
 import Loader from "@/components/custom ui/Loader";
 import DashboardHeader from "@/components/layout/DashboardHeader";
+import Link from "next/link";
+import Delete from "@/components/custom ui/Delete";
+import { format } from "date-fns";
 
 const CustomersDashboard = () => {
   const [customers, setCustomers] = useState([]);
@@ -47,25 +49,75 @@ const CustomersDashboard = () => {
     fetchData();
   }, []);
 
-  if (loading) return <Loader />
+  if (loading) return <Loader />;
+
+  const columns = [
+    {
+      key: "name",
+      header: "Name",
+      render: (customer: any) => (
+        <Link
+          href={`/customers/${customer.id}`}
+          className="flex items-center gap-2 font-semibold text-blue-500 hover:text-blue-700"
+        >
+          {customer.name}
+          <ArrowUpRight size={16} className="opacity-75" />
+        </Link>
+      ),
+    },
+    {
+      key: "email",
+      header: "Email",
+      render: (customer: any) => (
+        <span className="font-medium text-gray-700">{customer.email}</span>
+      ),
+    },
+    {
+      key: "licenseNumber",
+      header: "License Number",
+      render: (customer: any) => (
+        <span className="font-medium text-gray-700">
+          {customer.licenseNumber || "Not available"}
+        </span>
+      ),
+    },
+    {
+      key: "createdAt",
+      header: "Registration Date",
+      render: (customer: any) => {
+        const date = customer.createdAt ? new Date(customer.createdAt) : null;
+        return (
+          <span className="font-medium text-gray-700">
+            {date ? format(date, "MMM d, yyyy h:mm a") : "Not available"}
+          </span>
+        );
+      },
+    },
+    {
+      key: "actions",
+      header: "Actions",
+      render: (customer: any) => <Delete item="customers" id={customer.id} />,
+    },
+  ];
 
   return (
     <div className="p-5">
       <DashboardHeader title="Customers">
-        <Button className="bg-blue-500 text-white" onClick={() => router.push("/customers/new")}>
+        <Button
+          className="bg-blue-500 text-white"
+          onClick={() => router.push("/customers/new")}
+        >
           <Plus className="size-4 mr-2" />
           Create customer
         </Button>
       </DashboardHeader>
       <div className="mt-6">
-        <div className="mt-6">
-          <Separator className="bg-gray-400 my-4" />
-          <MultiSearchTable 
-            columns={customersColumns} 
-            data={customers} 
-            searchKeys={["name", "email", "licenseNumber"]} 
-          />
-        </div>
+        <Separator className="bg-gray-400 my-4" />
+        <SimpleDataTable
+          data={customers}
+          columns={columns}
+          searchKeys={["name", "email", "licenseNumber"]}
+        />
       </div>
     </div>
   );
