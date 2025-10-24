@@ -1,6 +1,7 @@
 import { NextResponse } from "next/server";
 import { connectToDB } from "@/lib/mongoDB";
 import CertificateTemplate from "@/lib/models/CertificateTemplate";
+import { getYouthfulOffenderTemplate } from "@/lib/defaultTemplates/youthfulOffenderTemplate";
 
 // Initialize default templates
 // NOTE: DATE uses BDI template by default (no need to create separate DATE template)
@@ -165,12 +166,17 @@ export async function POST() {
       isActive: true,
     });
 
+    // Youthful Offender Certificate Template (3 per page)
+    const youthfulOffenderTemplateData = getYouthfulOffenderTemplate();
+    const youthfulOffenderTemplate = await CertificateTemplate.create(youthfulOffenderTemplateData);
+
     return NextResponse.json({
       message: "Default templates initialized successfully",
       templates: [
         { id: dateTemplate._id, name: dateTemplate.name, classType: dateTemplate.classType },
         { id: bdiTemplate._id, name: bdiTemplate.name, classType: bdiTemplate.classType },
         { id: adiTemplate._id, name: adiTemplate.name, classType: adiTemplate.classType },
+        { id: youthfulOffenderTemplate._id, name: youthfulOffenderTemplate.name, classType: youthfulOffenderTemplate.classType },
       ]
     }, { status: 201 });
 

@@ -1,6 +1,5 @@
 "use client";
 
-import { TableCell } from "@/components/ui/table";
 import { Button } from "@/components/ui/button";
 import { Check, Edit, Download, X } from "lucide-react";
 import { Student } from "./columns";
@@ -22,9 +21,9 @@ export function RowActionButtons({ actions }: RowActionButtonsProps) {
   const { isEditing, onEdit, onSave, onCancel, onDownload, isSaving } = actions;
 
   return (
-    <TableCell className="flex gap-2">
+    <div className="flex gap-2">
       {isEditing ? (
-        <div className="flex gap-2">
+        <>
           <button
             onClick={onSave}
             className="px-2 py-1 bg-green-500 text-white rounded"
@@ -39,7 +38,7 @@ export function RowActionButtons({ actions }: RowActionButtonsProps) {
           >
             <X />
           </button>
-        </div>
+        </>
       ) : (
         <>
           <Button
@@ -56,6 +55,6 @@ export function RowActionButtons({ actions }: RowActionButtonsProps) {
           </Button>
         </>
       )}
-    </TableCell>
+    </div>
   );
 }

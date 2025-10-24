@@ -1,18 +1,7 @@
 {
   "permissions": {
     "allow": [
-      "Bash(find:*)",
-      "Bash(npm run build:*)",
-      "Bash(ls -la \"c:\\Users\\Botopia\\DashboardDS\\DashboardDS\\app\\(dashboard\\)\\customers\")",
-      "Bash(ls -la 'c:\\Users\\Botopia\\DashboardDS\\DashboardDS\\app\\(dashboard\\)\\customers')",
-      "Bash(dir \"app\\(dashboard)\\customers\")",
-      "Bash(dir \"app\\(dashboard)\\customers\\[customerId]\")",
-      "Bash(npm run dev)",
-      "Bash(netstat -ano)",
-      "Bash(findstr :3001)",
-      "Bash(netstat -aon)",
-      "Bash(findstr \"3001\")",
-      "Bash(powershell -Command \"Remove-Item -Path .next -Recurse -Force -ErrorAction SilentlyContinue\")"
+      "Bash(curl:*)"
     ],
     "deny": [],
     "ask": []
