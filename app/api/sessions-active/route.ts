@@ -1,5 +1,5 @@
 import { connectToDB } from "@/lib/mongoDB";
-import WebSession from "@/lib/models/WebSession";
+import Session from "@/lib/modals/Session";
 import { NextRequest, NextResponse } from "next/server";
 
 // Store active SSE connections
@@ -23,11 +23,8 @@ async function getActiveSessions() {
   const now = new Date();
   const THRESHOLD = 30 * 1000; // 30 segundos
 
-  // Encuentra sesiones que no tienen endTimestamp (están activas)
-  const sessions = await WebSession.find({ 
-    endTimestamp: { $exists: false },
-    lastActive: { $exists: true }
-  });
+  // Encuentra todas las sesiones activas
+  const sessions = await Session.find({ sessionActive: true });
 
   // Marca como inactivas las que no han tenido actividad reciente
   await Promise.all(
@@ -36,6 +33,7 @@ async function getActiveSessions() {
         session.lastActive &&
         now.getTime() - new Date(session.lastActive).getTime() > THRESHOLD
       ) {
+        session.sessionActive = false;
         session.endTimestamp = session.lastActive;
         await session.save();
       }
@@ -43,10 +41,7 @@ async function getActiveSessions() {
   );
 
   // Devuelve solo las sesiones realmente activas
-  return await WebSession.find({ 
-    endTimestamp: { $exists: false },
-    lastActive: { $gte: new Date(now.getTime() - THRESHOLD) }
-  });
+  return await Session.find({ sessionActive: true });
 }
 
 // SSE endpoint for real-time updates
@@ -58,11 +53,11 @@ export async function GET(request: NextRequest) {
     await connectToDB();
 
     // Set up MongoDB Change Stream
-    const changeStream = WebSession.watch([
+    const changeStream = Session.watch([
       {
         $match: {
           $or: [
-            { 'updateDescription.updatedFields.endTimestamp': { $exists: true } },
+            { 'updateDescription.updatedFields.sessionActive': { $exists: true } },
             { 'updateDescription.updatedFields.lastActive': { $exists: true } },
             { operationType: { $in: ['insert', 'update', 'replace'] } }
           ]

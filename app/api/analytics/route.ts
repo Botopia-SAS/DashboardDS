@@ -1,6 +1,6 @@
 import dbConnect from '@/lib/dbConnect';
 import ResumenSeccion from '@/lib/models/ResumenSeccion';
-import WebSession, { IWebSession } from '@/lib/models/WebSession';
+import Session, { ISession } from '@/lib/modals/Session';
 import { NextResponse } from 'next/server';
 
 export async function GET(request: Request) {
@@ -34,7 +34,7 @@ export async function GET(request: Request) {
     const query = {
       startTimestamp: { $gte: dateRange.start, $lte: dateRange.end }
     };
-    const sessions = await WebSession.find(query);
+    const sessions = await Session.find(query);
 
     // Estadísticas de páginas
     const pageStats = new Map();
@@ -46,7 +46,7 @@ export async function GET(request: Request) {
     const hourlyStats = new Array(24).fill(0);
     const dailyStats = new Array(7).fill(0);
 
-    sessions.forEach((session: IWebSession) => {
+    sessions.forEach((session: ISession) => {
       // Estadísticas por hora y día
       const startHour = new Date(session.startTimestamp).getHours();
       const startDay = new Date(session.startTimestamp).getDay();

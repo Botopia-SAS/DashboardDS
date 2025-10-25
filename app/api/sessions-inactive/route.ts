@@ -1,5 +1,5 @@
 import { connectToDB } from "@/lib/mongoDB";
-import WebSession from "@/lib/models/WebSession";
+import Session from "@/lib/modals/Session";
 import { NextRequest, NextResponse } from "next/server";
 
 // Store active SSE connections for inactive sessions
@@ -20,9 +20,8 @@ function sendToAllClients(data: any) {
 
 // Function to get inactive sessions
 async function getInactiveSessions() {
-  return await WebSession.find({ 
-    endTimestamp: { $exists: true }
-  }).sort({ endTimestamp: -1 });
+  return await Session.find({ sessionActive: false })
+    .sort({ lastActive: -1 });
 }
 
 // SSE endpoint for real-time updates
@@ -34,11 +33,11 @@ export async function GET(request: NextRequest) {
     await connectToDB();
 
     // Set up MongoDB Change Stream for inactive sessions
-    const changeStream = WebSession.watch([
+    const changeStream = Session.watch([
       {
         $match: {
           $or: [
-            { 'updateDescription.updatedFields.endTimestamp': { $exists: true } },
+            { 'updateDescription.updatedFields.sessionActive': { $eq: false } },
             { operationType: { $in: ['insert', 'update', 'replace'] } }
           ]
         }
