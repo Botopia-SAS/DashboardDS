@@ -1,7 +1,7 @@
 import mongoose from "mongoose";
 
 // Import all models to ensure they are registered
-import "@/lib/models/users";
+import "@/lib/models/User";
 import "@/lib/models/TicketClass";
 import "@/lib/models/Locations";
 import "@/lib/models/Class";
@@ -15,7 +15,7 @@ import "@/lib/models/SEO";
 import "@/lib/models/Settings";
 import "@/lib/models/ScheduledEmail";
 import "@/lib/models/EmailTemplate";
-import "@/lib/models/Cerificate";
+import "@/lib/models/Certificate";
 import "@/lib/models/ResumenSeccion";
 import "@/lib/models/Payments";
 

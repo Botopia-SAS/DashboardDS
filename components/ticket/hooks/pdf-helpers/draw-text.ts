@@ -1,5 +1,5 @@
 import { PDFPage, rgb } from "pdf-lib";
-import { TextElement } from "@/components/certificate-editor/types";
+import { TextElement } from "@/lib/certificateTypes";
 import { hexToRgb } from "./utils";
 
 export function drawTexts(

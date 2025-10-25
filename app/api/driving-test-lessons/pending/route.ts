@@ -16,17 +16,21 @@ export async function GET() {
     for (const instructor of instructors) {
       if (instructor.schedule_driving_test) {
         for (const event of instructor.schedule_driving_test) {
-          if (event.status === 'pending' && event.studentId) {
+          // Type guard to ensure event has the expected properties
+          if (event && typeof event === 'object' && 
+              'status' in event && 'studentId' in event &&
+              event.status === 'pending' && event.studentId) {
+            const eventObj = event as any; // Type assertion for Mixed type
             pendingRequests.push({
-              requestId: event._id?.toString() || `${instructor._id}-${event.date}-${event.start}`,
-              drivingTestId: event._id?.toString() || `${instructor._id}-${event.date}-${event.start}`,
-              studentId: event.studentId,
-              date: event.date,
-              hour: event.start,
-              endHour: event.end,
-              classType: event.classType || 'driving test',
-              requestDate: event.createdAt || new Date().toISOString(),
-              status: event.status,
+              requestId: eventObj._id?.toString() || `${instructor._id}-${eventObj.date}-${eventObj.start}`,
+              drivingTestId: eventObj._id?.toString() || `${instructor._id}-${eventObj.date}-${eventObj.start}`,
+              studentId: eventObj.studentId,
+              date: eventObj.date,
+              hour: eventObj.start,
+              endHour: eventObj.end,
+              classType: eventObj.classType || 'driving test',
+              requestDate: eventObj.createdAt || new Date().toISOString(),
+              status: eventObj.status,
               instructorId: instructor._id
             });
           }

@@ -31,7 +31,8 @@ export async function POST() {
       const yesterdayDateStr = yesterday.toISOString().split("T")[0]; // Formato YYYY-MM-DD
 
       // Filtrar las clases programadas (que están guardadas con desfase)
-      const tomorrowSchedule = instructor.schedule.filter((entry: { date: string; start: string; end: string; classType?: string }) => {
+      const schedule = instructor.schedule_driving_lesson || [];
+      const tomorrowSchedule = schedule.filter((entry: { date: string; start: string; end: string; classType?: string }) => {
         const entryDateStr = new Date(entry.date).toISOString().split("T")[0];
         return entryDateStr === yesterdayDateStr;
       });
@@ -48,7 +49,7 @@ export async function POST() {
         const emailBody = `Here are your classes scheduled for tomorrow:\n\n${scheduleDetails}\n\nBest regards,\nDriving School Team`;
         const html = getEmailTemplate({ name: instructor.name, body: emailBody.replace(/\n/g, '<br>') });
 
-        await sendEmail(instructor.email, "Tomorrow's Classes", emailBody, html);
+        await sendEmail([instructor.email], "Tomorrow's Classes", emailBody, html);
         sentCount++;
         
         logWithColor(`[CRON] Email sent to ${instructor.name} - Classes: ${tomorrowSchedule.length}`, "\x1b[32m");

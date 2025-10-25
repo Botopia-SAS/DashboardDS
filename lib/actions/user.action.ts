@@ -1,6 +1,6 @@
 "use server";
 
-import User from "@/lib/modals/user.modal";
+import User from "@/lib/models/User";
 import { connectToDB } from "@/lib/mongoDB";
 export type UserType = {
   clerkId: string;

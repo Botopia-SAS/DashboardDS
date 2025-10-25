@@ -423,8 +423,8 @@ const Calendar: React.FC<CalendarProps> = ({ selectedInstructor, targetDate, tar
         /* Estilos principales para eventos */
         .fc .fc-timegrid-event .fc-event-main {
           padding: 4px 6px !important;
-          font-size: 9px !important;
-          line-height: 1.2 !important;
+          font-size: 12px !important;
+          line-height: 1.3 !important;
           white-space: normal !important;
           overflow: visible !important;
           word-wrap: break-word !important;
@@ -468,15 +468,15 @@ const Calendar: React.FC<CalendarProps> = ({ selectedInstructor, targetDate, tar
         /* Reducir tamaño de letra para todos los eventos */
         .fc .fc-timegrid-event .fc-event-main {
           padding: 4px 6px !important;
-          font-size: 9px !important;
-          line-height: 1.2 !important;
+          font-size: 12px !important;
+          line-height: 1.3 !important;
         }
-        
-        /* Texto aún más pequeño para eventos de 30 minutos */
+
+        /* Texto para eventos de 30 minutos */
         .fc .fc-timegrid-event[data-duration="30"] .fc-event-main {
-          padding: 2px 4px !important;
-          font-size: 8px !important;
-          line-height: 1.1 !important;
+          padding: 3px 5px !important;
+          font-size: 11px !important;
+          line-height: 1.2 !important;
         }
         
         .fc .fc-event {
@@ -582,9 +582,9 @@ const Calendar: React.FC<CalendarProps> = ({ selectedInstructor, targetDate, tar
         @media (max-width: 768px) {
           .fc .fc-timegrid-event .fc-event-main {
             padding: 4px 6px !important;
-            font-size: 10px !important;
+            font-size: 11px !important;
           }
-          
+
           .fc .fc-timegrid-event {
             min-height: 35px !important;
           }

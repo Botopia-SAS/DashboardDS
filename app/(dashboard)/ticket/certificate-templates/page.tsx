@@ -8,7 +8,7 @@ import { Badge } from "@/components/ui/badge";
 import { Plus, Edit, Trash2, CheckCircle2, ArrowLeft } from "lucide-react";
 import Loader from "@/components/custom ui/Loader";
 import toast from "react-hot-toast";
-import { CertificateTemplate } from "@/components/certificate-editor/types";
+import { CertificateTemplate } from "@/lib/certificateTypes";
 
 export default function CertificateTemplatesPage() {
   const router = useRouter();

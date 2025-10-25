@@ -84,27 +84,29 @@ export async function PUT(req: NextRequest) {
       
       // Buscar en schedule_driving_test
       if (instructor.schedule_driving_test) {
-        const testEventIndex = instructor.schedule_driving_test.findIndex((e: any) => {
-          const generatedId = `driving_test_${instructor._id}_${e.date}_${e.start}_${instructor.schedule_driving_test.indexOf(e)}`;
+        const drivingTestSchedule = instructor.schedule_driving_test;
+        const testEventIndex = drivingTestSchedule.findIndex((e: any) => {
+          const generatedId = `driving_test_${instructor._id}_${e.date}_${e.start}_${drivingTestSchedule.indexOf(e)}`;
           return generatedId === eventId;
         });
         if (testEventIndex !== -1) {
           eventExists = true;
           // Actualizar el evento con un _id real
-          instructor.schedule_driving_test[testEventIndex]._id = eventId;
+          (drivingTestSchedule[testEventIndex] as any)._id = eventId;
         }
       }
 
       // Buscar en schedule_driving_lesson
       if (instructor.schedule_driving_lesson) {
-        const lessonEventIndex = instructor.schedule_driving_lesson.findIndex((e: any) => {
-          const generatedId = `driving_lesson_${instructor._id}_${e.date}_${e.start}_${instructor.schedule_driving_lesson.indexOf(e)}`;
+        const drivingLessonSchedule = instructor.schedule_driving_lesson;
+        const lessonEventIndex = drivingLessonSchedule.findIndex((e: any) => {
+          const generatedId = `driving_lesson_${instructor._id}_${e.date}_${e.start}_${drivingLessonSchedule.indexOf(e)}`;
           return generatedId === eventId;
         });
         if (lessonEventIndex !== -1) {
           eventExists = true;
           // Actualizar el evento con un _id real
-          instructor.schedule_driving_lesson[lessonEventIndex]._id = eventId;
+          (drivingLessonSchedule[lessonEventIndex] as any)._id = eventId;
         }
       }
     }
@@ -252,6 +254,13 @@ export async function PUT(req: NextRequest) {
 
     // Verificar que el evento se actualizó correctamente
     const updatedInstructor = await Instructor.findById(instructorId);
+    if (!updatedInstructor) {
+      return NextResponse.json(
+        { message: "Instructor not found after update" },
+        { status: 404 }
+      );
+    }
+
     const targetEventId = finalEventId;
     const eventUpdated = 
       (updatedInstructor.schedule_driving_test && updatedInstructor.schedule_driving_test.some((e: any) => e._id === targetEventId && e.classType === classType)) ||

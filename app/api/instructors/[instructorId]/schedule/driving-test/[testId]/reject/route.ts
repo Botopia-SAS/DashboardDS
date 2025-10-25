@@ -27,6 +27,14 @@ export async function PATCH(
       );
     }
 
+    // Verificar que schedule_driving_test existe
+    if (!instructor.schedule_driving_test) {
+      return NextResponse.json(
+        { message: "No driving tests scheduled for this instructor" },
+        { status: 404 }
+      );
+    }
+
     // Buscar el test específico en schedule_driving_test
     const testIndex = instructor.schedule_driving_test.findIndex(
       (test: any) => test._id.toString() === testId
@@ -40,15 +48,16 @@ export async function PATCH(
     }
 
     // Actualizar el test - limpiar datos del estudiante y cambiar status
-    instructor.schedule_driving_test[testIndex].status = status;
-    instructor.schedule_driving_test[testIndex].studentId = studentId;
-    instructor.schedule_driving_test[testIndex].studentName = studentName;
+    const test = instructor.schedule_driving_test[testIndex] as any;
+    test.status = status;
+    test.studentId = studentId;
+    test.studentName = studentName;
     
     // Eliminar paymentMethod si es null
     if (paymentMethod === null) {
-      delete instructor.schedule_driving_test[testIndex].paymentMethod;
+      delete test.paymentMethod;
     } else {
-      instructor.schedule_driving_test[testIndex].paymentMethod = paymentMethod;
+      test.paymentMethod = paymentMethod;
     }
 
     await instructor.save();
@@ -64,7 +73,7 @@ export async function PATCH(
 
     return NextResponse.json({ 
       message: "Driving test rejected successfully",
-      test: instructor.schedule_driving_test[testIndex]
+      test: test
     });
 
   } catch (error) {

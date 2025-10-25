@@ -1,5 +1,5 @@
 import Order from "@/lib/models/Order";
-import User from "@/lib/models/users";
+import User from "@/lib/models/User";
 import { NextRequest } from "next/server";
 import dbConnect from "@/lib/dbConnect";
 

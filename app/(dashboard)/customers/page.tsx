@@ -11,8 +11,16 @@ import Link from "next/link";
 import Delete from "@/components/custom ui/Delete";
 import { format } from "date-fns";
 
+interface Customer {
+  id: string;
+  name: string;
+  email: string;
+  licenseNumber?: string;
+  createdAt?: string;
+}
+
 const CustomersDashboard = () => {
-  const [customers, setCustomers] = useState([]);
+  const [customers, setCustomers] = useState<Customer[]>([]);
   const [loading, setLoading] = useState(false);
   const router = useRouter();
 
@@ -55,7 +63,7 @@ const CustomersDashboard = () => {
     {
       key: "name",
       header: "Name",
-      render: (customer: any) => (
+      render: (customer: Customer) => (
         <Link
           href={`/customers/${customer.id}`}
           className="flex items-center gap-2 font-semibold text-blue-500 hover:text-blue-700"
@@ -68,14 +76,14 @@ const CustomersDashboard = () => {
     {
       key: "email",
       header: "Email",
-      render: (customer: any) => (
+      render: (customer: Customer) => (
         <span className="font-medium text-gray-700">{customer.email}</span>
       ),
     },
     {
       key: "licenseNumber",
       header: "License Number",
-      render: (customer: any) => (
+      render: (customer: Customer) => (
         <span className="font-medium text-gray-700">
           {customer.licenseNumber || "Not available"}
         </span>
@@ -84,7 +92,7 @@ const CustomersDashboard = () => {
     {
       key: "createdAt",
       header: "Registration Date",
-      render: (customer: any) => {
+      render: (customer: Customer) => {
         const date = customer.createdAt ? new Date(customer.createdAt) : null;
         return (
           <span className="font-medium text-gray-700">
@@ -96,7 +104,7 @@ const CustomersDashboard = () => {
     {
       key: "actions",
       header: "Actions",
-      render: (customer: any) => <Delete item="customers" id={customer.id} />,
+      render: (customer: Customer) => <Delete item="customers" id={customer.id} />,
     },
   ];
 

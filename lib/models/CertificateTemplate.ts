@@ -1,4 +1,4 @@
-import mongoose from "mongoose";
+import mongoose, { Schema, Document, Model } from "mongoose";
 
 // Interface for text elements in the certificate
 interface TextElement {
@@ -59,8 +59,37 @@ interface CheckboxElement {
   checkboxSize?: number;
 }
 
+export interface ICertificateTemplate extends Document {
+  name: string;
+  classType: string;
+  pageSize: {
+    width?: number;
+    height?: number;
+    orientation?: 'portrait' | 'landscape';
+  };
+  certificatesPerPage?: number;
+  background: {
+    type?: 'color' | 'image' | 'pdf';
+    value?: string;
+  };
+  textElements: TextElement[];
+  imageElements: ImageElement[];
+  shapeElements: ShapeElement[];
+  checkboxElements: CheckboxElement[];
+  availableVariables: {
+    key: string;
+    label: string;
+    example: string;
+  }[];
+  isDefault?: boolean;
+  isActive?: boolean;
+  createdBy?: string;
+  createdAt?: Date;
+  updatedAt?: Date;
+}
+
 // Main schema for Certificate Templates
-const CertificateTemplateSchema = new mongoose.Schema({
+const CertificateTemplateSchema: Schema = new Schema({
   // Name of the template
   name: {
     type: String,
@@ -180,19 +209,13 @@ const CertificateTemplateSchema = new mongoose.Schema({
     type: String,
   },
 
-  // Timestamps
-  createdAt: { type: Date, default: Date.now },
-  updatedAt: { type: Date, default: Date.now },
-});
+}, { timestamps: true });
 
 // Index for quick lookups
 CertificateTemplateSchema.index({ classType: 1, isDefault: 1 });
 CertificateTemplateSchema.index({ classType: 1, isActive: 1 });
 
-// Middleware to update updatedAt
-CertificateTemplateSchema.pre('findOneAndUpdate', function() {
-  this.set({ updatedAt: new Date() });
-});
+
 
 // Middleware to ensure only one default template per class type
 CertificateTemplateSchema.pre('save', async function(next) {
@@ -206,8 +229,7 @@ CertificateTemplateSchema.pre('save', async function(next) {
   next();
 });
 
-const CertificateTemplate = mongoose.models.CertificateTemplate ||
-  mongoose.model("CertificateTemplate", CertificateTemplateSchema);
+const CertificateTemplate: Model<ICertificateTemplate> = mongoose.models.CertificateTemplate || mongoose.model<ICertificateTemplate>("CertificateTemplate", CertificateTemplateSchema);
 
 export default CertificateTemplate;
 export type { TextElement, ImageElement, ShapeElement, CheckboxElement };

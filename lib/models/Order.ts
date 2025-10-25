@@ -1,6 +1,16 @@
-import { model, models, Schema } from "mongoose";
+import mongoose, { Schema, Document, Model } from "mongoose";
 
-const OrderSchema = new Schema({
+export interface IOrder extends Document {
+  orderNumber?: number;
+  user_id: Schema.Types.ObjectId;
+  course_id: Schema.Types.ObjectId;
+  fee: number;
+  status: string;
+  createdAt?: Date;
+  updatedAt?: Date;
+}
+
+const OrderSchema: Schema = new Schema({
   orderNumber: {
     type: Number,
     unique: true,
@@ -24,11 +34,11 @@ const OrderSchema = new Schema({
     type: String,
     required: true,
   },
-  createdAt: {
-    type: Date,
-    default: Date.now,
-  },
-});
+}, { timestamps: true });
+
+// Index for better query performance
+OrderSchema.index({ user_id: 1, createdAt: -1 });
+OrderSchema.index({ status: 1 });
 
 OrderSchema.pre("save", async function (next) {
   if (!this.orderNumber) {
@@ -42,6 +52,6 @@ OrderSchema.pre("save", async function (next) {
   next();
 });
 
-const Order = models.Order || model("Order", OrderSchema);
+const Order: Model<IOrder> = mongoose.models.Order || mongoose.model<IOrder>("Order", OrderSchema);
 
 export default Order;

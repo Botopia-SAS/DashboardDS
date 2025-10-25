@@ -1,6 +1,6 @@
 import { NextRequest, NextResponse } from "next/server";
 import dbConnect from "@/lib/dbConnect";
-import User from "@/lib/modals/user.modal";
+import User from "@/lib/models/User";
 
 export async function GET(request: NextRequest) {
   try {

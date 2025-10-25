@@ -1,4 +1,4 @@
-import User from "@/lib/modals/user.modal";
+import User from "@/lib/models/User";
 import Order from "@/lib/models/Order";
 import Payment from "@/lib/models/Payments";
 import TicketClass from "@/lib/models/TicketClass";
@@ -121,7 +121,7 @@ export async function PATCH(req: NextRequest) {
     );
 
     // If the password changed, send email (in English)
-    if (passwordChanged) {
+    if (passwordChanged && updatedUser) {
       await sendEmail(
         [updatedUser.email],
         "Your new password for Driving School Dashboard",

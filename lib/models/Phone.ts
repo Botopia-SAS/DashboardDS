@@ -3,8 +3,8 @@ import mongoose, { Schema, Document, Model } from "mongoose";
 export interface IPhone extends Document {
   key: string;
   phoneNumber: string;
-  createdAt: Date;
-  updatedAt: Date;
+  createdAt?: Date;
+  updatedAt?: Date;
 }
 
 const PhoneSchema: Schema = new Schema({
@@ -18,21 +18,7 @@ const PhoneSchema: Schema = new Schema({
     type: String, 
     required: true 
   },
-  createdAt: { 
-    type: Date, 
-    default: Date.now 
-  },
-  updatedAt: { 
-    type: Date, 
-    default: Date.now 
-  },
-});
-
-// Add a pre-save hook to update the updatedAt field
-PhoneSchema.pre("save", function (next) {
-  this.updatedAt = new Date();
-  next();
-});
+}, { timestamps: true });
 
 const Phone: Model<IPhone> = mongoose.models.Phone || mongoose.model<IPhone>("Phone", PhoneSchema);
 export default Phone;

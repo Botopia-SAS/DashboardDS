@@ -1,5 +1,5 @@
-import User from "@/lib/modals/user.modal";
-import Certificate from "@/lib/models/Cerificate";
+import User from "@/lib/models/User";
+import Certificate from "@/lib/models/Certificate";
 import Order from "@/lib/models/Order";
 import Payment from "@/lib/models/Payments";
 import TicketClass from "@/lib/models/TicketClass";
@@ -57,12 +57,13 @@ export async function GET(req: NextRequest) {
   const studentsArray = Array.isArray(ticketClass.students) ? ticketClass.students : [];
   
   for (const studentEntry of studentsArray) {
-    // Handle both cases: direct ID strings or objects with studentId
+    // Handle both cases: direct ID strings or ObjectId
     let studentId;
     if (typeof studentEntry === 'string') {
       studentId = studentEntry;
-    } else if (studentEntry && typeof studentEntry === 'object' && studentEntry.studentId) {
-      studentId = studentEntry.studentId;
+    } else if (studentEntry && typeof studentEntry === 'object') {
+      // If it's an ObjectId, convert it to string
+      studentId = studentEntry.toString();
     } else {
       continue;
     }

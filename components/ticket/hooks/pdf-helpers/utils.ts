@@ -30,11 +30,13 @@ export const getVariables = (user: Student): Record<string, string> => {
     instructorName,
     attendanceReason,
     hourt, // Add hourt to destructuring
+    court, // Extract court directly
+    county, // Extract county directly
     // Add any other dynamic fields
     ...otherFields
   } = user;
 
-  console.log('🔍 getVariables - Raw user data:', { courseTime, attendanceReason, duration, hourt, otherFields });
+  console.log('🔍 getVariables - Raw user data:', { courseTime, attendanceReason, duration, hourt, court, county, otherFields });
 
   const studentName = `${(first_name || '').toUpperCase()} ${(midl || '').toUpperCase()} ${(last_name || '').toUpperCase()}`.trim();
   const formattedBirthDate = birthDate ? new Date(birthDate).toLocaleDateString('en-US') : "";
@@ -42,6 +44,18 @@ export const getVariables = (user: Student): Record<string, string> => {
     ? new Date(courseDate).toLocaleDateString('en-US', { year: 'numeric', month: 'short', day: 'numeric' })
     : new Date().toLocaleDateString('en-US', { year: 'numeric', month: 'short', day: 'numeric' });
   const printDate = new Date().toLocaleDateString('en-US', { year: 'numeric', month: 'short', day: 'numeric', timeZone: 'America/New_York' });
+
+  // Parse course time for checkbox variables (4hr, 6hr, 8hr)
+  const courseTimeStr = (courseTime || duration || hourt || '').toLowerCase();
+  const courseTime4hr = courseTimeStr.includes('4') ? 'true' : 'false';
+  const courseTime6hr = courseTimeStr.includes('6') ? 'true' : 'false';
+  const courseTime8hr = courseTimeStr.includes('8') ? 'true' : 'false';
+
+  // Parse attendance reason for checkbox variables
+  const attendanceStr = (attendanceReason || '').toLowerCase();
+  const attendanceCourtOrder = attendanceStr.includes('court') ? 'true' : 'false';
+  const attendanceVolunteer = attendanceStr.includes('volunteer') ? 'true' : 'false';
+  const attendanceTicket = attendanceStr.includes('ticket') || attendanceStr.includes('citation') ? 'true' : 'false';
 
   const variables = {
     studentName,
@@ -69,14 +83,21 @@ export const getVariables = (user: Student): Record<string, string> => {
     instructorSchoolName: 'Affordable Driving & Traffic School',
     providerName: 'Affordable Driving & Traffic School',
     providerPhone: '(561) 969-0150',
-    court: '',
-    county: '',
+    court: String(court || ''),
+    county: String(county || ''),
+    // Checkbox variables for Youthful Offender template
+    courseTime4hr,
+    courseTime6hr,
+    courseTime8hr,
+    attendanceCourtOrder,
+    attendanceVolunteer,
+    attendanceTicket,
     // Add all other dynamic fields, converting to strings
     ...Object.fromEntries(
       Object.entries(otherFields).map(([key, value]) => [key, String(value || '')])
     ),
   };
 
-  console.log('🔍 getVariables - Final variables:', { courseTime: variables.courseTime, attendanceReason: variables.attendanceReason, hourt: variables.hourt });
+  console.log('🔍 getVariables - Final variables:', variables);
   return variables;
 };

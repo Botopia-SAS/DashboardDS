@@ -1,20 +1,30 @@
-import mongoose from "mongoose";
+import mongoose, { Schema, Document, Model } from "mongoose";
 
-const packageSchema = new mongoose.Schema({
+export interface IPackage extends Document {
+  title: string;
+  description: string;
+  media: string[];
+  price: number;
+  category: "Lessons" | "Packages";
+  type: "Book" | "Buy" | "Contact";
+  buttonLabel: string;
+  createdAt?: Date;
+  updatedAt?: Date;
+}
+
+const PackageSchema: Schema = new Schema({
   title: { type: String, required: true, unique: true },
   description: {
-    type: String, // 🔹 Volvemos a agregarlo
+    type: String,
     required: true,
   },
-  media: { type: [String], default: [] }, // ✅ Asegurar que media siempre sea un array
+  media: { type: [String], default: [] },
   price: { type: Number, required: true, min: 0.1 },
   category: { type: String, enum: ["Lessons", "Packages"], required: true },
   type: { type: String, enum: ["Book", "Buy", "Contact"], required: true },
   buttonLabel: { type: String, required: true },
-  createdAt: { type: Date, default: Date.now },
-  updatedAt: { type: Date, default: Date.now },
-});
+}, { timestamps: true });
 
-// ✅ Evitar redefinir el modelo si ya existe
-const Package = mongoose.models.Package || mongoose.model("Package", packageSchema);
+const Package: Model<IPackage> = mongoose.models.Package || mongoose.model<IPackage>("Package", PackageSchema);
+
 export default Package;

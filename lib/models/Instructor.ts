@@ -1,6 +1,38 @@
-import mongoose from "mongoose";
+import mongoose, { Schema, Document, Model } from "mongoose";
 
-const InstructorSchema = new mongoose.Schema(
+interface ScheduleDrivingLesson {
+  _id?: string;
+  date: string;
+  start: string;
+  end: string;
+  status: string;
+  classType: string;
+  pickupLocation: string;
+  dropoffLocation: string;
+  selectedProduct: string;
+  studentId: Schema.Types.ObjectId;
+  studentName: string;
+  paid: boolean;
+  paymentMethod?: string;
+}
+
+export interface IInstructor extends Document {
+  name: string;
+  photo: string;
+  certifications?: string;
+  experience?: string;
+  email: string;
+  password: string;
+  canTeachTicketClass?: boolean;
+  canTeachDrivingTest?: boolean;
+  canTeachDrivingLesson?: boolean;
+  schedule_driving_test?: Schema.Types.Mixed[];
+  schedule_driving_lesson?: ScheduleDrivingLesson[];
+  createdAt?: Date;
+  updatedAt?: Date;
+}
+
+const InstructorSchema: Schema = new Schema(
   {
     name: { type: String, required: true },
     photo: { type: String, required: true },
@@ -11,7 +43,7 @@ const InstructorSchema = new mongoose.Schema(
     canTeachTicketClass: { type: Boolean, default: false },
     canTeachDrivingTest: { type: Boolean, default: false },
     canTeachDrivingLesson: { type: Boolean, default: false },
-    schedule_driving_test: [{ type: mongoose.Schema.Types.Mixed, default: [] }],
+    schedule_driving_test: [{ type: Schema.Types.Mixed, default: [] }],
     schedule_driving_lesson: [{
       _id: String,
       date: String,
@@ -22,13 +54,15 @@ const InstructorSchema = new mongoose.Schema(
       pickupLocation: String,
       dropoffLocation: String,
       selectedProduct: String,
-      studentId: String,
+      studentId: { type: Schema.Types.ObjectId, ref: "User" },
       studentName: String,
-      paid: Boolean
+      paid: Boolean,
+      paymentMethod: { type: String, required: false }
     }],
   },
   { timestamps: true }
 );
 
-export default mongoose.models.Instructor ||
-  mongoose.model("Instructor", InstructorSchema);
+const Instructor: Model<IInstructor> = mongoose.models.Instructor || mongoose.model<IInstructor>("Instructor", InstructorSchema);
+
+export default Instructor;

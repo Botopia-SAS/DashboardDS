@@ -1,6 +1,31 @@
-import mongoose from "mongoose";
+import mongoose, { Schema, Document, Model } from "mongoose";
 
-const ChecklistItemSchema = new mongoose.Schema({
+interface ChecklistItem {
+  name: string;
+  completed?: boolean;
+  rating?: number;
+  comments?: string;
+  tally?: number;
+}
+
+interface Note {
+  text: string;
+  date?: Date;
+}
+
+export interface ISessionChecklist extends Document {
+  checklistType: string;
+  sessionId: Schema.Types.ObjectId;
+  studentId: Schema.Types.ObjectId;
+  instructorId: Schema.Types.ObjectId;
+  items: ChecklistItem[];
+  notes: Note[];
+  status?: "pending" | "in_progress" | "completed";
+  createdAt?: Date;
+  updatedAt?: Date;
+}
+
+const ChecklistItemSchema: Schema = new Schema({
   name: {
     type: String,
     required: true,
@@ -24,7 +49,7 @@ const ChecklistItemSchema = new mongoose.Schema({
   },
 }, { _id: false });
 
-const NoteSchema = new mongoose.Schema({
+const NoteSchema: Schema = new Schema({
   text: {
     type: String,
     required: true,
@@ -35,23 +60,23 @@ const NoteSchema = new mongoose.Schema({
   },
 }, { _id: false });
 
-const SessionChecklistSchema = new mongoose.Schema(
+const SessionChecklistSchema: Schema = new Schema(
   {
     checklistType: {
       type: String,
       required: true,
     },
     sessionId: {
-      type: mongoose.Schema.Types.ObjectId,
+      type: Schema.Types.ObjectId,
       required: true,
     },
     studentId: {
-      type: mongoose.Schema.Types.ObjectId,
+      type: Schema.Types.ObjectId,
       ref: "User",
       required: true,
     },
     instructorId: {
-      type: mongoose.Schema.Types.ObjectId,
+      type: Schema.Types.ObjectId,
       ref: "Instructor",
       required: true,
     },
@@ -75,10 +100,6 @@ const SessionChecklistSchema = new mongoose.Schema(
 // Index for faster queries by student
 SessionChecklistSchema.index({ studentId: 1, createdAt: -1 });
 
-// Force refresh the model to use new schema
-if (mongoose.models.SessionChecklist) {
-  delete mongoose.models.SessionChecklist;
-}
+const SessionChecklist: Model<ISessionChecklist> = mongoose.models.SessionChecklist || mongoose.model<ISessionChecklist>("SessionChecklist", SessionChecklistSchema);
 
-const SessionChecklist = mongoose.model("SessionChecklist", SessionChecklistSchema);
 export default SessionChecklist;

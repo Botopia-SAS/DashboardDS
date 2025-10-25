@@ -1,5 +1,5 @@
 import { PDFPage, rgb } from "pdf-lib";
-import { ShapeElement } from "@/components/certificate-editor/types";
+import { ShapeElement } from "@/lib/certificateTypes";
 import { hexToRgb } from "./utils";
 
 export function drawShapes(

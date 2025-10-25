@@ -3,8 +3,15 @@
 import React, { useEffect, useState } from "react";
 import { Card, CardContent } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
-import { Pencil, Trash2, Plus, Save, X, ArrowLeft, Link as LinkIcon } from "lucide-react";
+import { Pencil, Trash2, Plus, Save, X, ArrowLeft, Link as LinkIcon, CheckCircle2, AlertTriangle } from "lucide-react";
 import Link from "next/link";
+import {
+  Dialog,
+  DialogContent,
+  DialogDescription,
+  DialogHeader,
+  DialogTitle,
+} from "@/components/ui/dialog";
 
 interface FaqItem {
   question: string;
@@ -38,14 +45,6 @@ function extractFirstLink(html: string): string | null {
   return match ? match[1] : null;
 }
 
-// Utilidad para mostrar notificaciones
-function showToast(msg: string) {
-  if (typeof window !== "undefined" && typeof (window as unknown as { toast?: { success: (msg: string) => void } }).toast !== 'undefined') {
-    (window as unknown as { toast: { success: (msg: string) => void } }).toast.success(msg);
-  } else {
-    alert(msg);
-  }
-}
 
 export default function FaqAdminPage() {
   const [faq, setFaq] = useState<FaqData | null>(null);
@@ -60,6 +59,34 @@ export default function FaqAdminPage() {
   const [loading, setLoading] = useState(false);
   const [showAddSection, setShowAddSection] = useState(false);
   const [newSectionLabel, setNewSectionLabel] = useState("");
+
+  // Success Modal state
+  const [showModal, setShowModal] = useState(false);
+  const [modalMessage, setModalMessage] = useState("");
+
+  // Confirmation Modal state
+  const [showConfirmModal, setShowConfirmModal] = useState(false);
+  const [confirmMessage, setConfirmMessage] = useState("");
+  const [onConfirmAction, setOnConfirmAction] = useState<(() => void) | null>(null);
+
+  const showSuccessModal = (message: string) => {
+    setModalMessage(message);
+    setShowModal(true);
+  };
+
+  const showConfirmation = (message: string, onConfirm: () => void) => {
+    setConfirmMessage(message);
+    setOnConfirmAction(() => onConfirm);
+    setShowConfirmModal(true);
+  };
+
+  const handleConfirm = () => {
+    if (onConfirmAction) {
+      onConfirmAction();
+    }
+    setShowConfirmModal(false);
+    setOnConfirmAction(null);
+  };
 
   useEffect(() => {
     fetchFaq().then(data => {
@@ -102,7 +129,7 @@ export default function FaqAdminPage() {
     setFaq(fresh);
     setEditIndex(null);
     setLoading(false);
-    showToast("Question updated in database!");
+    showSuccessModal("Question updated successfully!");
   };
 
   const handleDelete = async (section: string, idx: number) => {
@@ -121,7 +148,7 @@ export default function FaqAdminPage() {
     const fresh = await fetchFaq();
     setFaq(fresh);
     setLoading(false);
-    showToast("Question deleted from database!");
+    showSuccessModal("Question deleted successfully!");
   };
 
   const handleAdd = async () => {
@@ -151,7 +178,7 @@ export default function FaqAdminPage() {
     setAddLinkText("");
     setAddLinkUrl("");
     setLoading(false);
-    showToast("Question added to database!");
+    showSuccessModal("Question added successfully!");
   };
 
   const handleAddNewSection = async () => {
@@ -164,7 +191,7 @@ export default function FaqAdminPage() {
       .substring(0, 30); // Limitar longitud
 
     if (faq.sections[sectionKey]) {
-      alert("A section with this name already exists!");
+      showSuccessModal("A section with this name already exists!");
       return;
     }
 
@@ -185,27 +212,28 @@ export default function FaqAdminPage() {
     setShowAddSection(false);
     setNewSectionLabel("");
     setLoading(false);
-    showToast("New section created!");
+    showSuccessModal("New section created successfully!");
   };
 
   const handleDeleteSection = async (sectionKey: string) => {
     if (!faq) return;
 
-    if (!confirm("Are you sure you want to delete this entire section and all its questions?")) {
-      return;
-    }
+    showConfirmation(
+      "Are you sure you want to delete this entire section and all its questions?",
+      async () => {
+        const updated = {
+          sections: { ...faq.sections }
+        };
+        delete updated.sections[sectionKey];
 
-    const updated = {
-      sections: { ...faq.sections }
-    };
-    delete updated.sections[sectionKey];
-
-    setLoading(true);
-    await updateFaq(updated);
-    const fresh = await fetchFaq();
-    setFaq(fresh);
-    setLoading(false);
-    showToast("Section deleted!");
+        setLoading(true);
+        await updateFaq(updated);
+        const fresh = await fetchFaq();
+        setFaq(fresh);
+        setLoading(false);
+        showSuccessModal("Section deleted successfully!");
+      }
+    );
   };
 
   const getRandomColor = () => {
@@ -426,6 +454,60 @@ export default function FaqAdminPage() {
       ) : (
         <div className="text-center text-gray-500">Loading FAQ...</div>
       )}
+
+      {/* Success Modal */}
+      <Dialog open={showModal} onOpenChange={setShowModal}>
+        <DialogContent className="sm:max-w-md">
+          <DialogHeader>
+            <div className="flex items-center justify-center mb-4">
+              <div className="rounded-full bg-green-100 p-3">
+                <CheckCircle2 className="h-8 w-8 text-green-600" />
+              </div>
+            </div>
+            <DialogTitle className="text-center text-xl">Success!</DialogTitle>
+            <DialogDescription className="text-center text-base pt-2">
+              {modalMessage}
+            </DialogDescription>
+          </DialogHeader>
+          <div className="flex justify-center mt-4">
+            <Button onClick={() => setShowModal(false)} className="px-8">
+              OK
+            </Button>
+          </div>
+        </DialogContent>
+      </Dialog>
+
+      {/* Confirmation Modal */}
+      <Dialog open={showConfirmModal} onOpenChange={setShowConfirmModal}>
+        <DialogContent className="sm:max-w-md">
+          <DialogHeader>
+            <div className="flex items-center justify-center mb-4">
+              <div className="rounded-full bg-yellow-100 p-3">
+                <AlertTriangle className="h-8 w-8 text-yellow-600" />
+              </div>
+            </div>
+            <DialogTitle className="text-center text-xl">Confirm Action</DialogTitle>
+            <DialogDescription className="text-center text-base pt-2">
+              {confirmMessage}
+            </DialogDescription>
+          </DialogHeader>
+          <div className="flex justify-center gap-3 mt-4">
+            <Button
+              variant="outline"
+              onClick={() => setShowConfirmModal(false)}
+              className="px-6"
+            >
+              Cancel
+            </Button>
+            <Button
+              onClick={handleConfirm}
+              className="px-6 bg-red-600 hover:bg-red-700"
+            >
+              Delete
+            </Button>
+          </div>
+        </DialogContent>
+      </Dialog>
     </div>
   );
 }

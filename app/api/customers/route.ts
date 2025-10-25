@@ -1,4 +1,4 @@
-import User from "@/lib/modals/user.modal";
+import User from "@/lib/models/User";
 import Order from "@/lib/models/Order";
 import Payment from "@/lib/models/Payments";
 import TicketClass from "@/lib/models/TicketClass";
@@ -121,7 +121,7 @@ export async function POST(req: NextRequest) {
       const course = await TicketClass.findOne({ _id: data.courseId });
       if (course) {
         const students = course.students || [];
-        students.push(user._id);
+        students.push(user._id as any);
         await TicketClass.updateOne({ _id: data.courseId }, { students });
       } else {
         console.warn(`Course with ID ${data.courseId} not found`);

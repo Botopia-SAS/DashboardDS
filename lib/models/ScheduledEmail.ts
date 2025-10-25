@@ -1,4 +1,4 @@
-import mongoose, { Document, Model, Schema } from 'mongoose';
+import mongoose, { Schema, Document, Model } from 'mongoose';
 
 export interface IScheduledEmail extends Document {
   recipients: string[];
@@ -6,7 +6,8 @@ export interface IScheduledEmail extends Document {
   body: string;
   scheduledDate: Date;
   sent: boolean;
-  createdAt: Date;
+  createdAt?: Date;
+  updatedAt?: Date;
 }
 
 const ScheduledEmailSchema: Schema = new Schema({
@@ -25,15 +26,15 @@ const ScheduledEmailSchema: Schema = new Schema({
   scheduledDate: {
     type: Date,
     required: true,
+    index: true,
   },
   sent: {
     type: Boolean,
     default: false,
+    index: true,
   },
-  createdAt: {
-    type: Date,
-    default: Date.now,
-  },
-});
+}, { timestamps: true });
 
-export default (mongoose.models.ScheduledEmail as Model<IScheduledEmail>) || mongoose.model<IScheduledEmail>('ScheduledEmail', ScheduledEmailSchema); 
+const ScheduledEmail: Model<IScheduledEmail> = mongoose.models.ScheduledEmail || mongoose.model<IScheduledEmail>('ScheduledEmail', ScheduledEmailSchema);
+
+export default ScheduledEmail; 

@@ -2,7 +2,6 @@
 
 import { Student } from "../columns";
 import { useCallback, useState } from "react";
-import toast from "react-hot-toast";
 
 interface UseTableDataProps {
   initialData: Student[];

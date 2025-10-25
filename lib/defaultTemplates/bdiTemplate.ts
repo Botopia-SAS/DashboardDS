@@ -1,4 +1,4 @@
-import { CertificateTemplate } from "@/components/certificate-editor/types";
+import { CertificateTemplate } from "@/lib/certificateTypes";
 
 /**
  * BDI Certificate Template - Used as default for all class types (except ADI)

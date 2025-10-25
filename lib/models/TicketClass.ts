@@ -1,8 +1,24 @@
-import mongoose from "mongoose";
+import mongoose, { Schema, Document, Model } from "mongoose";
 
-const TicketClassSchema = new mongoose.Schema({
+export interface ITicketClass extends Document {
+  locationId: Schema.Types.ObjectId;
+  date: Date;
+  hour: string;
+  endHour?: string;
+  classId: Schema.Types.ObjectId;
+  type: string;
+  duration: string;
+  students: Schema.Types.ObjectId[];
+  spots?: number;
+  status?: "available" | "cancel" | "full" | "expired";
+  studentRequests: Schema.Types.ObjectId[];
+  createdAt?: Date;
+  updatedAt?: Date;
+}
+
+const TicketClassSchema: Schema = new Schema({
   locationId: {
-    type: mongoose.Schema.Types.ObjectId,
+    type: Schema.Types.ObjectId,
     ref: "Location",
     required: true,
   },
@@ -16,10 +32,9 @@ const TicketClassSchema = new mongoose.Schema({
   },
   endHour: {
     type: String,
-    required: false,
   },
   classId: {
-    type: mongoose.Schema.Types.ObjectId,
+    type: Schema.Types.ObjectId,
     ref: "DrivingClass",
     required: true,
   },
@@ -33,10 +48,10 @@ const TicketClassSchema = new mongoose.Schema({
     type: String,
     required: true,
   },
-  students: {
-    type: [mongoose.Schema.Types.Mixed],
-    default: [],
-  },
+  students: [{
+    type: Schema.Types.ObjectId,
+    ref: "User",
+  }],
   spots: {
     type: Number,
     default: 30,
@@ -48,18 +63,16 @@ const TicketClassSchema = new mongoose.Schema({
     default: "available",
     required: true,
   },
-  studentRequests: {
-    type: [String],
-    default: [],
-  },
-});
+  studentRequests: [{
+    type: Schema.Types.ObjectId,
+    ref: "User",
+  }],
+}, { timestamps: true });
 
-// Index removed: Allow multiple classes at the same date, time and location
+// Index for better query performance
+TicketClassSchema.index({ date: 1, status: 1 });
+TicketClassSchema.index({ locationId: 1, date: 1 });
 
-// Force refresh the model to use new schema
-if (mongoose.models.TicketClass) {
-  delete mongoose.models.TicketClass;
-}
+const TicketClass: Model<ITicketClass> = mongoose.models.TicketClass || mongoose.model<ITicketClass>("TicketClass", TicketClassSchema);
 
-const TicketClass = mongoose.model("TicketClass", TicketClassSchema);
 export default TicketClass;

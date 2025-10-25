@@ -1,7 +1,7 @@
 import { NextRequest, NextResponse } from "next/server";
 import dbConnect from "@/lib/dbConnect";
 import Instructor from "@/lib/models/Instructor";
-import User from "@/lib/models/users";
+import User from "@/lib/models/User";
 import sendEmail from "@/lib/sendEmail";
 import Settings from "@/lib/models/Settings";
 
@@ -59,8 +59,9 @@ export async function POST(req: NextRequest) {
   logWithColor(`[CLASS REMINDER] Consulta recibida (${req.method}) - ${new Date().toISOString()}`, "\x1b[35m");
 
   for (const instructor of instructors) {
-    for (const slot of instructor.schedule) {
-      if (slot.booked && slot.studentId) {
+    const schedule = instructor.schedule_driving_lesson || [];
+    for (const slot of schedule) {
+      if (slot.status === 'booked' && slot.studentId) {
         // Obtener la hora actual en UTC y en Miami
         const now = new Date();
         const utc = now.getTime() + now.getTimezoneOffset() * 60000;

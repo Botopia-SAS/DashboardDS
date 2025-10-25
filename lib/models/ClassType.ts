@@ -1,6 +1,12 @@
-import mongoose from "mongoose";
+import mongoose, { Schema, Document, Model } from "mongoose";
 
-const classTypeSchema = new mongoose.Schema({
+export interface IClassType extends Document {
+  name: string;
+  createdAt?: Date;
+  updatedAt?: Date;
+}
+
+const ClassTypeSchema: Schema = new Schema({
   name: {
     type: String,
     required: true,
@@ -8,15 +14,10 @@ const classTypeSchema = new mongoose.Schema({
     trim: true,
     uppercase: true
   },
-  createdAt: { type: Date, default: Date.now },
-  updatedAt: { type: Date, default: Date.now },
-});
+}, { timestamps: true });
 
-// Middleware para actualizar updatedAt
-classTypeSchema.pre('findOneAndUpdate', function() {
-  this.set({ updatedAt: new Date() });
-});
 
-const ClassType = mongoose.models.ClassType || mongoose.model("ClassType", classTypeSchema);
+
+const ClassType: Model<IClassType> = mongoose.models.ClassType || mongoose.model<IClassType>("ClassType", ClassTypeSchema);
 
 export default ClassType;

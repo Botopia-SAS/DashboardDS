@@ -27,6 +27,14 @@ export async function PATCH(
       );
     }
 
+    // Verificar que existe schedule_driving_lesson
+    if (!instructor.schedule_driving_lesson || !Array.isArray(instructor.schedule_driving_lesson)) {
+      return NextResponse.json(
+        { message: "No driving lessons found for this instructor" },
+        { status: 404 }
+      );
+    }
+
     // Buscar la lesson específica en schedule_driving_lesson
     const lessonIndex = instructor.schedule_driving_lesson.findIndex(
       (lesson: any) => lesson._id.toString() === lessonId
