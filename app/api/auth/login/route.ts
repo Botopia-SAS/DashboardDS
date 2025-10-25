@@ -1,6 +1,6 @@
 import { NextRequest, NextResponse } from "next/server";
 import bcrypt from "bcryptjs";
-import Admin from "@/lib/modals/admin.modal";
+import Admin from "@/lib/models/Admin";
 import { connectToDB } from "@/lib/mongoDB";
 
 export async function POST(req: NextRequest) {

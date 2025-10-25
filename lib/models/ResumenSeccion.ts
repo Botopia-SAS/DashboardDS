@@ -1,4 +1,4 @@
-import mongoose, { Schema, Document } from 'mongoose';
+import mongoose, { Schema, Document, Model } from 'mongoose';
 
 interface IResumenEventoPagina {
   url: string;
@@ -46,9 +46,11 @@ export interface IResumenSeccion extends Document {
   totalMoves: number;
   avgSessionDuration: number;
   sessions: IResumenSesion[];
+  createdAt?: Date;
+  updatedAt?: Date;
 }
 
-const ResumenEventoPaginaSchema = new Schema<IResumenEventoPagina>({
+const ResumenEventoPaginaSchema: Schema = new Schema<IResumenEventoPagina>({
   url: { type: String, required: true },
   pageStart: { type: Date, required: true },
   pageEnd: { type: Date, required: true },
@@ -60,7 +62,7 @@ const ResumenEventoPaginaSchema = new Schema<IResumenEventoPagina>({
   }
 }, { _id: false });
 
-const ResumenSesionSchema = new Schema<IResumenSesion>({
+const ResumenSesionSchema: Schema = new Schema<IResumenSesion>({
   sessionNumber: { type: Number, required: true },
   sessionId: { type: String, required: true },
   userId: { type: String, required: true },
@@ -78,14 +80,14 @@ const ResumenSesionSchema = new Schema<IResumenSesion>({
   pages: [ResumenEventoPaginaSchema]
 }, { _id: false });
 
-const ResumenSeccionSchema = new Schema<IResumenSeccion>({
-  date: { type: String, required: true },
+const ResumenSeccionSchema: Schema = new Schema<IResumenSeccion>({
+  date: { type: String, required: true, unique: true },
   totalSessions: { type: Number, required: true },
   uniqueIPs: { type: Number, required: true },
   uniqueUsers: { type: Number, required: true },
   devices: { type: Object, required: true },
   browsers: { type: Object, required: true },
-  os: { type: Object, required: false },
+  os: { type: Object },
   countries: { type: Object, required: true },
   cities: { type: Object, required: true },
   sessionsByHour: { type: Object, required: true },
@@ -94,6 +96,8 @@ const ResumenSeccionSchema = new Schema<IResumenSeccion>({
   totalMoves: { type: Number, required: true },
   avgSessionDuration: { type: Number, required: true },
   sessions: [ResumenSesionSchema]
-});
+}, { timestamps: true });
 
-export default mongoose.models.ResumenSeccion || mongoose.model<IResumenSeccion>('ResumenSeccion', ResumenSeccionSchema); 
+const ResumenSeccion: Model<IResumenSeccion> = mongoose.models.ResumenSeccion || mongoose.model<IResumenSeccion>('ResumenSeccion', ResumenSeccionSchema);
+
+export default ResumenSeccion; 

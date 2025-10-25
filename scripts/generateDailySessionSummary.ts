@@ -1,5 +1,5 @@
 import dbConnect from '../lib/dbConnect';
-import Session from '../lib/modals/Session';
+import Session from '../lib/models/Session';
 import ResumenSeccion from '../lib/models/ResumenSeccion';
 import mongoose from 'mongoose';
 

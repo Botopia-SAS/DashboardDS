@@ -1,6 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server';
 import dbConnect from '../../../../lib/dbConnect';
-import Session from '../../../../lib/modals/Session';
+import Session from '../../../../lib/models/Session';
 import ResumenSeccion from '../../../../lib/models/ResumenSeccion';
 import { toZonedTime, format as formatTz } from 'date-fns-tz';
 

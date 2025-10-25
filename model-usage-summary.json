@@ -1,0 +1,181 @@
+{
+  "summary": {
+    "totalModelsFound": 21,
+    "totalFilesScanned": 344,
+    "unusedModels": 0,
+    "potentiallyUnusedModels": 0,
+    "modelsWithDynamicImports": ["Locations"],
+    "cronRelatedModels": [
+      "CertificateTemplate",
+      "Class", 
+      "ClassType",
+      "Collection",
+      "EmailTemplate",
+      "Instructor",
+      "OnlineCourse",
+      "Order",
+      "Package",
+      "Phone",
+      "Product",
+      "ResumenSeccion",
+      "ScheduledEmail",
+      "SEO",
+      "SessionChecklist",
+      "Settings",
+      "TicketClass",
+      "users"
+    ]
+  },
+  "modelUsageDetails": {
+    "Cerificate": {
+      "usageCount": 3,
+      "isDynamicallyImported": false,
+      "isCronRelated": false,
+      "usedInFiles": [
+        "app\\api\\customers\\[customerId]\\certificates\\route.ts",
+        "app\\api\\ticket\\classes\\students\\[classId]\\route.ts",
+        "lib\\mongoDB.ts"
+      ]
+    },
+    "CertificateTemplate": {
+      "usageCount": 20,
+      "isDynamicallyImported": false,
+      "isCronRelated": true,
+      "usedInFiles": [
+        "app\\(dashboard)\\ticket\\certificate-templates\\page.tsx",
+        "app\\(dashboard)\\ticket\\youthful-offender-class\\class-records\\[classId]\\page.tsx",
+        "app\\(dashboard)\\ticket\\[classtype]\\certificate-editor\\page.tsx",
+        "app\\(dashboard)\\ticket\\[classtype]\\class-records\\[classId]\\page.tsx",
+        "app\\api\\certificate-templates\\add-youthful-offender\\route.ts",
+        "app\\api\\certificate-templates\\initialize\\route.ts",
+        "app\\api\\certificate-templates\\route.ts",
+        "app\\api\\certificate-templates\\[templateId]\\route.ts",
+        "components\\certificate-editor\\CertificateCanvas.tsx",
+        "components\\certificate-editor\\CertificateEditor.tsx",
+        "components\\certificate-editor\\types.ts",
+        "components\\certificate-editor\\VariableValidationModal.tsx",
+        "components\\ticket\\hooks\\pdf-helpers\\draw-background.ts",
+        "components\\ticket\\hooks\\use-dynamic-certificate-generator.tsx",
+        "components\\ticket\\hooks\\use-master-certificate-generator.tsx",
+        "lib\\defaultTemplates\\bdiTemplate.ts",
+        "lib\\defaultTemplates\\govTemplate.ts",
+        "lib\\defaultTemplates\\youthfulOffenderTemplate.ts",
+        "lib\\models\\CertificateTemplate.ts",
+        "scripts\\analyze-mongodb-collections.ts"
+      ]
+    },
+    "Class": {
+      "usageCount": 52,
+      "isDynamicallyImported": false,
+      "isCronRelated": true,
+      "note": "Most heavily used model - core to the application"
+    },
+    "ClassType": {
+      "usageCount": 6,
+      "isDynamicallyImported": false,
+      "isCronRelated": true
+    },
+    "Collection": {
+      "usageCount": 6,
+      "isDynamicallyImported": false,
+      "isCronRelated": true
+    },
+    "EmailTemplate": {
+      "usageCount": 4,
+      "isDynamicallyImported": false,
+      "isCronRelated": true
+    },
+    "Instructor": {
+      "usageCount": 55,
+      "isDynamicallyImported": false,
+      "isCronRelated": true,
+      "note": "Second most heavily used model"
+    },
+    "Locations": {
+      "usageCount": 12,
+      "isDynamicallyImported": true,
+      "isCronRelated": false,
+      "note": "Has .tsx extension and uses dynamic imports"
+    },
+    "OnlineCourse": {
+      "usageCount": 9,
+      "isDynamicallyImported": false,
+      "isCronRelated": true
+    },
+    "Order": {
+      "usageCount": 22,
+      "isDynamicallyImported": false,
+      "isCronRelated": true
+    },
+    "Package": {
+      "usageCount": 10,
+      "isDynamicallyImported": false,
+      "isCronRelated": true
+    },
+    "Payments": {
+      "usageCount": 5,
+      "isDynamicallyImported": false,
+      "isCronRelated": false
+    },
+    "Phone": {
+      "usageCount": 17,
+      "isDynamicallyImported": false,
+      "isCronRelated": true
+    },
+    "Product": {
+      "usageCount": 10,
+      "isDynamicallyImported": false,
+      "isCronRelated": true
+    },
+    "ResumenSeccion": {
+      "usageCount": 6,
+      "isDynamicallyImported": false,
+      "isCronRelated": true
+    },
+    "ScheduledEmail": {
+      "usageCount": 6,
+      "isDynamicallyImported": false,
+      "isCronRelated": true
+    },
+    "SEO": {
+      "usageCount": 16,
+      "isDynamicallyImported": false,
+      "isCronRelated": true
+    },
+    "SessionChecklist": {
+      "usageCount": 6,
+      "isDynamicallyImported": false,
+      "isCronRelated": true
+    },
+    "Settings": {
+      "usageCount": 18,
+      "isDynamicallyImported": false,
+      "isCronRelated": true
+    },
+    "TicketClass": {
+      "usageCount": 22,
+      "isDynamicallyImported": false,
+      "isCronRelated": true
+    },
+    "users": {
+      "usageCount": 26,
+      "isDynamicallyImported": false,
+      "isCronRelated": true
+    }
+  },
+  "fileExtensionIssues": {
+    "tsxFilesNeedingConversion": [
+      "lib\\models\\Class.tsx",
+      "lib\\models\\Locations.tsx"
+    ]
+  },
+  "analysisNotes": [
+    "All 21 models are actively used in the codebase",
+    "No unused models were found",
+    "2 models have .tsx extensions that should be converted to .ts",
+    "18 models are used in cron/scheduled tasks",
+    "1 model (Locations) uses dynamic imports",
+    "Class and Instructor are the most heavily used models (52 and 55 usages respectively)",
+    "The codebase has good model utilization with no dead code"
+  ]
+}

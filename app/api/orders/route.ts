@@ -1,6 +1,6 @@
 import Order from "@/lib/models/Order";
 import TicketClass from "@/lib/models/TicketClass";
-import User from "@/lib/models/users";
+import User from "@/lib/models/User";
 import { NextRequest, NextResponse } from "next/server";
 
 export async function GET() {

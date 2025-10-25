@@ -1,4 +1,4 @@
-import User from "@/lib/modals/user.modal";
+import User from "@/lib/models/User";
 import Order from "@/lib/models/Order";
 import Payment from "@/lib/models/Payments";
 import TicketClass from "@/lib/models/TicketClass";

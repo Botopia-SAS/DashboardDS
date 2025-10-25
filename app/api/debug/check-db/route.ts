@@ -1,5 +1,5 @@
 import { NextResponse } from "next/server";
-import User from "@/lib/modals/user.modal";
+import User from "@/lib/models/User";
 import { connectToDB } from "@/lib/mongoDB";
 
 export async function GET() {

@@ -1,5 +1,5 @@
 import { connectToDB } from "@/lib/mongoDB";
-import Session from "@/lib/modals/Session";
+import Session from "@/lib/models/Session";
 import { NextResponse } from "next/server";
 
 interface HeatmapEvent {

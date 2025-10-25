@@ -379,14 +379,14 @@ export default function InactiveUsersCard({ language = "es" }: { language?: "es"
             <div style={{ maxHeight: '400px', overflowY: inactiveUsers.length > 10 ? 'auto' : 'visible' }}>
               <table className="min-w-full text-xs text-left border" style={{ tableLayout: 'fixed', width: '100%' }}>
                 <colgroup>
-                  <col style={{ width: '90px' }} /> {/* IP */}
-                  <col style={{ width: '90px' }} /> {/* Ubicación */}
-                  <col style={{ width: '80px' }} /> {/* Dispositivo */}
-                  <col style={{ width: '50px' }} /> {/* VPN */}
-                  <col style={{ width: '70px' }} /> {/* Lat/Lon */}
-                  <col style={{ width: '90px' }} /> {/* Última actividad */}
-                  <col style={{ width: '160px' }} /> {/* Página */}
-                  <col style={{ width: '80px' }} /> {/* Tiempo de sesión */}
+                  <col style={{ width: '90px' }} />
+                  <col style={{ width: '90px' }} />
+                  <col style={{ width: '80px' }} />
+                  <col style={{ width: '50px' }} />
+                  <col style={{ width: '70px' }} />
+                  <col style={{ width: '90px' }} />
+                  <col style={{ width: '160px' }} />
+                  <col style={{ width: '80px' }} />
                 </colgroup>
                 <thead className="bg-gray-100 sticky top-0">
                   <tr>

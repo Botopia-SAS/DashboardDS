@@ -1,5 +1,5 @@
 import { connectToDB } from "@/lib/mongoDB";
-import Session from "@/lib/modals/Session";
+import Session from "@/lib/models/Session";
 import { NextRequest, NextResponse } from "next/server";
 
 // Store active SSE connections for inactive sessions

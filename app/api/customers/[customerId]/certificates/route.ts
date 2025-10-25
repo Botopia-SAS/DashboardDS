@@ -1,6 +1,6 @@
 import TicketClass from "@/lib/models/TicketClass";
-import User from "@/lib/models/users";
-import Certificate from "@/lib/models/Cerificate";
+import User from "@/lib/models/User";
+import Certificate from "@/lib/models/Certificate";
 import { connectToDB } from "@/lib/mongoDB";
 import { NextRequest, NextResponse } from "next/server";
 

@@ -1,6 +1,6 @@
 import { NextRequest, NextResponse } from "next/server";
 import dbConnect from "@/lib/dbConnect";
-import User from "@/lib/models/users";  
+import User from "@/lib/models/User";
 import sendEmail from "@/lib/sendEmail";
 import Settings from "@/lib/models/Settings";
 

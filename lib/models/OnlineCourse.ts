@@ -1,17 +1,27 @@
-import { Schema, model, models } from "mongoose";
+import mongoose, { Schema, Document, Model } from "mongoose";
 
-const OnlineCourseSchema = new Schema({
-  title: { type: String, required: true, trim: true },
+export interface IOnlineCourse extends Document {
+  title: string;
+  description: string;
+  image?: string;
+  hasPrice?: boolean;
+  price?: number;
+  type: "Book" | "Buy";
+  buttonLabel: string;
+  createdAt?: Date;
+  updatedAt?: Date;
+}
+
+const OnlineCourseSchema: Schema = new Schema({
+  title: { type: String, required: true, trim: true, unique: true },
   description: { type: String, required: true, trim: true },
-  image: { type: String, required: false, trim: true }, // ✅ Nuevo campo para la imagen
+  image: { type: String, trim: true },
   hasPrice: { type: Boolean, default: false },
   price: { type: Number, min: 0, required: function (this: { hasPrice: boolean }) { return this.hasPrice; } },
   type: { type: String, enum: ["Book", "Buy"], required: true },
   buttonLabel: { type: String, required: true, trim: true, maxLength: 20 },
-  createdAt: { type: Date, default: Date.now },
-});
+}, { timestamps: true });
 
-// ✅ Usar el modelo existente si ya está definido
-const OnlineCourse = models.OnlineCourse || model("OnlineCourse", OnlineCourseSchema);
+const OnlineCourse: Model<IOnlineCourse> = mongoose.models.OnlineCourse || mongoose.model<IOnlineCourse>("OnlineCourse", OnlineCourseSchema);
 
 export default OnlineCourse;

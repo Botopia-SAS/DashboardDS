@@ -1,5 +1,5 @@
-import User from "@/lib/modals/user.modal";
-import Certificate from "@/lib/models/Cerificate";
+import User from "@/lib/models/User";
+import Certificate from "@/lib/models/Certificate";
 import Order from "@/lib/models/Order";
 import Payment from "@/lib/models/Payments";
 import TicketClass from "@/lib/models/TicketClass";

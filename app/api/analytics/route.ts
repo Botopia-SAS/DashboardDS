@@ -1,6 +1,6 @@
 import dbConnect from '@/lib/dbConnect';
 import ResumenSeccion from '@/lib/models/ResumenSeccion';
-import Session, { ISession } from '@/lib/modals/Session';
+import Session, { ISession } from '@/lib/models/Session';
 import { NextResponse } from 'next/server';
 
 export async function GET(request: Request) {
