@@ -13,69 +13,44 @@ export async function drawImages(
 ) {
   for (const image of images) {
     try {
-      console.log('🖼️ Drawing image:', image.url);
-      
-      // Fetch image with proper headers for Cloudinary
-      const response = await fetch(image.url, {
-        mode: 'cors',
-        headers: {
-          'Accept': 'image/*',
-        },
-      });
-      
-      if (!response.ok) {
-        console.error('❌ Failed to fetch image:', image.url, response.status);
+      // Fetch image
+      const imageBytes = await fetch(image.url).then((res) => res.arrayBuffer());
+
+      let embeddedImage;
+      if (image.url.toLowerCase().endsWith('.png')) {
+        embeddedImage = await pdfDoc.embedPng(imageBytes);
+      } else if (image.url.toLowerCase().endsWith('.jpg') || image.url.toLowerCase().endsWith('.jpeg')) {
+        embeddedImage = await pdfDoc.embedJpg(imageBytes);
+      } else {
+        console.warn(`Unsupported image format: ${image.url}`);
         continue;
       }
-      
-      let imageBytes = await response.arrayBuffer();
-      
+
+      // Apply grayscale filter if specified
       if (image.grayscale) {
-        imageBytes = await applyGrayscaleFilter(imageBytes);
+        // Note: pdf-lib doesn't support grayscale filters directly
+        // This would need to be applied to the image before embedding
+        console.log('Grayscale filter requested but not implemented for:', image.url);
       }
 
-      let pdfImage;
-      if (image.url.toLowerCase().endsWith('.png') || image.url.includes('image/png')) {
-        pdfImage = await pdfDoc.embedPng(imageBytes);
-      } else {
-        pdfImage = await pdfDoc.embedJpg(imageBytes);
-      }
+      // Calculate scaled dimensions
+      const scaledX = image.x * certScaleX;
+      const scaledY = image.y * certScaleY + offsetY;
+      const scaledWidth = image.width * certScaleX;
+      const scaledHeight = image.height * certScaleY;
 
-      // Get original image dimensions
-      const imgOrigWidth = pdfImage.width;
-      const imgOrigHeight = pdfImage.height;
+      // Convert Y coordinate from top-down to PDF bottom-up
+      const pdfY = height - scaledY - scaledHeight;
 
-      // Calculate the container size (where the image should fit)
-      const containerWidth = image.width * certScaleX;
-      const containerHeight = image.height * certScaleY;
-
-      // Calculate scale factors to fit the image in the container (object-contain behavior)
-      const scaleToFitWidth = containerWidth / imgOrigWidth;
-      const scaleToFitHeight = containerHeight / imgOrigHeight;
-
-      // Use the smaller scale to maintain aspect ratio
-      const actualScale = Math.min(scaleToFitWidth, scaleToFitHeight);
-
-      // Calculate final dimensions preserving aspect ratio
-      const finalWidth = imgOrigWidth * actualScale;
-      const finalHeight = imgOrigHeight * actualScale;
-
-      // Calculate position (center the image in its container)
-      const containerX = image.x * certScaleX;
-      const containerY = image.y * certScaleY + offsetY;
-      const drawX = containerX - (finalWidth / 2) + (containerWidth / 2);
-      const drawY = containerY - (finalHeight / 2) + (containerHeight / 2);
-
-      page.drawImage(pdfImage, {
-        x: drawX,
-        y: height - drawY - finalHeight,
-        width: finalWidth,
-        height: finalHeight,
+      // Draw image
+      page.drawImage(embeddedImage, {
+        x: scaledX,
+        y: pdfY,
+        width: scaledWidth,
+        height: scaledHeight,
       });
-      
-      console.log('✅ Image drawn successfully');
     } catch (error) {
-      console.error('❌ Error loading image:', image.url, error);
+      console.error(`Error drawing image ${image.url}:`, error);
     }
   }
 }

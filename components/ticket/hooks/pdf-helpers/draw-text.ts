@@ -9,47 +9,47 @@ export function drawTexts(
   certScaleX: number,
   certScaleY: number,
   offsetY: number,
-  getFont: (family: string, weight?: string) => any,
+  getFont: any,
   replaceVariables: (text: string) => string,
-  textScaleFactor: number = 1
+  textScaleFactor: number
 ) {
-  texts.forEach((text: TextElement) => {
-    const content = replaceVariables(text.content);
-    const font = getFont(text.fontFamily, text.fontWeight);
-    const textColor = hexToRgb(text.color);
+  texts.forEach((textElement) => {
+    // Replace variables in text content
+    const content = replaceVariables(textElement.content);
 
-    const scaledFontSize = text.fontSize * textScaleFactor;
-    
-    // Split content by newlines to handle multi-line text
-    const lines = content.split('\n');
-    const lineHeight = scaledFontSize * 1.2; // Standard line height multiplier
+    // Get font
+    const font = getFont(textElement.fontFamily, textElement.fontWeight);
 
-    lines.forEach((line, lineIndex) => {
-      // Skip empty lines but preserve spacing
-      const lineContent = line || ' ';
-      const textWidth = font.widthOfTextAtSize(lineContent, scaledFontSize);
+    // Calculate scaled font size
+    const scaledFontSize = textElement.fontSize * textScaleFactor;
 
-      const scaledX = text.x * certScaleX;
-      // Use certScaleY for Y position, then add offsetY and line offset
-      const scaledY = text.y * certScaleY + offsetY + (lineIndex * lineHeight);
+    // Parse color
+    const textColor = hexToRgb(textElement.color || '#000000');
 
-      let xPos = scaledX;
-      if (text.align === 'center') {
-        xPos = scaledX - textWidth / 2;
-      } else if (text.align === 'right') {
-        xPos = scaledX - textWidth;
-      }
+    // Calculate position based on alignment
+    const scaledX = textElement.x * certScaleX;
+    const scaledY = textElement.y * certScaleY + offsetY;
 
-      const baselineOffset = scaledFontSize * 0.8;
-      const pdfY = height - scaledY - baselineOffset;
+    // Get text width for alignment calculations
+    const textWidth = font.widthOfTextAtSize(content, scaledFontSize);
 
-      page.drawText(lineContent, {
-        x: xPos,
-        y: pdfY,
-        size: scaledFontSize,
-        font,
-        color: rgb(textColor.r, textColor.g, textColor.b),
-      });
+    let finalX = scaledX;
+    if (textElement.align === 'center') {
+      finalX = scaledX - (textWidth / 2);
+    } else if (textElement.align === 'right') {
+      finalX = scaledX - textWidth;
+    }
+
+    // Convert Y coordinate from top-down to PDF bottom-up
+    const pdfY = height - scaledY - scaledFontSize;
+
+    // Draw text
+    page.drawText(content, {
+      x: finalX,
+      y: pdfY,
+      size: scaledFontSize,
+      font,
+      color: rgb(textColor.r, textColor.g, textColor.b),
     });
   });
 }
