@@ -103,7 +103,7 @@ const ProductForm: React.FC<ProductFormProps> = ({ initialData }) => {
         <h1 className="text-2xl font-semibold">Create Driving Lesson</h1>
       )}
       <Separator className="bg-gray-300 my-4" />
-      <p className="text-sm text-gray-600 mb-4">* Campos obligatorios</p>
+  <p className="text-sm text-gray-600 mb-4">* Required fields</p>
       <Form {...form}>
         <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-9">
 
