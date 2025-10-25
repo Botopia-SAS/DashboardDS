@@ -60,13 +60,32 @@ export default function FaqAdminPage() {
   const [showAddSection, setShowAddSection] = useState(false);
   const [newSectionLabel, setNewSectionLabel] = useState("");
 
-  // Modal state
+  // Success Modal state
   const [showModal, setShowModal] = useState(false);
   const [modalMessage, setModalMessage] = useState("");
+
+  // Confirmation Modal state
+  const [showConfirmModal, setShowConfirmModal] = useState(false);
+  const [confirmMessage, setConfirmMessage] = useState("");
+  const [onConfirmAction, setOnConfirmAction] = useState<(() => void) | null>(null);
 
   const showSuccessModal = (message: string) => {
     setModalMessage(message);
     setShowModal(true);
+  };
+
+  const showConfirmation = (message: string, onConfirm: () => void) => {
+    setConfirmMessage(message);
+    setOnConfirmAction(() => onConfirm);
+    setShowConfirmModal(true);
+  };
+
+  const handleConfirm = () => {
+    if (onConfirmAction) {
+      onConfirmAction();
+    }
+    setShowConfirmModal(false);
+    setOnConfirmAction(null);
   };
 
   useEffect(() => {
