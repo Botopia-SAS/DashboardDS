@@ -3,7 +3,7 @@
 import React, { useEffect, useState } from "react";
 import { Card, CardContent } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
-import { Pencil, Trash2, Plus, Save, X, ArrowLeft, Link as LinkIcon, CheckCircle2 } from "lucide-react";
+import { Pencil, Trash2, Plus, Save, X, ArrowLeft, Link as LinkIcon, CheckCircle2, AlertTriangle } from "lucide-react";
 import Link from "next/link";
 import {
   Dialog,
@@ -218,21 +218,22 @@ export default function FaqAdminPage() {
   const handleDeleteSection = async (sectionKey: string) => {
     if (!faq) return;
 
-    if (!confirm("Are you sure you want to delete this entire section and all its questions?")) {
-      return;
-    }
+    showConfirmation(
+      "Are you sure you want to delete this entire section and all its questions?",
+      async () => {
+        const updated = {
+          sections: { ...faq.sections }
+        };
+        delete updated.sections[sectionKey];
 
-    const updated = {
-      sections: { ...faq.sections }
-    };
-    delete updated.sections[sectionKey];
-
-    setLoading(true);
-    await updateFaq(updated);
-    const fresh = await fetchFaq();
-    setFaq(fresh);
-    setLoading(false);
-    showSuccessModal("Section deleted successfully!");
+        setLoading(true);
+        await updateFaq(updated);
+        const fresh = await fetchFaq();
+        setFaq(fresh);
+        setLoading(false);
+        showSuccessModal("Section deleted successfully!");
+      }
+    );
   };
 
   const getRandomColor = () => {
@@ -471,6 +472,38 @@ export default function FaqAdminPage() {
           <div className="flex justify-center mt-4">
             <Button onClick={() => setShowModal(false)} className="px-8">
               OK
+            </Button>
+          </div>
+        </DialogContent>
+      </Dialog>
+
+      {/* Confirmation Modal */}
+      <Dialog open={showConfirmModal} onOpenChange={setShowConfirmModal}>
+        <DialogContent className="sm:max-w-md">
+          <DialogHeader>
+            <div className="flex items-center justify-center mb-4">
+              <div className="rounded-full bg-yellow-100 p-3">
+                <AlertTriangle className="h-8 w-8 text-yellow-600" />
+              </div>
+            </div>
+            <DialogTitle className="text-center text-xl">Confirm Action</DialogTitle>
+            <DialogDescription className="text-center text-base pt-2">
+              {confirmMessage}
+            </DialogDescription>
+          </DialogHeader>
+          <div className="flex justify-center gap-3 mt-4">
+            <Button
+              variant="outline"
+              onClick={() => setShowConfirmModal(false)}
+              className="px-6"
+            >
+              Cancel
+            </Button>
+            <Button
+              onClick={handleConfirm}
+              className="px-6 bg-red-600 hover:bg-red-700"
+            >
+              Delete
             </Button>
           </div>
         </DialogContent>
