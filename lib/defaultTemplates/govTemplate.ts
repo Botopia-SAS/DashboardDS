@@ -1,4 +1,4 @@
-import { CertificateTemplate } from "@/components/certificate-editor/types";
+import { CertificateTemplate } from "@/lib/certificateTypes";
 
 /**
  * GOV Certificate Template - Government Form Style

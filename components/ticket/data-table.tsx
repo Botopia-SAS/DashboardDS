@@ -21,10 +21,8 @@ import {
 } from "@/components/ui/table";
 import { Student } from "./columns";
 import { useTableData } from "./hooks/use-table-data";
-import { useCertificateGenerator } from "./hooks/use-master-certificate-generator";
-import { useMultiCertificateDownloader } from "./hooks/use-multi-certificate-downloader";
+import { useUnifiedCertificateGenerator } from "./hooks/use-unified-certificate-generator";
 import { useDynamicCertificateGenerator } from "./hooks/use-dynamic-certificate-generator";
-import { VariableValidationModal } from "@/components/certificate-editor/VariableValidationModal";
 import { RowActionButtons } from "./row-action-buttons";
 import { TableActions } from "./table-actions";
 
@@ -39,9 +37,6 @@ interface DataTableProps {
 // Main component
 export function DataTable({ columns, data, onUpdate, template }: DataTableProps) {
   const [rowSelection, setRowSelection] = useState({});
-  const [validationModalOpen, setValidationModalOpen] = useState(false);
-  const [pendingUser, setPendingUser] = useState<Student | null>(null);
-  const [pendingTemplate, setPendingTemplate] = useState<any>(null);
 
   // Helper function to get options for a variable
   const getVariableOptions = (columnId: string) => {
@@ -61,8 +56,7 @@ export function DataTable({ columns, data, onUpdate, template }: DataTableProps)
     handleSave,
   } = useTableData({ initialData: data, onUpdate });
 
-  const { generateCertificatePDF, validateVariables } = useCertificateGenerator();
-  const { downloadMultipleCertificates } = useMultiCertificateDownloader();
+  const { generateCertificatePDF } = useUnifiedCertificateGenerator();
   const { generateMultipleCertificatesPDF } = useDynamicCertificateGenerator();
 
   const table = useReactTable({
@@ -254,51 +248,10 @@ export function DataTable({ columns, data, onUpdate, template }: DataTableProps)
         return;
       }
 
-      // Get template for validation
-      const { type, classType } = user;
-      const certType = (classType || type || 'DATE').toUpperCase();
-      
-      try {
-        const templateResponse = await fetch(`/api/certificate-templates?classType=${certType}`);
-        let template = null;
-        
-        if (templateResponse.ok) {
-          const templates = await templateResponse.json();
-          if (templates.length > 0) {
-            template = templates[0];
-          }
-        }
-        
-        // If no template found, use default
-        if (!template) {
-          const { getDefaultBDITemplate } = await import("@/lib/defaultTemplates/bdiTemplate");
-          template = getDefaultBDITemplate(certType);
-        }
-
-        // Validate variables
-        const validation = validateVariables(user, template);
-        
-        console.log(`🔍 DataTable validation result:`, validation);
-        
-        if (!validation.isValid) {
-          console.log(`❌ Variables missing, showing modal`);
-          // Show validation modal
-          setPendingUser(user);
-          setPendingTemplate(template);
-          setValidationModalOpen(true);
-          return;
-        }
-
-        console.log(`✅ All variables valid, proceeding with generation`);
-        // Proceed with generation if all variables are valid
-        await proceedWithGeneration(user);
-        
-      } catch (error) {
-        console.error("Error validating variables:", error);
-        toast.error("Error al validar las variables del certificado");
-      }
+      // Proceed directly with generation using unified certificate generator
+      await proceedWithGeneration(user);
     },
-    [generateCertificatePDF, validateVariables]
+    [generateCertificatePDF]
   );
 
   const proceedWithGeneration = async (user: Student) => {
@@ -319,14 +272,6 @@ export function DataTable({ columns, data, onUpdate, template }: DataTableProps)
     }
   };
 
-  const handleAddMissingVariables = (variables: string[]) => {
-    if (pendingUser) {
-      // Here you would typically update the user data with the missing variables
-      // For now, we'll just proceed with generation
-      toast.success(`Variables agregadas: ${variables.join(', ')}`);
-      proceedWithGeneration(pendingUser);
-    }
-  };
   const downloadXLSX = useCallback(() => {
     const studentsWithCertnZero = data
       .filter((student) => student.certn === 0)
@@ -500,15 +445,6 @@ export function DataTable({ columns, data, onUpdate, template }: DataTableProps)
           </TableBody>
         </Table>
       </div>
-
-      <VariableValidationModal
-        open={validationModalOpen}
-        onOpenChange={setValidationModalOpen}
-        template={pendingTemplate}
-        user={pendingUser}
-        onProceed={() => pendingUser && proceedWithGeneration(pendingUser)}
-        onAddMissingVariables={handleAddMissingVariables}
-      />
     </div>
   );
 }

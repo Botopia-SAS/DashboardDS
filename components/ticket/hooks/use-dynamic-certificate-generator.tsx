@@ -3,7 +3,7 @@
 import { Student } from "../columns";
 import { useCallback } from "react";
 import { PDFDocument, PDFPage, rgb, StandardFonts } from "pdf-lib";
-import { CertificateTemplate, TextElement, ShapeElement, ImageElement } from "@/components/certificate-editor/types";
+import { CertificateTemplate, TextElement, ShapeElement, ImageElement } from "@/lib/certificateTypes";
 import { applyGrayscaleFilter } from "./pdf-helpers/image-filters";
 import { hexToRgb, getVariables } from "./pdf-helpers/utils";
 import { drawShapes } from "./pdf-helpers/draw-shapes";

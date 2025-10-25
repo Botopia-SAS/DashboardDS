@@ -9,7 +9,7 @@ import { useParams, useRouter } from "next/navigation";
 import { useCallback, useEffect, useRef, useState } from "react";
 import toast from "react-hot-toast";
 import { ColumnDef } from "@tanstack/react-table";
-import { CertificateTemplate } from "@/components/certificate-editor/types";
+import { CertificateTemplate } from "@/lib/certificateTypes";
 import { getYouthfulOffenderTemplate } from "@/lib/defaultTemplates/youthfulOffenderTemplate";
 import { useDynamicCertificateGenerator } from "@/components/ticket/hooks/use-dynamic-certificate-generator";
 

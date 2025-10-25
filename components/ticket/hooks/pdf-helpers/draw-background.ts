@@ -1,5 +1,5 @@
 import { PDFDocument, PDFPage, rgb } from "pdf-lib";
-import { CertificateTemplate } from "@/components/certificate-editor/types";
+import { CertificateTemplate } from "@/lib/certificateTypes";
 import { hexToRgb } from "./utils";
 
 export async function drawBackground(

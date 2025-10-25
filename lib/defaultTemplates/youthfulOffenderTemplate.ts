@@ -1,4 +1,4 @@
-import { CertificateTemplate } from "@/components/certificate-editor/types";
+import { CertificateTemplate } from "@/lib/certificateTypes";
 
 /**
  * Youthful Offender Class Certificate Template

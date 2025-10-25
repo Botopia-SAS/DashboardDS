@@ -6,7 +6,7 @@ import { useDateCertificateGenerator } from "./use-date-certificate-generator";
 import { useBdiCertificateGenerator } from "./use-bdi-certificate-generator";
 import { useAdiCertificateGenerator } from "./use-adi-certificate-generator";
 import { useDynamicCertificateGenerator } from "./use-dynamic-certificate-generator";
-import { CertificateTemplate } from "@/components/certificate-editor/types";
+import { CertificateTemplate } from "@/lib/certificateTypes";
 import { getDefaultBDITemplate } from "@/lib/defaultTemplates/bdiTemplate";
 
 // Helper function to normalize class type for database queries (same as calendar)

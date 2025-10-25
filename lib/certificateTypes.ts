@@ -1,3 +1,8 @@
+/**
+ * Certificate Template Types
+ * Shared types for certificate generation and templates
+ */
+
 export interface TextElement {
   id: string;
   content: string;
@@ -51,15 +56,15 @@ export interface CheckboxElement {
   color?: string;
   borderColor?: string;
   borderWidth?: number;
-  checkboxSize?: number; // Size of individual checkboxes
-  titleAlign?: 'left' | 'center' | 'right'; // Alignment of the title
+  checkboxSize?: number;
+  titleAlign?: 'left' | 'center' | 'right';
 }
 
 export interface Variable {
   key: string;
   label: string;
   example: string;
-  options?: string[]; // Optional array of options for dropdown/checkbox variables
+  options?: string[];
 }
 
 export interface CertificateTemplate {
@@ -71,7 +76,7 @@ export interface CertificateTemplate {
     height: number;
     orientation: 'portrait' | 'landscape';
   };
-  certificatesPerPage?: number; // How many certificates to print per page (1, 2, 4, etc.)
+  certificatesPerPage?: number;
   background: {
     type: 'color' | 'image' | 'pdf';
     value?: string;
@@ -100,13 +105,10 @@ export const PAGE_SIZE_OPTIONS: PageSizeOption[] = [
 ];
 
 export const DEFAULT_VARIABLES: Variable[] = [
-  // Variables from User
   { key: 'firstName', label: 'First Name (User)', example: 'JOHN' },
   { key: 'lastName', label: 'Last Name (User)', example: 'DOE' },
   { key: 'birthDate', label: 'Birth Date (User)', example: '01/15/1990' },
   { key: 'licenseNumber', label: 'License Number (User)', example: 'D123-456-78-910-0' },
-
-  // Variables from Ticket
   { key: 'courseDate', label: 'Course Completion Date (Ticket)', example: 'Nov 10, 2025' },
   { key: 'classTitle', label: 'Class Title (from classId)', example: 'Defensive Driving Course' },
   { key: 'classType', label: 'Class Type (Ticket)', example: 'DATE' },

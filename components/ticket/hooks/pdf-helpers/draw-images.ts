@@ -1,5 +1,5 @@
 import { PDFDocument, PDFPage } from "pdf-lib";
-import { ImageElement } from "@/components/certificate-editor/types";
+import { ImageElement } from "@/lib/certificateTypes";
 import { applyGrayscaleFilter } from "./image-filters";
 
 export async function drawImages(
