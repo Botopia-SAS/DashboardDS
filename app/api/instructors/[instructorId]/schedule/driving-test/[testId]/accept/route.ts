@@ -5,29 +5,6 @@ import { broadcastNotification } from "@/lib/notifications";
 
 export const dynamic = "force-dynamic";
 
-// Define proper types for driving test
-interface DrivingTest {
-  _id: string;
-  paymentMethod: string;
-  reservedAt: string;
-  date: string;
-  start: string;
-  end: string;
-  status: string;
-  classType: string;
-  amount: number;
-  studentId: string;
-  studentName: string;
-  paid: boolean;
-}
-
-// interface InstructorDocument {
-//   _id: string;
-//   schedule_driving_test: DrivingTest[];
-//   markModified: (path: string) => void;
-//   save: () => Promise<InstructorDocument>;
-// }
-
 export async function PATCH(
   req: Request,
   { params }: { params: Promise<{ instructorId: string; testId: string }> }

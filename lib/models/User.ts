@@ -44,8 +44,7 @@ const UserSchema: Schema = new Schema({
   privateNotes: { type: String },
 }, { timestamps: true });
 
-// Index for better query performance
-UserSchema.index({ email: 1 }, { unique: true });
+// Index for better query performance (email index is already defined as unique in schema)
 UserSchema.index({ role: 1 });
 
 const User: Model<IUser> = mongoose.models.User || mongoose.model<IUser>("User", UserSchema);

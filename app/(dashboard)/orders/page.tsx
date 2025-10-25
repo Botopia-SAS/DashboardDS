@@ -9,6 +9,7 @@ import { DollarSign, ShoppingCart, Clock, CheckCircle, AlertCircle, TrendingUp }
 import { unstable_noStore as noStore } from 'next/cache'
 import DashboardHeader from '@/components/layout/DashboardHeader'
 import RangeFilter from '@/components/RangeFilter'
+import { Schema } from 'mongoose'
 
 export const dynamic = 'force-dynamic'
 export const revalidate = 0
@@ -39,33 +40,33 @@ interface SerializedOrder {
 }
 
 interface OrderDocument {
-  _id: any
+  _id: Schema.Types.ObjectId
   orderNumber?: string | number
   estado?: string
   status?: string
   createdAt?: Date
   total?: number
-  userId?: any
-  user_id?: any
+  userId?: Schema.Types.ObjectId
+  user_id?: Schema.Types.ObjectId
   items?: Array<{
     id: string
     title: string
     price: number
     quantity: number
-    _id: any
+    _id: Schema.Types.ObjectId
   }>
   __v?: number
 }
 
 interface UserDocument {
-  _id: any
+  _id: Schema.Types.ObjectId
   firstName?: string
   lastName?: string
   email?: string
   phoneNumber?: string
 }
 
-function serializeOrder(order: OrderDocument, user: any): SerializedOrder {
+function serializeOrder(order: OrderDocument, user: UserDocument | null): SerializedOrder {
   return {
     _id: order._id?.toString?.() ?? '',
     orderNumber: order.orderNumber ?? '',
@@ -93,17 +94,17 @@ function serializeOrder(order: OrderDocument, user: any): SerializedOrder {
   }
 }
 
-const Page = async ({ searchParams }: { searchParams?: any }) => {
+const Page = async ({ searchParams }: { searchParams?: Promise<{ range?: string }> }) => {
   noStore()
   await dbConnect()
-  const orders = await Order.find({}).lean() as OrderDocument[]
+  const orders = await Order.find({}).lean() as unknown as OrderDocument[]
   // Get all unique userIds
   const userIds = Array.from(new Set(orders.map((o: OrderDocument) => o.userId?.toString?.() ?? o.user_id?.toString?.()))).filter(Boolean)
   // Find all users at once
   const usersArr = await User.find({ _id: { $in: userIds } })
     .select('firstName lastName email phoneNumber')
-    .lean() as any[]
-  const usersMap = Object.fromEntries(usersArr.map((u: any) => [u._id.toString(), u]))
+    .lean() as unknown as UserDocument[]
+  const usersMap = Object.fromEntries(usersArr.map((u: UserDocument) => [u._id.toString(), u]))
   // Serialize and associate correct user
   const serializedOrders = orders.map((order: OrderDocument) => {
     const userId = order.userId?.toString?.() ?? order.user_id?.toString?.()
@@ -112,7 +113,7 @@ const Page = async ({ searchParams }: { searchParams?: any }) => {
   })
 
   // Date range filtering for metrics
-  const resolvedSearchParams = searchParams && typeof searchParams.then === 'function' ? await searchParams : searchParams
+  const resolvedSearchParams = await searchParams
   const range = (resolvedSearchParams?.range || 'all').toLowerCase()
   const now = new Date()
   let startDate: Date | null = null

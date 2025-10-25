@@ -46,9 +46,7 @@ const AdminSchema: Schema = new Schema({
   lockUntil: { type: Date },
 }, { timestamps: true });
 
-// Index for better query performance
-AdminSchema.index({ username: 1 }, { unique: true });
-AdminSchema.index({ email: 1 }, { unique: true });
+// Index for better query performance (username and email indexes are already defined as unique in schema)
 AdminSchema.index({ role: 1, active: 1 });
 
 const Admin: Model<IAdmin> = mongoose.models.Admin || mongoose.model<IAdmin>("Admin", AdminSchema);

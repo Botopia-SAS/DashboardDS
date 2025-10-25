@@ -3,8 +3,37 @@ import User from "@/lib/models/User";
 import Certificate from "@/lib/models/Certificate";
 import { connectToDB } from "@/lib/mongoDB";
 import { NextRequest, NextResponse } from "next/server";
+import { Schema } from "mongoose";
 
 export const dynamic = "force-dynamic";
+
+interface CertificateResponse {
+  _id: string;
+  certificateNumber: string | number;
+  className: string;
+  classId?: Schema.Types.ObjectId;
+  locationName: string;
+  classDate: Date;
+  issueDate: Date;
+  duration?: number | string;
+  status: string;
+}
+
+interface StudentEntry {
+  studentId?: Schema.Types.ObjectId | string;
+  _id?: Schema.Types.ObjectId | string;
+  id?: string;
+}
+
+interface PopulatedClass {
+  _id?: Schema.Types.ObjectId;
+  title?: string;
+}
+
+interface PopulatedLocation {
+  _id?: Schema.Types.ObjectId;
+  title?: string;
+}
 
 export async function GET(req: NextRequest) {
   try {
@@ -30,7 +59,7 @@ export async function GET(req: NextRequest) {
 
     console.log(`📚 Found ${allTicketClasses.length} total ticket classes`);
 
-    const certificates: any[] = [];
+    const certificates: CertificateResponse[] = [];
 
     // Filter classes where the student is enrolled
     for (const ticketClass of allTicketClasses) {
@@ -39,12 +68,13 @@ export async function GET(req: NextRequest) {
       }
 
       // Check if customerId is in the students array
-      const isEnrolled = ticketClass.students.some((student: any) => {
+      const isEnrolled = ticketClass.students.some((student: unknown) => {
         if (typeof student === "string") {
           return student === customerId || student.toString() === customerId;
         } else if (student && typeof student === "object") {
-          const studentId = student.studentId || student._id || student.id;
-          return studentId && (studentId === customerId || studentId.toString() === customerId);
+          const studentEntry = student as StudentEntry;
+          const studentId = studentEntry.studentId || studentEntry._id || studentEntry.id;
+          return studentId && (studentId === customerId || String(studentId) === customerId);
         }
         return false;
       });
@@ -64,8 +94,8 @@ export async function GET(req: NextRequest) {
 
             // Only show as certificate if class date has passed
             if (classDate < now) {
-              const classInfo: any = ticketClass.classId;
-              const locationInfo: any = ticketClass.locationId;
+              const classInfo = ticketClass.classId as PopulatedClass;
+              const locationInfo = ticketClass.locationId as PopulatedLocation;
 
               console.log("✅ Found potential certificate for class:", {
                 class: classInfo?.title,

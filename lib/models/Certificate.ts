@@ -55,8 +55,8 @@ const CertificateSchema: Schema = new Schema({
   // Allow dynamic fields for certificate templates
 }, { strict: false, timestamps: true });
 
+// Index for better query performance (number index is already defined as unique in schema)
 CertificateSchema.index({ studentId: 1, classId: 1 }, { unique: true });
-CertificateSchema.index({ number: 1 }, { unique: true, sparse: true });
 
 const Certificate: Model<ICertificate> = mongoose.models.Certificate || mongoose.model<ICertificate>("Certificate", CertificateSchema);
 

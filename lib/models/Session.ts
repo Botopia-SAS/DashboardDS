@@ -38,8 +38,7 @@ const SessionSchema: Schema = new Schema({
   notes: { type: String },
 }, { timestamps: true });
 
-// Index for better query performance
-SessionSchema.index({ sessionId: 1 }, { unique: true });
+// Index for better query performance (sessionId index is already defined as unique in schema)
 SessionSchema.index({ userId: 1, startTime: -1 });
 SessionSchema.index({ instructorId: 1, startTime: -1 });
 SessionSchema.index({ status: 1, type: 1 });

@@ -65,11 +65,6 @@ export async function POST(req: NextRequest) {
 
   // LOG: cuántos cumplen años hoy
   //console.log(`[BIRTHDAY] Users with birthday today: ${birthdayUsers.length}`);
-  birthdayUsers.forEach(user => {
-    // const date = new Date(user.birthDate);
-    // const age = year - date.getFullYear();
-    //console.log(`- ${user.firstName} ${user.lastName} | ${user.email} | Birth: ${date.toISOString().slice(0,10)} | Age: ${age}`);
-  });
 
   let sentCount = 0;
   for (const user of birthdayUsers) {
