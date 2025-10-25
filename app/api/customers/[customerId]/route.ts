@@ -121,7 +121,7 @@ export async function PATCH(req: NextRequest) {
     );
 
     // If the password changed, send email (in English)
-    if (passwordChanged) {
+    if (passwordChanged && updatedUser) {
       await sendEmail(
         [updatedUser.email],
         "Your new password for Driving School Dashboard",

@@ -27,11 +27,11 @@ export async function POST() {
 
       return NextResponse.json({
         message: "Youthful offender template updated successfully",
-        template: {
+        template: updated ? {
           id: updated._id,
           name: updated.name,
           classType: updated.classType
-        }
+        } : null
       }, { status: 200 });
     } else {
       // Create new template

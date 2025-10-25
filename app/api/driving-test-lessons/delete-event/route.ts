@@ -42,7 +42,7 @@ export async function DELETE(req: NextRequest) {
         // Buscar en schedule_driving_test
         if (inst.schedule_driving_test) {
           const testEvent = inst.schedule_driving_test.find((event: any) => {
-            const generatedId = `driving_test_${inst._id}_${event.date}_${event.start}_${inst.schedule_driving_test.indexOf(event)}`;
+            const generatedId = `driving_test_${inst._id}_${event.date}_${event.start}_${inst.schedule_driving_test!.indexOf(event)}`;
             return generatedId === eventId || event._id === eventId;
           });
           if (testEvent) {
@@ -56,7 +56,7 @@ export async function DELETE(req: NextRequest) {
         // Buscar en schedule_driving_lesson
         if (inst.schedule_driving_lesson) {
           const lessonEvent = inst.schedule_driving_lesson.find((event: any) => {
-            const generatedId = `driving_lesson_${inst._id}_${event.date}_${event.start}_${inst.schedule_driving_lesson.indexOf(event)}`;
+            const generatedId = `driving_lesson_${inst._id}_${event.date}_${event.start}_${inst.schedule_driving_lesson!.indexOf(event)}`;
             return generatedId === eventId || event._id === eventId;
           });
           if (lessonEvent) {

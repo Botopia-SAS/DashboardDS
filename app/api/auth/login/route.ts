@@ -86,7 +86,7 @@ export async function POST(req: NextRequest) {
 
     // Return admin data (without password)
     const adminData = {
-      id: admin._id.toString(),
+      id: (admin._id as any).toString(),
       email: admin.email,
       role: admin.role || "admin",
     };

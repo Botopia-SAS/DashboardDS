@@ -1,5 +1,5 @@
 import dbConnect from '../lib/dbConnect';
-import Session from '../lib/models/Session';
+import WebSession from '../lib/models/WebSession';
 import ResumenSeccion from '../lib/models/ResumenSeccion';
 import mongoose from 'mongoose';
 
@@ -32,7 +32,7 @@ async function main() {
   yesterday.setUTCDate(today.getUTCDate() - 1);
 
   // Buscar sesiones del día anterior (UTC)
-  const sessions = await Session.find({
+  const sessions = await WebSession.find({
     startTimestamp: {
       $gte: yesterday,
       $lt: today
@@ -141,7 +141,7 @@ async function main() {
   };
 
   await ResumenSeccion.create(resumen);
-  await Session.deleteMany({
+  await WebSession.deleteMany({
     startTimestamp: {
       $gte: yesterday,
       $lt: today

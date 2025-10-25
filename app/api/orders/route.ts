@@ -14,21 +14,21 @@ export async function GET() {
         { orderNumber: { $exists: true, $ne: "" } } // Órdenes con número de orden válido
       ]
     }).lean();
-    const userIds = Array.from(new Set(orders.map((o) => o.userId?.toString?.() ?? o.user_id?.toString?.()))).filter(Boolean);
+    const userIds = Array.from(new Set(orders.map((o) => o.user_id?.toString?.()))).filter(Boolean);
     const usersArr = await User.find({ _id: { $in: userIds } })
       .select('firstName lastName email phoneNumber')
       .lean();
     const usersMap = Object.fromEntries(usersArr.map((u) => [u._id.toString(), u]));
 
     const serialized = orders.map((order) => {
-      const userId = order.userId?.toString?.() ?? order.user_id?.toString?.();
+      const userId = order.user_id?.toString?.();
       const user = usersMap[userId];
       return {
         _id: order._id?.toString?.() ?? '',
         orderNumber: order.orderNumber ?? '',
-        estado: order.estado ?? order.status ?? '',
+        estado: order.status ?? '',
         createdAt: order.createdAt ? new Date(order.createdAt).toISOString() : '',
-        total: order.total ?? 0,
+        total: 0,
         user: user
           ? {
               firstName: user.firstName || '-',
@@ -37,15 +37,7 @@ export async function GET() {
               phoneNumber: user.phoneNumber || undefined,
             }
           : { firstName: '-', lastName: '-', email: '-', phoneNumber: undefined },
-        items: Array.isArray(order.items)
-          ? order.items.map((item) => ({
-              id: item.id,
-              title: item.title,
-              price: item.price,
-              quantity: item.quantity,
-              _id: item._id?.toString?.() ?? '',
-            }))
-          : [],
+        items: [],
         __v: order.__v ?? 0,
       };
     });

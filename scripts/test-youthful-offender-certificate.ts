@@ -177,15 +177,15 @@ async function generateTestCertificate() {
 
         const color = hexToRgb(shape.borderColor || '#000000');
         const scaledY1 = shape.y * certScaleY + offsetY;
-        const scaledY2 = shape.y2 * certScaleY + offsetY;
+        const scaledY2 = (shape.y2 || shape.y) * certScaleY + offsetY;
         const pdfY1 = height - scaledY1;
         const pdfY2 = height - scaledY2;
 
-        console.log(`  ✓ ${shape.id}: line from (${shape.x}, ${pdfY1.toFixed(1)}) to (${shape.x2}, ${pdfY2.toFixed(1)})`);
+        console.log(`  ✓ ${shape.id}: line from (${shape.x}, ${pdfY1.toFixed(1)}) to (${shape.x2 || shape.x}, ${pdfY2.toFixed(1)})`);
 
         page.drawLine({
           start: { x: shape.x, y: pdfY1 },
-          end: { x: shape.x2, y: pdfY2 },
+          end: { x: shape.x2 || shape.x, y: pdfY2 },
           thickness: shape.borderWidth || 2,
           color: rgb(color.r, color.g, color.b),
         });

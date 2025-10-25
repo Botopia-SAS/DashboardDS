@@ -1,6 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server';
 import dbConnect from '../../../../lib/dbConnect';
-import Session from '../../../../lib/models/Session';
+import WebSession from '../../../../lib/models/WebSession';
 import ResumenSeccion from '../../../../lib/models/ResumenSeccion';
 import { toZonedTime, format as formatTz } from 'date-fns-tz';
 
@@ -50,7 +50,7 @@ export async function GET(req: NextRequest) {
   const todayMiami = formatTz(toZonedTime(now, MIAMI_TZ), 'yyyy-MM-dd', { timeZone: MIAMI_TZ });
 
   // Traer todas las sesiones pendientes (puedes filtrar por un rango si lo deseas)
-  const sessions = await Session.find({}).lean();
+  const sessions = await WebSession.find({}).lean();
   if (!sessions.length) {
     return NextResponse.json({ message: 'No sessions found.' });
   }
@@ -88,7 +88,7 @@ export async function GET(req: NextRequest) {
     let totalClicks = 0, totalScrolls = 0, totalMoves = 0, totalSessionDuration = 0;
 
     // Mapeo 1:1 de sesiones encontradas para ese día
-    const resumenSesiones = daySessions.map((session: typeof Session extends { prototype: infer T } ? T : never, idx: number) => {
+    const resumenSesiones = daySessions.map((session: any, idx: number) => {
       uniqueIPs.add(session.ipAddress);
       uniqueUsers.add(session.userId);
       const browser = getBrowser(session.userAgent);
@@ -182,7 +182,7 @@ export async function GET(req: NextRequest) {
     resumenesCreados.push(miamiDate);
     // Eliminar solo las sesiones de este día
     const idsToDelete = daySessions.map((s: any) => s._id);
-    await Session.deleteMany({ _id: { $in: idsToDelete } });
+    await WebSession.deleteMany({ _id: { $in: idsToDelete } });
   }
 
   return NextResponse.json({ 

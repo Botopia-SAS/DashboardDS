@@ -166,13 +166,21 @@ export async function PATCH(req: NextRequest) {
       console.log(`✅ Deleted ${ticketClassesDeleted} ticket classes for instructor ${instructorId}`);
       
       // Limpiar el horario del instructor para remover referencias a ticket classes
-      if (instructor.schedule && instructor.schedule.length > 0) {
-        const cleanedSchedule = instructor.schedule.filter((slot: any) => 
+      // Clean both driving test and driving lesson schedules
+      if (instructor.schedule_driving_test && instructor.schedule_driving_test.length > 0) {
+        const cleanedDrivingTestSchedule = instructor.schedule_driving_test.filter((slot: any) => 
           !slot.ticketClassId && slot.classType !== 'D.A.T.E' && slot.classType !== 'B.D.I' && slot.classType !== 'A.D.I'
         );
-        
-        updateFields.schedule = cleanedSchedule;
-        console.log(`🧹 Cleaned instructor schedule, kept ${cleanedSchedule.length} non-ticket slots`);
+        updateFields.schedule_driving_test = cleanedDrivingTestSchedule;
+        console.log(`🧹 Cleaned instructor driving test schedule, kept ${cleanedDrivingTestSchedule.length} non-ticket slots`);
+      }
+      
+      if (instructor.schedule_driving_lesson && instructor.schedule_driving_lesson.length > 0) {
+        const cleanedDrivingLessonSchedule = instructor.schedule_driving_lesson.filter((slot: any) => 
+          !slot.ticketClassId && slot.classType !== 'D.A.T.E' && slot.classType !== 'B.D.I' && slot.classType !== 'A.D.I'
+        );
+        updateFields.schedule_driving_lesson = cleanedDrivingLessonSchedule;
+        console.log(`🧹 Cleaned instructor driving lesson schedule, kept ${cleanedDrivingLessonSchedule.length} non-ticket slots`);
       }
     }
 

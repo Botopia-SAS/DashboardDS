@@ -28,6 +28,13 @@ export async function PATCH(
     }
 
     // Buscar la lesson específica en schedule_driving_lesson
+    if (!instructor.schedule_driving_lesson || instructor.schedule_driving_lesson.length === 0) {
+      return NextResponse.json(
+        { message: "No driving lessons found for this instructor" },
+        { status: 404 }
+      );
+    }
+
     const lessonIndex = instructor.schedule_driving_lesson.findIndex(
       (lesson: any) => lesson._id.toString() === lessonId
     );
@@ -46,9 +53,9 @@ export async function PATCH(
     
     // Eliminar paymentMethod si es null
     if (paymentMethod === null) {
-      delete instructor.schedule_driving_lesson[lessonIndex].paymentMethod;
+      delete (instructor.schedule_driving_lesson[lessonIndex] as any).paymentMethod;
     } else {
-      instructor.schedule_driving_lesson[lessonIndex].paymentMethod = paymentMethod;
+      (instructor.schedule_driving_lesson[lessonIndex] as any).paymentMethod = paymentMethod;
     }
 
     await instructor.save();

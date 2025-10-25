@@ -1,5 +1,5 @@
 import { connectToDB } from "@/lib/mongoDB";
-import Session from "@/lib/models/Session";
+import WebSession from "@/lib/models/WebSession";
 import { NextResponse } from "next/server";
 
 interface HeatmapEvent {
@@ -42,7 +42,7 @@ export async function GET(req: Request) {
   const startDate = start ? new Date(start) : null;
   const endDate = end ? new Date(end) : null;
 
-  const sessions: HeatmapSession[] = await Session.find({});
+  const sessions: HeatmapSession[] = await WebSession.find({});
 
   const heatmap: HeatmapEvent[] = [];
   const totalEvents = { value: 0 };

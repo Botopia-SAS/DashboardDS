@@ -19,17 +19,32 @@ export async function DELETE(req: Request, { params }: { params: Promise<{ instr
     
     // Also clean up the instructor's schedule to remove ticket class references
     const instructor = await Instructor.findById(instructorId);
-    if (instructor && instructor.schedule) {
-      // Keep only non-ticket class slots (like driving tests)
-      const cleanedSchedule = instructor.schedule.filter((slot: any) => 
-        !slot.ticketClassId && slot.classType === 'driving test'
-      );
+    if (instructor) {
+      // Clean up schedule_driving_test if it exists
+      if (instructor.schedule_driving_test) {
+        const cleanedDrivingTestSchedule = instructor.schedule_driving_test.filter((slot: any) => 
+          !slot.ticketClassId && slot.classType === 'driving test'
+        );
+        
+        await Instructor.findByIdAndUpdate(instructorId, {
+          schedule_driving_test: cleanedDrivingTestSchedule
+        });
+        
+        console.log(`[API] Cleaned up instructor driving test schedule for ${instructorId}`);
+      }
       
-      await Instructor.findByIdAndUpdate(instructorId, {
-        schedule: cleanedSchedule
-      });
-      
-      console.log(`[API] Cleaned instructor schedule, kept ${cleanedSchedule.length} non-ticket slots`);
+      // Clean up schedule_driving_lesson if it exists
+      if (instructor.schedule_driving_lesson) {
+        const cleanedDrivingLessonSchedule = instructor.schedule_driving_lesson.filter((slot: any) => 
+          !slot.ticketClassId && slot.classType === 'driving lesson'
+        );
+        
+        await Instructor.findByIdAndUpdate(instructorId, {
+          schedule_driving_lesson: cleanedDrivingLessonSchedule
+        });
+        
+        console.log(`[API] Cleaned up instructor driving lesson schedule for ${instructorId}`);
+      }
     }
     
     return NextResponse.json({ 

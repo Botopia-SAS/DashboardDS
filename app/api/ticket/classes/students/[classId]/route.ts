@@ -57,12 +57,13 @@ export async function GET(req: NextRequest) {
   const studentsArray = Array.isArray(ticketClass.students) ? ticketClass.students : [];
   
   for (const studentEntry of studentsArray) {
-    // Handle both cases: direct ID strings or objects with studentId
+    // Handle both cases: direct ID strings or ObjectId
     let studentId;
     if (typeof studentEntry === 'string') {
       studentId = studentEntry;
-    } else if (studentEntry && typeof studentEntry === 'object' && studentEntry.studentId) {
-      studentId = studentEntry.studentId;
+    } else if (studentEntry && typeof studentEntry === 'object') {
+      // If it's an ObjectId, convert it to string
+      studentId = studentEntry.toString();
     } else {
       continue;
     }

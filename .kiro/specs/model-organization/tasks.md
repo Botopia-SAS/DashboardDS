@@ -215,7 +215,8 @@
     - Ensure no broken import statements remain
     - _Requirements: 6.4, 6.5_
   
-  - [-] 9.2 Model functionality testing
+  - [ ] 9.2 Model functionality testing
+
 
 
 

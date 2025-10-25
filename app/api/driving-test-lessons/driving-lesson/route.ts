@@ -5,11 +5,7 @@ import { generateEventId } from "@/lib/utils";
 
 // Tipo para el instructor con las propiedades necesarias
 interface InstructorWithSchedule {
-  schedule_driving_test?: Array<{
-    date: string;
-    start: string;
-    end: string;
-  }>;
+  schedule_driving_test?: any[];
   schedule_driving_lesson?: Array<{
     date: string;
     start: string;
@@ -190,7 +186,7 @@ async function validateScheduleConflict(instructor: InstructorWithSchedule, date
     // Verificar conflictos en schedule_driving_test
     if (instructor.schedule_driving_test && Array.isArray(instructor.schedule_driving_test)) {
       for (const slot of instructor.schedule_driving_test) {
-        if (slot.date === date) {
+        if (slot && typeof slot === 'object' && slot.date === date) {
           // Verificar si hay superposición
           if (
             (start < slot.end && end > slot.start) ||

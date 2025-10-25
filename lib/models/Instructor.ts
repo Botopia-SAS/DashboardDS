@@ -13,6 +13,7 @@ interface ScheduleDrivingLesson {
   studentId: Schema.Types.ObjectId;
   studentName: string;
   paid: boolean;
+  paymentMethod?: string;
 }
 
 export interface IInstructor extends Document {
@@ -55,7 +56,8 @@ const InstructorSchema: Schema = new Schema(
       selectedProduct: String,
       studentId: { type: Schema.Types.ObjectId, ref: "User" },
       studentName: String,
-      paid: Boolean
+      paid: Boolean,
+      paymentMethod: { type: String, required: false }
     }],
   },
   { timestamps: true }

@@ -26,7 +26,7 @@ export async function GET() {
               hour: event.start,
               endHour: event.end,
               classType: event.classType || 'driving lesson',
-              requestDate: event.createdAt || new Date().toISOString(),
+              requestDate: new Date().toISOString(),
               status: event.status,
               instructorId: instructor._id,
               paymentMethod: event.paymentMethod

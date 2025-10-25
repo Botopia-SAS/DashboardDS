@@ -24,7 +24,7 @@ const PasswordResetCodeSchema: Schema = new Schema({
 
 // Index for better query performance
 PasswordResetCodeSchema.index({ code: 1 }, { unique: true });
-PasswordResetCodeSchema.index({ email: 1, used: false });
+PasswordResetCodeSchema.index({ email: 1, used: 1 });
 PasswordResetCodeSchema.index({ userId: 1 });
 PasswordResetCodeSchema.index({ expiresAt: 1 });
 

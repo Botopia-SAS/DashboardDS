@@ -66,7 +66,7 @@ export async function PATCH(
 
       // Remove from studentRequests
       ticketClass.studentRequests = ticketClass.studentRequests.filter(
-        (id: string) => id !== studentId
+        (id: any) => id.toString() !== studentId
       );
 
       // Add to students
@@ -104,7 +104,7 @@ export async function PATCH(
       }
 
       ticketClass.studentRequests = ticketClass.studentRequests.filter(
-        (id: string) => id !== studentId
+        (id: any) => id.toString() !== studentId
       );
 
       await ticketClass.save();
