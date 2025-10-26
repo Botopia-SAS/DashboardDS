@@ -31,6 +31,11 @@ export interface FieldBdiCoordinate {
   }>; // Opciones del checkbox con sus coordenadas
 }
 
+// Offsets configurables para las diferentes posiciones
+// Puedes modificar estos valores para ajustar el espaciado entre certificados
+const POSITION_2_OFFSET = 273; // Offset para el segundo certificado
+const POSITION_3_OFFSET = 548; // Offset para el tercer certificado (268 * 2)
+
 /**
  * Coordenadas para el PRIMER certificado BDI (parte superior del PDF)
  * Basado en la imagen del certificado BDI proporcionada
@@ -87,31 +92,21 @@ export const POSITION_1_BDI_COORDINATES: Record<string, FieldBdiCoordinate> = {
 
   // Name (Full name)
   firstName: {
-    x: 240,
+    x: 250,
     y: 155,
     fontSize: 7,
     fontFamily: 'Montserrat',
-    align: 'center',
+    align: 'right',
     maxWidth: 120
-  },
-
-  // Middle Name/Initial
-  middleName: {
-    x: 260,
-    y: 155,
-    fontSize: 7,
-    fontFamily: 'Montserrat',
-    align: 'center',
-    maxWidth: 30
   },
 
   // Last Name
   lastName: {
-    x: 285,
+    x: 260,
     y: 155,
     fontSize: 7,
     fontFamily: 'Montserrat',
-    align: 'center',
+    align: 'left',
     maxWidth: 150
   },
 
@@ -138,12 +133,12 @@ export const POSITION_1_BDI_COORDINATES: Record<string, FieldBdiCoordinate> = {
 
 /**
  * Coordenadas para el SEGUNDO certificado BDI (parte media del PDF)
- * Todas las Y aumentan en 276 pixels desde position 1
+ * Todas las Y aumentan en POSITION_2_OFFSET pixels desde position 1
  */
 export const POSITION_2_BDI_COORDINATES: Record<string, FieldBdiCoordinate> = {
   citationNumber: {
     x: 260,
-    y: 394, // 118 + 276
+    y: POSITION_1_BDI_COORDINATES.citationNumber.y! + POSITION_2_OFFSET,
     fontSize: 7,
     fontFamily: 'Montserrat',
     align: 'center',
@@ -152,7 +147,7 @@ export const POSITION_2_BDI_COORDINATES: Record<string, FieldBdiCoordinate> = {
 
   certn: {
     x: 415,
-    y: 404, // 128 + 276
+    y: POSITION_1_BDI_COORDINATES.certn.y! + POSITION_2_OFFSET,
     fontSize: 7,
     fontFamily: 'Montserrat',
     align: 'left',
@@ -161,7 +156,7 @@ export const POSITION_2_BDI_COORDINATES: Record<string, FieldBdiCoordinate> = {
 
   licenseNumber: {
     x: 260,
-    y: 406, // 130 + 276
+    y: POSITION_1_BDI_COORDINATES.licenseNumber.y! + POSITION_2_OFFSET,
     fontSize: 7,
     fontFamily: 'Montserrat',
     align: 'center',
@@ -170,7 +165,7 @@ export const POSITION_2_BDI_COORDINATES: Record<string, FieldBdiCoordinate> = {
 
   licenseNumber2: {
     x: 463,
-    y: 486, // 210 + 276
+    y: POSITION_1_BDI_COORDINATES.licenseNumber2.y! + POSITION_2_OFFSET,
     fontSize: 7,
     fontFamily: 'Montserrat',
     align: 'center',
@@ -179,42 +174,33 @@ export const POSITION_2_BDI_COORDINATES: Record<string, FieldBdiCoordinate> = {
 
   courseDate: {
     x: 260,
-    y: 419, // 143 + 276
+    y: POSITION_1_BDI_COORDINATES.courseDate.y! + POSITION_2_OFFSET,
     fontSize: 7,
     fontFamily: 'Montserrat',
     align: 'center'
   },
 
   firstName: {
-    x: 240,
-    y: 431, // 155 + 276
+    x: 250,
+    y: POSITION_1_BDI_COORDINATES.firstName.y! + POSITION_2_OFFSET,
     fontSize: 7,
     fontFamily: 'Montserrat',
-    align: 'center',
+    align: 'right',
     maxWidth: 120
   },
 
-  middleName: {
-    x: 260,
-    y: 431, // 155 + 276
-    fontSize: 7,
-    fontFamily: 'Montserrat',
-    align: 'center',
-    maxWidth: 30
-  },
-
   lastName: {
-    x: 285,
-    y: 431, // 155 + 276
+    x: 260,
+    y: POSITION_1_BDI_COORDINATES.lastName.y! + POSITION_2_OFFSET,
     fontSize: 7,
     fontFamily: 'Montserrat',
-    align: 'center',
+    align: 'left',
     maxWidth: 150
   },
 
   address: {
     x: 260,
-    y: 444, // 168 + 276
+    y: POSITION_1_BDI_COORDINATES.address.y! + POSITION_2_OFFSET,
     fontSize: 7,
     fontFamily: 'Montserrat',
     align: 'center',
@@ -224,7 +210,7 @@ export const POSITION_2_BDI_COORDINATES: Record<string, FieldBdiCoordinate> = {
   // Instructor Signature
   instructorSignature: {
     x: 200,
-    y: 611, // 335 + 276
+    y: POSITION_1_BDI_COORDINATES.instructorSignature.y! + POSITION_2_OFFSET,
     fontSize: 7,
     fontFamily: 'Montserrat',
     align: 'center',
@@ -234,12 +220,12 @@ export const POSITION_2_BDI_COORDINATES: Record<string, FieldBdiCoordinate> = {
 
 /**
  * Coordenadas para el TERCER certificado BDI (parte inferior del PDF)
- * Todas las Y aumentan en 552 pixels desde position 1 (276 + 276)
+ * Todas las Y aumentan en POSITION_3_OFFSET pixels desde position 1
  */
 export const POSITION_3_BDI_COORDINATES: Record<string, FieldBdiCoordinate> = {
   citationNumber: {
     x: 260,
-    y: 670, // 118 + 552
+    y: POSITION_1_BDI_COORDINATES.citationNumber.y! + POSITION_3_OFFSET,
     fontSize: 7,
     fontFamily: 'Montserrat',
     align: 'center',
@@ -248,7 +234,7 @@ export const POSITION_3_BDI_COORDINATES: Record<string, FieldBdiCoordinate> = {
 
   certn: {
     x: 415,
-    y: 680, // 128 + 552
+    y: POSITION_1_BDI_COORDINATES.certn.y! + POSITION_3_OFFSET,
     fontSize: 7,
     fontFamily: 'Montserrat',
     align: 'left',
@@ -257,7 +243,7 @@ export const POSITION_3_BDI_COORDINATES: Record<string, FieldBdiCoordinate> = {
 
   licenseNumber: {
     x: 260,
-    y: 682, // 130 + 552
+    y: POSITION_1_BDI_COORDINATES.licenseNumber.y! + POSITION_3_OFFSET,
     fontSize: 7,
     fontFamily: 'Montserrat',
     align: 'center',
@@ -266,7 +252,7 @@ export const POSITION_3_BDI_COORDINATES: Record<string, FieldBdiCoordinate> = {
 
   licenseNumber2: {
     x: 463,
-    y: 762, // 210 + 552
+    y: POSITION_1_BDI_COORDINATES.licenseNumber2.y! + POSITION_3_OFFSET,
     fontSize: 7,
     fontFamily: 'Montserrat',
     align: 'center',
@@ -275,42 +261,33 @@ export const POSITION_3_BDI_COORDINATES: Record<string, FieldBdiCoordinate> = {
 
   courseDate: {
     x: 260,
-    y: 695, // 143 + 552
+    y: POSITION_1_BDI_COORDINATES.courseDate.y! + POSITION_3_OFFSET,
     fontSize: 7,
     fontFamily: 'Montserrat',
     align: 'center'
   },
 
   firstName: {
-    x: 240,
-    y: 707, // 155 + 552
+    x: 250,
+    y: POSITION_1_BDI_COORDINATES.firstName.y! + POSITION_3_OFFSET,
     fontSize: 7,
     fontFamily: 'Montserrat',
-    align: 'center',
+    align: 'right',
     maxWidth: 120
   },
 
-  middleName: {
-    x: 260,
-    y: 707, // 155 + 552
-    fontSize: 7,
-    fontFamily: 'Montserrat',
-    align: 'center',
-    maxWidth: 30
-  },
-
   lastName: {
-    x: 285,
-    y: 707, // 155 + 552
+    x: 260,
+    y: POSITION_1_BDI_COORDINATES.lastName.y! + POSITION_3_OFFSET,
     fontSize: 7,
     fontFamily: 'Montserrat',
-    align: 'center',
+    align: 'left',
     maxWidth: 150
   },
 
   address: {
     x: 260,
-    y: 720, // 168 + 552
+    y: POSITION_1_BDI_COORDINATES.address.y! + POSITION_3_OFFSET,
     fontSize: 7,
     fontFamily: 'Montserrat',
     align: 'center',
@@ -320,7 +297,7 @@ export const POSITION_3_BDI_COORDINATES: Record<string, FieldBdiCoordinate> = {
   // Instructor Signature
   instructorSignature: {
     x: 200,
-    y: 887, // 335 + 552
+    y: POSITION_1_BDI_COORDINATES.instructorSignature.y! + POSITION_3_OFFSET,
     fontSize: 7,
     fontFamily: 'Montserrat',
     align: 'center',
