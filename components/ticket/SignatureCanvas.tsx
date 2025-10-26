@@ -43,6 +43,9 @@ export function SignatureCanvas({
       formData.append('file', tempSignature);
       formData.append('upload_preset', 'uznprz18');
       formData.append('folder', 'signatures');
+      // Asegurar que se preserve la transparencia
+      formData.append('format', 'png');
+      formData.append('quality', 'auto');
 
       const cloudName = process.env.NEXT_PUBLIC_CLOUDINARY_CLOUD_NAME;
       const response = await fetch(

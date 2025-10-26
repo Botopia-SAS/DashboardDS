@@ -41,10 +41,10 @@ export const SignatureCanvas: React.FC<SignatureCanvasProps> = ({
     ctx.lineJoin = 'round';
     ctx.strokeStyle = '#000000';
     ctx.lineWidth = 2;
-    ctx.fillStyle = '#ffffff';
     
-    // Fill canvas with white background
-    ctx.fillRect(0, 0, width, height);
+    // NO llenar con fondo blanco - dejar transparente para PNG
+    // ctx.fillStyle = '#ffffff';
+    // ctx.fillRect(0, 0, width, height);
     
     setContext(ctx);
 
@@ -53,7 +53,8 @@ export const SignatureCanvas: React.FC<SignatureCanvasProps> = ({
       const img = new Image();
       img.onload = () => {
         ctx.clearRect(0, 0, width, height);
-        ctx.fillRect(0, 0, width, height);
+        // NO llenar con fondo blanco - mantener transparente
+        // ctx.fillRect(0, 0, width, height);
         ctx.drawImage(img, 0, 0, width, height);
         setHasSignature(true);
       };
@@ -145,7 +146,8 @@ export const SignatureCanvas: React.FC<SignatureCanvasProps> = ({
     if (!context || disabled) return;
 
     context.clearRect(0, 0, width, height);
-    context.fillRect(0, 0, width, height);
+    // NO llenar con fondo blanco - mantener transparente
+    // context.fillRect(0, 0, width, height);
     setHasSignature(false);
     onSignatureChange(null);
   }, [context, disabled, width, height, onSignatureChange]);
@@ -184,7 +186,7 @@ export const SignatureCanvas: React.FC<SignatureCanvasProps> = ({
           width={width}
           height={height}
           className={`
-            border border-gray-300 rounded-md bg-white
+            border-2 border-gray-400 rounded-md
             ${disabled ? 'cursor-not-allowed opacity-50' : 'cursor-crosshair'}
             touch-none
           `}
@@ -197,6 +199,7 @@ export const SignatureCanvas: React.FC<SignatureCanvasProps> = ({
           onTouchEnd={handleTouchEnd}
           style={{
             touchAction: 'none',
+            background: 'repeating-linear-gradient(45deg, #f9f9f9, #f9f9f9 10px, #ffffff 10px, #ffffff 20px)',
           }}
         />
         
