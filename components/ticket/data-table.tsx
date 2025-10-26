@@ -27,6 +27,7 @@ import { useDynamicCertificateGenerator } from "./hooks/use-dynamic-certificate-
 import { use8HoursCertificateGenerator } from "./hooks/use-8hours-certificate-generator";
 import { useAdiCertificateGenerator } from "./hooks/use-adi-certificate-generator";
 import { useBdiCertificateGenerator } from "./hooks/use-bdi-certificate-generator";
+import { useDateCertificateGenerator } from "./hooks/use-date-certificate-generator";
 import { useYouthfulOffenderCertificateGenerator } from "./hooks/use-youthful-offender-certificate-generator";
 import { RowActionButtons } from "./row-action-buttons";
 import { TableActions } from "./table-actions";
@@ -67,6 +68,7 @@ export function DataTable({ columns, data, onUpdate, template }: DataTableProps)
   const { generateSingle8HoursCertificate, generateMultiple8HoursCertificates } = use8HoursCertificateGenerator();
   const { generateSingleAdiCertificate, generateMultipleAdiCertificates } = useAdiCertificateGenerator();
   const { generateSingleBdiCertificate, generateMultipleBdiCertificates } = useBdiCertificateGenerator();
+  const { generateDateCertificatePDF, generateMultipleDateCertificates, generateCombinedDateCertificates } = useDateCertificateGenerator();
   const { generateSingleYouthfulOffenderCertificate, generateMultipleYouthfulOffenderCertificates } = useYouthfulOffenderCertificateGenerator();
 
   const table = useReactTable({
@@ -136,17 +138,38 @@ export function DataTable({ columns, data, onUpdate, template }: DataTableProps)
         }
       }
 
-      if (!template) {
-        console.log(`⚠️ No template found, using default BDI template for ${certType}`);
-        const { getDefaultBDITemplate } = await import("@/lib/defaultTemplates/bdiTemplate");
-        template = getDefaultBDITemplate(certType);
-      }
-
-      // Detectar si es un certificado de 8 horas, ADI, BDI o Youthful Offender
+      // Detectar si es un certificado de 8 horas, ADI, BDI, DATE o Youthful Offender
       const is8Hours = certType.includes('8-HOURS') || certType.includes('8 HOURS');
       const isAdi = certType.includes('ADI');
       const isBdi = certType.includes('BDI');
+      const isDate = certType === 'DATE';
       const isYouthfulOffender = certType.includes('YOUTHFUL OFFENDER') || certType.includes('YOUTHFUL-OFFENDER');
+
+      if (!template) {
+        if (isDate) {
+          console.log(`⚠️ No template found for DATE, using DATE template`);
+          // Para DATE, crear un template básico con el path correcto
+          template = {
+            name: 'DATE Certificate',
+            certificatesPerPage: 1,
+            pdfTemplatePath: '/templates_certificates/date.pdf',
+            pageSize: { width: 792, height: 612, orientation: 'landscape' },
+            background: {
+              type: 'pdf',
+              value: '/templates_certificates/date.pdf'
+            },
+            shapeElements: [],
+            textElements: [],
+            imageElements: [],
+            checkboxElements: [],
+            availableVariables: []
+          };
+        } else {
+          console.log(`⚠️ No template found, using default BDI template for ${certType}`);
+          const { getDefaultBDITemplate } = await import("@/lib/defaultTemplates/bdiTemplate");
+          template = getDefaultBDITemplate(certType);
+        }
+      }
 
       // Para certificados de 8 horas, ADI, BDI y Youthful Offender, siempre usar 3 por página
       const certsPerPage = (is8Hours || isAdi || isBdi || isYouthfulOffender) ? 3 : (template.certificatesPerPage || 1);
@@ -226,6 +249,24 @@ export function DataTable({ columns, data, onUpdate, template }: DataTableProps)
         setRowSelection({});
         toast.dismiss(loadingToast);
         toast.success(`${pdfBlobs.length} PDF(s) YO generados con ${validStudents.length} certificado(s) en total`);
+      } else if (isDate) {
+        console.log('🎓 Using DATE certificate generator for ZIP download');
+        const pdfBlobs = await generateMultipleDateCertificates(validStudents);
+
+        pdfBlobs.forEach((pdfBlob, index) => {
+          const student = validStudents[index];
+          const name = `${student.first_name} ${student.last_name}`.replace(/[^a-zA-Z0-9\s]/g, '').trim();
+          const pdfFileName = `${name.replace(/\s+/g, "_")}_Certificado_DATE_${student.certn}.pdf`;
+          zip.file(pdfFileName, pdfBlob);
+        });
+
+        const zipBlob = await zip.generateAsync({ type: "blob" });
+        const zipFileName = `Certificados_DATE_${validStudents.length}_estudiantes_${new Date().toISOString().split('T')[0]}.zip`;
+        saveAs(zipBlob, zipFileName);
+
+        setRowSelection({});
+        toast.dismiss(loadingToast);
+        toast.success(`${validStudents.length} certificado(s) DATE generados (1 por estudiante)`);
       } else {
         console.log('🎓 Using standard certificate generator for multiple PDFs');
         const numPDFs = Math.ceil(validStudents.length / certsPerPage);
@@ -313,17 +354,38 @@ export function DataTable({ columns, data, onUpdate, template }: DataTableProps)
         }
       }
 
-      if (!template) {
-        console.log(`⚠️ No template found, using default BDI template for ${certType}`);
-        const { getDefaultBDITemplate } = await import("@/lib/defaultTemplates/bdiTemplate");
-        template = getDefaultBDITemplate(certType);
-      }
-
-      // Detectar si es un certificado de 8 horas, ADI, BDI o Youthful Offender
+      // Detectar si es un certificado de 8 horas, ADI, BDI, DATE o Youthful Offender
       const is8Hours = certType.includes('8-HOURS') || certType.includes('8 HOURS');
       const isAdi = certType.includes('ADI');
       const isBdi = certType.includes('BDI');
+      const isDate = certType === 'DATE';
       const isYouthfulOffender = certType.includes('YOUTHFUL OFFENDER') || certType.includes('YOUTHFUL-OFFENDER');
+
+      if (!template) {
+        if (isDate) {
+          console.log(`⚠️ No template found for DATE, using DATE template`);
+          // Para DATE, crear un template básico con el path correcto
+          template = {
+            name: 'DATE Certificate',
+            certificatesPerPage: 1,
+            pdfTemplatePath: '/templates_certificates/date.pdf',
+            pageSize: { width: 792, height: 612, orientation: 'landscape' },
+            background: {
+              type: 'pdf',
+              value: '/templates_certificates/date.pdf'
+            },
+            shapeElements: [],
+            textElements: [],
+            imageElements: [],
+            checkboxElements: [],
+            availableVariables: []
+          };
+        } else {
+          console.log(`⚠️ No template found, using default BDI template for ${certType}`);
+          const { getDefaultBDITemplate } = await import("@/lib/defaultTemplates/bdiTemplate");
+          template = getDefaultBDITemplate(certType);
+        }
+      }
 
       // Para certificados de 8 horas, ADI, BDI y Youthful Offender, siempre usar 3 por página
       const certsPerPage = (is8Hours || isAdi || isBdi || isYouthfulOffender) ? 3 : (template.certificatesPerPage || 1);
@@ -399,6 +461,9 @@ export function DataTable({ columns, data, onUpdate, template }: DataTableProps)
         } else {
           pdfBlob = Array.isArray(result) ? result[0] : result;
         }
+      } else if (isDate) {
+        console.log('🎓 Using DATE certificate generator for combined PDF');
+        pdfBlob = await generateCombinedDateCertificates(validStudents);
       } else {
         console.log('🎓 Using standard certificate generator');
         pdfBlob = await generateMultipleCertificatesPDF(validStudents, template);
