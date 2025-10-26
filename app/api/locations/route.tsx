@@ -29,7 +29,7 @@ export const POST = async (req: NextRequest) => {
 
     return NextResponse.json(newLocation, { status: 200 });
   } catch (err) {
-    console.log("[locations_POST]", err);
+
     return new NextResponse("Internal Server Error", { status: 500 });
   }
 };
@@ -41,7 +41,7 @@ export const GET = async () => {
 
     return NextResponse.json(locations, { status: 200 });
   } catch (err) {
-    console.log("[locations_GET]", err);
+
     return new NextResponse("Internal Server Error", { status: 500 });
   }
 };

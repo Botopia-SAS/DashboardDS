@@ -62,18 +62,16 @@ export function useMultiCertificateDownloader() {
 
       // Convert PDF to bytes
       const pdfBytes = await pdfDoc.save();
-      console.log('PDF generated successfully, size:', pdfBytes.length);
 
       // Create download
       const blob = new Blob([new Uint8Array(pdfBytes)], { type: 'application/pdf' });
       const fileName = `ADI_Certificates_Combined_${new Date().toISOString().split('T')[0]}.pdf`;
       
-      console.log('Attempting to download:', fileName);
-      
+
       // Try multiple download methods
       try {
         saveAs(blob, fileName);
-        console.log('Download initiated with saveAs');
+
       } catch (error) {
         console.error('saveAs failed, trying alternative method:', error);
         
@@ -86,7 +84,7 @@ export function useMultiCertificateDownloader() {
         link.click();
         document.body.removeChild(link);
         URL.revokeObjectURL(url);
-        console.log('Download initiated with alternative method');
+
       }
 
       return true;

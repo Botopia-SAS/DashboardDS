@@ -16,7 +16,6 @@ export async function PATCH(
     const body = await req.json();
     const { status, studentId, studentName, paymentMethod } = body;
 
-    console.log('🎯 Rejecting driving test:', { instructorId, testId, status, studentId, studentName, paymentMethod });
 
     // Buscar el instructor
     const instructor = await Instructor.findById(instructorId);
@@ -62,7 +61,6 @@ export async function PATCH(
 
     await instructor.save();
 
-    console.log('✅ Driving test rejected successfully');
 
     // Enviar notificación SSE en tiempo real
     broadcastNotification('driving_test_update', {

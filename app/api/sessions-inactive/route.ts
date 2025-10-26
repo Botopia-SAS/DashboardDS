@@ -67,7 +67,6 @@ export async function GET(request: NextRequest) {
 
         // No enviar keep-alive automático - solo datos reales cuando cambien
         // Esto reduce significativamente las peticiones innecesarias
-        console.log('✅ Sessions inactive stream established - no automatic keep-alive');
 
         // Clean up on close
         request.signal.addEventListener('abort', () => {

@@ -26,19 +26,17 @@ const getSocketIOServer = (): SocketIOServer => {
         },
       });
 
-      console.log("✓ Socket.IO server initialized on port 3001");
 
       // Handle cleanup on process termination
       global.socketIO.on("connection", (socket) => {
-        console.log("Client connected:", socket.id);
 
         socket.on("disconnect", () => {
-          console.log("Client disconnected:", socket.id);
+
         });
       });
     } catch (error: unknown) {
       if (error && typeof error === 'object' && 'code' in error && error.code === 'EADDRINUSE') {
-        console.log("⚠ Port 3001 already in use, reusing existing connection");
+
         // Return existing instance if port is in use
         if (global.socketIO) {
           return global.socketIO;

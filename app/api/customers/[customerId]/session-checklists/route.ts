@@ -16,7 +16,6 @@ export async function GET(req: NextRequest) {
       );
     }
 
-    console.log("🔍 Searching for session checklists for customer:", customerId);
 
     // Find all checklists for this student
     const checklists = await SessionChecklist.find({
@@ -26,7 +25,6 @@ export async function GET(req: NextRequest) {
       .lean()
       .sort({ createdAt: -1 });
 
-    console.log(`✅ Found ${checklists.length} session checklists for customer`);
 
     // Calculate progress for each checklist
     const checklistsWithProgress = checklists.map((checklist) => {

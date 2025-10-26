@@ -183,7 +183,7 @@ export async function POST(req: Request) {
       // Guardar el schedule actualizado del instructor
       // Note: Since IInstructor doesn't have a 'schedule' property, we'll skip this update
       // The schedule should be managed through schedule_driving_test and schedule_driving_lesson
-      console.log(`[API] Skipping schedule update for instructor ${instructorId} - schedule property not available in IInstructor interface`);
+
     }
     
     const response = createdClasses.map((ticketClass, idx) => ({

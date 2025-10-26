@@ -26,7 +26,7 @@ const Locations = () => {
       setHeadquarters(data);
       setLoading(false);
     } catch (err) {
-      console.log("[headquarters_GET]", err);
+
     }
   };
 

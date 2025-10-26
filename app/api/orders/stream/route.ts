@@ -82,7 +82,7 @@ export async function GET(request: NextRequest) {
   // Handle change stream events
   changeStream.on('change', async (change) => {
     try {
-      console.log('📦 Order change detected:', change.operationType);
+
       const orders = await getSerializedOrders();
       sendToAllClients({ orders, timestamp: new Date().toISOString() });
     } catch (error) {
@@ -99,14 +99,14 @@ export async function GET(request: NextRequest) {
       getSerializedOrders().then(orders => {
         const message = `data: ${JSON.stringify({ orders, timestamp: new Date().toISOString() })}\n\n`;
         controller.enqueue(new TextEncoder().encode(message));
-        console.log('✅ Orders SSE stream established');
+
       });
 
       // Clean up on close
       request.signal.addEventListener('abort', () => {
         connections.delete(controller);
         changeStream.close();
-        console.log('🔌 Orders SSE connection closed');
+
       });
     }
   });

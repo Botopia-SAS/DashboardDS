@@ -35,13 +35,13 @@ export const connectToDB = async (): Promise<void> => {
   mongoose.set("strictQuery", true);
 
   if (isConnected) {
-    console.log("MongoDB is already connected");
+
     return;
   }
 
   // Si ya hay una conexión en caché, la reutiliza
   if (cached.conn) {
-    console.log("✅ Using cached MongoDB connection");
+
     isConnected = true;
     return;
   }
@@ -60,7 +60,7 @@ export const connectToDB = async (): Promise<void> => {
     (global as any).mongoose = cached;
 
     isConnected = true;
-    console.log("✅ MongoDB is connected correctly");
+
   } catch (err) {
     console.error("❌ Error connecting to MongoDB:", err);
     throw new Error("Database connection failed");

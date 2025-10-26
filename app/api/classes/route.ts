@@ -35,8 +35,7 @@ export async function POST(req: Request) {
 
     await newClass.save();
 
-    console.log("[DEBUG] Guardado en MongoDB:", newClass); 
-    
+
     return NextResponse.json(newClass, { status: 201 });
 
   } catch (error) {

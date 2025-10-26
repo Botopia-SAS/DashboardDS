@@ -29,28 +29,24 @@ export default function GlobalNotifications({ className, iconColor = "text-gray-
   // Function to fetch all counts
   const fetchAllCounts = async () => {
     try {
-      console.log('🔄 Fetching all notification counts...');
 
       // Fetch tickets count
       const ticketsRes = await fetch('/api/ticket/pending');
       const tickets = await ticketsRes.json();
       const ticketsCount = Array.isArray(tickets) ? tickets.length : 0;
       setTicketCount(ticketsCount);
-      console.log(`🎫 Tickets count: ${ticketsCount}`);
 
       // Fetch driving test count
       const drivingTestRes = await fetch('/api/driving-test-lessons/pending');
       const drivingTests = await drivingTestRes.json();
       const drivingTestsCount = Array.isArray(drivingTests) ? drivingTests.length : 0;
       setDrivingTestCount(drivingTestsCount);
-      console.log(`🚗 Driving test count: ${drivingTestsCount}`);
 
       // Fetch driving lessons count
       const lessonsRes = await fetch('/api/instructors/pending');
       const lessons = await lessonsRes.json();
       const lessonsCount = Array.isArray(lessons) ? lessons.length : 0;
       setDrivingLessonsCount(lessonsCount);
-      console.log(`🎓 Driving lessons count: ${lessonsCount}`);
 
       // Trigger event for other components to refresh
       window.dispatchEvent(new CustomEvent('notificationRefresh'));
@@ -68,8 +64,6 @@ export default function GlobalNotifications({ className, iconColor = "text-gray-
   useEffect(() => {
     if (notifications.length > 0) {
       const latestNotification = notifications[notifications.length - 1];
-      console.log('🔔 Nueva notificación recibida en GlobalNotifications:', latestNotification);
-      console.log('🔔 Tipo:', latestNotification.type);
 
       // Immediately fetch new counts
       fetchAllCounts();

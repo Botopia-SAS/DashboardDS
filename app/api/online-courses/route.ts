@@ -53,7 +53,6 @@ export async function DELETE(req: NextRequest) {
       return NextResponse.json({ message: "Course ID is required" }, { status: 400 });
     }
 
-    console.log("📌 Intentando eliminar:", courseId);
 
     const deletedCourse = await OnlineCourse.findByIdAndDelete(courseId);
     if (!deletedCourse) {

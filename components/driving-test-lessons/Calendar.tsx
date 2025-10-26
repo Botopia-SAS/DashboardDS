@@ -95,7 +95,7 @@ const Calendar: React.FC<CalendarProps> = ({ selectedInstructor, targetDate, tar
   // Efecto para navegar a la fecha objetivo desde notificaciones y resaltar evento específico
   useEffect(() => {
     if (targetDate && calendarRef.current) {
-      console.log(`🎯 Navigating to target date: ${targetDate}, type: ${targetType}, eventId: ${targetEventId}`);
+
       const calendarApi = calendarRef.current.getApi();
       calendarApi.gotoDate(targetDate);
 

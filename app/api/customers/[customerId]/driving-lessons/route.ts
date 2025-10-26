@@ -16,7 +16,6 @@ export async function GET(req: NextRequest) {
       );
     }
 
-    console.log("🔍 Searching for driving lessons for customer:", customerId);
 
     // Find all instructors with driving lessons for this student
     // Note: We need to find all instructors and filter manually because studentId might be stored as string
@@ -24,7 +23,6 @@ export async function GET(req: NextRequest) {
       schedule_driving_lesson: { $exists: true, $ne: [] }
     }).lean();
 
-    console.log(`📚 Found ${instructors.length} instructors with driving lessons`);
 
     const drivingLessons: any[] = [];
 
@@ -40,11 +38,7 @@ export async function GET(req: NextRequest) {
           const targetCustomerId = customerId.toString();
 
           if (slot && slotStudentId === targetCustomerId) {
-            console.log("✅ Found driving lesson match:", {
-              instructor: instructor.name,
-              date: slot.date,
-              studentId: slotStudentId
-            });
+
             drivingLessons.push({
               _id: slot._id || `${instructor._id}_${slot.date}_${slot.start}`,
               instructorName: instructor.name,
@@ -69,7 +63,6 @@ export async function GET(req: NextRequest) {
     // Sort by date descending
     drivingLessons.sort((a, b) => new Date(b.date).getTime() - new Date(a.date).getTime());
 
-    console.log(`✅ Returning ${drivingLessons.length} driving lessons for customer`);
 
     return NextResponse.json(drivingLessons, { status: 200 });
   } catch (error) {

@@ -149,7 +149,7 @@ export const useTicketCalendarData = (classType: string, refreshKey: number) => 
   // Listen for real-time updates
   useEffect(() => {
     const handleCalendarRefresh = () => {
-      console.log('🔄 Calendar refresh triggered from external event');
+
       fetchTicketClasses();
     };
 

@@ -93,7 +93,7 @@ export async function POST(req: NextRequest) {
         if (!hasConflict) {
           eventsToCreate.push({ date: dateToCheck, start, end });
         } else {
-          console.log(`⚠️ Skipping date ${dateToCheck} due to schedule conflict`);
+
         }
       }
     } else {

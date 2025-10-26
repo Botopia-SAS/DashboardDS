@@ -1,15 +1,13 @@
 import { addConnection, removeConnection } from "@/lib/notifications";
 
 export async function GET() {
-  console.log('🔌 New SSE connection request');
 
   // Create a new SSE stream
   const stream = new ReadableStream({
     start(controller) {
       // Add this connection to the set
       addConnection(controller);
-      console.log('➕ SSE connection added');
-      
+
       // Send initial connection message
       const data = JSON.stringify({
         type: 'connection',
@@ -19,14 +17,12 @@ export async function GET() {
       
       controller.enqueue(`data: ${data}\n\n`);
       
-      console.log('✅ SSE connection established');
 
       // No hacer ping automático - solo cuando haya actividad real
       // Esto reduce significativamente las peticiones innecesarias
       // La conexión SSE se mantiene viva naturalmente con las notificaciones reales
       
-      console.log('✅ SSE connection established - no automatic pings');
-      
+
       // Store controller for cleanup
       const controllerWithCleanup = controller as ReadableStreamDefaultController & { 
         _cleanup?: () => void;
@@ -44,7 +40,7 @@ export async function GET() {
         controllerWithCleanup._cleanup();
       }
       removeConnection(controller);
-      console.log('🔌 SSE connection closed');
+
     }
   });
 

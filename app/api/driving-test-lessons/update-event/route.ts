@@ -80,8 +80,7 @@ export async function PUT(req: NextRequest) {
 
     // Si no se encuentra con _id, buscar por el patrón del ID generado
     if (!eventExists) {
-      console.log(`Event not found with _id, trying to find by generated ID pattern`);
-      
+
       // Buscar en schedule_driving_test
       if (instructor.schedule_driving_test) {
         const drivingTestSchedule = instructor.schedule_driving_test;
@@ -122,7 +121,6 @@ export async function PUT(req: NextRequest) {
     let movedToDifferentCollection = false;
     let finalEventId = eventId;
     if (originalClassType && originalClassType !== classType) {
-      console.log(`Moving event from ${originalClassType} to ${classType}`);
 
       // Primero, eliminar de ambas colecciones para asegurar limpieza
       await Instructor.updateOne(
@@ -171,8 +169,7 @@ export async function PUT(req: NextRequest) {
       finalEventId = newEventId;
     } else {
       // Actualizar en la misma colección (mismo tipo de clase)
-      console.log(`Updating event in same class type: ${classType}`);
-      
+
       const updateDataBase = {
         date,
         start,
@@ -210,8 +207,7 @@ export async function PUT(req: NextRequest) {
     let newAvailableSlotId = null;
 
     if (isBeingCancelled && originalEvent) {
-      console.log(`Creating available slot for cancelled event: ${eventId}`);
-      
+
       // Crear un nuevo evento "available" con las mismas características
       const availableSlotId = generateEventId(originalEvent.classType, instructorId, originalEvent.date, originalEvent.start);
       const availableSlot: AvailableSlot = {
@@ -249,7 +245,7 @@ export async function PUT(req: NextRequest) {
       }
 
       newAvailableSlotId = availableSlotId;
-      console.log(`✅ Created available slot ${availableSlotId} for cancelled event`);
+
     }
 
     // Verificar que el evento se actualizó correctamente

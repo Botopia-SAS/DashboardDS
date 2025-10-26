@@ -11,7 +11,6 @@ export const highlightEventById = (targetId: string, onComplete?: () => void) =>
 
   const findAndHighlightElement = () => {
     attempts++;
-    console.log(`🔍 Attempt ${attempts}/${maxAttempts} to find element`);
 
     const selectors = [
       `[data-event-id="${targetId}"]`,
@@ -24,19 +23,18 @@ export const highlightEventById = (targetId: string, onComplete?: () => void) =>
     for (const selector of selectors) {
       eventElement = document.querySelector(selector);
       if (eventElement) {
-        console.log(`✅ Found element with selector: ${selector}`);
+
         break;
       }
     }
 
     if (!eventElement) {
       const allEvents = document.querySelectorAll('.fc-event');
-      console.log(`🔍 Searching through ${allEvents.length} calendar events for ID match`);
 
       for (const event of allEvents) {
         if (event.getAttribute('data-event-id') === targetId || event.id === targetId) {
           eventElement = event;
-          console.log('✅ Found element by ID match');
+
           break;
         }
       }
@@ -59,7 +57,6 @@ export const highlightEventById = (targetId: string, onComplete?: () => void) =>
  * Apply highlight effect to an element
  */
 const applyHighlight = (eventElement: HTMLElement) => {
-  console.log('🎉 Element found! Applying highlight');
 
   eventElement.scrollIntoView({
     behavior: 'smooth',
@@ -70,7 +67,7 @@ const applyHighlight = (eventElement: HTMLElement) => {
   eventElement.classList.add('highlight-notification-event');
 
   setTimeout(() => {
-    console.log('🔄 Removing highlight after 5 seconds');
+
     eventElement.classList.remove('highlight-notification-event');
   }, 5000);
 };

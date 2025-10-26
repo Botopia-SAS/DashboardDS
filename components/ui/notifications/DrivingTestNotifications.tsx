@@ -57,8 +57,7 @@ export default function DrivingTestNotifications({ isOpen }: DrivingTestNotifica
     
     try {
       setProcessingId(notification.id);
-      console.log('✅ Accepting driving test:', notification.id);
-      
+
       const response = await fetch(`/api/instructors/${notification.instructorId}/schedule/driving-test/${notification.id}/accept`, {
         method: 'PATCH',
         headers: {
@@ -71,14 +70,13 @@ export default function DrivingTestNotifications({ isOpen }: DrivingTestNotifica
       });
 
       if (response.ok) {
-        console.log('✅ Driving test accepted successfully');
-        
+
         // Actualizar inmediatamente la lista filtrando el item aceptado
         setNotifications(prev => prev.filter(n => n.id !== notification.id));
         
         // Agregar delay más largo para asegurar que la DB se actualice completamente
         setTimeout(() => {
-          console.log('🔄 Refreshing driving test notifications after accept...');
+
           fetchDrivingTestNotifications();
           // Disparar evento global de actualización
           window.dispatchEvent(new CustomEvent('notificationRefresh'));
@@ -98,8 +96,7 @@ export default function DrivingTestNotifications({ isOpen }: DrivingTestNotifica
     
     try {
       setProcessingId(notification.id);
-      console.log('❌ Rejecting driving test:', notification.id);
-      
+
       const response = await fetch(`/api/instructors/${notification.instructorId}/schedule/driving-test/${notification.id}/reject`, {
         method: 'PATCH',
         headers: {
@@ -114,14 +111,13 @@ export default function DrivingTestNotifications({ isOpen }: DrivingTestNotifica
       });
 
       if (response.ok) {
-        console.log('✅ Driving test rejected successfully');
-        
+
         // Actualizar inmediatamente la lista filtrando el item rechazado
         setNotifications(prev => prev.filter(n => n.id !== notification.id));
         
         // Agregar delay más largo para asegurar que la DB se actualice completamente
         setTimeout(() => {
-          console.log('🔄 Refreshing driving test notifications after reject...');
+
           fetchDrivingTestNotifications();
           // Disparar evento global de actualización
           window.dispatchEvent(new CustomEvent('notificationRefresh'));
@@ -146,13 +142,11 @@ export default function DrivingTestNotifications({ isOpen }: DrivingTestNotifica
   const fetchDrivingTestNotifications = async () => {
     try {
       setLoading(true);
-      console.log('🔄 Fetching driving test notifications...');
-      
+
       const response = await fetch('/api/instructors');
       const instructors: Instructor[] = await response.json();
       
-      console.log('📥 Instructors response:', instructors.length, 'instructors');
-      
+
       if (Array.isArray(instructors)) {
         
         // Filtrar instructores que pueden enseñar driving tests
@@ -160,19 +154,12 @@ export default function DrivingTestNotifications({ isOpen }: DrivingTestNotifica
           instructor.schedule_driving_test && instructor.schedule_driving_test.length > 0
         );
         
-        console.log('🚗 Instructors with driving tests:', drivingTestInstructors.length);
-        
+
         // Log detallado de cada instructor y sus tests
         drivingTestInstructors.forEach(instructor => {
-          console.log(`📋 Instructor: ${instructor.name} has ${instructor.schedule_driving_test?.length || 0} tests`);
+
           instructor.schedule_driving_test?.forEach((test, index) => {
-            console.log(`  Test ${index + 1}:`, {
-              id: test._id,
-              status: test.status,
-              paymentMethod: test.paymentMethod,
-              studentName: test.studentName,
-              date: test.date
-            });
+
           });
         });
         
@@ -182,8 +169,7 @@ export default function DrivingTestNotifications({ isOpen }: DrivingTestNotifica
         drivingTestInstructors.forEach(instructor => {
           instructor.schedule_driving_test.forEach(test => {
             if (test.status === 'pending' && test.paymentMethod === 'local') {
-              console.log(`✅ Found pending local driving test for ${test.studentName}`);
-              console.log(`💰 Test amount: ${test.amount}`);
+
               drivingTestNotifications.push({
                 id: test._id,
                 title: 'New Driving Test Request',
@@ -202,26 +188,15 @@ export default function DrivingTestNotifications({ isOpen }: DrivingTestNotifica
                 paid: test.paid
               });
             } else {
-              console.log(`❌ Test filtered out:`, {
-                id: test._id,
-                status: test.status,
-                paymentMethod: test.paymentMethod,
-                reason: test.status !== 'pending' ? 'status not pending' : 'payment method not local'
-              });
+
             }
           });
         });
         
-        console.log('✅ Created driving test notifications:', drivingTestNotifications.length);
-        console.log('🔍 Notifications details:', drivingTestNotifications.map(n => ({
-          id: n.id,
-          studentName: n.studentName,
-          status: n.status,
-          date: n.date
-        })));
+
         setNotifications(drivingTestNotifications);
       } else {
-        console.log('❌ API response is not an array:', instructors);
+
         setNotifications([]);
       }
     } catch (error) {
@@ -247,7 +222,7 @@ export default function DrivingTestNotifications({ isOpen }: DrivingTestNotifica
   // Escuchar eventos de actualización global
   useEffect(() => {
     const handleGlobalRefresh = () => {
-      console.log('🔄 Global driving test refresh received');
+
       fetchDrivingTestNotifications();
     };
 
@@ -398,7 +373,7 @@ export function useDrivingTestNotificationsCount() {
         
         setCount(totalCount);
       } else {
-        console.log('❌ API response is not an array for count:', instructors);
+
         setCount(0);
       }
     } catch (error) {
@@ -412,7 +387,7 @@ export function useDrivingTestNotificationsCount() {
     if (notifications.length > 0) {
       const latestNotification = notifications[notifications.length - 1];
       if (latestNotification.type === 'driving-test') {
-        console.log('🚗 Driving test notification received, updating count');
+
         fetchCount();
       }
     }
@@ -421,7 +396,7 @@ export function useDrivingTestNotificationsCount() {
   // Escuchar eventos de actualización global (mantener compatibilidad)
   useEffect(() => {
     const handleGlobalRefresh = () => {
-      console.log('🔄 Global driving test count refresh received');
+
       fetchCount();
     };
 

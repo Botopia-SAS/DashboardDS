@@ -43,8 +43,6 @@ export async function PUT(
     const { classId } = await params;
     const body = await request.json();
 
-    console.log("🔄 [PUT_CLASS] Updating class ID:", classId);
-    console.log("🔄 [PUT_CLASS] Request body:", JSON.stringify(body, null, 2));
 
     // Validate classId
     if (!classId || classId === 'undefined') {
@@ -77,7 +75,6 @@ export async function PUT(
       );
     }
 
-    console.log("✅ [PUT_CLASS] Existing class found:", existingClass.title);
 
     // Remove _id from body if it exists to avoid conflicts
     // eslint-disable-next-line @typescript-eslint/no-unused-vars
@@ -86,20 +83,15 @@ export async function PUT(
     // Add updatedAt timestamp
     updateData.updatedAt = new Date();
 
-    console.log("🔄 [PUT_CLASS] Update data:", JSON.stringify(updateData, null, 2));
-    console.log("🔄 [PUT_CLASS] ClassType being saved:", updateData.classType);
-    console.log("🔄 [PUT_CLASS] ClassType type:", typeof updateData.classType);
-    console.log("🔄 [PUT_CLASS] Length being saved:", updateData.length);
-    console.log("🔄 [PUT_CLASS] Price being saved:", updateData.price);
 
     // Asegurar que classType se preserve exactamente como viene
     if (updateData.classType) {
-      console.log("🔄 [PUT_CLASS] Preserving classType as:", updateData.classType);
+
     }
 
     let updatedClass;
     try {
-      console.log("🔄 [PUT_CLASS] Attempting database update...");
+
       updatedClass = await DrivingClass.findByIdAndUpdate(
         classId,
         updateData,
@@ -109,7 +101,7 @@ export async function PUT(
           upsert: false // Don't create if not exists
         }
       );
-      console.log("✅ [PUT_CLASS] Database update successful");
+
     } catch (dbError) {
       console.error("❌ [PUT_CLASS] Database update failed:", dbError);
       throw dbError; // Re-throw to be caught by outer catch
@@ -123,11 +115,6 @@ export async function PUT(
       );
     }
 
-    console.log("✅ [PUT_CLASS] Class updated successfully:", updatedClass.title);
-    console.log("✅ [PUT_CLASS] Updated ClassType:", updatedClass.classType);
-    console.log("✅ [PUT_CLASS] Updated Length:", updatedClass.length);
-    console.log("✅ [PUT_CLASS] Updated Price:", updatedClass.price);
-    console.log("✅ [PUT_CLASS] Updated At:", updatedClass.updatedAt);
 
     return NextResponse.json({
       success: true,
@@ -169,7 +156,6 @@ export async function DELETE(
 
     const { classId } = await params;
 
-    console.log("🗑️ [DELETE_CLASS] Deleting class ID:", classId);
 
     // Validate classId
     if (!classId || classId === 'undefined') {
@@ -190,12 +176,10 @@ export async function DELETE(
       );
     }
 
-    console.log("✅ [DELETE_CLASS] Deleting class:", existingClass.title);
 
     // Delete the class
     await DrivingClass.findByIdAndDelete(classId);
 
-    console.log("✅ [DELETE_CLASS] Class deleted successfully");
 
     return NextResponse.json({
       success: true,

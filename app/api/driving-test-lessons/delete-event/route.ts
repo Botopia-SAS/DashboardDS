@@ -18,7 +18,6 @@ export async function DELETE(req: NextRequest) {
       );
     }
 
-    console.log(`Attempting to delete event: ${eventId}`);
 
     // Buscar el instructor que tiene este evento
     const instructor = await Instructor.findOne({
@@ -30,8 +29,7 @@ export async function DELETE(req: NextRequest) {
 
     // Si no se encuentra el instructor o el evento, intentar buscar por el ID generado
     if (!instructor) {
-      console.log(`Event not found with _id, trying to find by generated ID pattern`);
-      
+
       // Buscar por el patrón del ID generado
       const allInstructors = await Instructor.find({});
       let foundInstructor = null;
@@ -69,16 +67,14 @@ export async function DELETE(req: NextRequest) {
       }
 
       if (foundInstructor && foundEvent) {
-        console.log(`Found event in ${foundArray} for instructor ${foundInstructor._id}`);
-        
+
         // Eliminar el evento específico del array
         const result = await Instructor.updateOne(
           { _id: foundInstructor._id },
           { $pull: { [foundArray as string]: foundEvent } }
         );
 
-        console.log(`Delete result: ${result.modifiedCount} documents modified`);
-        
+
         return NextResponse.json(
           { message: "Event deleted successfully" },
           { status: 200 }
@@ -99,8 +95,7 @@ export async function DELETE(req: NextRequest) {
         { $pull: { schedule_driving_lesson: { _id: eventId } } }
       );
 
-      console.log(`Deleted event ${eventId} from instructor ${instructor._id}`);
-      console.log(`Test result: ${testResult.modifiedCount}, Lesson result: ${lessonResult.modifiedCount}`);
+
     }
 
     // Si no se eliminó nada, no importa - el evento ya no existe

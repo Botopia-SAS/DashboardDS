@@ -4,22 +4,17 @@ import { connectToDB } from "@/lib/mongoDB";
 
 export async function GET() {
   try {
-    console.log("[DEBUG] Starting database check...");
-    
+
     await connectToDB();
-    console.log("[DEBUG] ✅ Database connected successfully");
 
     // Count total users
     const userCount = await User.countDocuments();
-    console.log("[DEBUG] Total users in database:", userCount);
 
     // Check for admin user specifically
     const adminUser = await User.findOne({ email: "admin@drivingschool.com" });
-    console.log("[DEBUG] Admin user exists:", !!adminUser);
 
     // Get all users (without passwords)
     const allUsers = await User.find({}, { password: 0 }).limit(10);
-    console.log("[DEBUG] All users:", allUsers);
 
     return NextResponse.json({
       status: "Database connection successful",

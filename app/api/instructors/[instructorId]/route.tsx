@@ -157,14 +157,12 @@ export async function PATCH(req: NextRequest) {
 
     // Si se está desactivando Ticket Class, eliminar todas las ticket classes asociadas
     if (isTicketClassBeingDisabled) {
-      console.log(`🗑️ Deleting all ticket classes for instructor ${instructorId} (Ticket Class capability disabled)`);
-      
+
       // Eliminar todas las ticket classes asociadas al instructor
       const deleteResult = await TicketClass.deleteMany({ instructorId });
       ticketClassesDeleted = deleteResult.deletedCount;
       
-      console.log(`✅ Deleted ${ticketClassesDeleted} ticket classes for instructor ${instructorId}`);
-      
+
       // Limpiar el horario del instructor para remover referencias a ticket classes
       // Clean both driving test and driving lesson schedules
       if (instructor.schedule_driving_test && instructor.schedule_driving_test.length > 0) {
@@ -172,7 +170,7 @@ export async function PATCH(req: NextRequest) {
           !slot.ticketClassId && slot.classType !== 'D.A.T.E' && slot.classType !== 'B.D.I' && slot.classType !== 'A.D.I'
         );
         updateFields.schedule_driving_test = cleanedDrivingTestSchedule;
-        console.log(`🧹 Cleaned instructor driving test schedule, kept ${cleanedDrivingTestSchedule.length} non-ticket slots`);
+
       }
       
       if (instructor.schedule_driving_lesson && instructor.schedule_driving_lesson.length > 0) {
@@ -180,7 +178,7 @@ export async function PATCH(req: NextRequest) {
           !slot.ticketClassId && slot.classType !== 'D.A.T.E' && slot.classType !== 'B.D.I' && slot.classType !== 'A.D.I'
         );
         updateFields.schedule_driving_lesson = cleanedDrivingLessonSchedule;
-        console.log(`🧹 Cleaned instructor driving lesson schedule, kept ${cleanedDrivingLessonSchedule.length} non-ticket slots`);
+
       }
     }
 

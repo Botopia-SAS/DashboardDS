@@ -43,17 +43,15 @@ export function useCertificateGenerator() {
       }
     });
 
-    console.log(`🔍 Validating variables for user ${user.first_name} ${user.last_name}:`);
-    console.log(`📋 Used variables in template:`, usedVariables);
 
     // Check which variables are missing from user data
     usedVariables.forEach(variable => {
       const isMissing = !isVariableAvailable(user, variable);
       if (isMissing) {
         missingVariables.push(variable);
-        console.log(`❌ Missing variable: ${variable}`);
+
       } else {
-        console.log(`✅ Available variable: ${variable}`);
+
       }
     });
 
@@ -63,20 +61,12 @@ export function useCertificateGenerator() {
       usedVariables
     };
 
-    console.log(`📊 Validation result:`, result);
+
     return result;
   }, []);
 
   // Helper function to check if a variable is available in user data
   const isVariableAvailable = (user: Student, variableKey: string): boolean => {
-    console.log(`🔍 Checking variable ${variableKey} for user:`, {
-      firstName: user.first_name,
-      lastName: user.last_name,
-      address: user.address,
-      duration: user.duration,
-      courseTime: user.courseTime,
-      locationId: user.locationId
-    });
 
     switch (variableKey) {
       case 'firstName':
@@ -97,12 +87,12 @@ export function useCertificateGenerator() {
       case 'address':
         // Address is available if we have either the address field or locationId (which gets resolved to address)
         const addressAvailable = !!(user.address || user.locationId);
-        console.log(`📍 Address check: address="${user.address}", locationId="${user.locationId}", available=${addressAvailable}`);
+
         return addressAvailable;
       case 'courseTime':
         // CourseTime is available if we have either courseTime or duration field
         const courseTimeAvailable = !!(user.courseTime || user.duration);
-        console.log(`⏱️ CourseTime check: courseTime="${user.courseTime}", duration="${user.duration}", available=${courseTimeAvailable}`);
+
         return courseTimeAvailable;
       case 'classTitle':
         return !!user.classTitle;
@@ -116,31 +106,28 @@ export function useCertificateGenerator() {
       const { type, classType } = user;
       const certType = (classType || type || 'DATE').toUpperCase();
 
-      console.log(`🔍 Generating certificate for type: ${certType}`);
-      console.log(`📊 User data:`, { classType, type, certType });
 
       // ALWAYS use PDF-based generators for ADI, BDI, DATE (ignore database)
-      console.log(`🔄 Using PDF-based generator for ${certType}`);
 
       // Use specific PDF generators for each type
       if (certType === "ADI") {
-        console.log('📋 Using ADI PDF generator');
+
         return generateSingleAdiCertificate(user, '/templates_certificates/adi.pdf');
       } else if (certType === "BDI") {
-        console.log('📋 Using BDI PDF generator');
+
         return generateBdiCertificatePDF(user, '/templates_certificates/bdi.pdf');
       } else if (certType === "INSURANCE DISCOUNT CLASS" || certType === "INSURANCE-DISCOUNT-CLASS") {
-        console.log('📋 Using Insurance PDF generator');
+
         return generateSingleInsuranceCertificate(user, '/templates_certificates/insurance.pdf');
       } else if (certType === "DATE") {
-        console.log('📋 Using DATE PDF generator');
+
         return generateDateCertificatePDF(user);
       } else if (certType === "YOUTHFUL OFFENDER CLASS" || certType === "YOUTHFUL-OFFENDER-CLASS") {
-        console.log('📋 Using Youthful Offender PDF generator');
+
         return generateSingleYouthfulOffenderCertificate(user, '/templates_certificates/youthful-offender-class.pdf');
       } else {
         // Unknown type - try database first, then fallback
-        console.log('⚠️ Unknown type, checking database templates');
+
         try {
           const templateResponse = await fetch(
             `/api/certificate-templates?classType=${certType}`
@@ -150,16 +137,16 @@ export function useCertificateGenerator() {
             const templates = await templateResponse.json();
 
             if (templates.length > 0) {
-              console.log(`✅ Using database template for ${certType}:`, templates[0].name);
+
               return await generateDynamicCertificatePDF(user, templates[0] as CertificateTemplate);
             }
           }
         } catch (error) {
-          console.log('⚠️ Error fetching template from database:', error);
+
         }
 
         // Final fallback to BDI template
-        console.log('⚠️ Using BDI template as fallback');
+
         try {
           const bdiTemplate = getDefaultBDITemplate(certType);
           return await generateDynamicCertificatePDF(user, bdiTemplate as CertificateTemplate);

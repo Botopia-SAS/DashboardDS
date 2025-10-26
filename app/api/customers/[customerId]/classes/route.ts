@@ -45,7 +45,6 @@ export async function GET(req: NextRequest) {
       );
     }
 
-    console.log("🔍 Searching for classes for customer:", customerId);
 
     // Find all ticket classes with students
     const allTicketClasses = await TicketClass.find({
@@ -56,7 +55,6 @@ export async function GET(req: NextRequest) {
       .sort({ date: -1 })
       .lean();
 
-    console.log(`📚 Found ${allTicketClasses.length} total ticket classes with students`);
 
     // Filter classes where the student is enrolled
     const ticketClasses = (allTicketClasses as unknown as PopulatedTicketClass[]).filter((ticketClass) => {
@@ -70,14 +68,14 @@ export async function GET(req: NextRequest) {
         if (typeof student === "string") {
           const match = student === customerId || student.toString() === customerId;
           if (match) {
-            console.log("✅ Found match in class:", ticketClass._id);
+
           }
           return match;
         } else if (student && typeof student === "object") {
           const studentEntry = student as StudentEntry;
           const match = studentEntry.studentId === customerId || String(studentEntry.studentId) === customerId;
           if (match) {
-            console.log("✅ Found match (object format) in class:", ticketClass._id);
+
           }
           return match;
         }
@@ -85,7 +83,6 @@ export async function GET(req: NextRequest) {
       });
     });
 
-    console.log(`✅ Filtered to ${ticketClasses.length} classes for this customer`);
 
     // Transform the data to include class and location names
     const enrichedClasses = ticketClasses.map((ticketClass) => ({

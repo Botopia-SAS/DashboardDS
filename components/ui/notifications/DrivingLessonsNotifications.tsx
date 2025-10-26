@@ -57,8 +57,7 @@ export default function DrivingLessonsNotifications({ isOpen }: DrivingLessonsNo
     
     try {
       setProcessingId(notification.id);
-      console.log('✅ Accepting driving lesson:', notification.id);
-      
+
       const response = await fetch(`/api/instructors/${notification.instructorId}/schedule/driving-lesson/${notification.id}/accept`, {
         method: 'PATCH',
         headers: {
@@ -71,14 +70,13 @@ export default function DrivingLessonsNotifications({ isOpen }: DrivingLessonsNo
       });
 
       if (response.ok) {
-        console.log('✅ Driving lesson accepted successfully');
-        
+
         // Actualizar inmediatamente la lista filtrando el item aceptado
         setNotifications(prev => prev.filter(n => n.id !== notification.id));
         
         // Agregar delay más largo para asegurar que la DB se actualice completamente
         setTimeout(() => {
-          console.log('🔄 Refreshing driving lesson notifications after accept...');
+
           fetchDrivingLessonsNotifications();
           window.dispatchEvent(new CustomEvent('notificationRefresh'));
         }, 2000);
@@ -97,8 +95,7 @@ export default function DrivingLessonsNotifications({ isOpen }: DrivingLessonsNo
     
     try {
       setProcessingId(notification.id);
-      console.log('❌ Rejecting driving lesson:', notification.id);
-      
+
       const response = await fetch(`/api/instructors/${notification.instructorId}/schedule/driving-lesson/${notification.id}/reject`, {
         method: 'PATCH',
         headers: {
@@ -113,14 +110,13 @@ export default function DrivingLessonsNotifications({ isOpen }: DrivingLessonsNo
       });
 
       if (response.ok) {
-        console.log('✅ Driving lesson rejected successfully');
-        
+
         // Actualizar inmediatamente la lista filtrando el item rechazado
         setNotifications(prev => prev.filter(n => n.id !== notification.id));
         
         // Agregar delay más largo para asegurar que la DB se actualice completamente
         setTimeout(() => {
-          console.log('🔄 Refreshing driving lesson notifications after reject...');
+
           fetchDrivingLessonsNotifications();
           window.dispatchEvent(new CustomEvent('notificationRefresh'));
         }, 2000);
@@ -144,12 +140,10 @@ export default function DrivingLessonsNotifications({ isOpen }: DrivingLessonsNo
   const fetchDrivingLessonsNotifications = async () => {
     try {
       setLoading(true);
-      console.log('🔄 Fetching driving lessons notifications...');
 
       const response = await fetch('/api/instructors/pending');
       const pendingLessons = await response.json();
 
-      console.log('📥 Pending lessons response:', pendingLessons);
 
       if (Array.isArray(pendingLessons)) {
         // Get unique instructor IDs
@@ -179,10 +173,10 @@ export default function DrivingLessonsNotifications({ isOpen }: DrivingLessonsNo
           paid: false
         }));
 
-        console.log('✅ Created driving lesson notifications:', drivingLessonNotifications.length);
+
         setNotifications(drivingLessonNotifications);
       } else {
-        console.log('❌ API response is not an array:', pendingLessons);
+
         setNotifications([]);
       }
     } catch (error) {
@@ -200,7 +194,6 @@ export default function DrivingLessonsNotifications({ isOpen }: DrivingLessonsNo
     eventSource.onmessage = (event) => {
       try {
         const data = JSON.parse(event.data);
-        console.log('🚗 SSE message received:', data);
 
         if (data.type === 'driving-lessons' && data.lessons) {
           // Fetch instructor names
@@ -228,7 +221,7 @@ export default function DrivingLessonsNotifications({ isOpen }: DrivingLessonsNo
               }));
 
               setNotifications(drivingLessonNotifications);
-              console.log('📦 Driving lessons updated from SSE');
+
             });
         }
       } catch (error) {
@@ -239,7 +232,7 @@ export default function DrivingLessonsNotifications({ isOpen }: DrivingLessonsNo
     eventSource.onerror = (error) => {
       console.error('❌ SSE connection error:', error);
       setTimeout(() => {
-        console.log('🔄 Attempting reconnection...');
+
       }, 5000);
     };
 
@@ -257,7 +250,7 @@ export default function DrivingLessonsNotifications({ isOpen }: DrivingLessonsNo
   // Escuchar eventos de actualización global
   useEffect(() => {
     const handleGlobalRefresh = () => {
-      console.log('🔄 Global driving lessons refresh received');
+
       fetchDrivingLessonsNotifications();
     };
 
@@ -391,9 +384,9 @@ export function useDrivingLessonsNotificationsCount() {
 
       if (Array.isArray(pendingLessons)) {
         setCount(pendingLessons.length);
-        console.log(`🎓 Driving lessons count updated: ${pendingLessons.length}`);
+
       } else {
-        console.log('❌ API response is not an array for count:', pendingLessons);
+
         setCount(0);
       }
     } catch (error) {
@@ -404,12 +397,12 @@ export function useDrivingLessonsNotificationsCount() {
 
   // Actualizar automáticamente cuando lleguen notificaciones SSE
   useEffect(() => {
-    console.log('🔍 Notifications changed, length:', notifications.length);
+
     if (notifications.length > 0) {
       const latestNotification = notifications[notifications.length - 1];
-      console.log('🔍 Latest notification:', latestNotification);
+
       if (latestNotification.type === 'driving-lessons') {
-        console.log('🎓 Driving lesson notification received, updating count');
+
         fetchCount();
       }
     }
@@ -418,7 +411,7 @@ export function useDrivingLessonsNotificationsCount() {
   // Escuchar eventos de actualización global (mantener compatibilidad)
   useEffect(() => {
     const handleGlobalRefresh = () => {
-      console.log('🔄 Global driving lessons count refresh received');
+
       fetchCount();
     };
 

@@ -11,15 +11,13 @@ export async function GET(req: NextRequest) {
     const classType = searchParams.get("classType");
     const defaultOnly = searchParams.get("default") === "true";
 
-    console.log(`🔍 Certificate templates API - Requested classType: "${classType}"`);
 
     const query: any = { isActive: true };
 
     if (classType) {
       // Normalize classType for comparison - handle both spaces and hyphens
       const normalizedClassType = classType.toUpperCase().trim();
-      console.log(`📝 Searching for classType: "${normalizedClassType}"`);
-      
+
       // Try exact match first
       query.classType = normalizedClassType;
       
@@ -34,12 +32,12 @@ export async function GET(req: NextRequest) {
         ]
       };
       
-      console.log(`🔎 Using alternative query:`, JSON.stringify(alternativeQuery, null, 2));
+
       const templates = await CertificateTemplate.find(alternativeQuery).sort({ createdAt: -1 });
       
-      console.log(`📋 Found ${templates.length} templates`);
+
       templates.forEach(template => {
-        console.log(`  - ${template.name} (classType: "${template.classType}")`);
+
       });
       
       return NextResponse.json(templates, { status: 200 });
@@ -50,7 +48,6 @@ export async function GET(req: NextRequest) {
     }
 
     const templates = await CertificateTemplate.find(query).sort({ createdAt: -1 });
-    console.log(`📋 Found ${templates.length} templates (no classType filter)`);
 
     return NextResponse.json(templates, { status: 200 });
   } catch (err) {
@@ -65,7 +62,6 @@ export async function POST(req: NextRequest) {
     await connectToDB();
 
     const body = await req.json();
-    console.log('📥 Received certificate template data:', JSON.stringify(body, null, 2));
 
     const {
       name,
@@ -87,13 +83,6 @@ export async function POST(req: NextRequest) {
     }
 
     const upperClassType = classType.toUpperCase();
-    console.log(`🔍 Upserting template for classType: ${upperClassType}`);
-    console.log(`📄 Background:`, background);
-    console.log(`📄 Certificates Per Page: ${certificatesPerPage || 1}`);
-    console.log(`📝 Text elements: ${textElements?.length || 0}`);
-    console.log(`🖼️ Image elements: ${imageElements?.length || 0}`);
-    console.log(`🔲 Shape elements: ${shapeElements?.length || 0}`);
-    console.log(`☑️ Checkbox elements: ${checkboxElements?.length || 0}`);
 
     // UPSERT: Find existing template for this classType and update it, or create new one
     const template = await CertificateTemplate.findOneAndUpdate(
@@ -120,8 +109,6 @@ export async function POST(req: NextRequest) {
       }
     );
 
-    console.log(`✅ Template upserted successfully:`, template._id);
-    console.log(`💾 Saved background:`, template.background);
 
     return NextResponse.json(template, { status: 200 });
   } catch (err) {

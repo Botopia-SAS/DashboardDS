@@ -108,13 +108,6 @@ export default function Page() {
         const decodedClassType = decodeURIComponent(classType);
         const normalizedClassType = normalizeClassType(decodedClassType);
 
-        console.log('🔍 Day of Class - Filtering classes:');
-        console.log('  - URL classType:', classType);
-        console.log('  - Decoded classType:', decodedClassType);
-        console.log('  - Normalized classType:', normalizedClassType);
-        console.log('  - Total classes from API:', data.length);
-        console.log('  - Sample class types:', data.slice(0, 5).map((c: Class) => ({ type: c.type, normalized: normalizeClassType(c.type) })));
-        console.log('  - Sample dates:', data.slice(0, 3).map((c: Class) => ({ date: c.date, dateType: typeof c.date, parsed: new Date(c.date) })));
 
         const filteredClasses = data.filter((c: Class) => {
           const normalizedTicketType = normalizeClassType(c.type);
@@ -122,15 +115,15 @@ export default function Page() {
 
           if (matches) {
             const className = typeof c.classId === 'object' ? c.classId?.title : 'Unknown';
-            console.log(`✅ Class matched: "${className}" (type: "${c.type}" → "${normalizedTicketType}") matches "${normalizedClassType}"`);
+
           } else {
-            console.log(`❌ Class not matched: "${c.type}" → "${normalizedTicketType}" does not match "${normalizedClassType}"`);
+
           }
 
           return matches;
         });
 
-        console.log('  - Filtered classes count:', filteredClasses.length);
+
         setClasses(filteredClasses);
         setFilteredClasses(filteredClasses);
         setLoading(false);

@@ -7,38 +7,28 @@ export async function POST(req: NextRequest) {
   try {
     const { email, password } = await req.json();
 
-    console.log("[LOGIN] Attempting login for email:", email);
 
     if (!email || !password) {
-      console.log("[LOGIN] Missing email or password");
+
       return NextResponse.json(
         { message: "Email and password are required" },
         { status: 400 }
       );
     }
 
-    console.log("[LOGIN] Connecting to database...");
+
     await connectToDB();
-    console.log("[LOGIN] Database connected successfully");
 
     // Find admin in MongoDB - search by exact email
-    console.log("[LOGIN] Looking for admin with email:", email.toLowerCase());
+
     const admin = await Admin.findOne({ email: email.toLowerCase() });
     
-    console.log("[LOGIN] Admin found:", !!admin);
-    console.log("[LOGIN] Admin data (without password):", admin ? {
-      id: admin._id,
-      email: admin.email,
-      role: admin.role
-    } : null);
-    
+
     if (!admin) {
-      console.log("[LOGIN] Admin not found in database");
-      
+
       // Check if any admins exist for debugging
       const adminCount = await Admin.countDocuments();
-      console.log("[LOGIN] Total admins in database:", adminCount);
-      
+
       if (adminCount === 0) {
         return NextResponse.json(
           { message: "No admins found in database. Please create an admin first." },
@@ -48,8 +38,7 @@ export async function POST(req: NextRequest) {
       
       // Show available emails for debugging (without passwords)
       const availableAdmins = await Admin.find({}, { email: 1 }).limit(5);
-      console.log("[LOGIN] Available admins in database:", availableAdmins);
-      
+
       return NextResponse.json(
         { 
           message: "Admin not found with this email",
@@ -59,7 +48,7 @@ export async function POST(req: NextRequest) {
       );
     }
 
-    console.log("[LOGIN] Verifying password...");
+
     // Verify password using bcrypt, fallback to plain text for dev
     let isPasswordValid = false;
     try {
@@ -74,10 +63,9 @@ export async function POST(req: NextRequest) {
         console.warn("[LOGIN] WARNING: Password matched in plain text. This is insecure and should only be used for development!");
       }
     }
-    console.log("[LOGIN] Password valid:", isPasswordValid);
 
     if (!isPasswordValid) {
-      console.log("[LOGIN] Invalid password for admin:", email);
+
       return NextResponse.json(
         { message: "Invalid password" },
         { status: 401 }
@@ -91,7 +79,6 @@ export async function POST(req: NextRequest) {
       role: admin.role || "admin",
     };
 
-    console.log("[LOGIN] Login successful for admin:", adminData.email);
 
     return NextResponse.json(
       {

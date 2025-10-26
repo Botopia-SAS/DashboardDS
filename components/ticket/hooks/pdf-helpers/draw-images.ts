@@ -48,7 +48,7 @@ export async function drawImages(
       if (image.grayscale) {
         // Note: pdf-lib doesn't support grayscale filters directly
         // This would need to be applied to the image before embedding
-        console.log('Grayscale filter requested but not implemented for:', image.url);
+
       }
 
       // Calculate scaled dimensions

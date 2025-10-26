@@ -138,21 +138,18 @@ export default function TicketNotifications({ isOpen }: TicketNotificationsProps
   const fetchTicketNotifications = async () => {
     try {
       setLoading(true);
-      console.log('🔄 Fetching ticket notifications...');
-      
+
       const response = await fetch('/api/ticketclasses');
       const data = await response.json();
       
-      console.log('📥 Ticket classes response:', data);
-      
+
       if (data.success) {
         // Filter classes that have studentRequests
         const classesWithRequests = data.data.filter((ticketClass: TicketClass) => 
           ticketClass.studentRequests && ticketClass.studentRequests.length > 0
         );
         
-        console.log('🎫 Classes with requests:', classesWithRequests.length);
-        
+
         // Create notifications for each studentRequest and fetch student data
         // Only show notifications for requests with paymentMethod "local"
         const ticketNotifications = await Promise.all(
@@ -192,10 +189,10 @@ export default function TicketNotifications({ isOpen }: TicketNotificationsProps
           )
         );
         
-        console.log('✅ Created notifications:', ticketNotifications.length);
+
         setNotifications(ticketNotifications);
       } else {
-        console.log('❌ API response not successful:', data);
+
         setNotifications([]);
       }
     } catch (error) {
@@ -213,7 +210,7 @@ export default function TicketNotifications({ isOpen }: TicketNotificationsProps
       // Timeout de seguridad para evitar loading infinito
       const timeout = setTimeout(() => {
         if (loading) {
-          console.log('⏰ Loading timeout reached, stopping loading state');
+
           setLoading(false);
         }
       }, 10000); // 10 segundos timeout
@@ -225,7 +222,7 @@ export default function TicketNotifications({ isOpen }: TicketNotificationsProps
   // Escuchar eventos de actualización global
   useEffect(() => {
     const handleGlobalRefresh = () => {
-      console.log('🔄 Global notification refresh received');
+
       fetchTicketNotifications();
     };
 
@@ -408,7 +405,7 @@ export function useTicketNotificationsCount() {
     if (notifications.length > 0) {
       const latestNotification = notifications[notifications.length - 1];
       if (latestNotification.type === 'ticket') {
-        console.log('🎫 Ticket notification received, updating count');
+
         fetchCount();
       }
     }
@@ -417,7 +414,7 @@ export function useTicketNotificationsCount() {
   // Escuchar eventos de actualización global (mantener compatibilidad)
   useEffect(() => {
     const handleGlobalRefresh = () => {
-      console.log('🔄 Global count refresh received');
+
       fetchCount();
     };
 

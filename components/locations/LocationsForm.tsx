@@ -128,7 +128,6 @@ const LocationsForm: React.FC<LocationsFormProps> = ({ initialData }) => {
   const onPlaceChanged = () => {
     if (autocompleteRef.current) {
       const place = autocompleteRef.current.getPlace();
-      console.log("📌 Selected Place:", place);
 
       if (place?.formatted_address) {
         form.setValue("zone", place.formatted_address); // Asigna el valor al formulario

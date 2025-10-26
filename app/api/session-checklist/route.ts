@@ -101,7 +101,6 @@ export async function POST(req: NextRequest) {
 
     await newChecklist.save();
 
-    console.log("✅ Created new session checklist:", newChecklist._id);
 
     return NextResponse.json(newChecklist, { status: 201 });
   } catch (error) {
@@ -152,7 +151,6 @@ export async function PATCH(req: NextRequest) {
       );
     }
 
-    console.log("✅ Updated session checklist:", checklistId);
 
     return NextResponse.json(updatedChecklist, { status: 200 });
   } catch (error) {
@@ -192,7 +190,6 @@ export async function DELETE(req: NextRequest) {
       );
     }
 
-    console.log("✅ Deleted session checklist:", checklistId);
 
     return NextResponse.json(
       { message: "Checklist deleted successfully" },
