@@ -170,6 +170,7 @@ export function useAdiCertificateGenerator() {
             lastName: 'last_name',
             middleName: 'midl',
             licenseNumber: 'licenseNumber',
+            licenseNumber2: 'licenseNumber', // Segunda aparición del mismo número
             citationNumber: 'citationNumber',
             courseDate: 'courseDate',
             certn: 'certn', // Certificate number
