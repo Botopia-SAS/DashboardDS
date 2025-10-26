@@ -62,39 +62,52 @@ export function use8HoursCertificateGenerator() {
           schoolOfficial: 'schoolOfficial',
           attendance: 'attendance',
           circuitCourtNo: 'circuitCourtNo',
-          county: 'county'
+          county: 'county',
+          instructorSignature: 'instructorSignature'
         };
 
         // Dibujar cada campo en su posición
         for (const [fieldKey, coord] of Object.entries(coordinates)) {
+          console.log(`  🔍 Processing field: ${fieldKey}`);
+
           // Obtener el nombre del campo en la base de datos
           const dbFieldKey = fieldMapping[fieldKey] || fieldKey;
           let value = (student as any)[dbFieldKey];
+          console.log(`  📝 Field "${fieldKey}" -> DB "${dbFieldKey}" = "${value}"`);
 
           // Manejar firma del instructor como imagen
           if (fieldKey === "instructorSignature") {
             if (value && coord.x !== undefined && coord.y !== undefined) {
               try {
-                const signatureBytes = await fetch(value).then((res) => res.arrayBuffer());
+                console.log(`  📥 Loading signature from: ${value}`);
+                const signatureResponse = await fetch(value);
+                console.log(`  📥 Signature response status: ${signatureResponse.status}`);
+
+                const signatureBytes = await signatureResponse.arrayBuffer();
+                console.log(`  📥 Signature bytes loaded: ${signatureBytes.byteLength} bytes`);
+
                 let signatureImage;
                 try {
                   signatureImage = await pdfDoc.embedPng(signatureBytes);
+                  console.log(`  ✅ Signature embedded as PNG`);
                 } catch {
                   signatureImage = await pdfDoc.embedJpg(signatureBytes);
+                  console.log(`  ✅ Signature embedded as JPG`);
                 }
-                
+
                 const signatureDims = signatureImage.scale(0.15);
                 const pdfY = height - coord.y - signatureDims.height;
-                
+
                 page.drawImage(signatureImage, {
                   x: coord.x,
                   y: pdfY,
                   width: signatureDims.width,
                   height: signatureDims.height,
                 });
-                console.log(`  🖼️ ${fieldKey}: Image drawn at (${coord.x}, ${pdfY})`);
+                console.log(`  🖼️ ${fieldKey}: Image drawn at (${coord.x}, ${pdfY}) with size ${signatureDims.width}x${signatureDims.height}`);
               } catch (error) {
                 console.error(`  ❌ Error loading signature image:`, error);
+                // NO lanzar el error, solo logging - continuar sin firma
               }
             }
             continue;
@@ -113,7 +126,7 @@ export function use8HoursCertificateGenerator() {
           // Si no hay valor, saltar este campo (no usar datos mock)
           if (!value || value === "") {
             console.log(`  ⚠️ ${fieldKey} (${dbFieldKey}) is empty, skipping`);
-            return;
+            continue;
           }
 
           // Manejar checkboxes
@@ -171,8 +184,20 @@ export function use8HoursCertificateGenerator() {
           }
         }
 
+        console.log('💾 Saving PDF...');
         const pdfBytes = await pdfDoc.save();
-        return new Blob([pdfBytes as any], { type: "application/pdf" });
+        console.log(`✅ PDF saved: ${pdfBytes.length} bytes, type: ${pdfBytes.constructor.name}`);
+
+        // Verificar que pdfBytes es un Uint8Array válido
+        if (!(pdfBytes instanceof Uint8Array)) {
+          console.error('❌ pdfBytes is not a Uint8Array:', typeof pdfBytes);
+          throw new Error('PDF save did not return a Uint8Array');
+        }
+
+        const blob = new Blob([pdfBytes], { type: "application/pdf" });
+        console.log(`✅ Blob created: ${blob.size} bytes, type: ${blob.type}`);
+
+        return blob;
       } catch (error) {
         console.error("❌ Error generating single 8-hours certificate:", error);
         throw error;
@@ -228,7 +253,8 @@ export function use8HoursCertificateGenerator() {
             schoolOfficial: 'schoolOfficial',
             attendance: 'attendance',
             circuitCourtNo: 'circuitCourtNo',
-            county: 'county'
+            county: 'county',
+            instructorSignature: 'instructorSignature'
           };
 
           // Dibujar cada estudiante en su posición

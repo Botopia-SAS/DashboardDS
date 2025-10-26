@@ -53,6 +53,14 @@ export default function Page() {
         header: "First Name",
       },
       {
+        accessorKey: "midl",
+        header: "Middle Name",
+        cell: ({ row }) => {
+          const value = row.getValue("midl") as any;
+          return value || "-";
+        },
+      },
+      {
         accessorKey: "certn",
         header: "Certificate Number",
       },
@@ -66,14 +74,14 @@ export default function Page() {
         
         // Skip variables that are already in base columns or redundant
         const skipKeys = [
-          'last_name', 
+          'last_name',
           'lastName',
-          'first_name', 
+          'first_name',
           'firstName',
           'midl',
           'middleName',
           'middle_name',
-          'payedAmount', 
+          'payedAmount',
           'payed_amount',
           'certn',
           'certificateNumber',
