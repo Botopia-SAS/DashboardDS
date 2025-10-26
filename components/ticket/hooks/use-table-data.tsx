@@ -49,14 +49,8 @@ export function useTableData({ initialData, onUpdate }: UseTableDataProps) {
 
       setIsSaving(true);
       const updatedRow = editedData[rowId];
-      
-      // Debug: Log the data being sent
-      console.log('Saving data for row:', rowId, updatedRow);
-      console.log('Citation number specifically:', updatedRow.citation_number);
-      console.log('CourseTime specifically:', updatedRow.courseTime);
-      console.log('AttendanceReason specifically:', updatedRow.attendanceReason);
 
-      try {
+      try{
         setTableData((currentData) =>
           currentData.map((row) =>
             row.id === rowId ? { ...row, ...updatedRow } : row

@@ -1,6 +1,6 @@
 "use client";
 
-import { useRef, useState, useEffect } from "react";
+import { useState } from "react";
 import { Button } from "@/components/ui/button";
 import {
   Dialog,
@@ -10,132 +10,58 @@ import {
   DialogTitle,
   DialogFooter,
 } from "@/components/ui/dialog";
-import { Upload, X, Pen } from "lucide-react";
+import { Checkbox } from "@/components/ui/checkbox";
+import { Pen, X } from "lucide-react";
+import { SignatureCanvas as DrawingCanvas } from "../signature/SignatureCanvas";
 
 interface SignatureCanvasProps {
-  onSave: (signatureUrl: string) => void;
+  onSave: (signatureUrl: string, applyToAll?: boolean) => void;
   currentSignature?: string;
   studentName?: string;
+  showApplyToAll?: boolean;
 }
 
 export function SignatureCanvas({
   onSave,
   currentSignature,
   studentName = "Student",
+  showApplyToAll = false,
 }: SignatureCanvasProps) {
-  const canvasRef = useRef<HTMLCanvasElement>(null);
-  const [isDrawing, setIsDrawing] = useState(false);
   const [isOpen, setIsOpen] = useState(false);
-  const [isUploading, setIsUploading] = useState(false);
+  const [tempSignature, setTempSignature] = useState<string | null>(null);
+  const [applyToAll, setApplyToAll] = useState(false);
 
-  useEffect(() => {
-    if (isOpen) {
-      const canvas = canvasRef.current;
-      if (canvas) {
-        const ctx = canvas.getContext("2d");
-        if (ctx) {
-          // Clear canvas
-          ctx.clearRect(0, 0, canvas.width, canvas.height);
-          // Set up canvas for drawing
-          ctx.strokeStyle = "#000000";
-          ctx.lineWidth = 2;
-          ctx.lineCap = "round";
-          ctx.lineJoin = "round";
-        }
-      }
-    }
-  }, [isOpen]);
-
-  const startDrawing = (e: React.MouseEvent<HTMLCanvasElement>) => {
-    const canvas = canvasRef.current;
-    if (!canvas) return;
-
-    const rect = canvas.getBoundingClientRect();
-    const x = e.clientX - rect.left;
-    const y = e.clientY - rect.top;
-
-    const ctx = canvas.getContext("2d");
-    if (ctx) {
-      ctx.beginPath();
-      ctx.moveTo(x, y);
-      setIsDrawing(true);
-    }
+  const handleSignatureChange = (signatureData: string | null) => {
+    setTempSignature(signatureData);
   };
 
-  const draw = (e: React.MouseEvent<HTMLCanvasElement>) => {
-    if (!isDrawing) return;
-
-    const canvas = canvasRef.current;
-    if (!canvas) return;
-
-    const rect = canvas.getBoundingClientRect();
-    const x = e.clientX - rect.left;
-    const y = e.clientY - rect.top;
-
-    const ctx = canvas.getContext("2d");
-    if (ctx) {
-      ctx.lineTo(x, y);
-      ctx.stroke();
-    }
-  };
-
-  const stopDrawing = () => {
-    setIsDrawing(false);
-  };
-
-  const clearCanvas = () => {
-    const canvas = canvasRef.current;
-    if (!canvas) return;
-
-    const ctx = canvas.getContext("2d");
-    if (ctx) {
-      ctx.clearRect(0, 0, canvas.width, canvas.height);
-    }
-  };
-
-  const saveSignature = async () => {
-    const canvas = canvasRef.current;
-    if (!canvas) return;
-
-    setIsUploading(true);
+  const handleSaveDrawnSignature = async () => {
+    if (!tempSignature) return;
 
     try {
-      // Convert canvas to blob
-      canvas.toBlob(async (blob) => {
-        if (!blob) {
-          throw new Error("Failed to create image blob");
-        }
+      const formData = new FormData();
+      formData.append('file', tempSignature);
+      formData.append('upload_preset', 'uznprz18');
+      formData.append('folder', 'signatures');
 
-        // Create form data for Cloudinary upload
-        const formData = new FormData();
-        formData.append("file", blob, "signature.png");
-        formData.append("upload_preset", "ml_default"); // Asegúrate de tener un upload preset en Cloudinary
-        formData.append("folder", "signatures"); // Carpeta en Cloudinary
-
-        // Upload to Cloudinary
-        const cloudinaryUrl = `https://api.cloudinary.com/v1_1/${process.env.NEXT_PUBLIC_CLOUDINARY_CLOUD_NAME}/image/upload`;
-
-        const response = await fetch(cloudinaryUrl, {
-          method: "POST",
+      const cloudName = process.env.NEXT_PUBLIC_CLOUDINARY_CLOUD_NAME;
+      const response = await fetch(
+        `https://api.cloudinary.com/v1_1/${cloudName}/image/upload`,
+        {
+          method: 'POST',
           body: formData,
-        });
-
-        if (!response.ok) {
-          throw new Error("Failed to upload signature");
         }
+      );
 
+      if (response.ok) {
         const data = await response.json();
-        const signatureUrl = data.secure_url;
-
-        // Call the onSave callback with the URL
-        onSave(signatureUrl);
+        onSave(data.secure_url, applyToAll);
         setIsOpen(false);
-        setIsUploading(false);
-      }, "image/png");
+        setTempSignature(null);
+        setApplyToAll(false);
+      }
     } catch (error) {
-      console.error("Error uploading signature:", error);
-      alert("Error uploading signature. Please try again.");
-      setIsUploading(false);
+      console.error('Error uploading signature:', error);
     }
   };
 
@@ -174,9 +100,9 @@ export function SignatureCanvas({
         )}
       </div>
 
-      {/* Signature Canvas Modal */}
+      {/* Draw Signature Modal */}
       <Dialog open={isOpen} onOpenChange={setIsOpen}>
-        <DialogContent className="sm:max-w-[600px]">
+        <DialogContent className="sm:max-w-[700px]">
           <DialogHeader>
             <DialogTitle>Instructor Signature</DialogTitle>
             <DialogDescription>
@@ -184,42 +110,50 @@ export function SignatureCanvas({
             </DialogDescription>
           </DialogHeader>
 
-          <div className="flex flex-col items-center gap-4 py-4">
-            <div className="border-2 border-gray-300 rounded-lg bg-white">
-              <canvas
-                ref={canvasRef}
-                width={500}
-                height={200}
-                onMouseDown={startDrawing}
-                onMouseMove={draw}
-                onMouseUp={stopDrawing}
-                onMouseLeave={stopDrawing}
-                className="cursor-crosshair"
-              />
-            </div>
-
-            <div className="text-sm text-gray-500">
-              Draw your signature above
-            </div>
+          <div className="py-4">
+            <DrawingCanvas
+              onSignatureChange={handleSignatureChange}
+              width={600}
+              height={250}
+            />
           </div>
+
+          {showApplyToAll && (
+            <div className="flex items-center space-x-2 px-6 pb-2">
+              <Checkbox
+                id="applyToAll"
+                checked={applyToAll}
+                onCheckedChange={(checked) => setApplyToAll(checked as boolean)}
+              />
+              <label
+                htmlFor="applyToAll"
+                className="text-sm font-medium leading-none peer-disabled:cursor-not-allowed peer-disabled:opacity-70"
+              >
+                Apply this signature to all students
+              </label>
+            </div>
+          )}
 
           <DialogFooter className="gap-2">
             <Button
               type="button"
               variant="outline"
-              onClick={clearCanvas}
-              disabled={isUploading}
+              onClick={() => {
+                setIsOpen(false);
+                setTempSignature(null);
+                setApplyToAll(false);
+              }}
             >
               <X className="h-4 w-4 mr-2" />
-              Clear
+              Cancel
             </Button>
             <Button
               type="button"
-              onClick={saveSignature}
-              disabled={isUploading}
+              onClick={handleSaveDrawnSignature}
+              disabled={!tempSignature}
+              className="bg-green-600 text-white hover:bg-green-700"
             >
-              <Upload className="h-4 w-4 mr-2" />
-              {isUploading ? "Uploading..." : "Save Signature"}
+              Save Signature
             </Button>
           </DialogFooter>
         </DialogContent>

@@ -65,10 +65,39 @@ export function useAdiCertificateGenerator() {
         };
 
         // Dibujar cada campo en su posición
-        Object.entries(coordinates).forEach(([fieldKey, coord]) => {
+        for (const [fieldKey, coord] of Object.entries(coordinates)) {
           // Obtener el nombre del campo en la base de datos
           const dbFieldKey = fieldMapping[fieldKey] || fieldKey;
           let value = (student as any)[dbFieldKey];
+
+          // Manejar firma del instructor como imagen
+          if (fieldKey === "instructorSignature") {
+            if (value && coord.x !== undefined && coord.y !== undefined) {
+              try {
+                const signatureBytes = await fetch(value).then((res) => res.arrayBuffer());
+                let signatureImage;
+                try {
+                  signatureImage = await pdfDoc.embedPng(signatureBytes);
+                } catch {
+                  signatureImage = await pdfDoc.embedJpg(signatureBytes);
+                }
+                
+                const signatureDims = signatureImage.scale(0.15);
+                const pdfY = height - coord.y - signatureDims.height;
+                
+                page.drawImage(signatureImage, {
+                  x: coord.x,
+                  y: pdfY,
+                  width: signatureDims.width,
+                  height: signatureDims.height,
+                });
+                console.log(`  🖼️ ${fieldKey}: Image drawn at (${coord.x}, ${pdfY})`);
+              } catch (error) {
+                console.error(`  ❌ Error loading signature image:`, error);
+              }
+            }
+            continue;
+          }
 
           // Transformaciones especiales
           if (fieldKey === "courseDate" && value) {
@@ -83,13 +112,13 @@ export function useAdiCertificateGenerator() {
           // Si no hay valor, saltar este campo (no usar datos mock)
           if (!value || value === "") {
             console.log(`  ⚠️ ${fieldKey} (${dbFieldKey}) is empty, skipping`);
-            return;
+            continue;
           }
 
           // Validar que x e y existen (no son opcionales para campos de texto)
           if (coord.x === undefined || coord.y === undefined) {
             console.log(`  ⚠️ ${fieldKey} missing coordinates, skipping`);
-            return;
+            continue;
           }
 
           // Campo de texto normal - usar Helvetica
@@ -117,7 +146,7 @@ export function useAdiCertificateGenerator() {
           });
 
           console.log(`  ✓ ${fieldKey}: "${value}" at (${finalX}, ${pdfY})`);
-        });
+        }
 
         const pdfBytes = await pdfDoc.save();
         return new Blob([pdfBytes as any], { type: "application/pdf" });
@@ -179,16 +208,46 @@ export function useAdiCertificateGenerator() {
           };
 
           // Dibujar cada estudiante en su posición
-          chunk.forEach((student, index) => {
+          for (let index = 0; index < chunk.length; index++) {
+            const student = chunk[index];
             const position = (index + 1) as 1 | 2 | 3;
             const coordinates = getAdiPositionCoordinates(position);
 
             console.log(`  🎫 ${student.first_name} ${student.last_name} at position ${position}`);
 
-            Object.entries(coordinates).forEach(([fieldKey, coord]) => {
+            for (const [fieldKey, coord] of Object.entries(coordinates)) {
               // Obtener el nombre del campo en la base de datos
               const dbFieldKey = fieldMapping[fieldKey] || fieldKey;
               let value = (student as any)[dbFieldKey];
+
+              // Manejar firma del instructor como imagen
+              if (fieldKey === "instructorSignature") {
+                if (value && coord.x !== undefined && coord.y !== undefined) {
+                  try {
+                    const signatureBytes = await fetch(value).then((res) => res.arrayBuffer());
+                    let signatureImage;
+                    try {
+                      signatureImage = await pdfDoc.embedPng(signatureBytes);
+                    } catch {
+                      signatureImage = await pdfDoc.embedJpg(signatureBytes);
+                    }
+                    
+                    const signatureDims = signatureImage.scale(0.15);
+                    const pdfY = height - coord.y - signatureDims.height;
+                    
+                    page.drawImage(signatureImage, {
+                      x: coord.x,
+                      y: pdfY,
+                      width: signatureDims.width,
+                      height: signatureDims.height,
+                    });
+                    console.log(`    🖼️ ${fieldKey}: Image drawn at (${coord.x}, ${pdfY})`);
+                  } catch (error) {
+                    console.error(`    ❌ Error loading signature image:`, error);
+                  }
+                }
+                continue;
+              }
 
               // Transformaciones especiales
               if (fieldKey === "courseDate" && value) {
@@ -203,13 +262,13 @@ export function useAdiCertificateGenerator() {
               // Si no hay valor, saltar este campo (no usar datos mock)
               if (!value || value === "") {
                 console.log(`  ⚠️ ${fieldKey} (${dbFieldKey}) is empty, skipping`);
-                return;
+                continue;
               }
 
               // Validar que x e y existen (no son opcionales para campos de texto)
               if (coord.x === undefined || coord.y === undefined) {
                 console.log(`  ⚠️ ${fieldKey} missing coordinates, skipping`);
-                return;
+                continue;
               }
 
               // Campo de texto normal - usar Helvetica
@@ -235,8 +294,8 @@ export function useAdiCertificateGenerator() {
                 font,
                 color: rgb(0, 0, 0),
               });
-            });
-          });
+            }
+          }
 
           const pdfBytes = await pdfDoc.save();
           pdfs.push(new Blob([pdfBytes as any], { type: "application/pdf" }));

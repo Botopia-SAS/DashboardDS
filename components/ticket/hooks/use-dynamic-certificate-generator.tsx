@@ -93,7 +93,7 @@ export function useDynamicCertificateGenerator() {
         drawShapes(nonCheckboxShapes, page, height, certScaleX, certScaleY, offsetY, borderWidthScale, variables, template.checkboxElements || [], getFont);
 
         // Draw images
-        await drawImages(template.imageElements, page, height, certScaleX, certScaleY, offsetY, pdfDoc);
+        await drawImages(template.imageElements, page, height, certScaleX, certScaleY, offsetY, pdfDoc, user);
 
         // Draw text
         drawTexts(template.textElements, page, height, certScaleX, certScaleY, offsetY, getFont, replaceVariables, textScaleFactor);

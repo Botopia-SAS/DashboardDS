@@ -284,12 +284,19 @@ export function useCertificateGenerator() {
 
     // Add instructor signature image
     try {
-      const instructorSignatureBytes = await fetch(
-        "/firma_instructor.png"
-      ).then((res) => res.arrayBuffer());
-      const instructorSignature = await pdfDoc.embedPng(
-        instructorSignatureBytes
-      );
+      // Use instructor signature from user data if available, otherwise use default
+      const signatureUrl = (user as any).instructorSignature || "/firma_instructor.png";
+      
+      const instructorSignatureBytes = await fetch(signatureUrl).then((res) => res.arrayBuffer());
+      
+      // Try to embed as PNG first, if it fails try as JPEG
+      let instructorSignature;
+      try {
+        instructorSignature = await pdfDoc.embedPng(instructorSignatureBytes);
+      } catch {
+        instructorSignature = await pdfDoc.embedJpg(instructorSignatureBytes);
+      }
+      
       const signatureDims = instructorSignature.scale(0.8);
 
       if (type === "bdi") {

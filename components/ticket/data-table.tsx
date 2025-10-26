@@ -582,65 +582,7 @@ export function DataTable({ columns, data, onUpdate, template }: DataTableProps)
     }
   }, [data]);
 
-  // Test function to generate PDF with first 3 students with DATA FROM TABLE (8-hours and ADI)
-  const testPDF3Students = useCallback(async () => {
-    const loadingToast = toast.loading("Generando PDF de prueba con los primeros 3 estudiantes de la tabla...");
 
-    try {
-      // Get first 3 students with certificate numbers FROM TABLE (not mock data)
-      const validStudents = data
-        .filter(student => student.certn !== null && student.certn !== undefined)
-        .slice(0, 3);
-
-      if (validStudents.length === 0) {
-        toast.dismiss(loadingToast);
-        toast.error("No hay estudiantes con número de certificado para generar el PDF de prueba.");
-        return;
-      }
-
-      // Detectar el tipo de certificado
-      const { type, classType } = validStudents[0];
-      const certType = (classType || type || 'DATE').toUpperCase();
-      const is8Hours = certType.includes('8-HOURS') || certType.includes('8 HOURS');
-      const isAdi = certType.includes('ADI');
-      const isBdi = certType.includes('BDI');
-      const isYouthfulOffender = certType.includes('YOUTHFUL OFFENDER') || certType.includes('YOUTHFUL-OFFENDER');
-
-      console.log(`🧪 TEST: Generating ${certType} PDF with ${validStudents.length} student(s) FROM TABLE DATA`);
-      console.log(`   📋 Students:`, validStudents.map(s => `${s.first_name} ${s.last_name}`));
-
-      let result: Blob | Blob[];
-      let fileName: string;
-
-      if (is8Hours) {
-        result = await generateMultiple8HoursCertificates(validStudents, '/templates_certificates/8-hours.pdf');
-        fileName = `Test_8Hours_${validStudents.length}_students_${new Date().toISOString().split('T')[0]}.pdf`;
-      } else if (isAdi) {
-        result = await generateMultipleAdiCertificates(validStudents, '/templates_certificates/adi.pdf');
-        fileName = `Test_ADI_${validStudents.length}_students_${new Date().toISOString().split('T')[0]}.pdf`;
-      } else if (isBdi) {
-        result = await generateMultipleBdiCertificates(validStudents, '/templates_certificates/bdi.pdf');
-        fileName = `Test_BDI_${validStudents.length}_students_${new Date().toISOString().split('T')[0]}.pdf`;
-      } else if (isYouthfulOffender) {
-        result = await generateMultipleYouthfulOffenderCertificates(validStudents, '/templates_certificates/youthful-offender-class.pdf');
-        fileName = `Test_YO_${validStudents.length}_students_${new Date().toISOString().split('T')[0]}.pdf`;
-      } else {
-        toast.dismiss(loadingToast);
-        toast.error("El botón de prueba solo funciona para certificados de 8 horas, ADI, BDI y Youthful Offender.");
-        return;
-      }
-
-      const pdfBlob = Array.isArray(result) ? result[0] : result;
-      saveAs(pdfBlob, fileName);
-
-      toast.dismiss(loadingToast);
-      toast.success(`PDF de prueba ${certType} generado con ${validStudents.length} estudiante(s) de la tabla`);
-    } catch (error) {
-      console.error("Error generating test PDF:", error);
-      toast.dismiss(loadingToast);
-      toast.error("Error al generar el PDF de prueba. Intente nuevamente.");
-    }
-  }, [data, generateMultiple8HoursCertificates, generateMultipleAdiCertificates, generateMultipleBdiCertificates, generateMultipleYouthfulOffenderCertificates]);
 
   return (
     <div className="rounded-md border">
@@ -649,7 +591,6 @@ export function DataTable({ columns, data, onUpdate, template }: DataTableProps)
         onDownloadAll={downloadAllCertificates}
         onDownloadCombined={downloadCombinedCertificates}
         onDownloadXLSX={downloadXLSX}
-        onTest3Students={testPDF3Students}
         template={template}
       />
 
@@ -710,7 +651,18 @@ export function DataTable({ columns, data, onUpdate, template }: DataTableProps)
                                   <SignatureCanvas
                                     currentSignature={cellValue as string}
                                     studentName={`${rowData.first_name} ${rowData.last_name}`}
-                                    onSave={(url) => handleChange(row.id, columnId, url)}
+                                    showApplyToAll={true}
+                                    onSave={(url, applyToAll) => {
+                                      if (applyToAll) {
+                                        // Apply signature to all rows
+                                        table.getRowModel().rows.forEach((r) => {
+                                          handleChange(r.id, columnId, url);
+                                        });
+                                      } else {
+                                        // Apply only to current row
+                                        handleChange(row.id, columnId, url);
+                                      }
+                                    }}
                                   />
                                 );
                               }
