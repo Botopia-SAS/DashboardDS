@@ -186,6 +186,7 @@ export function DataTable({ columns, data, onUpdate, template }: DataTableProps)
         const pdfBlobs = Array.isArray(result) ? result : [result];
 
         pdfBlobs.forEach((pdfBlob, index) => {
+          if (!pdfBlob) return;
           const certsInThisPdf = Math.min(3, validStudents.length - (index * 3));
           const pdfFileName = `Certificados_Grupo_${index + 1}_${certsInThisPdf}_certs.pdf`;
           zip.file(pdfFileName, pdfBlob);
@@ -204,6 +205,7 @@ export function DataTable({ columns, data, onUpdate, template }: DataTableProps)
         const pdfBlobs = Array.isArray(result) ? result : [result];
 
         pdfBlobs.forEach((pdfBlob, index) => {
+          if (!pdfBlob) return;
           const certsInThisPdf = Math.min(3, validStudents.length - (index * 3));
           const pdfFileName = `Certificados_ADI_Grupo_${index + 1}_${certsInThisPdf}_certs.pdf`;
           zip.file(pdfFileName, pdfBlob);
@@ -222,6 +224,7 @@ export function DataTable({ columns, data, onUpdate, template }: DataTableProps)
         const pdfBlobs = Array.isArray(result) ? result : [result];
 
         pdfBlobs.forEach((pdfBlob, index) => {
+          if (!pdfBlob) return;
           const certsInThisPdf = Math.min(3, validStudents.length - (index * 3));
           const pdfFileName = `Certificados_BDI_Grupo_${index + 1}_${certsInThisPdf}_certs.pdf`;
           zip.file(pdfFileName, pdfBlob);
@@ -240,6 +243,7 @@ export function DataTable({ columns, data, onUpdate, template }: DataTableProps)
         const pdfBlobs = Array.isArray(result) ? result : [result];
 
         pdfBlobs.forEach((pdfBlob, index) => {
+          if (!pdfBlob) return;
           const certsInThisPdf = Math.min(3, validStudents.length - (index * 3));
           const pdfFileName = `Certificados_Insurance_Grupo_${index + 1}_${certsInThisPdf}_certs.pdf`;
           zip.file(pdfFileName, pdfBlob);
@@ -258,6 +262,7 @@ export function DataTable({ columns, data, onUpdate, template }: DataTableProps)
         const pdfBlobs = Array.isArray(result) ? result : [result];
 
         pdfBlobs.forEach((pdfBlob, index) => {
+          if (!pdfBlob) return;
           const certsInThisPdf = Math.min(3, validStudents.length - (index * 3));
           const pdfFileName = `Certificados_YO_Grupo_${index + 1}_${certsInThisPdf}_certs.pdf`;
           zip.file(pdfFileName, pdfBlob);
@@ -275,6 +280,7 @@ export function DataTable({ columns, data, onUpdate, template }: DataTableProps)
         const pdfBlobs = await generateMultipleDateCertificates(validStudents);
 
         pdfBlobs.forEach((pdfBlob, index) => {
+          if (!pdfBlob) return;
           const student = validStudents[index];
           const name = `${student.first_name} ${student.last_name}`.replace(/[^a-zA-Z0-9\s]/g, '').trim();
           const pdfFileName = `${name.replace(/\s+/g, "_")}_Certificado_DATE_${student.certn}.pdf`;
@@ -417,7 +423,7 @@ export function DataTable({ columns, data, onUpdate, template }: DataTableProps)
       // Generar un solo PDF con TODOS los estudiantes en múltiples páginas
       console.log(`✅ Generating combined PDF with ALL ${validStudents.length} certificate(s) across multiple pages`);
 
-      let pdfBlob: Blob;
+      let pdfBlob: Blob | undefined;
       if (is8Hours) {
         console.log('🎓 Using 8-hours certificate generator');
         const result = await generateMultiple8HoursCertificates(validStudents, '/templates_certificates/8-hours.pdf');
@@ -432,8 +438,10 @@ export function DataTable({ columns, data, onUpdate, template }: DataTableProps)
             pages.forEach((page) => combinedPdf.addPage(page));
           }
           pdfBlob = new Blob([await combinedPdf.save()], { type: 'application/pdf' });
-        } else {
-          pdfBlob = Array.isArray(result) ? result[0] : result;
+        } else if (Array.isArray(result) && result[0]) {
+          pdfBlob = result[0];
+        } else if (!Array.isArray(result)) {
+          pdfBlob = result;
         }
       } else if (isAdi) {
         console.log('🎓 Using ADI certificate generator');
@@ -448,8 +456,10 @@ export function DataTable({ columns, data, onUpdate, template }: DataTableProps)
             pages.forEach((page) => combinedPdf.addPage(page));
           }
           pdfBlob = new Blob([await combinedPdf.save()], { type: 'application/pdf' });
-        } else {
-          pdfBlob = Array.isArray(result) ? result[0] : result;
+        } else if (Array.isArray(result) && result[0]) {
+          pdfBlob = result[0];
+        } else if (!Array.isArray(result)) {
+          pdfBlob = result;
         }
       } else if (isBdi) {
         console.log('🎓 Using BDI certificate generator');
@@ -464,8 +474,10 @@ export function DataTable({ columns, data, onUpdate, template }: DataTableProps)
             pages.forEach((page) => combinedPdf.addPage(page));
           }
           pdfBlob = new Blob([await combinedPdf.save()], { type: 'application/pdf' });
-        } else {
-          pdfBlob = Array.isArray(result) ? result[0] : result;
+        } else if (Array.isArray(result) && result[0]) {
+          pdfBlob = result[0];
+        } else if (!Array.isArray(result)) {
+          pdfBlob = result;
         }
       } else if (isInsurance) {
         console.log('🎓 Using Insurance certificate generator');
@@ -480,8 +492,10 @@ export function DataTable({ columns, data, onUpdate, template }: DataTableProps)
             pages.forEach((page) => combinedPdf.addPage(page));
           }
           pdfBlob = new Blob([await combinedPdf.save()], { type: 'application/pdf' });
-        } else {
-          pdfBlob = Array.isArray(result) ? result[0] : result;
+        } else if (Array.isArray(result) && result[0]) {
+          pdfBlob = result[0];
+        } else if (!Array.isArray(result)) {
+          pdfBlob = result;
         }
       } else if (isYouthfulOffender) {
         console.log('🎓 Using Youthful Offender certificate generator');
@@ -496,8 +510,10 @@ export function DataTable({ columns, data, onUpdate, template }: DataTableProps)
             pages.forEach((page) => combinedPdf.addPage(page));
           }
           pdfBlob = new Blob([await combinedPdf.save()], { type: 'application/pdf' });
-        } else {
-          pdfBlob = Array.isArray(result) ? result[0] : result;
+        } else if (Array.isArray(result) && result[0]) {
+          pdfBlob = result[0];
+        } else if (!Array.isArray(result)) {
+          pdfBlob = result;
         }
       } else if (isDate) {
         console.log('🎓 Using DATE certificate generator for combined PDF');
@@ -505,6 +521,10 @@ export function DataTable({ columns, data, onUpdate, template }: DataTableProps)
       } else {
         console.log('🎓 Using standard certificate generator');
         pdfBlob = await generateMultipleCertificatesPDF(validStudents, template);
+      }
+
+      if (!pdfBlob) {
+        throw new Error('Failed to generate PDF');
       }
 
       const fileName = `Certificados_Combinados_${new Date().toISOString().split('T')[0]}.pdf`;
