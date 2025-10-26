@@ -3,208 +3,240 @@
 import { Student } from "../columns";
 import { useCallback } from "react";
 import { PDFDocument, rgb, StandardFonts } from "pdf-lib";
+import {
+  getBdiFieldCoordinates,
+  getBdiPositionCoordinates,
+} from "@/lib/certificateBdiCoordinates";
 
+/**
+ * Generador específico para certificados BDI
+ *
+ * Este generador usa coordenadas exactas para cada campo en cada posición (1, 2, 3)
+ * en lugar de dividir la página en filas iguales.
+ *
+ * Características:
+ * - 1 estudiante: usa solo posición 1 (top)
+ * - 2 estudiantes: usa posiciones 1 y 2 (top + middle)
+ * - 3 estudiantes: usa posiciones 1, 2, y 3 (top + middle + bottom)
+ */
 export function useBdiCertificateGenerator() {
-  const generateBdiCertificatePDF = useCallback(async (user: Student) => {
-    const {
-      last_name,
-      first_name,
-      midl,
-      certn,
-      courseDate,
-      licenseNumber,
-      address,
-      citation_number,
-      instructorName,
-    } = user;
+  /**
+   * Genera un PDF con 1 estudiante en la posición 1
+   */
+  const generateSingleBdiCertificate = useCallback(
+    async (student: Student, pdfTemplatePath: string) => {
+      console.log("🎓 BDI: Generating single certificate");
+      console.log(`   📋 Student: ${student.first_name} ${student.last_name}`);
 
-    const pdfDoc = await PDFDocument.create();
-    const page = pdfDoc.addPage([842, 595]); // Landscape A4 dimensions in points
-    const { width, height } = page.getSize();
+      try {
+        // Cargar el template PDF
+        const templateResponse = await fetch(pdfTemplatePath);
+        const templateBytes = await templateResponse.arrayBuffer();
+        const pdfDoc = await PDFDocument.load(templateBytes);
 
-    const font = await pdfDoc.embedFont(StandardFonts.Helvetica);
-    const boldFont = await pdfDoc.embedFont(StandardFonts.HelveticaBold);
+        // Obtener la primera página
+        const pages = pdfDoc.getPages();
+        const firstPage = pages[0];
+        const { width, height } = firstPage.getSize();
 
-    // Draw outer borders
-    const borderWidths = [6, 4, 2];
-    borderWidths.forEach((borderWidth, index) => {
-      page.drawRectangle({
-        x: 20 + index * 10,
-        y: 20 + index * 10,
-        width: width - 40 - index * 20,
-        height: height - 40 - index * 20,
-        borderColor: rgb(0, 0, 0),
-        borderWidth,
-      });
-    });
+        console.log(`   📄 PDF size: ${width}x${height}`);
 
-    // Add title
-    page.drawText("AFFORDABLE DRIVING TRAFFIC SCHOOL", {
-      x: width / 2 - 250,
-      y: height - 70,
-      size: 24,
-      font: boldFont,
-      color: rgb(0, 0, 0),
-    });
+        // Cargar fuentes
+        const helvetica = await pdfDoc.embedFont(StandardFonts.Helvetica);
 
-    page.drawText("CERTIFICATE OF COMPLETION", {
-      x: width / 2 - 150,
-      y: height - 100,
-      size: 18,
-      font: boldFont,
-      color: rgb(0, 0, 0),
-    });
+        // Obtener coordenadas para la posición 1
+        const coordinates = getBdiPositionCoordinates(1);
 
-    page.drawText("3167 FOREST HILL BLVD. WEST PALM BEACH, FL 33406", {
-      x: width / 2 - 180,
-      y: height - 130,
-      size: 14,
-      font,
-      color: rgb(0, 0, 0),
-    });
+        // Dibujar cada campo en su posición
+        Object.entries(coordinates).forEach(([fieldKey, coord]) => {
+          let value = (student as any)[fieldKey];
 
-    page.drawText("561-969-0150 / 561-330-7007", {
-      x: width / 2 - 90,
-      y: height - 150,
-      size: 14,
-      font,
-      color: rgb(0, 0, 0),
-    });
+          // Transformaciones especiales
+          if (fieldKey === "courseDate" && value) {
+            const date = new Date(value);
+            value = date.toLocaleDateString("en-US", {
+              month: "short",
+              day: "numeric",
+              year: "numeric",
+            });
+          }
 
-    // Add "This Certifies That"
-    page.drawText(
-      "This Certifies that the person named below has successfully completed the Florida Dept.",
-      {
-        x: width / 2 - 300,
-        y: height - 180,
-        size: 14,
-        font,
-        color: rgb(0, 0, 0),
+          // Si no hay valor, omitir (no usar mock data)
+          if (!value || value === "") {
+            console.log(`  ⚠️ ${fieldKey} is empty, skipping`);
+            return;
+          }
+
+          // Campo de texto normal - usar Helvetica
+          // Validar que x e y existen (no son opcionales para campos de texto)
+          if (coord.x === undefined || coord.y === undefined) {
+            console.log(`  ⚠️ ${fieldKey} missing coordinates, skipping`);
+            return;
+          }
+
+          const font = helvetica;
+          const fontSize = coord.fontSize || 10;
+          const textWidth = font.widthOfTextAtSize(String(value), fontSize);
+
+          // Calcular X según alineación
+          let finalX = coord.x;
+          if (coord.align === "center") {
+            finalX = coord.x - textWidth / 2;
+          } else if (coord.align === "right") {
+            finalX = coord.x - textWidth;
+          }
+
+          // PDF usa coordenadas bottom-up
+          const pdfY = height - coord.y - fontSize;
+
+          // Truncar texto si es muy largo
+          let finalText = String(value);
+          if (coord.maxWidth && textWidth > coord.maxWidth) {
+            // Calcular cuántos caracteres caben
+            const avgCharWidth = textWidth / finalText.length;
+            const maxChars = Math.floor(coord.maxWidth / avgCharWidth) - 3; // -3 para "..."
+            finalText = finalText.substring(0, maxChars) + "...";
+          }
+
+          console.log(`  ✏️ ${fieldKey}: "${finalText}" at (${finalX}, ${pdfY})`);
+
+          firstPage.drawText(finalText, {
+            x: finalX,
+            y: pdfY,
+            size: fontSize,
+            font: font,
+            color: rgb(0, 0, 0),
+          });
+        });
+
+        // Generar el PDF
+        const pdfBytes = await pdfDoc.save();
+        return new Blob([pdfBytes as any], { type: "application/pdf" });
+      } catch (error) {
+        console.error("❌ Error generating BDI certificate:", error);
+        throw error;
       }
-    );
+    },
+    []
+  );
 
-    // BDI specific text
-    page.drawText(
-      'Highway Safety and Motor Vehicles "Drive Safety & Driver Improvement Course"',
-      {
-        x: width / 2 - 270,
-        y: height - 200,
-        size: 14,
-        font,
-        color: rgb(0, 0, 0),
+  /**
+   * Genera un PDF con múltiples estudiantes (hasta 3 por página)
+   */
+  const generateMultipleBdiCertificates = useCallback(
+    async (students: Student[], pdfTemplatePath: string) => {
+      console.log(`🎓 BDI: Generating certificates for ${students.length} students`);
+
+      try {
+        const pdfs: Blob[] = [];
+        const studentsPerPage = 3;
+
+        // Procesar estudiantes en grupos de 3
+        for (let i = 0; i < students.length; i += studentsPerPage) {
+          const studentsGroup = students.slice(i, i + studentsPerPage);
+          console.log(`📄 Processing page ${Math.floor(i / studentsPerPage) + 1} with ${studentsGroup.length} students`);
+
+          // Cargar el template PDF
+          const templateResponse = await fetch(pdfTemplatePath);
+          const templateBytes = await templateResponse.arrayBuffer();
+          const pdfDoc = await PDFDocument.load(templateBytes);
+
+          // Obtener la primera página
+          const pages = pdfDoc.getPages();
+          const firstPage = pages[0];
+          const { width, height } = firstPage.getSize();
+
+          // Cargar fuentes
+          const helvetica = await pdfDoc.embedFont(StandardFonts.Helvetica);
+
+          // Dibujar cada estudiante en su posición correspondiente
+          studentsGroup.forEach((student, studentIndex) => {
+            const position = (studentIndex + 1) as 1 | 2 | 3;
+            console.log(`  👤 Student ${studentIndex + 1}: ${student.first_name} ${student.last_name} (position ${position})`);
+
+            // Obtener coordenadas para esta posición
+            const coordinates = getBdiPositionCoordinates(position);
+
+            // Dibujar cada campo en su posición
+            Object.entries(coordinates).forEach(([fieldKey, coord]) => {
+              let value = (student as any)[fieldKey];
+
+              // Transformaciones especiales
+              if (fieldKey === "courseDate" && value) {
+                const date = new Date(value);
+                value = date.toLocaleDateString("en-US", {
+                  month: "short",
+                  day: "numeric",
+                  year: "numeric",
+                });
+              }
+
+              // Si no hay valor, omitir (no usar mock data)
+              if (!value || value === "") {
+                console.log(`    ⚠️ ${fieldKey} is empty, skipping`);
+                return;
+              }
+
+              // Campo de texto normal - usar Helvetica
+              // Validar que x e y existen (no son opcionales para campos de texto)
+              if (coord.x === undefined || coord.y === undefined) {
+                console.log(`    ⚠️ ${fieldKey} missing coordinates, skipping`);
+                return;
+              }
+
+              const font = helvetica;
+              const fontSize = coord.fontSize || 10;
+              const textWidth = font.widthOfTextAtSize(String(value), fontSize);
+
+              // Calcular X según alineación
+              let finalX = coord.x;
+              if (coord.align === "center") {
+                finalX = coord.x - textWidth / 2;
+              } else if (coord.align === "right") {
+                finalX = coord.x - textWidth;
+              }
+
+              // PDF usa coordenadas bottom-up
+              const pdfY = height - coord.y - fontSize;
+
+              // Truncar texto si es muy largo
+              let finalText = String(value);
+              if (coord.maxWidth && textWidth > coord.maxWidth) {
+                // Calcular cuántos caracteres caben
+                const avgCharWidth = textWidth / finalText.length;
+                const maxChars = Math.floor(coord.maxWidth / avgCharWidth) - 3; // -3 para "..."
+                finalText = finalText.substring(0, maxChars) + "...";
+              }
+
+              console.log(`    ✏️ ${fieldKey}: "${finalText}" at (${finalX}, ${pdfY})`);
+
+              firstPage.drawText(finalText, {
+                x: finalX,
+                y: pdfY,
+                size: fontSize,
+                font: font,
+                color: rgb(0, 0, 0),
+              });
+            });
+          });
+
+          // Generar el PDF para este grupo
+          const pdfBytes = await pdfDoc.save();
+          pdfs.push(new Blob([pdfBytes as any], { type: "application/pdf" }));
+        }
+
+        console.log(`✅ BDI: Generated ${pdfs.length} PDF(s) for ${students.length} students`);
+        return pdfs.length === 1 ? pdfs[0] : pdfs;
+      } catch (error) {
+        console.error("❌ Error generating multiple BDI certificates:", error);
+        throw error;
       }
-    );
+    },
+    []
+  );
 
-    // Citation No
-    page.drawText(`Citation No: ${citation_number || ""}`, {
-      x: 100,
-      y: height - 230,
-      size: 14,
-      font,
-      color: rgb(0, 0, 0),
-    });
-
-    // Driver License Number
-    page.drawText(`Driver License Number: ${licenseNumber || ""}`, {
-      x: 100,
-      y: height - 260,
-      size: 14,
-      font,
-      color: rgb(0, 0, 0),
-    });
-
-    // Course Completion Date
-    page.drawText(`Course Completion Date: ${courseDate}`, {
-      x: 100,
-      y: height - 290,
-      size: 14,
-      font,
-      color: rgb(0, 0, 0),
-    });
-
-    // Name
-    page.drawText("Name:", {
-      x: 100,
-      y: height - 320,
-      size: 14,
-      font,
-      color: rgb(0, 0, 0),
-    });
-
-    page.drawText(`${first_name} ${midl || ""} ${last_name}`, {
-      x: 150,
-      y: height - 320,
-      size: 14,
-      font: boldFont,
-      color: rgb(0, 0, 0),
-    });
-
-    // Course Location
-    page.drawText("Course Location:", {
-      x: 100,
-      y: height - 350,
-      size: 14,
-      font,
-      color: rgb(0, 0, 0),
-    });
-
-    page.drawText(
-      `${address || "3167 FOREST HILL BLVD. WEST PALM BEACH, FL 33406"}`,
-      {
-        x: 220,
-        y: height - 350,
-        size: 14,
-        font: boldFont,
-        color: rgb(0, 0, 0),
-      }
-    );
-
-    // Certificate Number
-    page.drawText(`Certificate #: ${certn}`, {
-      x: 500,
-      y: height - 230,
-      size: 14,
-      font,
-      color: rgb(0, 0, 0),
-    });
-
-    // Add footer
-    page.drawText(`${instructorName?.toUpperCase()}`, {
-      x: 100,
-      y: 100,
-      size: 12,
-      font: boldFont,
-      color: rgb(0, 0, 0),
-    });
-
-    page.drawText("AFFORDABLE DRIVING INSTRUCTOR", {
-      x: 100,
-      y: 80,
-      size: 12,
-      font,
-      color: rgb(0, 0, 0),
-    });
-
-    page.drawText(`LICENSE # ${licenseNumber}`, {
-      x: 650,
-      y: 100,
-      size: 12,
-      font: boldFont,
-      color: rgb(0, 0, 0),
-    });
-
-    page.drawText("AFFORDABLE DRIVING", {
-      x: 650,
-      y: 80,
-      size: 12,
-      font,
-      color: rgb(0, 0, 0),
-    });
-
-    // Convert the PDF to bytes and create a blob
-    const pdfBytes = await pdfDoc.save();
-    return new Blob([pdfBytes], { type: "application/pdf" });
-  }, []);
-
-  return { generateBdiCertificatePDF };
+  return {
+    generateSingleBdiCertificate,
+    generateMultipleBdiCertificates,
+  };
 }

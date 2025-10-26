@@ -3,364 +3,230 @@
 import { Student } from "../columns";
 import { useCallback } from "react";
 import { PDFDocument, rgb, StandardFonts } from "pdf-lib";
+import {
+  getAdiFieldCoordinates,
+  getAdiPositionCoordinates,
+} from "@/lib/certificateAdiCoordinates";
 
+/**
+ * Generador específico para certificados ADI
+ *
+ * Este generador usa coordenadas exactas para cada campo en cada posición (1, 2, 3)
+ * en lugar de dividir la página en filas iguales.
+ *
+ * Características:
+ * - 1 estudiante: usa solo posición 1 (top)
+ * - 2 estudiantes: usa posiciones 1 y 2 (top + middle)
+ * - 3 estudiantes: usa posiciones 1, 2, y 3 (top + middle + bottom)
+ */
 export function useAdiCertificateGenerator() {
-  const generateAdiCertificatePDF = useCallback(async (user: Student) => {
-    const {
-      courseDate,
-      courseAddress,
-      courseTime,
-      certn,
-      first_name,
-      midl,
-      last_name,
-    } = user;
+  /**
+   * Genera un PDF con 1 estudiante en la posición 1
+   */
+  const generateSingleAdiCertificate = useCallback(
+    async (student: Student, pdfTemplatePath: string) => {
+      console.log("🎓 Generating single ADI certificate");
+      console.log(`👤 Student: ${student.first_name} ${student.last_name}`);
 
-    const pdfDoc = await PDFDocument.create();
-    const page = pdfDoc.addPage([612, 792]); // Letter size dimensions in points (8.5x11 inches)
-    const { width, height } = page.getSize();
+      try {
+        const pdfDoc = await PDFDocument.create();
 
-    const font = await pdfDoc.embedFont(StandardFonts.Helvetica);
-    const boldFont = await pdfDoc.embedFont(StandardFonts.HelveticaBold);
+        // Cargar el PDF template de fondo
+        const templateBytes = await fetch(pdfTemplatePath).then((res) => {
+          if (!res.ok) throw new Error(`Failed to load PDF: ${pdfTemplatePath}`);
+          return res.arrayBuffer();
+        });
+        const templatePdf = await PDFDocument.load(templateBytes);
+        const [templatePage] = await pdfDoc.copyPages(templatePdf, [0]);
+        pdfDoc.addPage(templatePage);
 
-    // Load logo image
-    const logoResponse = await fetch("/logo.png");
-    const logoArrayBuffer = await logoResponse.arrayBuffer();
-    const logoImage = await pdfDoc.embedPng(logoArrayBuffer);
+        const page = pdfDoc.getPages()[0];
+        const { height } = page.getSize();
 
-    // Draw logo
-    const logoWidth = 80;
-    const logoHeight = 80;
-    page.drawImage(logoImage, {
-      x: 50,
-      y: height - 100,
-      width: logoWidth,
-      height: logoHeight,
-    });
+        // Embed fonts
+        const helvetica = await pdfDoc.embedFont(StandardFonts.Helvetica);
+        const timesRoman = await pdfDoc.embedFont(StandardFonts.TimesRoman);
 
-    // Header Section
-    page.drawText("Affordable Driving and", {
-      x: 140,
-      y: height - 45,
-      size: 16,
-      font: boldFont,
-      color: rgb(0, 0, 0),
-    });
+        // Usar coordenadas de la posición 1
+        const coordinates = getAdiPositionCoordinates(1);
 
-    page.drawText("Traffic School, Inc.", {
-      x: 140,
-      y: height - 65,
-      size: 16,
-      font: boldFont,
-      color: rgb(0, 0, 0),
-    });
+        // Dibujar cada campo en su posición
+        Object.entries(coordinates).forEach(([fieldKey, coord]) => {
+          let value = (student as any)[fieldKey];
 
-    page.drawText("3167 Forest Hill Blvd.", {
-      x: 140,
-      y: height - 85,
-      size: 12,
-      font,
-      color: rgb(0, 0, 0),
-    });
+          // Transformaciones especiales
+          if (fieldKey === "courseDate" && value) {
+            const date = new Date(value);
+            value = date.toLocaleDateString("en-US", {
+              month: "short",
+              day: "numeric",
+              year: "numeric",
+            });
+          }
 
-    page.drawText("West Palm Beach, FL 33406", {
-      x: 140,
-      y: height - 100,
-      size: 12,
-      font,
-      color: rgb(0, 0, 0),
-    });
+          // Si no hay valor, saltar este campo (no usar datos mock)
+          if (!value || value === "") {
+            console.log(`  ⚠️ ${fieldKey} is empty, skipping`);
+            return;
+          }
 
-    page.drawText("(561) 969-0150 - (561) 330-7007", {
-      x: 140,
-      y: height - 115,
-      size: 12,
-      font,
-      color: rgb(0, 0, 0),
-    });
+          // Validar que x e y existen (no son opcionales para campos de texto)
+          if (coord.x === undefined || coord.y === undefined) {
+            console.log(`  ⚠️ ${fieldKey} missing coordinates, skipping`);
+            return;
+          }
 
-    // Course Information Section with green background
-    page.drawRectangle({
-      x: width - 250,
-      y: height - 130,
-      width: 220,
-      height: 120,
-      color: rgb(0.8, 1, 0.8), // Light green color
-    });
+          // Campo de texto normal - usar Helvetica
+          const font = helvetica;
+          const fontSize = coord.fontSize || 10;
+          const textWidth = font.widthOfTextAtSize(String(value), fontSize);
 
-    page.drawText("COURSE INFORMATION", {
-      x: width - 230,
-      y: height - 45,
-      size: 14,
-      font: boldFont,
-      color: rgb(0, 0, 0),
-    });
+          // Calcular X según alineación
+          let finalX = coord.x;
+          if (coord.align === "center") {
+            finalX = coord.x - textWidth / 2;
+          } else if (coord.align === "right") {
+            finalX = coord.x - textWidth;
+          }
 
-    page.drawText("Course Date:", {
-      x: width - 230,
-      y: height - 65,
-      size: 12,
-      font: boldFont,
-      color: rgb(0, 0, 0),
-    });
+          // PDF usa coordenadas bottom-up
+          const pdfY = height - coord.y - fontSize;
 
-    page.drawText(`${courseDate || "#Error"}`, {
-      x: width - 150,
-      y: height - 65,
-      size: 12,
-      font,
-      color: rgb(0, 0, 0),
-    });
-
-    page.drawText("Course Time:", {
-      x: width - 230,
-      y: height - 85,
-      size: 12,
-      font: boldFont,
-      color: rgb(0, 0, 0),
-    });
-
-    page.drawText(`${courseTime || ""}`, {
-      x: width - 150,
-      y: height - 85,
-      size: 12,
-      font,
-      color: rgb(0, 0, 0),
-    });
-
-    const addressLines = (courseAddress || "").match(/.{1,35}(\s+|$)/g) || [];
-    const addressY = height - 105;
-
-    page.drawText("Course Location:", {
-      x: width - 230,
-      y: addressY,
-      size: 12,
-      font: boldFont,
-      color: rgb(0, 0, 0),
-    });
-
-    addressLines.forEach((line, index) => {
-      page.drawText(line.trim(), {
-        x: width - 150,
-        y: addressY - index * 15,
-        size: 12,
-        font,
-        color: rgb(0, 0, 0),
-      });
-    });
-
-    page.drawText("Class Fee: $100.", {
-      x: width - 230,
-      y: height - 125,
-      size: 12,
-      font: boldFont,
-      color: rgb(0, 0, 0),
-    });
-
-    // Student information section
-    page.drawText("Dear:", {
-      x: 50,
-      y: height - 210,
-      size: 12,
-      font: boldFont,
-      color: rgb(0, 0, 0),
-    });
-
-    page.drawText(`${first_name} ${midl || ""} ${last_name}`, {
-      x: 90,
-      y: height - 210,
-      size: 12,
-      font: boldFont,
-      color: rgb(0, 0, 0),
-    });
-
-    // Certificate Number
-    page.drawText(`Certificate No: ${certn || ""}`, {
-      x: width - 230,
-      y: height - 210,
-      size: 12,
-      font: boldFont,
-      color: rgb(0, 0, 0),
-    });
-
-    // Date
-    const currentDate = new Date().toLocaleDateString("en-US", {
-      weekday: "long",
-      year: "numeric",
-      month: "long",
-      day: "numeric",
-    });
-
-    page.drawText(currentDate, {
-      x: 50,
-      y: height - 240,
-      size: 12,
-      font,
-      color: rgb(0, 0, 0),
-    });
-
-    // Agreement text with word wrapping
-    const wrapText = (text: string, maxWidth: number) => {
-      const words = text.split(" ");
-      const lines: string[] = [];
-      let currentLine = words[0];
-
-      for (let i = 1; i < words.length; i++) {
-        const word = words[i];
-        const width = font.widthOfTextAtSize(currentLine + " " + word, 10);
-
-        if (width < maxWidth) {
-          currentLine += " " + word;
-        } else {
-          lines.push(currentLine);
-          currentLine = word;
-        }
-      }
-      lines.push(currentLine);
-      return lines;
-    };
-
-    const thankYouText = wrapText(
-      "Thank you for choosing Affordable Driving and Traffic School as the traffic school of your choice.",
-      400
-    );
-
-    thankYouText.forEach((line, index) => {
-      page.drawText(line, {
-        x: 50,
-        y: height - 270 - index * 15,
-        size: 10,
-        font,
-        color: rgb(0, 0, 0),
-      });
-    });
-
-    page.drawText(
-      "ALL SEATS RESERVED! PAYMENT MUST BE MADE PRIOR TO CLASS DATE!",
-      {
-        x: 50,
-        y: height - 300,
-        size: 12,
-        font: boldFont,
-        color: rgb(0, 0, 0),
-      }
-    );
-
-    // ADI Agreement section
-    page.drawText("AFFORDABLE DRIVING AND TRAFFIC SCHOOL, INC. (ADTS)", {
-      x: 50,
-      y: height - 330,
-      size: 12,
-      font: boldFont,
-      color: rgb(0, 0, 0),
-    });
-
-    page.drawText("12 Hrs ADVANCED DRIVER IMPROVEMENT COURSE AGREEMENT", {
-      x: 50,
-      y: height - 350,
-      size: 12,
-      font: boldFont,
-      color: rgb(0, 0, 0),
-    });
-
-    // Agreement paragraphs with word wrapping
-    const agreementText = [
-      "This course combines Florida Traffic laws and awareness program which will affect your ability to avoid future traffic violations.",
-      "It is mandatory that you attend class date(s) scheduled. If you miss any session(s) scheduled you must re-register and pay a $100.00 fee.",
-      "To cancel or reschedule a class, you will be charged a $100.00 fee to reschedule, if not done two days in advance.",
-      "Classes begin at the times scheduled. Late arrivals will receive NO CREDIT. Class breaks are designated for designed time frame. If you are late",
-      "returning you will receive NO CREDIT for attending. Both traffic situations require registration and a $100.00 registration fee.",
-      "Fees are NOT REFUNDABLE and payments implies consent.",
-      "",
-      "WARNING! IF YOU HAVE A SUSPENDED LICENSE OR LICENSE THAT WILL BE SUSPENDED BY THE STATE OF FLORIDA,",
-      "YOU SHOULD IMMEDIATELY CONTACT THE BUREAU OF DRIVER IMPROVEMENT AT (850) 617-2000 OR 2900 APALACHEE PKWY,",
-      "TALLAHASSEE, FL 32399-0575. TO KNOW IF YOU ARE ELIGIBLE TO TAKE THIS CLASS. IF YOU HAVE ANY QUESTIONS,",
-      "PLEASE CALL OR VISIT OUR OFFICE. REMEMBER, IMMEDIATELY AFTER COMPLETION OF THIS CLASS, YOU MUST GO",
-      "TO THE LOCAL DMV OFFICE TO GET YOUR DRIVER LICENSE REINSTATED AND PAY REINSTATEMENT FEES.",
-    ];
-
-    let yPos = height - 380;
-    agreementText.forEach((text) => {
-      if (text === "") {
-        yPos -= 10;
-        return;
-      }
-
-      if (text.length > 90) {
-        const wrappedLines = wrapText(text, 450);
-        wrappedLines.forEach((line) => {
-          page.drawText(line, {
-            x: 50,
-            y: yPos,
-            size: 10,
-            font: text.startsWith("WARNING!") ? boldFont : font,
+          page.drawText(String(value), {
+            x: finalX,
+            y: pdfY,
+            size: fontSize,
+            font,
             color: rgb(0, 0, 0),
           });
-          yPos -= 15;
+
+          console.log(`  ✓ ${fieldKey}: "${value}" at (${finalX}, ${pdfY})`);
         });
-      } else {
-        page.drawText(text, {
-          x: 50,
-          y: yPos,
-          size: 10,
-          font: text.startsWith("WARNING!") ? boldFont : font,
-          color: rgb(0, 0, 0),
-        });
-        yPos -= 20;
+
+        const pdfBytes = await pdfDoc.save();
+        return new Blob([pdfBytes as any], { type: "application/pdf" });
+      } catch (error) {
+        console.error("❌ Error generating single ADI certificate:", error);
+        throw error;
       }
-    });
+    },
+    []
+  );
 
-    // Signature section at the bottom
-    // Draw signature lines
-    page.drawLine({
-      start: { x: 50, y: 80 },
-      end: { x: 200, y: 80 },
-      thickness: 0.5,
-      color: rgb(0, 0, 0),
-    });
+  /**
+   * Genera un PDF con múltiples estudiantes (hasta 3 por página)
+   * Si hay más de 3, genera múltiples PDFs en un ZIP
+   */
+  const generateMultipleAdiCertificates = useCallback(
+    async (students: Student[], pdfTemplatePath: string) => {
+      console.log("🎓 Generating multiple ADI certificates");
+      console.log(`👥 Students: ${students.length}`);
 
-    page.drawLine({
-      start: { x: width - 250, y: 80 },
-      end: { x: width - 50, y: 80 },
-      thickness: 0.5,
-      color: rgb(0, 0, 0),
-    });
+      const pdfs: Blob[] = [];
 
-    page.drawLine({
-      start: { x: width - 250, y: 40 },
-      end: { x: width - 50, y: 40 },
-      thickness: 0.5,
-      color: rgb(0, 0, 0),
-    });
+      try {
+        // Procesar en chunks de 3
+        for (let i = 0; i < students.length; i += 3) {
+          const chunk = students.slice(i, Math.min(i + 3, students.length));
+          console.log(`📄 PDF ${Math.floor(i / 3) + 1}: ${chunk.length} certificate(s)`);
 
-    page.drawText("Date", {
-      x: 50,
-      y: 60,
-      size: 12,
-      font,
-      color: rgb(0, 0, 0),
-    });
+          const pdfDoc = await PDFDocument.create();
 
-    page.drawText("Student Signature", {
-      x: width - 200,
-      y: 60,
-      size: 12,
-      font,
-      color: rgb(0, 0, 0),
-    });
+          // Cargar el PDF template de fondo
+          const templateBytes = await fetch(pdfTemplatePath).then((res) => {
+            if (!res.ok) throw new Error(`Failed to load PDF: ${pdfTemplatePath}`);
+            return res.arrayBuffer();
+          });
+          const templatePdf = await PDFDocument.load(templateBytes);
+          const [templatePage] = await pdfDoc.copyPages(templatePdf, [0]);
+          pdfDoc.addPage(templatePage);
 
-    page.drawText("ADTS Officer", {
-      x: width - 200,
-      y: 20,
-      size: 12,
-      font,
-      color: rgb(0, 0, 0),
-    });
+          const page = pdfDoc.getPages()[0];
+          const { height } = page.getSize();
 
-    // Convert the PDF to bytes and create a blob
-    const pdfBytes = await pdfDoc.save();
-    return new Blob([pdfBytes], { type: "application/pdf" });
-  }, []);
+          // Embed fonts
+          const helvetica = await pdfDoc.embedFont(StandardFonts.Helvetica);
+          const timesRoman = await pdfDoc.embedFont(StandardFonts.TimesRoman);
 
-  return { generateAdiCertificatePDF };
+          // Dibujar cada estudiante en su posición
+          chunk.forEach((student, index) => {
+            const position = (index + 1) as 1 | 2 | 3;
+            const coordinates = getAdiPositionCoordinates(position);
+
+            console.log(`  🎫 ${student.first_name} ${student.last_name} at position ${position}`);
+
+            Object.entries(coordinates).forEach(([fieldKey, coord]) => {
+              let value = (student as any)[fieldKey];
+
+              // Transformaciones especiales
+              if (fieldKey === "courseDate" && value) {
+                const date = new Date(value);
+                value = date.toLocaleDateString("en-US", {
+                  month: "short",
+                  day: "numeric",
+                  year: "numeric",
+                });
+              }
+
+              // Si no hay valor, saltar este campo (no usar datos mock)
+              if (!value || value === "") {
+                console.log(`  ⚠️ ${fieldKey} is empty, skipping`);
+                return;
+              }
+
+              // Validar que x e y existen (no son opcionales para campos de texto)
+              if (coord.x === undefined || coord.y === undefined) {
+                console.log(`  ⚠️ ${fieldKey} missing coordinates, skipping`);
+                return;
+              }
+
+              // Campo de texto normal - usar Helvetica
+              const font = helvetica;
+              const fontSize = coord.fontSize || 10;
+              const textWidth = font.widthOfTextAtSize(String(value), fontSize);
+
+              // Calcular X según alineación
+              let finalX = coord.x;
+              if (coord.align === "center") {
+                finalX = coord.x - textWidth / 2;
+              } else if (coord.align === "right") {
+                finalX = coord.x - textWidth;
+              }
+
+              // PDF usa coordenadas bottom-up
+              const pdfY = height - coord.y - fontSize;
+
+              page.drawText(String(value), {
+                x: finalX,
+                y: pdfY,
+                size: fontSize,
+                font,
+                color: rgb(0, 0, 0),
+              });
+            });
+          });
+
+          const pdfBytes = await pdfDoc.save();
+          pdfs.push(new Blob([pdfBytes as any], { type: "application/pdf" }));
+        }
+
+        // Si solo hay 1 PDF, retornarlo directamente
+        if (pdfs.length === 1) {
+          return pdfs[0];
+        }
+
+        // Si hay múltiples PDFs, retornar array para crear ZIP
+        return pdfs;
+      } catch (error) {
+        console.error("❌ Error generating multiple ADI certificates:", error);
+        throw error;
+      }
+    },
+    []
+  );
+
+  return {
+    generateSingleAdiCertificate,
+    generateMultipleAdiCertificates,
+  };
 }

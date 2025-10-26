@@ -32,9 +32,12 @@ export function TableActions({
     ? allowsCombinedPDF(template.classType)
     : false;
 
-  // Check if it's an 8-hours certificate to show test button
+  // Check if it's an 8-hours, ADI or BDI certificate to show test button
   const is8Hours = template?.classType?.toUpperCase().includes('8-HOURS') ||
                    template?.classType?.toUpperCase().includes('8 HOURS');
+  const isAdi = template?.classType?.toUpperCase().includes('ADI');
+  const isBdi = template?.classType?.toUpperCase().includes('BDI');
+  const showTestButton = is8Hours || isAdi || isBdi;
 
   return (
     <>
@@ -68,7 +71,7 @@ export function TableActions({
         >
           Download XSLX
         </Button>
-        {is8Hours && onTest3Students && (
+        {showTestButton && onTest3Students && (
           <Button
             onClick={onTest3Students}
             className="px-4 py-2 bg-orange-500 text-white rounded"

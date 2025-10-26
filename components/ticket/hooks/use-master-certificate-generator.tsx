@@ -16,8 +16,8 @@ const normalizeClassType = (type: string): string => {
 
 export function useCertificateGenerator() {
   const { generateDateCertificatePDF } = useDateCertificateGenerator();
-  const { generateBdiCertificatePDF } = useBdiCertificateGenerator();
-  const { generateAdiCertificatePDF } = useAdiCertificateGenerator();
+  const { generateSingleBdiCertificate: generateBdiCertificatePDF } = useBdiCertificateGenerator();
+  const { generateSingleAdiCertificate } = useAdiCertificateGenerator();
   const { generateDynamicCertificatePDF } = useDynamicCertificateGenerator();
 
   // Function to validate variables before generation
@@ -156,16 +156,18 @@ export function useCertificateGenerator() {
 
         // Fallback to appropriate legacy generator based on type
         if (certType === "ADI") {
-          return generateAdiCertificatePDF(user);
+          return generateSingleAdiCertificate(user, '/templates_certificates/adi.pdf');
+        } else if (certType === "BDI") {
+          return generateBdiCertificatePDF(user, '/templates_certificates/bdi.pdf');
         } else {
-          return generateBdiCertificatePDF(user);
+          return generateBdiCertificatePDF(user, '/templates_certificates/bdi.pdf');
         }
       }
     },
     [
       generateDateCertificatePDF,
       generateBdiCertificatePDF,
-      generateAdiCertificatePDF,
+      generateSingleAdiCertificate,
       generateDynamicCertificatePDF,
     ]
   );

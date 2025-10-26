@@ -91,6 +91,7 @@ export default function Page() {
         console.log('  - Decoded classType:', decodedClassType);
         console.log('  - Normalized classType:', normalizedClassType);
         console.log('  - Total classes from API:', data.length);
+        console.log('  - Sample class types:', data.slice(0, 5).map((c: Class) => ({ type: c.type, normalized: normalizeClassType(c.type) })));
 
         const filteredClasses = data.filter((c: Class) => {
           const normalizedTicketType = normalizeClassType(c.type);
@@ -99,6 +100,8 @@ export default function Page() {
           if (matches) {
             const className = typeof c.classId === 'object' ? c.classId?.title : 'Unknown';
             console.log(`✅ Class matched: "${className}" (type: "${c.type}" → "${normalizedTicketType}") matches "${normalizedClassType}"`);
+          } else {
+            console.log(`❌ Class not matched: "${c.type}" → "${normalizedTicketType}" does not match "${normalizedClassType}"`);
           }
 
           return matches;

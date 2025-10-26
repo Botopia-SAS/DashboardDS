@@ -55,36 +55,41 @@ export const CERTIFICATE_CONFIGURATIONS: Record<string, CertificateConfig> = {
   ADI: {
     classType: 'ADI',
     name: 'ADI Certificate',
-    pdfTemplate: '/templates_certificates/adi.pdf', // Cuando lo tengas, actualiza la ruta
-    certificatesPerPage: 1, // 1 certificado por hoja (puedes cambiar a 2 o 3 si necesitas)
+    pdfTemplate: '/templates_certificates/adi.pdf',
+    certificatesPerPage: 3, // 3 certificados por página como 8-hours
     pageSize: { width: 792, height: 612, orientation: 'landscape' },
     tableVariables: [
       { key: 'firstName', label: 'First Name', example: 'JOHN' },
+      { key: 'middleName', label: 'Middle Name', example: 'M' },
       { key: 'lastName', label: 'Last Name', example: 'DOE' },
-      { key: 'birthDate', label: 'Date of Birth', example: '01/15/1990' },
       { key: 'licenseNumber', label: 'License Number', example: 'D123-456-78-910-0' },
       { key: 'courseDate', label: 'Completion Date', example: 'Nov 10, 2025' },
       { key: 'address', label: 'Course Location', example: 'Palm Beach County, FL' },
-      { key: 'courseTime', label: 'Course Time', example: '4hr', options: ['4hr', '6hr', '8hr'] },
+      { key: 'citationNumber', label: 'Citation Number', example: '2024-TC-12345' },
+      { key: 'certn', label: 'Certificate Number', example: '100' },
     ],
-    allowCombinedPDF: false, // Cambiar a true si quieres el botón morado
+    allowCombinedPDF: true, // Habilitar botón morado para múltiples certificados
+    useMultiPositionCoordinates: true, // Usar sistema de coordenadas múltiples
   },
 
   BDI: {
     classType: 'BDI',
-    name: 'BDI Certificate',
-    pdfTemplate: '/templates_certificates/bdi.pdf', // Cuando lo tengas, actualiza la ruta
-    certificatesPerPage: 3, // 3 certificados por hoja (ejemplo)
+    name: 'BDI Certificate (Basic Driving Improvement)',
+    pdfTemplate: '/templates_certificates/bdi.pdf',
+    certificatesPerPage: 3, // 3 certificados por hoja
     pageSize: { width: 792, height: 612, orientation: 'landscape' },
     tableVariables: [
       { key: 'firstName', label: 'First Name', example: 'JANE' },
+      { key: 'middleName', label: 'Middle Name', example: 'M' },
       { key: 'lastName', label: 'Last Name', example: 'SMITH' },
-      { key: 'licenseNumber', label: 'License Number', example: 'A123456' },
+      { key: 'licenseNumber', label: 'License Number', example: 'A123456789' },
       { key: 'courseDate', label: 'Completion Date', example: 'Dec 1, 2025' },
-      { key: 'citationNumber', label: 'Citation Number', example: '12345' },
+      { key: 'citationNumber', label: 'Citation Number', example: '2025-TC-12345' },
+      { key: 'certn', label: 'Certificate Number', example: 'BDI-2025-001' },
       { key: 'address', label: 'Course Location', example: 'Palm Beach County, FL' },
     ],
     allowCombinedPDF: true, // SÍ mostrar botón morado
+    useMultiPositionCoordinates: true, // Usa coordenadas multi-posición
   },
 
   // Certificados de 8 horas (IDI, Aggressive, Suspension)

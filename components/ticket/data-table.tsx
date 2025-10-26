@@ -24,6 +24,8 @@ import { useTableData } from "./hooks/use-table-data";
 import { useUnifiedCertificateGenerator } from "./hooks/use-unified-certificate-generator";
 import { useDynamicCertificateGenerator } from "./hooks/use-dynamic-certificate-generator";
 import { use8HoursCertificateGenerator } from "./hooks/use-8hours-certificate-generator";
+import { useAdiCertificateGenerator } from "./hooks/use-adi-certificate-generator";
+import { useBdiCertificateGenerator } from "./hooks/use-bdi-certificate-generator";
 import { RowActionButtons } from "./row-action-buttons";
 import { TableActions } from "./table-actions";
 import { SignatureCanvas } from "./SignatureCanvas";
@@ -61,6 +63,8 @@ export function DataTable({ columns, data, onUpdate, template }: DataTableProps)
   const { generateCertificatePDF } = useUnifiedCertificateGenerator();
   const { generateMultipleCertificatesPDF } = useDynamicCertificateGenerator();
   const { generateSingle8HoursCertificate, generateMultiple8HoursCertificates } = use8HoursCertificateGenerator();
+  const { generateSingleAdiCertificate, generateMultipleAdiCertificates } = useAdiCertificateGenerator();
+  const { generateSingleBdiCertificate, generateMultipleBdiCertificates } = useBdiCertificateGenerator();
 
   const table = useReactTable({
     data: tableData,
@@ -196,11 +200,13 @@ export function DataTable({ columns, data, onUpdate, template }: DataTableProps)
         template = getDefaultBDITemplate(certType);
       }
 
-      // Detectar si es un certificado de 8 horas
+      // Detectar si es un certificado de 8 horas, ADI o BDI
       const is8Hours = certType.includes('8-HOURS') || certType.includes('8 HOURS');
+      const isAdi = certType.includes('ADI');
+      const isBdi = certType.includes('BDI');
 
-      // Para certificados de 8 horas, siempre usar 3 por página
-      const certsPerPage = is8Hours ? 3 : (template.certificatesPerPage || 1);
+      // Para certificados de 8 horas, ADI y BDI, siempre usar 3 por página
+      const certsPerPage = (is8Hours || isAdi || isBdi) ? 3 : (template.certificatesPerPage || 1);
       console.log(`📄 Template: ${template.name} has ${certsPerPage} certificates per page`);
       console.log(`👥 ${validStudents.length} students selected`);
 
@@ -212,6 +218,14 @@ export function DataTable({ columns, data, onUpdate, template }: DataTableProps)
         if (is8Hours) {
           console.log('🎓 Using 8-hours certificate generator');
           const result = await generateMultiple8HoursCertificates(validStudents, '/templates_certificates/8-hours.pdf');
+          pdfBlob = Array.isArray(result) ? result[0] : result;
+        } else if (isAdi) {
+          console.log('🎓 Using ADI certificate generator');
+          const result = await generateMultipleAdiCertificates(validStudents, '/templates_certificates/adi.pdf');
+          pdfBlob = Array.isArray(result) ? result[0] : result;
+        } else if (isBdi) {
+          console.log('🎓 Using BDI certificate generator');
+          const result = await generateMultipleBdiCertificates(validStudents, '/templates_certificates/bdi.pdf');
           pdfBlob = Array.isArray(result) ? result[0] : result;
         } else {
           console.log('🎓 Using standard certificate generator');
@@ -248,6 +262,42 @@ export function DataTable({ columns, data, onUpdate, template }: DataTableProps)
           setRowSelection({});
           toast.dismiss(loadingToast);
           toast.success(`${pdfBlobs.length} PDF(s) generados con ${validStudents.length} certificado(s) en total`);
+        } else if (isAdi) {
+          console.log('🎓 Using ADI certificate generator for multiple PDFs');
+          const result = await generateMultipleAdiCertificates(validStudents, '/templates_certificates/adi.pdf');
+          const pdfBlobs = Array.isArray(result) ? result : [result];
+
+          pdfBlobs.forEach((pdfBlob, index) => {
+            const certsInThisPdf = Math.min(3, validStudents.length - (index * 3));
+            const pdfFileName = `Certificados_ADI_Grupo_${index + 1}_${certsInThisPdf}_certs.pdf`;
+            zip.file(pdfFileName, pdfBlob);
+          });
+
+          const zipBlob = await zip.generateAsync({ type: "blob" });
+          const zipFileName = `Certificados_ADI_${pdfBlobs.length}_PDFs_${validStudents.length}_estudiantes_${new Date().toISOString().split('T')[0]}.zip`;
+          saveAs(zipBlob, zipFileName);
+
+          setRowSelection({});
+          toast.dismiss(loadingToast);
+          toast.success(`${pdfBlobs.length} PDF(s) ADI generados con ${validStudents.length} certificado(s) en total`);
+        } else if (isBdi) {
+          console.log('🎓 Using BDI certificate generator for multiple PDFs');
+          const result = await generateMultipleBdiCertificates(validStudents, '/templates_certificates/bdi.pdf');
+          const pdfBlobs = Array.isArray(result) ? result : [result];
+
+          pdfBlobs.forEach((pdfBlob, index) => {
+            const certsInThisPdf = Math.min(3, validStudents.length - (index * 3));
+            const pdfFileName = `Certificados_BDI_Grupo_${index + 1}_${certsInThisPdf}_certs.pdf`;
+            zip.file(pdfFileName, pdfBlob);
+          });
+
+          const zipBlob = await zip.generateAsync({ type: "blob" });
+          const zipFileName = `Certificados_BDI_${pdfBlobs.length}_PDFs_${validStudents.length}_estudiantes_${new Date().toISOString().split('T')[0]}.zip`;
+          saveAs(zipBlob, zipFileName);
+
+          setRowSelection({});
+          toast.dismiss(loadingToast);
+          toast.success(`${pdfBlobs.length} PDF(s) BDI generados con ${validStudents.length} certificado(s) en total`);
         } else {
           console.log('🎓 Using standard certificate generator for multiple PDFs');
           const numPDFs = Math.ceil(validStudents.length / certsPerPage);
@@ -277,7 +327,7 @@ export function DataTable({ columns, data, onUpdate, template }: DataTableProps)
       toast.dismiss(loadingToast);
       toast.error("Error al generar el PDF combinado. Intente nuevamente.");
     }
-  }, [generateMultipleCertificatesPDF, generateMultiple8HoursCertificates, table, setRowSelection]);
+  }, [generateMultipleCertificatesPDF, generateMultiple8HoursCertificates, generateMultipleAdiCertificates, generateMultipleBdiCertificates, table, setRowSelection]);
 
   const downloadSingleCertificate = useCallback(
     async (user: Student) => {
@@ -290,16 +340,18 @@ export function DataTable({ columns, data, onUpdate, template }: DataTableProps)
       // Proceed directly with generation using unified certificate generator
       await proceedWithGeneration(user);
     },
-    [generateCertificatePDF, generateSingle8HoursCertificate]
+    [generateCertificatePDF, generateSingle8HoursCertificate, generateSingleAdiCertificate, generateSingleBdiCertificate]
   );
 
   const proceedWithGeneration = async (user: Student) => {
     const loadingToast = toast.loading("Generando certificado...");
 
     try {
-      // Detectar si es un certificado de 8 horas
+      // Detectar si es un certificado de 8 horas, ADI o BDI
       const classType = user.classType?.toUpperCase() || '';
       const is8Hours = classType.includes('8-HOURS') || classType.includes('8 HOURS');
+      const isAdi = classType.includes('ADI');
+      const isBdi = classType.includes('BDI');
 
       let pdfBlob: Blob;
 
@@ -307,6 +359,14 @@ export function DataTable({ columns, data, onUpdate, template }: DataTableProps)
         // Usar generador de 8 horas con coordenadas exactas
         console.log('🎓 Using 8-hours certificate generator');
         pdfBlob = await generateSingle8HoursCertificate(user, '/templates_certificates/8-hours.pdf');
+      } else if (isAdi) {
+        // Usar generador ADI con coordenadas exactas
+        console.log('🎓 Using ADI certificate generator');
+        pdfBlob = await generateSingleAdiCertificate(user, '/templates_certificates/adi.pdf');
+      } else if (isBdi) {
+        // Usar generador BDI con coordenadas exactas
+        console.log('🎓 Using BDI certificate generator');
+        pdfBlob = await generateSingleBdiCertificate(user, '/templates_certificates/bdi.pdf');
       } else {
         // Usar generador unificado estándar
         console.log('🎓 Using standard certificate generator');
@@ -363,7 +423,7 @@ export function DataTable({ columns, data, onUpdate, template }: DataTableProps)
     }
   }, [data]);
 
-  // Test function to generate PDF with first 3 students with DATA FROM TABLE (8-hours only)
+  // Test function to generate PDF with first 3 students with DATA FROM TABLE (8-hours and ADI)
   const testPDF3Students = useCallback(async () => {
     const loadingToast = toast.loading("Generando PDF de prueba con los primeros 3 estudiantes de la tabla...");
 
@@ -379,22 +439,45 @@ export function DataTable({ columns, data, onUpdate, template }: DataTableProps)
         return;
       }
 
-      console.log(`🧪 TEST: Generating PDF with ${validStudents.length} student(s) FROM TABLE DATA`);
-      console.log(`   📋 Students:`, validStudents.map(s => `${s.first_name} ${s.last_name}`));
-      const result = await generateMultiple8HoursCertificates(validStudents, '/templates_certificates/8-hours.pdf');
-      const pdfBlob = Array.isArray(result) ? result[0] : result;
+      // Detectar el tipo de certificado
+      const { type, classType } = validStudents[0];
+      const certType = (classType || type || 'DATE').toUpperCase();
+      const is8Hours = certType.includes('8-HOURS') || certType.includes('8 HOURS');
+      const isAdi = certType.includes('ADI');
+      const isBdi = certType.includes('BDI');
 
-      const fileName = `Test_8Hours_${validStudents.length}_students_${new Date().toISOString().split('T')[0]}.pdf`;
+      console.log(`🧪 TEST: Generating ${certType} PDF with ${validStudents.length} student(s) FROM TABLE DATA`);
+      console.log(`   📋 Students:`, validStudents.map(s => `${s.first_name} ${s.last_name}`));
+
+      let result: Blob | Blob[];
+      let fileName: string;
+
+      if (is8Hours) {
+        result = await generateMultiple8HoursCertificates(validStudents, '/templates_certificates/8-hours.pdf');
+        fileName = `Test_8Hours_${validStudents.length}_students_${new Date().toISOString().split('T')[0]}.pdf`;
+      } else if (isAdi) {
+        result = await generateMultipleAdiCertificates(validStudents, '/templates_certificates/adi.pdf');
+        fileName = `Test_ADI_${validStudents.length}_students_${new Date().toISOString().split('T')[0]}.pdf`;
+      } else if (isBdi) {
+        result = await generateMultipleBdiCertificates(validStudents, '/templates_certificates/bdi.pdf');
+        fileName = `Test_BDI_${validStudents.length}_students_${new Date().toISOString().split('T')[0]}.pdf`;
+      } else {
+        toast.dismiss(loadingToast);
+        toast.error("El botón de prueba solo funciona para certificados de 8 horas, ADI y BDI.");
+        return;
+      }
+
+      const pdfBlob = Array.isArray(result) ? result[0] : result;
       saveAs(pdfBlob, fileName);
 
       toast.dismiss(loadingToast);
-      toast.success(`PDF de prueba generado con ${validStudents.length} estudiante(s) de la tabla`);
+      toast.success(`PDF de prueba ${certType} generado con ${validStudents.length} estudiante(s) de la tabla`);
     } catch (error) {
       console.error("Error generating test PDF:", error);
       toast.dismiss(loadingToast);
       toast.error("Error al generar el PDF de prueba. Intente nuevamente.");
     }
-  }, [data, generateMultiple8HoursCertificates]);
+  }, [data, generateMultiple8HoursCertificates, generateMultipleAdiCertificates, generateMultipleBdiCertificates]);
 
   return (
     <div className="rounded-md border">
