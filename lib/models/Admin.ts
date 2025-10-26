@@ -44,7 +44,7 @@ const AdminSchema: Schema = new Schema({
   lastLogin: { type: Date },
   loginAttempts: { type: Number, default: 0 },
   lockUntil: { type: Date },
-}, { timestamps: true });
+}, { timestamps: true, collection: 'admin' }); // Especificar nombre exacto de la colección
 
 // Index for better query performance (username and email indexes are already defined as unique in schema)
 AdminSchema.index({ role: 1, active: 1 });
