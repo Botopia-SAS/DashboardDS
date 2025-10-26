@@ -225,10 +225,12 @@ export default function Page() {
           console.error('Invalid date:', selectedClass.date);
           return;
         }
+        // Usar UTC para evitar desfase de zona horaria
         const formattedText = `${getClassName(selectedClass)} - ${classDate.toLocaleDateString("en-US", {
           weekday: "short",
           month: "short",
-          day: "numeric"
+          day: "numeric",
+          timeZone: "UTC"
         })} at ${formatTime(selectedClass.hour)} (${studentCount}/${totalSpots})`;
 
         setSelectedClassText(formattedText);
@@ -494,6 +496,7 @@ export default function Page() {
                               year: "numeric",
                               month: "short",
                               day: "numeric",
+                              timeZone: "UTC"
                             });
                           } catch {
                             return 'Invalid Date';
