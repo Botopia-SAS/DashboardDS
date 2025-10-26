@@ -122,8 +122,8 @@ export const POSITION_1_ADI_COORDINATES: Record<string, FieldAdiCoordinate> = {
 
   // Instructor Signature
   instructorSignature: {
-    x: 200,
-    y: 215,
+    x: 100,
+    y: 200,
     fontSize: 7,
     fontFamily: 'Montserrat',
     align: 'center',
@@ -297,7 +297,7 @@ export const POSITION_3_ADI_COORDINATES: Record<string, FieldAdiCoordinate> = {
   // Instructor Signature
   instructorSignature: {
     x: POSITION_1_ADI_COORDINATES.instructorSignature.x!,
-    y: POSITION_1_ADI_COORDINATES.instructorSignature.y! + POSITION_3_OFFSET,
+    y: POSITION_1_ADI_COORDINATES.instructorSignature.y! + POSITION_3_OFFSET+5,
     fontSize: 7,
     fontFamily: 'Montserrat',
     align: 'center',

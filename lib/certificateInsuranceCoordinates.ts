@@ -1,5 +1,5 @@
 /**
- * Coordenadas específicas para certificados BDI
+ * Coordenadas específicas para certificados Insurance Discount Class
  *
  * IMPORTANTE: Todas las coordenadas Y en este archivo son medidas DESDE ARRIBA
  * (como lo muestra la herramienta pdf-coordinate-tool.html).
@@ -16,7 +16,7 @@
  * 3. Si hay 3 estudiantes -> usar position1, position2 y position3
  */
 
-export interface FieldBdiCoordinate {
+export interface FieldInsuranceCoordinate {
   x?: number; // Opcional para checkboxes que solo usan checkboxOptions
   y?: number; // Opcional para checkboxes que solo usan checkboxOptions
   fontSize?: number;
@@ -34,13 +34,13 @@ export interface FieldBdiCoordinate {
 // Offsets configurables para las diferentes posiciones
 // Puedes modificar estos valores para ajustar el espaciado entre certificados
 const POSITION_2_OFFSET = 273; // Offset para el segundo certificado
-const POSITION_3_OFFSET = 548; // Offset para el tercer certificado (268 * 2)
+const POSITION_3_OFFSET = 548; // Offset para el tercer certificado
 
 /**
- * Coordenadas para el PRIMER certificado BDI (parte superior del PDF)
- * Basado en la imagen del certificado BDI proporcionada
+ * Coordenadas para el PRIMER certificado Insurance (parte superior del PDF)
+ * Usa las mismas coordenadas que BDI
  */
-export const POSITION_1_BDI_COORDINATES: Record<string, FieldBdiCoordinate> = {
+export const POSITION_1_INSURANCE_COORDINATES: Record<string, FieldInsuranceCoordinate> = {
   // Citation No
   citationNumber: {
     x: 260,
@@ -132,13 +132,13 @@ export const POSITION_1_BDI_COORDINATES: Record<string, FieldBdiCoordinate> = {
 };
 
 /**
- * Coordenadas para el SEGUNDO certificado BDI (parte media del PDF)
+ * Coordenadas para el SEGUNDO certificado Insurance (parte media del PDF)
  * Todas las Y aumentan en POSITION_2_OFFSET pixels desde position 1
  */
-export const POSITION_2_BDI_COORDINATES: Record<string, FieldBdiCoordinate> = {
+export const POSITION_2_INSURANCE_COORDINATES: Record<string, FieldInsuranceCoordinate> = {
   citationNumber: {
     x: 260,
-    y: POSITION_1_BDI_COORDINATES.citationNumber.y! + POSITION_2_OFFSET,
+    y: POSITION_1_INSURANCE_COORDINATES.citationNumber.y! + POSITION_2_OFFSET,
     fontSize: 7,
     fontFamily: 'Montserrat',
     align: 'center',
@@ -147,7 +147,7 @@ export const POSITION_2_BDI_COORDINATES: Record<string, FieldBdiCoordinate> = {
 
   certn: {
     x: 415,
-    y: POSITION_1_BDI_COORDINATES.certn.y! + POSITION_2_OFFSET,
+    y: POSITION_1_INSURANCE_COORDINATES.certn.y! + POSITION_2_OFFSET,
     fontSize: 7,
     fontFamily: 'Montserrat',
     align: 'left',
@@ -156,7 +156,7 @@ export const POSITION_2_BDI_COORDINATES: Record<string, FieldBdiCoordinate> = {
 
   licenseNumber: {
     x: 260,
-    y: POSITION_1_BDI_COORDINATES.licenseNumber.y! + POSITION_2_OFFSET,
+    y: POSITION_1_INSURANCE_COORDINATES.licenseNumber.y! + POSITION_2_OFFSET,
     fontSize: 7,
     fontFamily: 'Montserrat',
     align: 'center',
@@ -165,7 +165,7 @@ export const POSITION_2_BDI_COORDINATES: Record<string, FieldBdiCoordinate> = {
 
   licenseNumber2: {
     x: 463,
-    y: POSITION_1_BDI_COORDINATES.licenseNumber2.y! + POSITION_2_OFFSET,
+    y: POSITION_1_INSURANCE_COORDINATES.licenseNumber2.y! + POSITION_2_OFFSET,
     fontSize: 7,
     fontFamily: 'Montserrat',
     align: 'center',
@@ -174,7 +174,7 @@ export const POSITION_2_BDI_COORDINATES: Record<string, FieldBdiCoordinate> = {
 
   courseDate: {
     x: 260,
-    y: POSITION_1_BDI_COORDINATES.courseDate.y! + POSITION_2_OFFSET,
+    y: POSITION_1_INSURANCE_COORDINATES.courseDate.y! + POSITION_2_OFFSET,
     fontSize: 7,
     fontFamily: 'Montserrat',
     align: 'center'
@@ -182,7 +182,7 @@ export const POSITION_2_BDI_COORDINATES: Record<string, FieldBdiCoordinate> = {
 
   firstName: {
     x: 250,
-    y: POSITION_1_BDI_COORDINATES.firstName.y! + POSITION_2_OFFSET,
+    y: POSITION_1_INSURANCE_COORDINATES.firstName.y! + POSITION_2_OFFSET,
     fontSize: 7,
     fontFamily: 'Montserrat',
     align: 'right',
@@ -191,7 +191,7 @@ export const POSITION_2_BDI_COORDINATES: Record<string, FieldBdiCoordinate> = {
 
   lastName: {
     x: 260,
-    y: POSITION_1_BDI_COORDINATES.lastName.y! + POSITION_2_OFFSET,
+    y: POSITION_1_INSURANCE_COORDINATES.lastName.y! + POSITION_2_OFFSET,
     fontSize: 7,
     fontFamily: 'Montserrat',
     align: 'left',
@@ -200,17 +200,16 @@ export const POSITION_2_BDI_COORDINATES: Record<string, FieldBdiCoordinate> = {
 
   address: {
     x: 260,
-    y: POSITION_1_BDI_COORDINATES.address.y! + POSITION_2_OFFSET,
+    y: POSITION_1_INSURANCE_COORDINATES.address.y! + POSITION_2_OFFSET,
     fontSize: 7,
     fontFamily: 'Montserrat',
     align: 'center',
     maxWidth: 300
   },
 
-  // Instructor Signature
   instructorSignature: {
     x: 100,
-    y: POSITION_1_BDI_COORDINATES.instructorSignature.y! + POSITION_2_OFFSET,
+    y: POSITION_1_INSURANCE_COORDINATES.instructorSignature.y! + POSITION_2_OFFSET,
     fontSize: 7,
     fontFamily: 'Montserrat',
     align: 'center',
@@ -219,13 +218,13 @@ export const POSITION_2_BDI_COORDINATES: Record<string, FieldBdiCoordinate> = {
 };
 
 /**
- * Coordenadas para el TERCER certificado BDI (parte inferior del PDF)
+ * Coordenadas para el TERCER certificado Insurance (parte inferior del PDF)
  * Todas las Y aumentan en POSITION_3_OFFSET pixels desde position 1
  */
-export const POSITION_3_BDI_COORDINATES: Record<string, FieldBdiCoordinate> = {
+export const POSITION_3_INSURANCE_COORDINATES: Record<string, FieldInsuranceCoordinate> = {
   citationNumber: {
     x: 260,
-    y: POSITION_1_BDI_COORDINATES.citationNumber.y! + POSITION_3_OFFSET,
+    y: POSITION_1_INSURANCE_COORDINATES.citationNumber.y! + POSITION_3_OFFSET,
     fontSize: 7,
     fontFamily: 'Montserrat',
     align: 'center',
@@ -234,7 +233,7 @@ export const POSITION_3_BDI_COORDINATES: Record<string, FieldBdiCoordinate> = {
 
   certn: {
     x: 415,
-    y: POSITION_1_BDI_COORDINATES.certn.y! + POSITION_3_OFFSET,
+    y: POSITION_1_INSURANCE_COORDINATES.certn.y! + POSITION_3_OFFSET,
     fontSize: 7,
     fontFamily: 'Montserrat',
     align: 'left',
@@ -243,7 +242,7 @@ export const POSITION_3_BDI_COORDINATES: Record<string, FieldBdiCoordinate> = {
 
   licenseNumber: {
     x: 260,
-    y: POSITION_1_BDI_COORDINATES.licenseNumber.y! + POSITION_3_OFFSET,
+    y: POSITION_1_INSURANCE_COORDINATES.licenseNumber.y! + POSITION_3_OFFSET,
     fontSize: 7,
     fontFamily: 'Montserrat',
     align: 'center',
@@ -252,7 +251,7 @@ export const POSITION_3_BDI_COORDINATES: Record<string, FieldBdiCoordinate> = {
 
   licenseNumber2: {
     x: 463,
-    y: POSITION_1_BDI_COORDINATES.licenseNumber2.y! + POSITION_3_OFFSET,
+    y: POSITION_1_INSURANCE_COORDINATES.licenseNumber2.y! + POSITION_3_OFFSET,
     fontSize: 7,
     fontFamily: 'Montserrat',
     align: 'center',
@@ -261,7 +260,7 @@ export const POSITION_3_BDI_COORDINATES: Record<string, FieldBdiCoordinate> = {
 
   courseDate: {
     x: 260,
-    y: POSITION_1_BDI_COORDINATES.courseDate.y! + POSITION_3_OFFSET,
+    y: POSITION_1_INSURANCE_COORDINATES.courseDate.y! + POSITION_3_OFFSET,
     fontSize: 7,
     fontFamily: 'Montserrat',
     align: 'center'
@@ -269,7 +268,7 @@ export const POSITION_3_BDI_COORDINATES: Record<string, FieldBdiCoordinate> = {
 
   firstName: {
     x: 250,
-    y: POSITION_1_BDI_COORDINATES.firstName.y! + POSITION_3_OFFSET,
+    y: POSITION_1_INSURANCE_COORDINATES.firstName.y! + POSITION_3_OFFSET,
     fontSize: 7,
     fontFamily: 'Montserrat',
     align: 'right',
@@ -278,7 +277,7 @@ export const POSITION_3_BDI_COORDINATES: Record<string, FieldBdiCoordinate> = {
 
   lastName: {
     x: 260,
-    y: POSITION_1_BDI_COORDINATES.lastName.y! + POSITION_3_OFFSET,
+    y: POSITION_1_INSURANCE_COORDINATES.lastName.y! + POSITION_3_OFFSET,
     fontSize: 7,
     fontFamily: 'Montserrat',
     align: 'left',
@@ -287,17 +286,16 @@ export const POSITION_3_BDI_COORDINATES: Record<string, FieldBdiCoordinate> = {
 
   address: {
     x: 260,
-    y: POSITION_1_BDI_COORDINATES.address.y! + POSITION_3_OFFSET,
+    y: POSITION_1_INSURANCE_COORDINATES.address.y! + POSITION_3_OFFSET,
     fontSize: 7,
     fontFamily: 'Montserrat',
     align: 'center',
     maxWidth: 300
   },
 
-  // Instructor Signature
   instructorSignature: {
     x: 100,
-    y: POSITION_1_BDI_COORDINATES.instructorSignature.y! + POSITION_3_OFFSET,
+    y: POSITION_1_INSURANCE_COORDINATES.instructorSignature.y! + POSITION_3_OFFSET,
     fontSize: 7,
     fontFamily: 'Montserrat',
     align: 'center',
@@ -312,17 +310,17 @@ export const POSITION_3_BDI_COORDINATES: Record<string, FieldBdiCoordinate> = {
  * @param position - Número de posición: 1 (top), 2 (middle), o 3 (bottom)
  * @returns Las coordenadas del campo o undefined si no existe
  */
-export function getBdiFieldCoordinates(
+export function getInsuranceFieldCoordinates(
   fieldKey: string,
   position: 1 | 2 | 3
-): FieldBdiCoordinate | undefined {
+): FieldInsuranceCoordinate | undefined {
   switch (position) {
     case 1:
-      return POSITION_1_BDI_COORDINATES[fieldKey];
+      return POSITION_1_INSURANCE_COORDINATES[fieldKey];
     case 2:
-      return POSITION_2_BDI_COORDINATES[fieldKey];
+      return POSITION_2_INSURANCE_COORDINATES[fieldKey];
     case 3:
-      return POSITION_3_BDI_COORDINATES[fieldKey];
+      return POSITION_3_INSURANCE_COORDINATES[fieldKey];
     default:
       return undefined;
   }
@@ -334,17 +332,17 @@ export function getBdiFieldCoordinates(
  * @param position - Número de posición: 1 (top), 2 (middle), o 3 (bottom)
  * @returns Objeto con todas las coordenadas de esa posición
  */
-export function getBdiPositionCoordinates(
+export function getInsurancePositionCoordinates(
   position: 1 | 2 | 3
-): Record<string, FieldBdiCoordinate> {
+): Record<string, FieldInsuranceCoordinate> {
   switch (position) {
     case 1:
-      return POSITION_1_BDI_COORDINATES;
+      return POSITION_1_INSURANCE_COORDINATES;
     case 2:
-      return POSITION_2_BDI_COORDINATES;
+      return POSITION_2_INSURANCE_COORDINATES;
     case 3:
-      return POSITION_3_BDI_COORDINATES;
+      return POSITION_3_INSURANCE_COORDINATES;
     default:
-      return POSITION_1_BDI_COORDINATES;
+      return POSITION_1_INSURANCE_COORDINATES;
   }
 }

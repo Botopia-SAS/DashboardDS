@@ -27,6 +27,8 @@ import { useDynamicCertificateGenerator } from "./hooks/use-dynamic-certificate-
 import { use8HoursCertificateGenerator } from "./hooks/use-8hours-certificate-generator";
 import { useAdiCertificateGenerator } from "./hooks/use-adi-certificate-generator";
 import { useBdiCertificateGenerator } from "./hooks/use-bdi-certificate-generator";
+import { useInsuranceCertificateGenerator } from "./hooks/use-insurance-certificate-generator";
+import { useDateCertificateGenerator } from "./hooks/use-date-certificate-generator";
 import { useYouthfulOffenderCertificateGenerator } from "./hooks/use-youthful-offender-certificate-generator";
 import { RowActionButtons } from "./row-action-buttons";
 import { TableActions } from "./table-actions";
@@ -67,6 +69,8 @@ export function DataTable({ columns, data, onUpdate, template }: DataTableProps)
   const { generateSingle8HoursCertificate, generateMultiple8HoursCertificates } = use8HoursCertificateGenerator();
   const { generateSingleAdiCertificate, generateMultipleAdiCertificates } = useAdiCertificateGenerator();
   const { generateSingleBdiCertificate, generateMultipleBdiCertificates } = useBdiCertificateGenerator();
+  const { generateSingleInsuranceCertificate, generateMultipleInsuranceCertificates } = useInsuranceCertificateGenerator();
+  const { generateDateCertificatePDF, generateMultipleDateCertificates, generateCombinedDateCertificates } = useDateCertificateGenerator();
   const { generateSingleYouthfulOffenderCertificate, generateMultipleYouthfulOffenderCertificates } = useYouthfulOffenderCertificateGenerator();
 
   const table = useReactTable({
@@ -136,20 +140,42 @@ export function DataTable({ columns, data, onUpdate, template }: DataTableProps)
         }
       }
 
-      if (!template) {
-        console.log(`⚠️ No template found, using default BDI template for ${certType}`);
-        const { getDefaultBDITemplate } = await import("@/lib/defaultTemplates/bdiTemplate");
-        template = getDefaultBDITemplate(certType);
-      }
-
-      // Detectar si es un certificado de 8 horas, ADI, BDI o Youthful Offender
+      // Detectar si es un certificado de 8 horas, ADI, BDI, Insurance, DATE o Youthful Offender
       const is8Hours = certType.includes('8-HOURS') || certType.includes('8 HOURS');
       const isAdi = certType.includes('ADI');
       const isBdi = certType.includes('BDI');
+      const isInsurance = certType.includes('INSURANCE');
+      const isDate = certType === 'DATE';
       const isYouthfulOffender = certType.includes('YOUTHFUL OFFENDER') || certType.includes('YOUTHFUL-OFFENDER');
 
-      // Para certificados de 8 horas, ADI, BDI y Youthful Offender, siempre usar 3 por página
-      const certsPerPage = (is8Hours || isAdi || isBdi || isYouthfulOffender) ? 3 : (template.certificatesPerPage || 1);
+      if (!template) {
+        if (isDate) {
+          console.log(`⚠️ No template found for DATE, using DATE template`);
+          // Para DATE, crear un template básico con el path correcto
+          template = {
+            name: 'DATE Certificate',
+            certificatesPerPage: 1,
+            pdfTemplatePath: '/templates_certificates/date.pdf',
+            pageSize: { width: 792, height: 612, orientation: 'landscape' },
+            background: {
+              type: 'pdf',
+              value: '/templates_certificates/date.pdf'
+            },
+            shapeElements: [],
+            textElements: [],
+            imageElements: [],
+            checkboxElements: [],
+            availableVariables: []
+          };
+        } else {
+          console.log(`⚠️ No template found, using default BDI template for ${certType}`);
+          const { getDefaultBDITemplate } = await import("@/lib/defaultTemplates/bdiTemplate");
+          template = getDefaultBDITemplate(certType);
+        }
+      }
+
+      // Para certificados de 8 horas, ADI, BDI, Insurance y Youthful Offender, siempre usar 3 por página
+      const certsPerPage = (is8Hours || isAdi || isBdi || isInsurance || isYouthfulOffender) ? 3 : (template.certificatesPerPage || 1);
       console.log(`📄 Template: ${template.name} has ${certsPerPage} certificates per page`);
 
       const zip = new JSZip();
@@ -160,6 +186,7 @@ export function DataTable({ columns, data, onUpdate, template }: DataTableProps)
         const pdfBlobs = Array.isArray(result) ? result : [result];
 
         pdfBlobs.forEach((pdfBlob, index) => {
+          if (!pdfBlob) return;
           const certsInThisPdf = Math.min(3, validStudents.length - (index * 3));
           const pdfFileName = `Certificados_Grupo_${index + 1}_${certsInThisPdf}_certs.pdf`;
           zip.file(pdfFileName, pdfBlob);
@@ -178,6 +205,7 @@ export function DataTable({ columns, data, onUpdate, template }: DataTableProps)
         const pdfBlobs = Array.isArray(result) ? result : [result];
 
         pdfBlobs.forEach((pdfBlob, index) => {
+          if (!pdfBlob) return;
           const certsInThisPdf = Math.min(3, validStudents.length - (index * 3));
           const pdfFileName = `Certificados_ADI_Grupo_${index + 1}_${certsInThisPdf}_certs.pdf`;
           zip.file(pdfFileName, pdfBlob);
@@ -196,6 +224,7 @@ export function DataTable({ columns, data, onUpdate, template }: DataTableProps)
         const pdfBlobs = Array.isArray(result) ? result : [result];
 
         pdfBlobs.forEach((pdfBlob, index) => {
+          if (!pdfBlob) return;
           const certsInThisPdf = Math.min(3, validStudents.length - (index * 3));
           const pdfFileName = `Certificados_BDI_Grupo_${index + 1}_${certsInThisPdf}_certs.pdf`;
           zip.file(pdfFileName, pdfBlob);
@@ -208,12 +237,32 @@ export function DataTable({ columns, data, onUpdate, template }: DataTableProps)
         setRowSelection({});
         toast.dismiss(loadingToast);
         toast.success(`${pdfBlobs.length} PDF(s) BDI generados con ${validStudents.length} certificado(s) en total`);
+      } else if (isInsurance) {
+        console.log('🎓 Using Insurance certificate generator for multiple PDFs');
+        const result = await generateMultipleInsuranceCertificates(validStudents, '/templates_certificates/insurance.pdf');
+        const pdfBlobs = Array.isArray(result) ? result : [result];
+
+        pdfBlobs.forEach((pdfBlob, index) => {
+          if (!pdfBlob) return;
+          const certsInThisPdf = Math.min(3, validStudents.length - (index * 3));
+          const pdfFileName = `Certificados_Insurance_Grupo_${index + 1}_${certsInThisPdf}_certs.pdf`;
+          zip.file(pdfFileName, pdfBlob);
+        });
+
+        const zipBlob = await zip.generateAsync({ type: "blob" });
+        const zipFileName = `Certificados_Insurance_${pdfBlobs.length}_PDFs_${validStudents.length}_estudiantes_${new Date().toISOString().split('T')[0]}.zip`;
+        saveAs(zipBlob, zipFileName);
+
+        setRowSelection({});
+        toast.dismiss(loadingToast);
+        toast.success(`${pdfBlobs.length} PDF(s) Insurance generados con ${validStudents.length} certificado(s) en total`);
       } else if (isYouthfulOffender) {
         console.log('🎓 Using Youthful Offender certificate generator for multiple PDFs');
         const result = await generateMultipleYouthfulOffenderCertificates(validStudents, '/templates_certificates/youthful-offender-class.pdf');
         const pdfBlobs = Array.isArray(result) ? result : [result];
 
         pdfBlobs.forEach((pdfBlob, index) => {
+          if (!pdfBlob) return;
           const certsInThisPdf = Math.min(3, validStudents.length - (index * 3));
           const pdfFileName = `Certificados_YO_Grupo_${index + 1}_${certsInThisPdf}_certs.pdf`;
           zip.file(pdfFileName, pdfBlob);
@@ -226,6 +275,25 @@ export function DataTable({ columns, data, onUpdate, template }: DataTableProps)
         setRowSelection({});
         toast.dismiss(loadingToast);
         toast.success(`${pdfBlobs.length} PDF(s) YO generados con ${validStudents.length} certificado(s) en total`);
+      } else if (isDate) {
+        console.log('🎓 Using DATE certificate generator for ZIP download');
+        const pdfBlobs = await generateMultipleDateCertificates(validStudents);
+
+        pdfBlobs.forEach((pdfBlob, index) => {
+          if (!pdfBlob) return;
+          const student = validStudents[index];
+          const name = `${student.first_name} ${student.last_name}`.replace(/[^a-zA-Z0-9\s]/g, '').trim();
+          const pdfFileName = `${name.replace(/\s+/g, "_")}_Certificado_DATE_${student.certn}.pdf`;
+          zip.file(pdfFileName, pdfBlob);
+        });
+
+        const zipBlob = await zip.generateAsync({ type: "blob" });
+        const zipFileName = `Certificados_DATE_${validStudents.length}_estudiantes_${new Date().toISOString().split('T')[0]}.zip`;
+        saveAs(zipBlob, zipFileName);
+
+        setRowSelection({});
+        toast.dismiss(loadingToast);
+        toast.success(`${validStudents.length} certificado(s) DATE generados (1 por estudiante)`);
       } else {
         console.log('🎓 Using standard certificate generator for multiple PDFs');
         const numPDFs = Math.ceil(validStudents.length / certsPerPage);
@@ -313,27 +381,49 @@ export function DataTable({ columns, data, onUpdate, template }: DataTableProps)
         }
       }
 
-      if (!template) {
-        console.log(`⚠️ No template found, using default BDI template for ${certType}`);
-        const { getDefaultBDITemplate } = await import("@/lib/defaultTemplates/bdiTemplate");
-        template = getDefaultBDITemplate(certType);
-      }
-
-      // Detectar si es un certificado de 8 horas, ADI, BDI o Youthful Offender
+      // Detectar si es un certificado de 8 horas, ADI, BDI, Insurance, DATE o Youthful Offender
       const is8Hours = certType.includes('8-HOURS') || certType.includes('8 HOURS');
       const isAdi = certType.includes('ADI');
       const isBdi = certType.includes('BDI');
+      const isInsurance = certType.includes('INSURANCE');
+      const isDate = certType === 'DATE';
       const isYouthfulOffender = certType.includes('YOUTHFUL OFFENDER') || certType.includes('YOUTHFUL-OFFENDER');
 
-      // Para certificados de 8 horas, ADI, BDI y Youthful Offender, siempre usar 3 por página
-      const certsPerPage = (is8Hours || isAdi || isBdi || isYouthfulOffender) ? 3 : (template.certificatesPerPage || 1);
+      if (!template) {
+        if (isDate) {
+          console.log(`⚠️ No template found for DATE, using DATE template`);
+          // Para DATE, crear un template básico con el path correcto
+          template = {
+            name: 'DATE Certificate',
+            certificatesPerPage: 1,
+            pdfTemplatePath: '/templates_certificates/date.pdf',
+            pageSize: { width: 792, height: 612, orientation: 'landscape' },
+            background: {
+              type: 'pdf',
+              value: '/templates_certificates/date.pdf'
+            },
+            shapeElements: [],
+            textElements: [],
+            imageElements: [],
+            checkboxElements: [],
+            availableVariables: []
+          };
+        } else {
+          console.log(`⚠️ No template found, using default BDI template for ${certType}`);
+          const { getDefaultBDITemplate } = await import("@/lib/defaultTemplates/bdiTemplate");
+          template = getDefaultBDITemplate(certType);
+        }
+      }
+
+      // Para certificados de 8 horas, ADI, BDI, Insurance y Youthful Offender, siempre usar 3 por página
+      const certsPerPage = (is8Hours || isAdi || isBdi || isInsurance || isYouthfulOffender) ? 3 : (template.certificatesPerPage || 1);
       console.log(`📄 Template: ${template.name} has ${certsPerPage} certificates per page`);
       console.log(`👥 ${validStudents.length} students selected`);
 
       // Generar un solo PDF con TODOS los estudiantes en múltiples páginas
       console.log(`✅ Generating combined PDF with ALL ${validStudents.length} certificate(s) across multiple pages`);
 
-      let pdfBlob: Blob;
+      let pdfBlob: Blob | undefined;
       if (is8Hours) {
         console.log('🎓 Using 8-hours certificate generator');
         const result = await generateMultiple8HoursCertificates(validStudents, '/templates_certificates/8-hours.pdf');
@@ -348,8 +438,10 @@ export function DataTable({ columns, data, onUpdate, template }: DataTableProps)
             pages.forEach((page) => combinedPdf.addPage(page));
           }
           pdfBlob = new Blob([await combinedPdf.save()], { type: 'application/pdf' });
-        } else {
-          pdfBlob = Array.isArray(result) ? result[0] : result;
+        } else if (Array.isArray(result) && result[0]) {
+          pdfBlob = result[0];
+        } else if (!Array.isArray(result)) {
+          pdfBlob = result;
         }
       } else if (isAdi) {
         console.log('🎓 Using ADI certificate generator');
@@ -364,8 +456,10 @@ export function DataTable({ columns, data, onUpdate, template }: DataTableProps)
             pages.forEach((page) => combinedPdf.addPage(page));
           }
           pdfBlob = new Blob([await combinedPdf.save()], { type: 'application/pdf' });
-        } else {
-          pdfBlob = Array.isArray(result) ? result[0] : result;
+        } else if (Array.isArray(result) && result[0]) {
+          pdfBlob = result[0];
+        } else if (!Array.isArray(result)) {
+          pdfBlob = result;
         }
       } else if (isBdi) {
         console.log('🎓 Using BDI certificate generator');
@@ -380,8 +474,28 @@ export function DataTable({ columns, data, onUpdate, template }: DataTableProps)
             pages.forEach((page) => combinedPdf.addPage(page));
           }
           pdfBlob = new Blob([await combinedPdf.save()], { type: 'application/pdf' });
-        } else {
-          pdfBlob = Array.isArray(result) ? result[0] : result;
+        } else if (Array.isArray(result) && result[0]) {
+          pdfBlob = result[0];
+        } else if (!Array.isArray(result)) {
+          pdfBlob = result;
+        }
+      } else if (isInsurance) {
+        console.log('🎓 Using Insurance certificate generator');
+        const result = await generateMultipleInsuranceCertificates(validStudents, '/templates_certificates/insurance.pdf');
+        if (Array.isArray(result) && result.length > 1) {
+          console.log(`📄 Combining ${result.length} PDFs into one`);
+          const combinedPdf = await PDFDocument.create();
+          for (const pdfBlobItem of result) {
+            const pdfBytes = await pdfBlobItem.arrayBuffer();
+            const pdf = await PDFDocument.load(pdfBytes);
+            const pages = await combinedPdf.copyPages(pdf, pdf.getPageIndices());
+            pages.forEach((page) => combinedPdf.addPage(page));
+          }
+          pdfBlob = new Blob([await combinedPdf.save()], { type: 'application/pdf' });
+        } else if (Array.isArray(result) && result[0]) {
+          pdfBlob = result[0];
+        } else if (!Array.isArray(result)) {
+          pdfBlob = result;
         }
       } else if (isYouthfulOffender) {
         console.log('🎓 Using Youthful Offender certificate generator');
@@ -396,12 +510,21 @@ export function DataTable({ columns, data, onUpdate, template }: DataTableProps)
             pages.forEach((page) => combinedPdf.addPage(page));
           }
           pdfBlob = new Blob([await combinedPdf.save()], { type: 'application/pdf' });
-        } else {
-          pdfBlob = Array.isArray(result) ? result[0] : result;
+        } else if (Array.isArray(result) && result[0]) {
+          pdfBlob = result[0];
+        } else if (!Array.isArray(result)) {
+          pdfBlob = result;
         }
+      } else if (isDate) {
+        console.log('🎓 Using DATE certificate generator for combined PDF');
+        pdfBlob = await generateCombinedDateCertificates(validStudents);
       } else {
         console.log('🎓 Using standard certificate generator');
         pdfBlob = await generateMultipleCertificatesPDF(validStudents, template);
+      }
+
+      if (!pdfBlob) {
+        throw new Error('Failed to generate PDF');
       }
 
       const fileName = `Certificados_Combinados_${new Date().toISOString().split('T')[0]}.pdf`;
@@ -416,7 +539,7 @@ export function DataTable({ columns, data, onUpdate, template }: DataTableProps)
       toast.dismiss(loadingToast);
       toast.error("Error al generar el PDF combinado. Intente nuevamente.");
     }
-  }, [generateMultipleCertificatesPDF, generateMultiple8HoursCertificates, generateMultipleAdiCertificates, generateMultipleBdiCertificates, generateMultipleYouthfulOffenderCertificates, table, setRowSelection]);
+  }, [generateMultipleCertificatesPDF, generateMultiple8HoursCertificates, generateMultipleAdiCertificates, generateMultipleBdiCertificates, generateMultipleInsuranceCertificates, generateMultipleYouthfulOffenderCertificates, table, setRowSelection]);
 
   const downloadSingleCertificate = useCallback(
     async (user: Student) => {
@@ -429,18 +552,19 @@ export function DataTable({ columns, data, onUpdate, template }: DataTableProps)
       // Proceed directly with generation using unified certificate generator
       await proceedWithGeneration(user);
     },
-    [generateCertificatePDF, generateSingle8HoursCertificate, generateSingleAdiCertificate, generateSingleBdiCertificate, generateSingleYouthfulOffenderCertificate]
+    [generateCertificatePDF, generateSingle8HoursCertificate, generateSingleAdiCertificate, generateSingleBdiCertificate, generateSingleInsuranceCertificate, generateSingleYouthfulOffenderCertificate]
   );
 
   const proceedWithGeneration = async (user: Student) => {
     const loadingToast = toast.loading("Generando certificado...");
 
     try {
-      // Detectar si es un certificado de 8 horas, ADI, BDI o Youthful Offender
+      // Detectar si es un certificado de 8 horas, ADI, BDI, Insurance o Youthful Offender
       const classType = user.classType?.toUpperCase() || '';
       const is8Hours = classType.includes('8-HOURS') || classType.includes('8 HOURS');
       const isAdi = classType.includes('ADI');
       const isBdi = classType.includes('BDI');
+      const isInsurance = classType.includes('INSURANCE');
       const isYouthfulOffender = classType.includes('YOUTHFUL OFFENDER') || classType.includes('YOUTHFUL-OFFENDER');
 
       let pdfBlob: Blob;
@@ -457,6 +581,10 @@ export function DataTable({ columns, data, onUpdate, template }: DataTableProps)
         // Usar generador BDI con coordenadas exactas
         console.log('🎓 Using BDI certificate generator');
         pdfBlob = await generateSingleBdiCertificate(user, '/templates_certificates/bdi.pdf');
+      } else if (isInsurance) {
+        // Usar generador Insurance con coordenadas exactas
+        console.log('🎓 Using Insurance certificate generator');
+        pdfBlob = await generateSingleInsuranceCertificate(user, '/templates_certificates/insurance.pdf');
       } else if (isYouthfulOffender) {
         // Usar generador Youthful Offender con coordenadas exactas
         console.log('🎓 Using Youthful Offender certificate generator');
@@ -517,65 +645,7 @@ export function DataTable({ columns, data, onUpdate, template }: DataTableProps)
     }
   }, [data]);
 
-  // Test function to generate PDF with first 3 students with DATA FROM TABLE (8-hours and ADI)
-  const testPDF3Students = useCallback(async () => {
-    const loadingToast = toast.loading("Generando PDF de prueba con los primeros 3 estudiantes de la tabla...");
 
-    try {
-      // Get first 3 students with certificate numbers FROM TABLE (not mock data)
-      const validStudents = data
-        .filter(student => student.certn !== null && student.certn !== undefined)
-        .slice(0, 3);
-
-      if (validStudents.length === 0) {
-        toast.dismiss(loadingToast);
-        toast.error("No hay estudiantes con número de certificado para generar el PDF de prueba.");
-        return;
-      }
-
-      // Detectar el tipo de certificado
-      const { type, classType } = validStudents[0];
-      const certType = (classType || type || 'DATE').toUpperCase();
-      const is8Hours = certType.includes('8-HOURS') || certType.includes('8 HOURS');
-      const isAdi = certType.includes('ADI');
-      const isBdi = certType.includes('BDI');
-      const isYouthfulOffender = certType.includes('YOUTHFUL OFFENDER') || certType.includes('YOUTHFUL-OFFENDER');
-
-      console.log(`🧪 TEST: Generating ${certType} PDF with ${validStudents.length} student(s) FROM TABLE DATA`);
-      console.log(`   📋 Students:`, validStudents.map(s => `${s.first_name} ${s.last_name}`));
-
-      let result: Blob | Blob[];
-      let fileName: string;
-
-      if (is8Hours) {
-        result = await generateMultiple8HoursCertificates(validStudents, '/templates_certificates/8-hours.pdf');
-        fileName = `Test_8Hours_${validStudents.length}_students_${new Date().toISOString().split('T')[0]}.pdf`;
-      } else if (isAdi) {
-        result = await generateMultipleAdiCertificates(validStudents, '/templates_certificates/adi.pdf');
-        fileName = `Test_ADI_${validStudents.length}_students_${new Date().toISOString().split('T')[0]}.pdf`;
-      } else if (isBdi) {
-        result = await generateMultipleBdiCertificates(validStudents, '/templates_certificates/bdi.pdf');
-        fileName = `Test_BDI_${validStudents.length}_students_${new Date().toISOString().split('T')[0]}.pdf`;
-      } else if (isYouthfulOffender) {
-        result = await generateMultipleYouthfulOffenderCertificates(validStudents, '/templates_certificates/youthful-offender-class.pdf');
-        fileName = `Test_YO_${validStudents.length}_students_${new Date().toISOString().split('T')[0]}.pdf`;
-      } else {
-        toast.dismiss(loadingToast);
-        toast.error("El botón de prueba solo funciona para certificados de 8 horas, ADI, BDI y Youthful Offender.");
-        return;
-      }
-
-      const pdfBlob = Array.isArray(result) ? result[0] : result;
-      saveAs(pdfBlob, fileName);
-
-      toast.dismiss(loadingToast);
-      toast.success(`PDF de prueba ${certType} generado con ${validStudents.length} estudiante(s) de la tabla`);
-    } catch (error) {
-      console.error("Error generating test PDF:", error);
-      toast.dismiss(loadingToast);
-      toast.error("Error al generar el PDF de prueba. Intente nuevamente.");
-    }
-  }, [data, generateMultiple8HoursCertificates, generateMultipleAdiCertificates, generateMultipleBdiCertificates, generateMultipleYouthfulOffenderCertificates]);
 
   return (
     <div className="rounded-md border">
@@ -584,7 +654,6 @@ export function DataTable({ columns, data, onUpdate, template }: DataTableProps)
         onDownloadAll={downloadAllCertificates}
         onDownloadCombined={downloadCombinedCertificates}
         onDownloadXLSX={downloadXLSX}
-        onTest3Students={testPDF3Students}
         template={template}
       />
 
@@ -642,11 +711,24 @@ export function DataTable({ columns, data, onUpdate, template }: DataTableProps)
                             (() => {
                               if (columnId === 'instructorSignature') {
                                 return (
-                                  <SignatureCanvas
-                                    currentSignature={cellValue as string}
-                                    studentName={`${rowData.first_name} ${rowData.last_name}`}
-                                    onSave={(url) => handleChange(row.id, columnId, url)}
-                                  />
+                                  <div className="min-w-[400px]">
+                                    <SignatureCanvas
+                                      currentSignature={cellValue as string}
+                                      studentName={`${rowData.first_name} ${rowData.last_name}`}
+                                      showApplyToAll={true}
+                                      onSave={(url, applyToAll) => {
+                                        if (applyToAll) {
+                                          // Apply signature to all rows
+                                          table.getRowModel().rows.forEach((r) => {
+                                            handleChange(r.id, columnId, url);
+                                          });
+                                        } else {
+                                          // Apply only to current row
+                                          handleChange(row.id, columnId, url);
+                                        }
+                                      }}
+                                    />
+                                  </div>
                                 );
                               }
 

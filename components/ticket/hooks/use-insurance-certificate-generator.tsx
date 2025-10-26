@@ -4,12 +4,12 @@ import { Student } from "../columns";
 import { useCallback } from "react";
 import { PDFDocument, rgb, StandardFonts } from "pdf-lib";
 import {
-  getBdiFieldCoordinates,
-  getBdiPositionCoordinates,
-} from "@/lib/certificateBdiCoordinates";
+  getInsuranceFieldCoordinates,
+  getInsurancePositionCoordinates,
+} from "@/lib/certificateInsuranceCoordinates";
 
 /**
- * Generador específico para certificados BDI
+ * Generador específico para certificados Insurance Discount Class
  *
  * Este generador usa coordenadas exactas para cada campo en cada posición (1, 2, 3)
  * en lugar de dividir la página en filas iguales.
@@ -19,13 +19,13 @@ import {
  * - 2 estudiantes: usa posiciones 1 y 2 (top + middle)
  * - 3 estudiantes: usa posiciones 1, 2, y 3 (top + middle + bottom)
  */
-export function useBdiCertificateGenerator() {
+export function useInsuranceCertificateGenerator() {
   /**
    * Genera un PDF con 1 estudiante en la posición 1
    */
-  const generateSingleBdiCertificate = useCallback(
+  const generateSingleInsuranceCertificate = useCallback(
     async (student: Student, pdfTemplatePath: string) => {
-      console.log("🎓 BDI: Generating single certificate");
+      console.log("🎓 Insurance: Generating single certificate");
       console.log(`   📋 Student: ${student.first_name} ${student.last_name}`);
 
       try {
@@ -45,7 +45,7 @@ export function useBdiCertificateGenerator() {
         const helvetica = await pdfDoc.embedFont(StandardFonts.Helvetica);
 
         // Obtener coordenadas para la posición 1
-        const coordinates = getBdiPositionCoordinates(1);
+        const coordinates = getInsurancePositionCoordinates(1);
 
         // Mapeo de nombres de campos (coordenadas -> base de datos)
         const fieldMapping: Record<string, string> = {
@@ -158,7 +158,7 @@ export function useBdiCertificateGenerator() {
         const pdfBytes = await pdfDoc.save();
         return new Blob([pdfBytes as any], { type: "application/pdf" });
       } catch (error) {
-        console.error("❌ Error generating BDI certificate:", error);
+        console.error("❌ Error generating Insurance certificate:", error);
         throw error;
       }
     },
@@ -168,9 +168,9 @@ export function useBdiCertificateGenerator() {
   /**
    * Genera un PDF con múltiples estudiantes (hasta 3 por página)
    */
-  const generateMultipleBdiCertificates = useCallback(
+  const generateMultipleInsuranceCertificates = useCallback(
     async (students: Student[], pdfTemplatePath: string) => {
-      console.log(`🎓 BDI: Generating certificates for ${students.length} students`);
+      console.log(`🎓 Insurance: Generating certificates for ${students.length} students`);
 
       try {
         const pdfs: Blob[] = [];
@@ -215,7 +215,7 @@ export function useBdiCertificateGenerator() {
             console.log(`  👤 Student ${studentIndex + 1}: ${student.first_name} ${student.last_name} (position ${position})`);
 
             // Obtener coordenadas para esta posición
-            const coordinates = getBdiPositionCoordinates(position);
+            const coordinates = getInsurancePositionCoordinates(position);
 
             // Dibujar cada campo en su posición
             for (const [fieldKey, coord] of Object.entries(coordinates)) {
@@ -316,10 +316,10 @@ export function useBdiCertificateGenerator() {
           pdfs.push(new Blob([pdfBytes as any], { type: "application/pdf" }));
         }
 
-        console.log(`✅ BDI: Generated ${pdfs.length} PDF(s) for ${students.length} students`);
+        console.log(`✅ Insurance: Generated ${pdfs.length} PDF(s) for ${students.length} students`);
         return pdfs.length === 1 ? pdfs[0] : pdfs;
       } catch (error) {
-        console.error("❌ Error generating multiple BDI certificates:", error);
+        console.error("❌ Error generating multiple Insurance certificates:", error);
         throw error;
       }
     },
@@ -327,7 +327,7 @@ export function useBdiCertificateGenerator() {
   );
 
   return {
-    generateSingleBdiCertificate,
-    generateMultipleBdiCertificates,
+    generateSingleInsuranceCertificate,
+    generateMultipleInsuranceCertificates,
   };
 }

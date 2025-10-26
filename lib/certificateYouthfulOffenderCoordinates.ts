@@ -31,268 +31,400 @@ export interface FieldYouthfulOffenderCoordinate {
   }>; // Opciones del checkbox con sus coordenadas
 }
 
+// Offsets configurables para las diferentes posiciones
+// Puedes modificar estos valores para ajustar el espaciado entre certificados
+const POSITION_2_OFFSET = 281; // Offset para el segundo certificado
+const POSITION_3_OFFSET = 562; // Offset para el tercer certificado (204 * 2)
+
 /**
  * Coordenadas para el PRIMER certificado Youthful Offender (parte superior del PDF)
  */
 export const POSITION_1_YOUTHFUL_OFFENDER_COORDINATES: Record<string, FieldYouthfulOffenderCoordinate> = {
+  // COURSE TIME - Checkboxes (4hr, 6hr, 8hr)
+  courseTime: {
+    fontSize: 8,
+    fontFamily: 'Montserrat',
+    align: 'center',
+    isCheckbox: true,
+    checkboxOptions: [
+      { value: '4 hr', x: 247, y: 100 },
+      { value: '6 hr', x: 295, y: 100 },
+      { value: '8 hr', x: 334, y: 100 }
+    ]
+  },
+
   // Citation/Case No
   citationNumber: {
-    x: 180,
-    y: 127,
-    fontSize: 10,
-    fontFamily: 'Helvetica',
-    align: 'left',
+    x: 139,
+    y: 115,
+    fontSize: 8,
+    fontFamily: 'Montserrat',
+    align: 'center',
     maxWidth: 200
   },
 
   // Court
   court: {
-    x: 290,
-    y: 127,
-    fontSize: 10,
-    fontFamily: 'Helvetica',
-    align: 'left',
+    x: 251,
+    y: 115,
+    fontSize: 8,
+    fontFamily: 'Montserrat',
+    align: 'center',
     maxWidth: 100
   },
 
   // County
   county: {
-    x: 400,
-    y: 127,
-    fontSize: 10,
-    fontFamily: 'Helvetica',
-    align: 'left',
+    x: 376,
+    y: 115,
+    fontSize: 8,
+    fontFamily: 'Montserrat',
+    align: 'center',
     maxWidth: 200
   },
 
-  // Name (Full name)
+  // NAME - First
   firstName: {
-    x: 180,
-    y: 155,
-    fontSize: 10,
-    fontFamily: 'Helvetica',
-    align: 'left',
+    x: 154,
+    y: 150,
+    fontSize: 8,
+    fontFamily: 'Montserrat',
+    align: 'center',
     maxWidth: 120
   },
 
-  // Middle Name/Initial
+  // NAME - MI (Middle Initial)
   middleName: {
-    x: 290,
-    y: 155,
-    fontSize: 10,
-    fontFamily: 'Helvetica',
-    align: 'left',
+    x: 300,
+    y: 150,
+    fontSize: 8,
+    fontFamily: 'Montserrat',
+    align: 'center',
     maxWidth: 30
   },
 
-  // Last Name
+  // NAME - Last
   lastName: {
-    x: 330,
-    y: 155,
-    fontSize: 10,
-    fontFamily: 'Helvetica',
-    align: 'left',
+    x: 441,
+    y: 150,
+    fontSize: 8,
+    fontFamily: 'Montserrat',
+    align: 'center',
     maxWidth: 150
   },
 
   // Driver License Number
   licenseNumber: {
-    x: 180,
-    y: 183,
-    fontSize: 10,
-    fontFamily: 'Helvetica',
-    align: 'left',
+    x: 168,
+    y: 175,
+    fontSize: 8,
+    fontFamily: 'Montserrat',
+    align: 'center',
     maxWidth: 200
   },
 
   // Course Completion Date
   courseDate: {
-    x: 180,
-    y: 211,
-    fontSize: 10,
-    fontFamily: 'Helvetica',
-    align: 'left'
+    x: 338,
+    y: 175,
+    fontSize: 8,
+    fontFamily: 'Montserrat',
+    align: 'center'
+  },
+
+  // Instructor's Signature (imagen)
+  instructorSignature: {
+    x: 120,
+    y: 183,
+    fontSize: 0, // Es una imagen, no texto
+    align: 'center',
+    maxWidth: 150
+  },
+
+  // Instructor's School Name
+  instructorSchoolName: {
+    x: 450,
+    y: 195,
+    fontSize: 8,
+    fontFamily: 'Montserrat',
+    align: 'center',
+    maxWidth: 150
+  },
+
+  // ATTENDANCE - Checkboxes (Court Order / Volunteer / Ticket)
+  attendanceReason: {
+    fontSize: 8,
+    fontFamily: 'Montserrat',
+    align: 'center',
+    isCheckbox: true,
+    checkboxOptions: [
+      { value: 'Court Order', x:283, y: 131 },
+      { value: 'Volunteer', x: 355, y: 131 },
+      { value: 'Ticket/Citation', x: 444, y: 131 }
+    ]
   },
 
   // Certificate Number
   certn: {
-    x: 180,
-    y: 239,
-    fontSize: 10,
-    fontFamily: 'Helvetica',
-    align: 'left',
+    x: 545,
+    y: 105,
+    fontSize: 8,
+    fontFamily: 'Montserrat',
+    align: 'center',
     maxWidth: 100
   }
 };
 
 /**
  * Coordenadas para el SEGUNDO certificado Youthful Offender (parte media del PDF)
- * Todas las Y aumentan en 204 pixels (612 / 3)
+ * Todas las Y aumentan en POSITION_2_OFFSET pixels desde position 1
  */
 export const POSITION_2_YOUTHFUL_OFFENDER_COORDINATES: Record<string, FieldYouthfulOffenderCoordinate> = {
+  courseTime: {
+    fontSize: 8,
+    fontFamily: 'Montserrat',
+    align: 'center',
+    isCheckbox: true,
+    checkboxOptions: POSITION_1_YOUTHFUL_OFFENDER_COORDINATES.courseTime.checkboxOptions!.map(opt => ({
+      value: opt.value,
+      x: opt.x,
+      y: opt.y + POSITION_2_OFFSET
+    }))
+  },
+
   citationNumber: {
-    x: 180,
-    y: 331, // 127 + 204
-    fontSize: 10,
-    fontFamily: 'Helvetica',
-    align: 'left',
+    x: 139,
+    y: POSITION_1_YOUTHFUL_OFFENDER_COORDINATES.citationNumber.y! + POSITION_2_OFFSET,
+    fontSize: 8,
+    fontFamily: 'Montserrat',
+    align: 'center',
     maxWidth: 200
   },
 
   court: {
-    x: 290,
-    y: 331, // 127 + 204
-    fontSize: 10,
-    fontFamily: 'Helvetica',
-    align: 'left',
+    x: 251,
+    y: POSITION_1_YOUTHFUL_OFFENDER_COORDINATES.court.y! + POSITION_2_OFFSET,
+    fontSize: 8,
+    fontFamily: 'Montserrat',
+    align: 'center',
     maxWidth: 100
   },
 
   county: {
-    x: 400,
-    y: 331, // 127 + 204
-    fontSize: 10,
-    fontFamily: 'Helvetica',
-    align: 'left',
+    x: 376,
+    y: POSITION_1_YOUTHFUL_OFFENDER_COORDINATES.county.y! + POSITION_2_OFFSET,
+    fontSize: 8,
+    fontFamily: 'Montserrat',
+    align: 'center',
     maxWidth: 200
   },
 
   firstName: {
-    x: 180,
-    y: 359, // 155 + 204
-    fontSize: 10,
-    fontFamily: 'Helvetica',
-    align: 'left',
+    x: 154,
+    y: POSITION_1_YOUTHFUL_OFFENDER_COORDINATES.firstName.y! + POSITION_2_OFFSET,
+    fontSize: 8,
+    fontFamily: 'Montserrat',
+    align: 'center',
     maxWidth: 120
   },
 
   middleName: {
-    x: 290,
-    y: 359, // 155 + 204
-    fontSize: 10,
-    fontFamily: 'Helvetica',
-    align: 'left',
+    x: 300,
+    y: POSITION_1_YOUTHFUL_OFFENDER_COORDINATES.middleName.y! + POSITION_2_OFFSET,
+    fontSize: 8,
+    fontFamily: 'Montserrat',
+    align: 'center',
     maxWidth: 30
   },
 
   lastName: {
-    x: 330,
-    y: 359, // 155 + 204
-    fontSize: 10,
-    fontFamily: 'Helvetica',
-    align: 'left',
+    x: 441,
+    y: POSITION_1_YOUTHFUL_OFFENDER_COORDINATES.lastName.y! + POSITION_2_OFFSET,
+    fontSize: 8,
+    fontFamily: 'Montserrat',
+    align: 'center',
     maxWidth: 150
   },
 
   licenseNumber: {
-    x: 180,
-    y: 387, // 183 + 204
-    fontSize: 10,
-    fontFamily: 'Helvetica',
-    align: 'left',
+    x: 168,
+    y: POSITION_1_YOUTHFUL_OFFENDER_COORDINATES.licenseNumber.y! + POSITION_2_OFFSET,
+    fontSize: 8,
+    fontFamily: 'Montserrat',
+    align: 'center',
     maxWidth: 200
   },
 
   courseDate: {
-    x: 180,
-    y: 415, // 211 + 204
-    fontSize: 10,
-    fontFamily: 'Helvetica',
-    align: 'left'
+    x: 338,
+    y: POSITION_1_YOUTHFUL_OFFENDER_COORDINATES.courseDate.y! + POSITION_2_OFFSET,
+    fontSize: 8,
+    fontFamily: 'Montserrat',
+    align: 'center'
+  },
+
+  instructorSignature: {
+    x: 120,
+    y: POSITION_1_YOUTHFUL_OFFENDER_COORDINATES.instructorSignature.y! + POSITION_2_OFFSET,
+    fontSize: 0, // Es una imagen, no texto
+    align: 'center',
+    maxWidth: 150
+  },
+
+  instructorSchoolName: {
+    x: 450,
+    y: POSITION_1_YOUTHFUL_OFFENDER_COORDINATES.instructorSchoolName.y! + POSITION_2_OFFSET,
+    fontSize: 8,
+    fontFamily: 'Montserrat',
+    align: 'center',
+    maxWidth: 150
+  },
+
+  attendanceReason: {
+    fontSize: 8,
+    fontFamily: 'Montserrat',
+    align: 'center',
+    isCheckbox: true,
+    checkboxOptions: POSITION_1_YOUTHFUL_OFFENDER_COORDINATES.attendanceReason.checkboxOptions!.map(opt => ({
+      value: opt.value,
+      x: opt.x,
+      y: opt.y + POSITION_2_OFFSET
+    }))
   },
 
   certn: {
-    x: 180,
-    y: 443, // 239 + 204
-    fontSize: 10,
-    fontFamily: 'Helvetica',
-    align: 'left',
+    x: 545,
+    y: POSITION_1_YOUTHFUL_OFFENDER_COORDINATES.certn.y! + POSITION_2_OFFSET,
+    fontSize: 8,
+    fontFamily: 'Montserrat',
+    align: 'center',
     maxWidth: 100
   }
 };
 
 /**
  * Coordenadas para el TERCER certificado Youthful Offender (parte inferior del PDF)
- * Todas las Y aumentan en 408 pixels (204 * 2)
+ * Todas las Y aumentan en POSITION_3_OFFSET pixels desde position 1
  */
 export const POSITION_3_YOUTHFUL_OFFENDER_COORDINATES: Record<string, FieldYouthfulOffenderCoordinate> = {
+  courseTime: {
+    fontSize: 8,
+    fontFamily: 'Montserrat',
+    align: 'center',
+    isCheckbox: true,
+    checkboxOptions: POSITION_1_YOUTHFUL_OFFENDER_COORDINATES.courseTime.checkboxOptions!.map(opt => ({
+      value: opt.value,
+      x: opt.x,
+      y: opt.y + POSITION_3_OFFSET
+    }))
+  },
+
   citationNumber: {
-    x: 180,
-    y: 535, // 127 + 408
-    fontSize: 10,
-    fontFamily: 'Helvetica',
-    align: 'left',
+    x: 139,
+    y: POSITION_1_YOUTHFUL_OFFENDER_COORDINATES.citationNumber.y! + POSITION_3_OFFSET,
+    fontSize: 8,
+    fontFamily: 'Montserrat',
+    align: 'center',
     maxWidth: 200
   },
 
   court: {
-    x: 290,
-    y: 535, // 127 + 408
-    fontSize: 10,
-    fontFamily: 'Helvetica',
-    align: 'left',
+    x: 251,
+    y: POSITION_1_YOUTHFUL_OFFENDER_COORDINATES.court.y! + POSITION_3_OFFSET,
+    fontSize: 8,
+    fontFamily: 'Montserrat',
+    align: 'center',
     maxWidth: 100
   },
 
   county: {
-    x: 400,
-    y: 535, // 127 + 408
-    fontSize: 10,
-    fontFamily: 'Helvetica',
-    align: 'left',
+    x: 376,
+    y: POSITION_1_YOUTHFUL_OFFENDER_COORDINATES.county.y! + POSITION_3_OFFSET,
+    fontSize: 8,
+    fontFamily: 'Montserrat',
+    align: 'center',
     maxWidth: 200
   },
 
   firstName: {
-    x: 180,
-    y: 563, // 155 + 408
-    fontSize: 10,
-    fontFamily: 'Helvetica',
-    align: 'left',
+    x: 154,
+    y: POSITION_1_YOUTHFUL_OFFENDER_COORDINATES.firstName.y! + POSITION_3_OFFSET,
+    fontSize: 8,
+    fontFamily: 'Montserrat',
+    align: 'center',
     maxWidth: 120
   },
 
   middleName: {
-    x: 290,
-    y: 563, // 155 + 408
-    fontSize: 10,
-    fontFamily: 'Helvetica',
-    align: 'left',
+    x: 300,
+    y: POSITION_1_YOUTHFUL_OFFENDER_COORDINATES.middleName.y! + POSITION_3_OFFSET,
+    fontSize: 8,
+    fontFamily: 'Montserrat',
+    align: 'center',
     maxWidth: 30
   },
 
   lastName: {
-    x: 330,
-    y: 563, // 155 + 408
-    fontSize: 10,
-    fontFamily: 'Helvetica',
-    align: 'left',
+    x: 441,
+    y: POSITION_1_YOUTHFUL_OFFENDER_COORDINATES.lastName.y! + POSITION_3_OFFSET,
+    fontSize: 8,
+    fontFamily: 'Montserrat',
+    align: 'center',
     maxWidth: 150
   },
 
   licenseNumber: {
-    x: 180,
-    y: 591, // 183 + 408
-    fontSize: 10,
-    fontFamily: 'Helvetica',
-    align: 'left',
+    x: 168,
+    y: POSITION_1_YOUTHFUL_OFFENDER_COORDINATES.licenseNumber.y! + POSITION_3_OFFSET,
+    fontSize: 8,
+    fontFamily: 'Montserrat',
+    align: 'center',
     maxWidth: 200
   },
 
   courseDate: {
-    x: 180,
-    y: 619, // 211 + 408
-    fontSize: 10,
-    fontFamily: 'Helvetica',
-    align: 'left'
+    x: 338,
+    y: POSITION_1_YOUTHFUL_OFFENDER_COORDINATES.courseDate.y! + POSITION_3_OFFSET,
+    fontSize: 8,
+    fontFamily: 'Montserrat',
+    align: 'center'
+  },
+
+  instructorSignature: {
+    x: 120,
+    y: POSITION_1_YOUTHFUL_OFFENDER_COORDINATES.instructorSignature.y! + POSITION_3_OFFSET,
+    fontSize: 0, // Es una imagen, no texto
+    align: 'center',
+    maxWidth: 150
+  },
+
+  instructorSchoolName: {
+    x: 450,
+    y: POSITION_1_YOUTHFUL_OFFENDER_COORDINATES.instructorSchoolName.y! + POSITION_3_OFFSET,
+    fontSize: 8,
+    fontFamily: 'Montserrat',
+    align: 'center',
+    maxWidth: 150
+  },
+
+  attendanceReason: {
+    fontSize: 8,
+    fontFamily: 'Montserrat',
+    align: 'center',
+    isCheckbox: true,
+    checkboxOptions: POSITION_1_YOUTHFUL_OFFENDER_COORDINATES.attendanceReason.checkboxOptions!.map(opt => ({
+      value: opt.value,
+      x: opt.x,
+      y: opt.y + POSITION_3_OFFSET
+    }))
   },
 
   certn: {
-    x: 180,
-    y: 647, // 239 + 408
-    fontSize: 10,
-    fontFamily: 'Helvetica',
-    align: 'left',
+    x: 545,
+    y: POSITION_1_YOUTHFUL_OFFENDER_COORDINATES.certn.y! + POSITION_3_OFFSET,
+    fontSize: 8,
+    fontFamily: 'Montserrat',
+    align: 'center',
     maxWidth: 100
   }
 };

@@ -93,6 +93,26 @@ export const CERTIFICATE_CONFIGURATIONS: Record<string, CertificateConfig> = {
     useMultiPositionCoordinates: true, // Usa coordenadas multi-posición
   },
 
+  'INSURANCE-DISCOUNT-CLASS': {
+    classType: 'INSURANCE DISCOUNT CLASS',
+    name: 'Insurance Discount Class Certificate',
+    pdfTemplate: '/templates_certificates/insurance.pdf',
+    certificatesPerPage: 3, // 3 certificados por hoja
+    pageSize: { width: 792, height: 612, orientation: 'landscape' },
+    tableVariables: [
+      { key: 'lastName', label: 'Last Name', example: 'SMITH' },
+      { key: 'firstName', label: 'First Name', example: 'JANE' },
+      { key: 'certn', label: 'Certificate Number', example: 'INS-2025-001' },
+      { key: 'citationNumber', label: 'Citation Number', example: '2025-TC-12345' },
+      { key: 'licenseNumber', label: 'License Number', example: 'A123456789' },
+      { key: 'courseDate', label: 'Completion Date', example: 'Dec 1, 2025' },
+      { key: 'address', label: 'Course Location', example: 'Palm Beach County, FL' },
+      { key: 'instructorSignature', label: 'Instructor Signature', example: '(Upload Image)' },
+    ],
+    allowCombinedPDF: true, // SÍ mostrar botón morado
+    useMultiPositionCoordinates: true, // Usa coordenadas multi-posición
+  },
+
   // Certificados de 8 horas (IDI, Aggressive, Suspension)
   '8-HOURS-IDI': {
     classType: '8-HOURS-IDI',
@@ -215,6 +235,7 @@ export const CERTIFICATE_CONFIGURATIONS: Record<string, CertificateConfig> = {
       { key: 'lastName', label: 'Last Name', example: 'DOE' },
       { key: 'licenseNumber', label: 'License Number', example: 'D123-456-78-910-0' },
       { key: 'courseDate', label: 'Completion Date', example: 'Nov 10, 2025' },
+      { key: 'instructorSignature', label: 'Instructor Signature', example: '(Canvas - Upload)' },
       { key: 'certn', label: 'Certificate Number', example: 'YO-2025-001' },
     ],
     allowCombinedPDF: true, // SÍ mostrar botón morado

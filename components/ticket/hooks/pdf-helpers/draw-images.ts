@@ -9,21 +9,39 @@ export async function drawImages(
   certScaleX: number,
   certScaleY: number,
   offsetY: number,
-  pdfDoc: PDFDocument
+  pdfDoc: PDFDocument,
+  user?: any
 ) {
   for (const image of images) {
     try {
+      // Use instructor signature from user data if this is a signature image
+      let imageUrl = image.url;
+      if (image.id?.includes('signature') && user?.instructorSignature) {
+        imageUrl = user.instructorSignature;
+      }
+      
       // Fetch image
-      const imageBytes = await fetch(image.url).then((res) => res.arrayBuffer());
+      const imageBytes = await fetch(imageUrl).then((res) => res.arrayBuffer());
 
       let embeddedImage;
-      if (image.url.toLowerCase().endsWith('.png')) {
-        embeddedImage = await pdfDoc.embedPng(imageBytes);
-      } else if (image.url.toLowerCase().endsWith('.jpg') || image.url.toLowerCase().endsWith('.jpeg')) {
+      // Try to detect format from URL or try both formats
+      const urlLower = imageUrl.toLowerCase();
+      if (urlLower.endsWith('.png') || urlLower.includes('image/upload')) {
+        try {
+          embeddedImage = await pdfDoc.embedPng(imageBytes);
+        } catch {
+          // If PNG fails, try JPG (Cloudinary URLs might not have extension)
+          embeddedImage = await pdfDoc.embedJpg(imageBytes);
+        }
+      } else if (urlLower.endsWith('.jpg') || urlLower.endsWith('.jpeg')) {
         embeddedImage = await pdfDoc.embedJpg(imageBytes);
       } else {
-        console.warn(`Unsupported image format: ${image.url}`);
-        continue;
+        // Try PNG first, then JPG for unknown formats
+        try {
+          embeddedImage = await pdfDoc.embedPng(imageBytes);
+        } catch {
+          embeddedImage = await pdfDoc.embedJpg(imageBytes);
+        }
       }
 
       // Apply grayscale filter if specified

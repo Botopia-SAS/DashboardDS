@@ -144,8 +144,8 @@ export const POSITION_1_COORDINATES: Record<string, Field8HoursCoordinate> = {
 
   // Instructor's Signature (imagen)
   instructorSignature: {
-    x: 220,
-    y: 219,
+    x: 210,
+    y: 210,
     fontSize: 0, // Es una imagen, no texto
     align: 'center',
     maxWidth: 150
@@ -263,8 +263,8 @@ export const POSITION_2_COORDINATES: Record<string, Field8HoursCoordinate> = {
   },
 
   instructorSignature: {
-    x: 220,
-    y: 499,
+    x: 210,
+    y: 490,
     fontSize: 0,
     align: 'center',
     maxWidth: 150
@@ -381,8 +381,8 @@ export const POSITION_3_COORDINATES: Record<string, Field8HoursCoordinate> = {
   },
 
   instructorSignature: {
-    x: 220,
-    y: 779,
+    x: 210,
+    y: 770,
     fontSize: 0,
     align: 'center',
     maxWidth: 150
