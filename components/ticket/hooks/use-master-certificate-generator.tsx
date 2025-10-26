@@ -117,54 +117,49 @@ export function useCertificateGenerator() {
       console.log(`🔍 Generating certificate for type: ${certType}`);
       console.log(`📊 User data:`, { classType, type, certType });
 
-      // Try to fetch saved template from database first (only by classType)
-      try {
-        const templateResponse = await fetch(
-          `/api/certificate-templates?classType=${certType}`
-        );
+      // ALWAYS use PDF-based generators for ADI, BDI, DATE (ignore database)
+      console.log(`🔄 Using PDF-based generator for ${certType}`);
 
-        console.log(`🌐 API Response status: ${templateResponse.status}`);
+      // Use specific PDF generators for each type
+      if (certType === "ADI") {
+        console.log('📋 Using ADI PDF generator');
+        return generateSingleAdiCertificate(user, '/templates_certificates/adi.pdf');
+      } else if (certType === "BDI") {
+        console.log('📋 Using BDI PDF generator');
+        return generateBdiCertificatePDF(user, '/templates_certificates/bdi.pdf');
+      } else if (certType === "DATE") {
+        console.log('📋 Using DATE PDF generator');
+        return generateDateCertificatePDF(user);
+      } else if (certType === "YOUTHFUL OFFENDER CLASS" || certType === "YOUTHFUL-OFFENDER-CLASS") {
+        console.log('📋 Using Youthful Offender PDF generator');
+        return generateSingleYouthfulOffenderCertificate(user, '/templates_certificates/youthful-offender-class.pdf');
+      } else {
+        // Unknown type - try database first, then fallback
+        console.log('⚠️ Unknown type, checking database templates');
+        try {
+          const templateResponse = await fetch(
+            `/api/certificate-templates?classType=${certType}`
+          );
 
-        if (templateResponse.ok) {
-          const templates = await templateResponse.json();
-          console.log(`📋 Templates found: ${templates.length}`);
-          
-          if (templates.length > 0) {
-            // Use saved template from database
-            console.log(`✅ Using saved template for ${certType}:`, templates[0].name);
-            return await generateDynamicCertificatePDF(user, templates[0] as CertificateTemplate);
-          } else {
-            console.log(`❌ No templates found in database for ${certType}`);
+          if (templateResponse.ok) {
+            const templates = await templateResponse.json();
+
+            if (templates.length > 0) {
+              console.log(`✅ Using database template for ${certType}:`, templates[0].name);
+              return await generateDynamicCertificatePDF(user, templates[0] as CertificateTemplate);
+            }
           }
-        } else {
-          console.log(`❌ API request failed with status: ${templateResponse.status}`);
+        } catch (error) {
+          console.log('⚠️ Error fetching template from database:', error);
         }
-      } catch (error) {
-        console.log('⚠️ Error fetching template from database:', error);
-      }
 
-      // No saved template exists - ALL TYPES use BDI template as default (including ADI)
-      console.log(`🔄 No saved template found for ${certType}, using default BDI template`);
-
-      try {
-        // Get BDI template and generate PDF for ALL types
-        const bdiTemplate = getDefaultBDITemplate(certType);
-        console.log('📋 BDI Template loaded:', bdiTemplate.name);
-
-        const result = await generateDynamicCertificatePDF(user, bdiTemplate as CertificateTemplate);
-        console.log('✅ Certificate generated successfully with BDI template');
-        return result;
-      } catch (error) {
-        console.error('❌ Error generating with BDI template, falling back to legacy generator:', error);
-
-        // Fallback to appropriate legacy generator based on type
-        if (certType === "ADI") {
-          return generateSingleAdiCertificate(user, '/templates_certificates/adi.pdf');
-        } else if (certType === "BDI") {
-          return generateBdiCertificatePDF(user, '/templates_certificates/bdi.pdf');
-        } else if (certType === "YOUTHFUL OFFENDER CLASS" || certType === "YOUTHFUL-OFFENDER-CLASS") {
-          return generateSingleYouthfulOffenderCertificate(user, '/templates_certificates/youthful-offender-class.pdf');
-        } else {
+        // Final fallback to BDI template
+        console.log('⚠️ Using BDI template as fallback');
+        try {
+          const bdiTemplate = getDefaultBDITemplate(certType);
+          return await generateDynamicCertificatePDF(user, bdiTemplate as CertificateTemplate);
+        } catch (error) {
+          console.error('❌ Error with fallback, using BDI PDF:', error);
           return generateBdiCertificatePDF(user, '/templates_certificates/bdi.pdf');
         }
       }

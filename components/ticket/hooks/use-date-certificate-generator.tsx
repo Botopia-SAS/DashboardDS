@@ -2,115 +2,111 @@
 
 import { Student } from "../columns";
 import { useCallback } from "react";
+import { PDFDocument, rgb, StandardFonts } from "pdf-lib";
 
+/**
+ * Generador específico para certificados DATE
+ */
 export function useDateCertificateGenerator() {
-  const generateDateCertificatePDF = useCallback(async (user: Student) => {
-    const { last_name, first_name, midl, birthDate, certn, courseDate, classTitle, classType } = user;
+  /**
+   * Genera un PDF para certificado DATE
+   */
+  const generateDateCertificatePDF = useCallback(
+    async (student: Student) => {
+      console.log("🎓 DATE: Generating certificate");
+      console.log(`   📋 Student: ${student.first_name} ${student.last_name}`);
 
-    // Debug logs
-    console.log('Generating certificate for:', {
-      studentName: `${first_name} ${last_name}`,
-      classTitle,
-      classType,
-      certn
-    });
+      try {
+        // Usar el template por defecto para DATE
+        const pdfTemplatePath = '/templates_certificates/date.pdf';
 
-    try {
-      // Import pdf-lib for PDF manipulation
-      const { PDFDocument, rgb } = await import('pdf-lib');
+        // Cargar el template PDF
+        const templateResponse = await fetch(pdfTemplatePath);
+        if (!templateResponse.ok) {
+          throw new Error(`Failed to load PDF template: ${pdfTemplatePath}`);
+        }
 
-      // Load the existing PDF template (same as test-date page)
-      const existingPdfBytes = await fetch('/templates_certificates/date.pdf').then(res => res.arrayBuffer());
-      const pdfDoc = await PDFDocument.load(existingPdfBytes);
-      const pages = pdfDoc.getPages();
-      const firstPage = pages[0];
-      
-      // Get page dimensions
-      const { width, height } = firstPage.getSize();
-      
-      // Embed fonts - Use Times-Roman for a more formal serif look like the original
-      const timesFont = await pdfDoc.embedFont('Times-Roman');
-      const helveticaFont = await pdfDoc.embedFont('Helvetica');
-      
-      // Helper function to draw centered text
-      const drawCenteredText = (text: string, x: number, y: number, size: number = 12, useSerif: boolean = true) => {
-        const font = useSerif ? timesFont : helveticaFont;
-        const textWidth = font.widthOfTextAtSize(text, size);
-        const textHeight = font.heightAtSize(size);
-        
-        firstPage.drawText(text, {
-          x: x - (textWidth / 2), // Center horizontally - x coordinate is now the true center
-          y: height - y - (textHeight / 2), // Center vertically - y coordinate is now the true center
-          size: size,
-          font: font,
-          color: rgb(0, 0, 0)
+        const templateBytes = await templateResponse.arrayBuffer();
+        const pdfDoc = await PDFDocument.load(templateBytes);
+
+        // Obtener la primera página
+        const pages = pdfDoc.getPages();
+        const firstPage = pages[0];
+        const { width, height } = firstPage.getSize();
+
+        console.log(`   📄 PDF size: ${width}x${height}`);
+
+        // Cargar fuente
+        const helvetica = await pdfDoc.embedFont(StandardFonts.Helvetica);
+
+        // Coordenadas básicas para certificado DATE (ajusta según tu template)
+        const fields = [
+          {
+            key: 'firstName',
+            value: student.first_name,
+            x: 200,
+            y: 300,
+            fontSize: 12
+          },
+          {
+            key: 'lastName',
+            value: student.last_name,
+            x: 200,
+            y: 280,
+            fontSize: 12
+          },
+          {
+            key: 'courseDate',
+            value: student.courseDate ? new Date(student.courseDate).toLocaleDateString("en-US", {
+              month: "short",
+              day: "numeric",
+              year: "numeric",
+            }) : '',
+            x: 200,
+            y: 260,
+            fontSize: 12
+          },
+          {
+            key: 'certn',
+            value: student.certn,
+            x: 200,
+            y: 240,
+            fontSize: 12
+          }
+        ];
+
+        // Dibujar cada campo
+        fields.forEach(field => {
+          if (!field.value || field.value === "") {
+            console.log(`  ⚠️ ${field.key} is empty, skipping`);
+            return;
+          }
+
+          const pdfY = height - field.y - field.fontSize;
+
+          console.log(`  ✏️ ${field.key}: "${field.value}" at (${field.x}, ${pdfY})`);
+
+          firstPage.drawText(String(field.value), {
+            x: field.x,
+            y: pdfY,
+            size: field.fontSize,
+            font: helvetica,
+            color: rgb(0, 0, 0),
+          });
         });
-      };
-      
-      // Format student name (same as test-date)
-      const studentName = `${(first_name || '').toUpperCase()} ${(last_name || '').toUpperCase()}`;
-      
-      // Format birth date
-      const formattedBirthDate = birthDate ? new Date(birthDate).toLocaleDateString('en-US') : "";
-      
-      // Format course completion date
-      const formattedCourseDate = courseDate ? new Date(courseDate).toLocaleDateString('en-US', {
-        year: 'numeric',
-        month: 'short',
-        day: 'numeric'
-      }) : new Date().toLocaleDateString('en-US', {
-        year: 'numeric',
-        month: 'short',
-        day: 'numeric'
-      });
-      
-      // Format print date
-      const printDate = new Date().toLocaleDateString('en-US', {
-        year: 'numeric',
-        month: 'short',
-        day: 'numeric',
-        timeZone: 'America/New_York'
-      });
-      
-      // Add text at the same coordinates as test-date page
-      // Nombre + Apellido: x=390, y=242 (center)
-      drawCenteredText(studentName, 390, 242, 14, true);
 
-      // Cumpleaños: x=390, y=284 (center)
-      if (formattedBirthDate) {
-        drawCenteredText(formattedBirthDate, 390, 295, 12, true);
+        // Generar el PDF
+        const pdfBytes = await pdfDoc.save();
+        return new Blob([pdfBytes as any], { type: "application/pdf" });
+      } catch (error) {
+        console.error("❌ Error generating DATE certificate:", error);
+        throw error;
       }
+    },
+    []
+  );
 
-      // Class Type: x=390, y=385 (center) - More prominent, larger, uppercase, lowered position
-      const displayClassType = (classType || 'DATE').toUpperCase();
-      drawCenteredText(displayClassType, 390, 385, 18, true);
-
-      // Class Title: x=390, y=410 (center) - Use actual class title instead of "D.A.T.E. Course"
-      const displayClassTitle = classTitle || 'Certificate Course';
-      drawCenteredText(displayClassTitle, 390, 425, 12, true);
-
-      // Número de Certificado: x=163, y=394 (center)
-      drawCenteredText(String(certn), 163, 394, 12, true);
-
-      // Fecha de Generación: x=390, y=484 (center)
-      drawCenteredText(printDate, 390, 495, 12, true);
-
-      // Serialize the PDF
-      const pdfBytes = await pdfDoc.save();
-
-      // Create blob
-      const arrayBuffer = new ArrayBuffer(pdfBytes.length);
-      const view = new Uint8Array(arrayBuffer);
-      view.set(pdfBytes);
-      const blob = new Blob([arrayBuffer], { type: 'application/pdf' });
-
-      return blob;
-
-    } catch (error) {
-      console.error('Error generating certificate with PDF template:', error);
-      throw error;
-    }
-  }, []);
-
-  return { generateDateCertificatePDF };
+  return {
+    generateDateCertificatePDF,
+  };
 }

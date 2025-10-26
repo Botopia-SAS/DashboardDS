@@ -114,6 +114,7 @@ export default function Page() {
         console.log('  - Normalized classType:', normalizedClassType);
         console.log('  - Total classes from API:', data.length);
         console.log('  - Sample class types:', data.slice(0, 5).map((c: Class) => ({ type: c.type, normalized: normalizeClassType(c.type) })));
+        console.log('  - Sample dates:', data.slice(0, 3).map((c: Class) => ({ date: c.date, dateType: typeof c.date, parsed: new Date(c.date) })));
 
         const filteredClasses = data.filter((c: Class) => {
           const normalizedTicketType = normalizeClassType(c.type);
@@ -155,7 +156,9 @@ export default function Page() {
     // Apply date range filter
     if (dateRange.from) {
       filtered = filtered.filter((c) => {
+        if (!c.date) return false;
         const classDate = new Date(c.date);
+        if (isNaN(classDate.getTime())) return false;
         classDate.setHours(0, 0, 0, 0);
         const fromDate = new Date(dateRange.from!);
         fromDate.setHours(0, 0, 0, 0);
@@ -165,8 +168,10 @@ export default function Page() {
           toDate.setHours(0, 0, 0, 0);
           return classDate >= fromDate && classDate <= toDate;
         } else {
-          // Si solo hay fecha de inicio, filtrar por esa fecha exacta
-          return classDate.getTime() === fromDate.getTime();
+          // Comparar solo las fechas (año, mes, día) sin hora
+          return classDate.getFullYear() === fromDate.getFullYear() &&
+                 classDate.getMonth() === fromDate.getMonth() &&
+                 classDate.getDate() === fromDate.getDate();
         }
       });
     }
@@ -213,13 +218,23 @@ export default function Page() {
         return hourNum > 11 ? `${hour} PM` : `${hour} AM`;
       };
 
-      const formattedText = `${getClassName(selectedClass)} - ${new Date(selectedClass.date).toLocaleDateString("en-US", {
-        weekday: "short",
-        month: "short",
-        day: "numeric"
-      })} at ${formatTime(selectedClass.hour)} (${studentCount}/${totalSpots})`;
+      // Parsear fecha y extraer solo la parte de fecha (sin hora) para evitar desfase
+      try {
+        const classDate = new Date(selectedClass.date);
+        if (isNaN(classDate.getTime())) {
+          console.error('Invalid date:', selectedClass.date);
+          return;
+        }
+        const formattedText = `${getClassName(selectedClass)} - ${classDate.toLocaleDateString("en-US", {
+          weekday: "short",
+          month: "short",
+          day: "numeric"
+        })} at ${formatTime(selectedClass.hour)} (${studentCount}/${totalSpots})`;
 
-      setSelectedClassText(formattedText);
+        setSelectedClassText(formattedText);
+      } catch (error) {
+        console.error('Error formatting date:', error);
+      }
     }
   };
 
@@ -468,12 +483,22 @@ export default function Page() {
                         {getClassName(c)}
                       </div>
                       <div className="text-sm text-gray-600 mb-1">
-                        {new Date(c?.date).toLocaleDateString("en-US", {
-                          weekday: "long",
-                          year: "numeric",
-                          month: "short",
-                          day: "numeric",
-                        })} at {formatTime(c?.hour)}
+                        {(() => {
+                          try {
+                            const dateStr = c?.date;
+                            if (!dateStr) return 'Invalid Date';
+                            const date = new Date(dateStr);
+                            if (isNaN(date.getTime())) return 'Invalid Date';
+                            return date.toLocaleDateString("en-US", {
+                              weekday: "long",
+                              year: "numeric",
+                              month: "short",
+                              day: "numeric",
+                            });
+                          } catch {
+                            return 'Invalid Date';
+                          }
+                        })()} at {formatTime(c?.hour)}
                       </div>
                       <div className="text-xs text-gray-500 flex items-center gap-1">
                         <MapPin className="w-3 h-3 text-gray-500" />

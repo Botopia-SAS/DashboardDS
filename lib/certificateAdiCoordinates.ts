@@ -31,6 +31,11 @@ export interface FieldAdiCoordinate {
   }>; // Opciones del checkbox con sus coordenadas
 }
 
+// Offsets configurables para las diferentes posiciones
+// Puedes modificar estos valores para ajustar el espaciado entre certificados
+const POSITION_2_OFFSET = 276; // Offset para el segundo certificado
+const POSITION_3_OFFSET = 552; // Offset para el tercer certificado
+
 /**
  * Coordenadas para el PRIMER certificado ADI (parte superior del PDF)
  * Basado en la imagen del certificado ADI proporcionada
@@ -38,235 +43,265 @@ export interface FieldAdiCoordinate {
 export const POSITION_1_ADI_COORDINATES: Record<string, FieldAdiCoordinate> = {
   // Citation/Case No
   citationNumber: {
-    x: 200,
-    y: 127,
-    fontSize: 10,
-    fontFamily: 'Helvetica',
-    align: 'left',
+    x: 259,
+    y: 115,
+    fontSize: 7,
+    fontFamily: 'Montserrat',
+    align: 'center',
     maxWidth: 200
   },
 
-  // Certificate Number
+  // Certificate Number (al lado de "Certificate #:")
   certn: {
-    x: 475,
-    y: 139,
-    fontSize: 10,
-    fontFamily: 'Helvetica',
+    x: 444,
+    y: 125,
+    fontSize: 7,
+    fontFamily: 'Montserrat',
     align: 'left',
     maxWidth: 100
   },
 
-  // Driver License Number
+  // Driver License Number (primera posición)
   licenseNumber: {
-    x: 200,
-    y: 145,
-    fontSize: 10,
-    fontFamily: 'Helvetica',
-    align: 'left',
+    x: 259,
+    y: 127,
+    fontSize: 7,
+    fontFamily: 'Montserrat',
+    align: 'center',
+    maxWidth: 200
+  },
+
+  // Driver License Number (segunda posición)
+  licenseNumber2: {
+    x: 475,
+    y: 210,
+    fontSize: 7,
+    fontFamily: 'Montserrat',
+    align: 'center',
     maxWidth: 200
   },
 
   // Course Completion Date
   courseDate: {
-    x: 200,
-    y: 163,
-    fontSize: 10,
-    fontFamily: 'Helvetica',
-    align: 'left'
+    x: 259,
+    y: 139,
+    fontSize: 7,
+    fontFamily: 'Montserrat',
+    align: 'center'
   },
 
   // Name (Full name)
   firstName: {
-    x: 200,
-    y: 179,
-    fontSize: 10,
-    fontFamily: 'Helvetica',
-    align: 'left',
+    x: 250,
+    y: 152,
+    fontSize: 7,
+    fontFamily: 'Montserrat',
+    align: 'right',
     maxWidth: 120
-  },
-
-  // Middle Name/Initial
-  middleName: {
-    x: 320,
-    y: 179,
-    fontSize: 10,
-    fontFamily: 'Helvetica',
-    align: 'left',
-    maxWidth: 30
   },
 
   // Last Name
   lastName: {
-    x: 350,
-    y: 179,
-    fontSize: 10,
-    fontFamily: 'Helvetica',
+    x: 265,
+    y: 152,
+    fontSize: 7,
+    fontFamily: 'Montserrat',
     align: 'left',
     maxWidth: 150
   },
 
   // Course Location
   address: {
-    x: 200,
-    y: 197,
-    fontSize: 10,
-    fontFamily: 'Helvetica',
-    align: 'left',
+    x: 259,
+    y: 167,
+    fontSize: 7,
+    fontFamily: 'Montserrat',
+    align: 'center',
     maxWidth: 300
+  },
+
+  // Instructor Signature
+  instructorSignature: {
+    x: 200,
+    y: 215,
+    fontSize: 7,
+    fontFamily: 'Montserrat',
+    align: 'center',
+    maxWidth: 200
   }
 };
 
 /**
  * Coordenadas para el SEGUNDO certificado ADI (parte media del PDF)
- * Todas las Y aumentan en 204 pixels (612 / 3)
+ * Todas las Y aumentan en POSITION_2_OFFSET pixels desde position 1
  */
 export const POSITION_2_ADI_COORDINATES: Record<string, FieldAdiCoordinate> = {
   citationNumber: {
-    x: 200,
-    y: 331, // 127 + 204
-    fontSize: 10,
-    fontFamily: 'Helvetica',
-    align: 'left',
+    x: POSITION_1_ADI_COORDINATES.citationNumber.x!,
+    y: POSITION_1_ADI_COORDINATES.citationNumber.y! + POSITION_2_OFFSET,
+    fontSize: 7,
+    fontFamily: 'Montserrat',
+    align: 'center',
     maxWidth: 200
   },
 
   certn: {
-    x: 475,
-    y: 343, // 139 + 204
-    fontSize: 10,
-    fontFamily: 'Helvetica',
+    x: POSITION_1_ADI_COORDINATES.certn.x!,
+    y: POSITION_1_ADI_COORDINATES.certn.y! + POSITION_2_OFFSET,
+    fontSize: 7,
+    fontFamily: 'Montserrat',
     align: 'left',
     maxWidth: 100
   },
 
   licenseNumber: {
-    x: 200,
-    y: 349, // 145 + 204
-    fontSize: 10,
-    fontFamily: 'Helvetica',
-    align: 'left',
+    x: POSITION_1_ADI_COORDINATES.licenseNumber.x!,
+    y: POSITION_1_ADI_COORDINATES.licenseNumber.y! + POSITION_2_OFFSET,
+    fontSize: 7,
+    fontFamily: 'Montserrat',
+    align: 'center',
+    maxWidth: 200
+  },
+
+  licenseNumber2: {
+    x: POSITION_1_ADI_COORDINATES.licenseNumber2.x!,
+    y: POSITION_1_ADI_COORDINATES.licenseNumber2.y! + POSITION_2_OFFSET,
+    fontSize: 7,
+    fontFamily: 'Montserrat',
+    align: 'center',
     maxWidth: 200
   },
 
   courseDate: {
-    x: 200,
-    y: 367, // 163 + 204
-    fontSize: 10,
-    fontFamily: 'Helvetica',
-    align: 'left'
+    x: POSITION_1_ADI_COORDINATES.courseDate.x!,
+    y: POSITION_1_ADI_COORDINATES.courseDate.y! + POSITION_2_OFFSET,
+    fontSize: 7,
+    fontFamily: 'Montserrat',
+    align: 'center'
   },
 
   firstName: {
-    x: 200,
-    y: 383, // 179 + 204
-    fontSize: 10,
-    fontFamily: 'Helvetica',
-    align: 'left',
+    x: POSITION_1_ADI_COORDINATES.firstName.x!,
+    y: POSITION_1_ADI_COORDINATES.firstName.y! + POSITION_2_OFFSET,
+    fontSize: 7,
+    fontFamily: 'Montserrat',
+    align: 'right',
     maxWidth: 120
   },
 
-  middleName: {
-    x: 320,
-    y: 383, // 179 + 204
-    fontSize: 10,
-    fontFamily: 'Helvetica',
-    align: 'left',
-    maxWidth: 30
-  },
-
   lastName: {
-    x: 350,
-    y: 383, // 179 + 204
-    fontSize: 10,
-    fontFamily: 'Helvetica',
+    x: POSITION_1_ADI_COORDINATES.lastName.x!,
+    y: POSITION_1_ADI_COORDINATES.lastName.y! + POSITION_2_OFFSET,
+    fontSize: 7,
+    fontFamily: 'Montserrat',
     align: 'left',
     maxWidth: 150
   },
 
   address: {
-    x: 200,
-    y: 401, // 197 + 204
-    fontSize: 10,
-    fontFamily: 'Helvetica',
-    align: 'left',
+    x: POSITION_1_ADI_COORDINATES.address.x!,
+    y: POSITION_1_ADI_COORDINATES.address.y! + POSITION_2_OFFSET,
+    fontSize: 7,
+    fontFamily: 'Montserrat',
+    align: 'center',
     maxWidth: 300
+  },
+
+  // Instructor Signature
+  instructorSignature: {
+    x: POSITION_1_ADI_COORDINATES.instructorSignature.x!,
+    y: POSITION_1_ADI_COORDINATES.instructorSignature.y! + POSITION_2_OFFSET,
+    fontSize: 7,
+    fontFamily: 'Montserrat',
+    align: 'center',
+    maxWidth: 200
   }
 };
 
 /**
  * Coordenadas para el TERCER certificado ADI (parte inferior del PDF)
- * Todas las Y aumentan en 408 pixels (204 * 2)
+ * Todas las Y aumentan en POSITION_3_OFFSET pixels desde position 1
  */
 export const POSITION_3_ADI_COORDINATES: Record<string, FieldAdiCoordinate> = {
   citationNumber: {
-    x: 200,
-    y: 535, // 127 + 408
-    fontSize: 10,
-    fontFamily: 'Helvetica',
-    align: 'left',
+    x: POSITION_1_ADI_COORDINATES.citationNumber.x!,
+    y: POSITION_1_ADI_COORDINATES.citationNumber.y! + POSITION_3_OFFSET,
+    fontSize: 7,
+    fontFamily: 'Montserrat',
+    align: 'center',
     maxWidth: 200
   },
 
   certn: {
-    x: 475,
-    y: 547, // 139 + 408
-    fontSize: 10,
-    fontFamily: 'Helvetica',
+    x: POSITION_1_ADI_COORDINATES.certn.x!,
+    y: POSITION_1_ADI_COORDINATES.certn.y! + POSITION_3_OFFSET,
+    fontSize: 7,
+    fontFamily: 'Montserrat',
     align: 'left',
     maxWidth: 100
   },
 
   licenseNumber: {
-    x: 200,
-    y: 553, // 145 + 408
-    fontSize: 10,
-    fontFamily: 'Helvetica',
-    align: 'left',
+    x: POSITION_1_ADI_COORDINATES.licenseNumber.x!,
+    y: POSITION_1_ADI_COORDINATES.licenseNumber.y! + POSITION_3_OFFSET,
+    fontSize: 7,
+    fontFamily: 'Montserrat',
+    align: 'center',
+    maxWidth: 200
+  },
+
+  licenseNumber2: {
+    x: POSITION_1_ADI_COORDINATES.licenseNumber2.x!,
+    y: POSITION_1_ADI_COORDINATES.licenseNumber2.y! + POSITION_3_OFFSET,
+    fontSize: 7,
+    fontFamily: 'Montserrat',
+    align: 'center',
     maxWidth: 200
   },
 
   courseDate: {
-    x: 200,
-    y: 571, // 163 + 408
-    fontSize: 10,
-    fontFamily: 'Helvetica',
-    align: 'left'
+    x: POSITION_1_ADI_COORDINATES.courseDate.x!,
+    y: POSITION_1_ADI_COORDINATES.courseDate.y! + POSITION_3_OFFSET,
+    fontSize: 7,
+    fontFamily: 'Montserrat',
+    align: 'center'
   },
 
   firstName: {
-    x: 200,
-    y: 587, // 179 + 408
-    fontSize: 10,
-    fontFamily: 'Helvetica',
-    align: 'left',
+    x: POSITION_1_ADI_COORDINATES.firstName.x!,
+    y: POSITION_1_ADI_COORDINATES.firstName.y! + POSITION_3_OFFSET,
+    fontSize: 7,
+    fontFamily: 'Montserrat',
+    align: 'right',
     maxWidth: 120
   },
 
-  middleName: {
-    x: 320,
-    y: 587, // 179 + 408
-    fontSize: 10,
-    fontFamily: 'Helvetica',
-    align: 'left',
-    maxWidth: 30
-  },
-
   lastName: {
-    x: 350,
-    y: 587, // 179 + 408
-    fontSize: 10,
-    fontFamily: 'Helvetica',
+    x: POSITION_1_ADI_COORDINATES.lastName.x!,
+    y: POSITION_1_ADI_COORDINATES.lastName.y! + POSITION_3_OFFSET,
+    fontSize: 7,
+    fontFamily: 'Montserrat',
     align: 'left',
     maxWidth: 150
   },
 
   address: {
-    x: 200,
-    y: 605, // 197 + 408
-    fontSize: 10,
-    fontFamily: 'Helvetica',
-    align: 'left',
+    x: POSITION_1_ADI_COORDINATES.address.x!,
+    y: POSITION_1_ADI_COORDINATES.address.y! + POSITION_3_OFFSET,
+    fontSize: 7,
+    fontFamily: 'Montserrat',
+    align: 'center',
     maxWidth: 300
+  },
+
+  // Instructor Signature
+  instructorSignature: {
+    x: POSITION_1_ADI_COORDINATES.instructorSignature.x!,
+    y: POSITION_1_ADI_COORDINATES.instructorSignature.y! + POSITION_3_OFFSET,
+    fontSize: 7,
+    fontFamily: 'Montserrat',
+    align: 'center',
+    maxWidth: 200
   }
 };
 

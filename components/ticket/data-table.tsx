@@ -10,6 +10,7 @@ import JSZip from "jszip";
 import { useCallback, useState } from "react";
 import * as XLSX from "xlsx";
 import toast from "react-hot-toast";
+import { PDFDocument } from "pdf-lib";
 
 import {
   Table,
@@ -116,28 +117,144 @@ export function DataTable({ columns, data, onUpdate, template }: DataTableProps)
     const loadingToast = toast.loading(`Generando ${validStudents.length} certificado(s)...`);
 
     try {
-      const zip = new JSZip();
-      
-      for (const user of validStudents) {
-        const pdfBlob = await generateCertificatePDF(user);
-        const name = `${user.first_name} ${user.last_name}`.replace(/[^a-zA-Z0-9\s]/g, '').trim();
-        const fileName = `${name.replace(/\s+/g, "_")}_Certificado_${user.certn}.pdf`;
-        zip.file(fileName, pdfBlob);
+      // Get template to know certificatesPerPage
+      const { type, classType } = validStudents[0];
+      const certType = (classType || type || 'DATE').toUpperCase();
+
+      console.log(`🔍 Student data:`, validStudents[0]);
+      console.log(`📋 Resolved certType: ${certType}`);
+
+      const templateResponse = await fetch(`/api/certificate-templates?classType=${certType}`);
+      let template = null;
+
+      if (templateResponse.ok) {
+        const templates = await templateResponse.json();
+        console.log(`📥 Templates from API:`, templates);
+        if (templates.length > 0) {
+          template = templates[0];
+          console.log(`✅ Using template from database:`, template.name);
+        }
       }
 
-      setRowSelection({});
-      const zipBlob = await zip.generateAsync({ type: "blob" });
-      const zipFileName = `Certificados_${new Date().toISOString().split('T')[0]}.zip`;
-      saveAs(zipBlob, zipFileName);
-      
-      toast.dismiss(loadingToast);
-      toast.success(`${validStudents.length} certificado(s) descargado(s) exitosamente`);
+      if (!template) {
+        console.log(`⚠️ No template found, using default BDI template for ${certType}`);
+        const { getDefaultBDITemplate } = await import("@/lib/defaultTemplates/bdiTemplate");
+        template = getDefaultBDITemplate(certType);
+      }
+
+      // Detectar si es un certificado de 8 horas, ADI, BDI o Youthful Offender
+      const is8Hours = certType.includes('8-HOURS') || certType.includes('8 HOURS');
+      const isAdi = certType.includes('ADI');
+      const isBdi = certType.includes('BDI');
+      const isYouthfulOffender = certType.includes('YOUTHFUL OFFENDER') || certType.includes('YOUTHFUL-OFFENDER');
+
+      // Para certificados de 8 horas, ADI, BDI y Youthful Offender, siempre usar 3 por página
+      const certsPerPage = (is8Hours || isAdi || isBdi || isYouthfulOffender) ? 3 : (template.certificatesPerPage || 1);
+      console.log(`📄 Template: ${template.name} has ${certsPerPage} certificates per page`);
+
+      const zip = new JSZip();
+
+      if (is8Hours) {
+        console.log('🎓 Using 8-hours certificate generator for multiple PDFs');
+        const result = await generateMultiple8HoursCertificates(validStudents, '/templates_certificates/8-hours.pdf');
+        const pdfBlobs = Array.isArray(result) ? result : [result];
+
+        pdfBlobs.forEach((pdfBlob, index) => {
+          const certsInThisPdf = Math.min(3, validStudents.length - (index * 3));
+          const pdfFileName = `Certificados_Grupo_${index + 1}_${certsInThisPdf}_certs.pdf`;
+          zip.file(pdfFileName, pdfBlob);
+        });
+
+        const zipBlob = await zip.generateAsync({ type: "blob" });
+        const zipFileName = `Certificados_${pdfBlobs.length}_PDFs_${validStudents.length}_estudiantes_${new Date().toISOString().split('T')[0]}.zip`;
+        saveAs(zipBlob, zipFileName);
+
+        setRowSelection({});
+        toast.dismiss(loadingToast);
+        toast.success(`${pdfBlobs.length} PDF(s) generados con ${validStudents.length} certificado(s) en total`);
+      } else if (isAdi) {
+        console.log('🎓 Using ADI certificate generator for multiple PDFs');
+        const result = await generateMultipleAdiCertificates(validStudents, '/templates_certificates/adi.pdf');
+        const pdfBlobs = Array.isArray(result) ? result : [result];
+
+        pdfBlobs.forEach((pdfBlob, index) => {
+          const certsInThisPdf = Math.min(3, validStudents.length - (index * 3));
+          const pdfFileName = `Certificados_ADI_Grupo_${index + 1}_${certsInThisPdf}_certs.pdf`;
+          zip.file(pdfFileName, pdfBlob);
+        });
+
+        const zipBlob = await zip.generateAsync({ type: "blob" });
+        const zipFileName = `Certificados_ADI_${pdfBlobs.length}_PDFs_${validStudents.length}_estudiantes_${new Date().toISOString().split('T')[0]}.zip`;
+        saveAs(zipBlob, zipFileName);
+
+        setRowSelection({});
+        toast.dismiss(loadingToast);
+        toast.success(`${pdfBlobs.length} PDF(s) ADI generados con ${validStudents.length} certificado(s) en total`);
+      } else if (isBdi) {
+        console.log('🎓 Using BDI certificate generator for multiple PDFs');
+        const result = await generateMultipleBdiCertificates(validStudents, '/templates_certificates/bdi.pdf');
+        const pdfBlobs = Array.isArray(result) ? result : [result];
+
+        pdfBlobs.forEach((pdfBlob, index) => {
+          const certsInThisPdf = Math.min(3, validStudents.length - (index * 3));
+          const pdfFileName = `Certificados_BDI_Grupo_${index + 1}_${certsInThisPdf}_certs.pdf`;
+          zip.file(pdfFileName, pdfBlob);
+        });
+
+        const zipBlob = await zip.generateAsync({ type: "blob" });
+        const zipFileName = `Certificados_BDI_${pdfBlobs.length}_PDFs_${validStudents.length}_estudiantes_${new Date().toISOString().split('T')[0]}.zip`;
+        saveAs(zipBlob, zipFileName);
+
+        setRowSelection({});
+        toast.dismiss(loadingToast);
+        toast.success(`${pdfBlobs.length} PDF(s) BDI generados con ${validStudents.length} certificado(s) en total`);
+      } else if (isYouthfulOffender) {
+        console.log('🎓 Using Youthful Offender certificate generator for multiple PDFs');
+        const result = await generateMultipleYouthfulOffenderCertificates(validStudents, '/templates_certificates/youthful-offender-class.pdf');
+        const pdfBlobs = Array.isArray(result) ? result : [result];
+
+        pdfBlobs.forEach((pdfBlob, index) => {
+          const certsInThisPdf = Math.min(3, validStudents.length - (index * 3));
+          const pdfFileName = `Certificados_YO_Grupo_${index + 1}_${certsInThisPdf}_certs.pdf`;
+          zip.file(pdfFileName, pdfBlob);
+        });
+
+        const zipBlob = await zip.generateAsync({ type: "blob" });
+        const zipFileName = `Certificados_YO_${pdfBlobs.length}_PDFs_${validStudents.length}_estudiantes_${new Date().toISOString().split('T')[0]}.zip`;
+        saveAs(zipBlob, zipFileName);
+
+        setRowSelection({});
+        toast.dismiss(loadingToast);
+        toast.success(`${pdfBlobs.length} PDF(s) YO generados con ${validStudents.length} certificado(s) en total`);
+      } else {
+        console.log('🎓 Using standard certificate generator for multiple PDFs');
+        const numPDFs = Math.ceil(validStudents.length / certsPerPage);
+
+        for (let i = 0; i < numPDFs; i++) {
+          const start = i * certsPerPage;
+          const end = Math.min(start + certsPerPage, validStudents.length);
+          const chunk = validStudents.slice(start, end);
+
+          console.log(`📄 PDF ${i + 1}/${numPDFs}: ${chunk.length} certificate(s)`);
+          const pdfBlob = await generateMultipleCertificatesPDF(chunk, template);
+          const pdfFileName = `Certificados_Grupo_${i + 1}_${chunk.length}_certs.pdf`;
+          zip.file(pdfFileName, pdfBlob);
+        }
+
+        const zipBlob = await zip.generateAsync({ type: "blob" });
+        const zipFileName = `Certificados_${numPDFs}_PDFs_${validStudents.length}_estudiantes_${new Date().toISOString().split('T')[0]}.zip`;
+        saveAs(zipBlob, zipFileName);
+
+        setRowSelection({});
+        toast.dismiss(loadingToast);
+        toast.success(`${numPDFs} PDF(s) generados con ${validStudents.length} certificado(s) en total`);
+      }
     } catch (error) {
       console.error("Error generating ZIP:", error);
       toast.dismiss(loadingToast);
       toast.error("Error al generar los certificados. Intente nuevamente.");
     }
-  }, [generateCertificatePDF, table, setRowSelection]);
+  }, [generateMultiple8HoursCertificates, generateMultipleAdiCertificates, generateMultipleBdiCertificates, generateMultipleYouthfulOffenderCertificates, generateMultipleCertificatesPDF, table, setRowSelection]);
 
   const downloadCombinedCertificates = useCallback(async (targetPages: number = 1) => {
     const selectedRows = table
@@ -213,140 +330,87 @@ export function DataTable({ columns, data, onUpdate, template }: DataTableProps)
       console.log(`📄 Template: ${template.name} has ${certsPerPage} certificates per page`);
       console.log(`👥 ${validStudents.length} students selected`);
 
-      // If students fit in ONE PDF (≤ certificatesPerPage), generate single PDF
-      if (validStudents.length <= certsPerPage) {
-        console.log(`✅ Generating single PDF with ${validStudents.length} certificate(s)`);
+      // Generar un solo PDF con TODOS los estudiantes en múltiples páginas
+      console.log(`✅ Generating combined PDF with ALL ${validStudents.length} certificate(s) across multiple pages`);
 
-        let pdfBlob: Blob;
-        if (is8Hours) {
-          console.log('🎓 Using 8-hours certificate generator');
-          const result = await generateMultiple8HoursCertificates(validStudents, '/templates_certificates/8-hours.pdf');
-          pdfBlob = Array.isArray(result) ? result[0] : result;
-        } else if (isAdi) {
-          console.log('🎓 Using ADI certificate generator');
-          const result = await generateMultipleAdiCertificates(validStudents, '/templates_certificates/adi.pdf');
-          pdfBlob = Array.isArray(result) ? result[0] : result;
-        } else if (isBdi) {
-          console.log('🎓 Using BDI certificate generator');
-          const result = await generateMultipleBdiCertificates(validStudents, '/templates_certificates/bdi.pdf');
-          pdfBlob = Array.isArray(result) ? result[0] : result;
-        } else if (isYouthfulOffender) {
-          console.log('🎓 Using Youthful Offender certificate generator');
-          const result = await generateMultipleYouthfulOffenderCertificates(validStudents, '/templates_certificates/youthful-offender-class.pdf');
-          pdfBlob = Array.isArray(result) ? result[0] : result;
-        } else {
-          console.log('🎓 Using standard certificate generator');
-          pdfBlob = await generateMultipleCertificatesPDF(validStudents, template);
-        }
-
-        const fileName = `Certificados_Combinados_${new Date().toISOString().split('T')[0]}.pdf`;
-        saveAs(pdfBlob, fileName);
-
-        setRowSelection({});
-        toast.dismiss(loadingToast);
-        toast.success(`PDF generado con ${validStudents.length} certificado(s)`);
-      }
-      // If students > certificatesPerPage, generate MULTIPLE PDFs in a ZIP
-      else {
-        console.log(`📦 Generating multiple PDFs (max ${certsPerPage} per PDF)`);
-        const zip = new JSZip();
-
-        if (is8Hours) {
-          console.log('🎓 Using 8-hours certificate generator for multiple PDFs');
-          const result = await generateMultiple8HoursCertificates(validStudents, '/templates_certificates/8-hours.pdf');
-          const pdfBlobs = Array.isArray(result) ? result : [result];
-
-          pdfBlobs.forEach((pdfBlob, index) => {
-            const certsInThisPdf = Math.min(3, validStudents.length - (index * 3));
-            const pdfFileName = `Certificados_Grupo_${index + 1}_${certsInThisPdf}_certs.pdf`;
-            zip.file(pdfFileName, pdfBlob);
-          });
-
-          const zipBlob = await zip.generateAsync({ type: "blob" });
-          const zipFileName = `Certificados_${pdfBlobs.length}_PDFs_${validStudents.length}_estudiantes_${new Date().toISOString().split('T')[0]}.zip`;
-          saveAs(zipBlob, zipFileName);
-
-          setRowSelection({});
-          toast.dismiss(loadingToast);
-          toast.success(`${pdfBlobs.length} PDF(s) generados con ${validStudents.length} certificado(s) en total`);
-        } else if (isAdi) {
-          console.log('🎓 Using ADI certificate generator for multiple PDFs');
-          const result = await generateMultipleAdiCertificates(validStudents, '/templates_certificates/adi.pdf');
-          const pdfBlobs = Array.isArray(result) ? result : [result];
-
-          pdfBlobs.forEach((pdfBlob, index) => {
-            const certsInThisPdf = Math.min(3, validStudents.length - (index * 3));
-            const pdfFileName = `Certificados_ADI_Grupo_${index + 1}_${certsInThisPdf}_certs.pdf`;
-            zip.file(pdfFileName, pdfBlob);
-          });
-
-          const zipBlob = await zip.generateAsync({ type: "blob" });
-          const zipFileName = `Certificados_ADI_${pdfBlobs.length}_PDFs_${validStudents.length}_estudiantes_${new Date().toISOString().split('T')[0]}.zip`;
-          saveAs(zipBlob, zipFileName);
-
-          setRowSelection({});
-          toast.dismiss(loadingToast);
-          toast.success(`${pdfBlobs.length} PDF(s) ADI generados con ${validStudents.length} certificado(s) en total`);
-        } else if (isBdi) {
-          console.log('🎓 Using BDI certificate generator for multiple PDFs');
-          const result = await generateMultipleBdiCertificates(validStudents, '/templates_certificates/bdi.pdf');
-          const pdfBlobs = Array.isArray(result) ? result : [result];
-
-          pdfBlobs.forEach((pdfBlob, index) => {
-            const certsInThisPdf = Math.min(3, validStudents.length - (index * 3));
-            const pdfFileName = `Certificados_BDI_Grupo_${index + 1}_${certsInThisPdf}_certs.pdf`;
-            zip.file(pdfFileName, pdfBlob);
-          });
-
-          const zipBlob = await zip.generateAsync({ type: "blob" });
-          const zipFileName = `Certificados_BDI_${pdfBlobs.length}_PDFs_${validStudents.length}_estudiantes_${new Date().toISOString().split('T')[0]}.zip`;
-          saveAs(zipBlob, zipFileName);
-
-          setRowSelection({});
-          toast.dismiss(loadingToast);
-          toast.success(`${pdfBlobs.length} PDF(s) BDI generados con ${validStudents.length} certificado(s) en total`);
-        } else if (isYouthfulOffender) {
-          console.log('🎓 Using Youthful Offender certificate generator for multiple PDFs');
-          const result = await generateMultipleYouthfulOffenderCertificates(validStudents, '/templates_certificates/youthful-offender-class.pdf');
-          const pdfBlobs = Array.isArray(result) ? result : [result];
-
-          pdfBlobs.forEach((pdfBlob, index) => {
-            const certsInThisPdf = Math.min(3, validStudents.length - (index * 3));
-            const pdfFileName = `Certificados_YO_Grupo_${index + 1}_${certsInThisPdf}_certs.pdf`;
-            zip.file(pdfFileName, pdfBlob);
-          });
-
-          const zipBlob = await zip.generateAsync({ type: "blob" });
-          const zipFileName = `Certificados_YO_${pdfBlobs.length}_PDFs_${validStudents.length}_estudiantes_${new Date().toISOString().split('T')[0]}.zip`;
-          saveAs(zipBlob, zipFileName);
-
-          setRowSelection({});
-          toast.dismiss(loadingToast);
-          toast.success(`${pdfBlobs.length} PDF(s) YO generados con ${validStudents.length} certificado(s) en total`);
-        } else {
-          console.log('🎓 Using standard certificate generator for multiple PDFs');
-          const numPDFs = Math.ceil(validStudents.length / certsPerPage);
-
-          for (let i = 0; i < numPDFs; i++) {
-            const start = i * certsPerPage;
-            const end = Math.min(start + certsPerPage, validStudents.length);
-            const chunk = validStudents.slice(start, end);
-
-            console.log(`📄 PDF ${i + 1}/${numPDFs}: ${chunk.length} certificate(s)`);
-            const pdfBlob = await generateMultipleCertificatesPDF(chunk, template);
-            const pdfFileName = `Certificados_Grupo_${i + 1}_${chunk.length}_certs.pdf`;
-            zip.file(pdfFileName, pdfBlob);
+      let pdfBlob: Blob;
+      if (is8Hours) {
+        console.log('🎓 Using 8-hours certificate generator');
+        const result = await generateMultiple8HoursCertificates(validStudents, '/templates_certificates/8-hours.pdf');
+        // Si hay múltiples PDFs, combinarlos
+        if (Array.isArray(result) && result.length > 1) {
+          console.log(`📄 Combining ${result.length} PDFs into one`);
+          const combinedPdf = await PDFDocument.create();
+          for (const pdfBlobItem of result) {
+            const pdfBytes = await pdfBlobItem.arrayBuffer();
+            const pdf = await PDFDocument.load(pdfBytes);
+            const pages = await combinedPdf.copyPages(pdf, pdf.getPageIndices());
+            pages.forEach((page) => combinedPdf.addPage(page));
           }
-
-          const zipBlob = await zip.generateAsync({ type: "blob" });
-          const zipFileName = `Certificados_${numPDFs}_PDFs_${validStudents.length}_estudiantes_${new Date().toISOString().split('T')[0]}.zip`;
-          saveAs(zipBlob, zipFileName);
-
-          setRowSelection({});
-          toast.dismiss(loadingToast);
-          toast.success(`${numPDFs} PDF(s) generados con ${validStudents.length} certificado(s) en total`);
+          pdfBlob = new Blob([await combinedPdf.save()], { type: 'application/pdf' });
+        } else {
+          pdfBlob = Array.isArray(result) ? result[0] : result;
         }
+      } else if (isAdi) {
+        console.log('🎓 Using ADI certificate generator');
+        const result = await generateMultipleAdiCertificates(validStudents, '/templates_certificates/adi.pdf');
+        if (Array.isArray(result) && result.length > 1) {
+          console.log(`📄 Combining ${result.length} PDFs into one`);
+          const combinedPdf = await PDFDocument.create();
+          for (const pdfBlobItem of result) {
+            const pdfBytes = await pdfBlobItem.arrayBuffer();
+            const pdf = await PDFDocument.load(pdfBytes);
+            const pages = await combinedPdf.copyPages(pdf, pdf.getPageIndices());
+            pages.forEach((page) => combinedPdf.addPage(page));
+          }
+          pdfBlob = new Blob([await combinedPdf.save()], { type: 'application/pdf' });
+        } else {
+          pdfBlob = Array.isArray(result) ? result[0] : result;
+        }
+      } else if (isBdi) {
+        console.log('🎓 Using BDI certificate generator');
+        const result = await generateMultipleBdiCertificates(validStudents, '/templates_certificates/bdi.pdf');
+        if (Array.isArray(result) && result.length > 1) {
+          console.log(`📄 Combining ${result.length} PDFs into one`);
+          const combinedPdf = await PDFDocument.create();
+          for (const pdfBlobItem of result) {
+            const pdfBytes = await pdfBlobItem.arrayBuffer();
+            const pdf = await PDFDocument.load(pdfBytes);
+            const pages = await combinedPdf.copyPages(pdf, pdf.getPageIndices());
+            pages.forEach((page) => combinedPdf.addPage(page));
+          }
+          pdfBlob = new Blob([await combinedPdf.save()], { type: 'application/pdf' });
+        } else {
+          pdfBlob = Array.isArray(result) ? result[0] : result;
+        }
+      } else if (isYouthfulOffender) {
+        console.log('🎓 Using Youthful Offender certificate generator');
+        const result = await generateMultipleYouthfulOffenderCertificates(validStudents, '/templates_certificates/youthful-offender-class.pdf');
+        if (Array.isArray(result) && result.length > 1) {
+          console.log(`📄 Combining ${result.length} PDFs into one`);
+          const combinedPdf = await PDFDocument.create();
+          for (const pdfBlobItem of result) {
+            const pdfBytes = await pdfBlobItem.arrayBuffer();
+            const pdf = await PDFDocument.load(pdfBytes);
+            const pages = await combinedPdf.copyPages(pdf, pdf.getPageIndices());
+            pages.forEach((page) => combinedPdf.addPage(page));
+          }
+          pdfBlob = new Blob([await combinedPdf.save()], { type: 'application/pdf' });
+        } else {
+          pdfBlob = Array.isArray(result) ? result[0] : result;
+        }
+      } else {
+        console.log('🎓 Using standard certificate generator');
+        pdfBlob = await generateMultipleCertificatesPDF(validStudents, template);
       }
+
+      const fileName = `Certificados_Combinados_${new Date().toISOString().split('T')[0]}.pdf`;
+      saveAs(pdfBlob, fileName);
+
+      setRowSelection({});
+      toast.dismiss(loadingToast);
+      const pagesNeeded = Math.ceil(validStudents.length / certsPerPage);
+      toast.success(`PDF generado con ${validStudents.length} certificado(s) en ${pagesNeeded} página(s)`);
     } catch (error) {
       console.error("Error generating combined PDF:", error);
       toast.dismiss(loadingToast);

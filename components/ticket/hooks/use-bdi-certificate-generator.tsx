@@ -47,9 +47,25 @@ export function useBdiCertificateGenerator() {
         // Obtener coordenadas para la posición 1
         const coordinates = getBdiPositionCoordinates(1);
 
+        // Mapeo de nombres de campos (coordenadas -> base de datos)
+        const fieldMapping: Record<string, string> = {
+          firstName: 'first_name',
+          lastName: 'last_name',
+          middleName: 'midl',
+          licenseNumber: 'licenseNumber',
+          licenseNumber2: 'licenseNumber', // Segunda aparición del mismo número
+          citationNumber: 'citationNumber',
+          courseDate: 'courseDate',
+          certn: 'certn', // Certificate number
+          address: 'address',
+          instructorSignature: 'instructorSignature'
+        };
+
         // Dibujar cada campo en su posición
         Object.entries(coordinates).forEach(([fieldKey, coord]) => {
-          let value = (student as any)[fieldKey];
+          // Obtener el nombre del campo en la base de datos
+          const dbFieldKey = fieldMapping[fieldKey] || fieldKey;
+          let value = (student as any)[dbFieldKey];
 
           // Transformaciones especiales
           if (fieldKey === "courseDate" && value) {
@@ -63,7 +79,7 @@ export function useBdiCertificateGenerator() {
 
           // Si no hay valor, omitir (no usar mock data)
           if (!value || value === "") {
-            console.log(`  ⚠️ ${fieldKey} is empty, skipping`);
+            console.log(`  ⚠️ ${fieldKey} (${dbFieldKey}) is empty, skipping`);
             return;
           }
 
@@ -149,6 +165,20 @@ export function useBdiCertificateGenerator() {
           // Cargar fuentes
           const helvetica = await pdfDoc.embedFont(StandardFonts.Helvetica);
 
+          // Mapeo de nombres de campos (coordenadas -> base de datos)
+          const fieldMapping: Record<string, string> = {
+            firstName: 'first_name',
+            lastName: 'last_name',
+            middleName: 'midl',
+            licenseNumber: 'licenseNumber',
+            licenseNumber2: 'licenseNumber', // Segunda aparición del mismo número
+            citationNumber: 'citationNumber',
+            courseDate: 'courseDate',
+            certn: 'certn',
+            address: 'address',
+            instructorSignature: 'instructorSignature'
+          };
+
           // Dibujar cada estudiante en su posición correspondiente
           studentsGroup.forEach((student, studentIndex) => {
             const position = (studentIndex + 1) as 1 | 2 | 3;
@@ -159,7 +189,9 @@ export function useBdiCertificateGenerator() {
 
             // Dibujar cada campo en su posición
             Object.entries(coordinates).forEach(([fieldKey, coord]) => {
-              let value = (student as any)[fieldKey];
+              // Obtener el nombre del campo en la base de datos
+              const dbFieldKey = fieldMapping[fieldKey] || fieldKey;
+              let value = (student as any)[dbFieldKey];
 
               // Transformaciones especiales
               if (fieldKey === "courseDate" && value) {
@@ -173,7 +205,7 @@ export function useBdiCertificateGenerator() {
 
               // Si no hay valor, omitir (no usar mock data)
               if (!value || value === "") {
-                console.log(`    ⚠️ ${fieldKey} is empty, skipping`);
+                console.log(`    ⚠️ ${fieldKey} (${dbFieldKey}) is empty, skipping`);
                 return;
               }
 

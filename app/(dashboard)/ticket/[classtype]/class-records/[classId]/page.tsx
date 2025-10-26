@@ -53,10 +53,6 @@ export default function Page() {
         header: "First Name",
       },
       {
-        accessorKey: "midl",
-        header: "Middle Name",
-      },
-      {
         accessorKey: "certn",
         header: "Certificate Number",
       },
@@ -86,7 +82,9 @@ export default function Page() {
           'studentFullName',
           'fullName',
           'student_name',
-          'student_full_name'
+          'student_full_name',
+          'classType',
+          'classTitle'
         ];
         
         // Also check if the label contains these words
@@ -99,7 +97,9 @@ export default function Page() {
           'full name',
           'payed amount',
           'paid amount',
-          'certificate number'
+          'certificate number',
+          'class type',
+          'class title'
         ];
         
         const shouldSkip = skipKeys.includes(variable.key.toLowerCase()) || 
@@ -164,28 +164,15 @@ export default function Page() {
         ? decodedClassType.toLowerCase() 
         : 'date';
       
-      // Fetch certificate template - normalize spaces to hyphens
+      // Use certificateConfigurations.ts directly (IGNORE database templates)
       const rawCertType = drivingClassData.data.classType || certificateType;
       const certType = rawCertType.toUpperCase().replace(/\s+/g, '-');
-      console.log('🔍 Fetching template for classType:', certType);
-      const templateResponse = await fetch(`/api/certificate-templates?classType=${certType}`);
+      console.log('🔍 Using certificateConfigurations for classType:', certType);
+
       let fetchedTemplate: CertificateTemplate | null = null;
 
-      if (templateResponse.ok) {
-        const templates = await templateResponse.json();
-        console.log('📋 Templates found:', templates.length);
-        if (templates.length > 0) {
-          fetchedTemplate = templates[0];
-          if (fetchedTemplate) {
-            console.log('✅ Template loaded:', fetchedTemplate.name);
-            console.log('📝 Available variables:', fetchedTemplate.availableVariables?.length);
-            console.log('🔲 Shape elements (checkboxes):', fetchedTemplate.shapeElements?.length);
-          }
-        }
-      }
-
-      // If no template found, use default based on class type
-      if (!fetchedTemplate) {
+      // ALWAYS use default templates from certificateConfigurations.ts
+      {
         const normalizedType = certType.toUpperCase();
 
         if (normalizedType === 'DATE') {
