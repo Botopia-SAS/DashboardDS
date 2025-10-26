@@ -192,6 +192,28 @@ export const CERTIFICATE_CONFIGURATIONS: Record<string, CertificateConfig> = {
     useMultiPositionCoordinates: true, // Usa coordenadas específicas por posición
   },
 
+  // Youthful Offender Class
+  'YOUTHFUL-OFFENDER-CLASS': {
+    classType: 'YOUTHFUL OFFENDER CLASS',
+    name: 'Youthful Offender Class Certificate',
+    pdfTemplate: '/templates_certificates/youthful-offender-class.pdf',
+    certificatesPerPage: 3, // 3 certificados por hoja como 8-hours
+    pageSize: { width: 792, height: 612, orientation: 'landscape' },
+    tableVariables: [
+      { key: 'citationNumber', label: 'Citation/Case No', example: '2025-TC-12345' },
+      { key: 'court', label: 'Court', example: 'Circuit Court' },
+      { key: 'county', label: 'County', example: 'Palm Beach County, FL' },
+      { key: 'firstName', label: 'First Name', example: 'JOHN' },
+      { key: 'middleName', label: 'Middle Name', example: 'M' },
+      { key: 'lastName', label: 'Last Name', example: 'DOE' },
+      { key: 'licenseNumber', label: 'License Number', example: 'D123-456-78-910-0' },
+      { key: 'courseDate', label: 'Completion Date', example: 'Nov 10, 2025' },
+      { key: 'certn', label: 'Certificate Number', example: 'YO-2025-001' },
+    ],
+    allowCombinedPDF: true, // SÍ mostrar botón morado
+    useMultiPositionCoordinates: true, // Usa coordenadas específicas por posición
+  },
+
   // Otros tipos
   GOV: {
     classType: 'GOV',

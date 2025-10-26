@@ -35,7 +35,16 @@ import {
 
 // Helper function to normalize class type for comparison (same as calendar)
 const normalizeClassType = (type: string): string => {
-  return type.toLowerCase().trim().replace(/\s+/g, '-');
+  // Convert to lowercase and trim
+  const normalized = type.toLowerCase().trim();
+  
+  // Special handling for "ADI" type - it should match with or without spaces/hyphens
+  if (normalized === 'adi' || normalized === 'a d i') {
+    return 'adi';
+  }
+  
+  // Replace spaces with hyphens for other types
+  return normalized.replace(/\s+/g, '-');
 };
 
 interface Class {
@@ -75,12 +84,25 @@ export default function Page() {
   const decodedClassType = decodeURIComponent(classType);
 
   useEffect(() => {
+    // Validate classType parameter
+    if (!classType) {
+      console.error("❌ No classType parameter provided in URL");
+      setLoading(false);
+      return;
+    }
+
     setLoading(true);
     setClassId("");
     setSelectedClassText(""); // Reset selected text when class type changes
+    
     // Fetch classes from the calendar API to get populated data
     fetch(`/api/ticket/calendar`)
-      .then((res) => res.json())
+      .then((res) => {
+        if (!res.ok) {
+          throw new Error(`Failed to fetch classes: ${res.status}`);
+        }
+        return res.json();
+      })
       .then((data) => {
         // Decode URL parameter and normalize for comparison using the same logic as calendar
         const decodedClassType = decodeURIComponent(classType);
@@ -113,7 +135,15 @@ export default function Page() {
         setLoading(false);
       })
       .catch((error) => {
-        console.error("Error fetching classes:", error);
+        console.error("❌ Error fetching classes:", error);
+        console.error("  - Error details:", {
+          message: error.message,
+          stack: error.stack,
+          classType: classType
+        });
+        // Reset to empty state instead of breaking the page
+        setClasses([]);
+        setFilteredClasses([]);
         setLoading(false);
       });
   }, [setClassId, classType]);
@@ -143,11 +173,16 @@ export default function Page() {
 
     // Apply class name filter
     if (classNameFilter !== "all") {
-      filtered = filtered.filter((c) => getClassName(c) === classNameFilter);
+      filtered = filtered.filter((c) => {
+        if (typeof c.classId === 'object' && c.classId && c.classId.title) {
+          return c.classId.title === classNameFilter;
+        }
+        return `${decodedClassType.toUpperCase()} Class` === classNameFilter;
+      });
     }
 
     setFilteredClasses(filtered);
-  }, [dateRange, classNameFilter, classes]);
+  }, [dateRange, classNameFilter, classes, decodedClassType]);
   if (loading) {
     return <Loader />;
   }
@@ -190,7 +225,7 @@ export default function Page() {
 
   // Helper function to get class name
   const getClassName = (c: Class) => {
-    if (typeof c.classId === 'object' && c.classId.title) {
+    if (typeof c.classId === 'object' && c.classId && c.classId.title) {
       return c.classId.title;
     }
     return `${decodedClassType.toUpperCase()} Class`;
@@ -198,7 +233,7 @@ export default function Page() {
 
   // Helper function to get location name
   const getLocationName = (c: Class) => {
-    if (typeof c.locationId === 'object' && c.locationId.title) {
+    if (typeof c.locationId === 'object' && c.locationId && c.locationId.title) {
       return c.locationId.title;
     }
     return c.locationName || 'Unknown Location';

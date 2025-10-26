@@ -5,9 +5,11 @@ import { useCallback } from "react";
 import { useDateCertificateGenerator } from "./use-date-certificate-generator";
 import { useBdiCertificateGenerator } from "./use-bdi-certificate-generator";
 import { useAdiCertificateGenerator } from "./use-adi-certificate-generator";
+import { useYouthfulOffenderCertificateGenerator } from "./use-youthful-offender-certificate-generator";
 import { useDynamicCertificateGenerator } from "./use-dynamic-certificate-generator";
 import { CertificateTemplate } from "@/lib/certificateTypes";
 import { getDefaultBDITemplate } from "@/lib/defaultTemplates/bdiTemplate";
+import { getCertificateConfig } from "@/lib/certificateConfigurations";
 
 // Helper function to normalize class type for database queries (same as calendar)
 const normalizeClassType = (type: string): string => {
@@ -18,6 +20,7 @@ export function useCertificateGenerator() {
   const { generateDateCertificatePDF } = useDateCertificateGenerator();
   const { generateSingleBdiCertificate: generateBdiCertificatePDF } = useBdiCertificateGenerator();
   const { generateSingleAdiCertificate } = useAdiCertificateGenerator();
+  const { generateSingleYouthfulOffenderCertificate } = useYouthfulOffenderCertificateGenerator();
   const { generateDynamicCertificatePDF } = useDynamicCertificateGenerator();
 
   // Function to validate variables before generation
@@ -159,6 +162,8 @@ export function useCertificateGenerator() {
           return generateSingleAdiCertificate(user, '/templates_certificates/adi.pdf');
         } else if (certType === "BDI") {
           return generateBdiCertificatePDF(user, '/templates_certificates/bdi.pdf');
+        } else if (certType === "YOUTHFUL OFFENDER CLASS" || certType === "YOUTHFUL-OFFENDER-CLASS") {
+          return generateSingleYouthfulOffenderCertificate(user, '/templates_certificates/youthful-offender-class.pdf');
         } else {
           return generateBdiCertificatePDF(user, '/templates_certificates/bdi.pdf');
         }
@@ -168,6 +173,7 @@ export function useCertificateGenerator() {
       generateDateCertificatePDF,
       generateBdiCertificatePDF,
       generateSingleAdiCertificate,
+      generateSingleYouthfulOffenderCertificate,
       generateDynamicCertificatePDF,
     ]
   );
