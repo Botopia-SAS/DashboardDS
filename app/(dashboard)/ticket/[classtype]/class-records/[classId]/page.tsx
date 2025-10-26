@@ -82,7 +82,9 @@ export default function Page() {
           'studentFullName',
           'fullName',
           'student_name',
-          'student_full_name'
+          'student_full_name',
+          'classType',
+          'classTitle'
         ];
         
         // Also check if the label contains these words
@@ -95,7 +97,9 @@ export default function Page() {
           'full name',
           'payed amount',
           'paid amount',
-          'certificate number'
+          'certificate number',
+          'class type',
+          'class title'
         ];
         
         const shouldSkip = skipKeys.includes(variable.key.toLowerCase()) || 
