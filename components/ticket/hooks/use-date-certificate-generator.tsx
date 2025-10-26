@@ -81,19 +81,19 @@ export function useDateCertificateGenerator() {
         drawCenteredText(formattedBirthDate, 390, 295, 12, true);
       }
 
-      // Class Type: x=390, y=385 (center) - More prominent, larger, uppercase, lowered position
+      // Class Type: x=390, y=241 (center) - Positioned after "Has successfully completed the"
       const displayClassType = (classType || 'DATE').toUpperCase();
-      drawCenteredText(displayClassType, 390, 385, 18, true);
+      drawCenteredText(displayClassType, 413, 241, 18, true);
 
-      // Class Title: x=390, y=410 (center) - Use actual class title instead of "D.A.T.E. Course"
-      const displayClassTitle = classTitle || 'Certificate Course';
-      drawCenteredText(displayClassTitle, 390, 425, 12, true);
+      // Class Title: x=390, y=293 (center) - Below class type
+      const displayClassTitle = classTitle || '4hr Traffic Law & Substance Abuse Class';
+      drawCenteredText(displayClassTitle, 413, 293, 11, true);
 
       // Número de Certificado: x=163, y=394 (center)
       drawCenteredText(String(certn), 163, 394, 12, true);
 
-      // Fecha de Generación: x=390, y=484 (center)
-      drawCenteredText(printDate, 390, 495, 12, true);
+      // Fecha de Generación: x=403, y=387 (center) - Aligned with "Date" label
+      drawCenteredText(printDate, 403, 387, 12, true);
 
       // Serialize the PDF
       const pdfBytes = await pdfDoc.save();

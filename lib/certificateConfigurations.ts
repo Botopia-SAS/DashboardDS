@@ -47,7 +47,8 @@ export const CERTIFICATE_CONFIGURATIONS: Record<string, CertificateConfig> = {
       { key: 'lastName', label: 'Last Name', example: 'GUARIN' },
       { key: 'birthDate', label: 'Date of Birth', example: '4/8/1967' },
       { key: 'courseDate', label: 'Completion Date', example: 'Oct 14, 2025' },
-      { key: 'address', label: 'Course Location', example: 'Palm Beach County, FL' },
+      { key: 'classType', label: 'Class Type', example: 'DATE' },
+      { key: 'classTitle', label: 'Class Title', example: 'D.A.T.E. Course' },
     ],
     allowCombinedPDF: false, // NO mostrar botón morado
   },
@@ -59,14 +60,14 @@ export const CERTIFICATE_CONFIGURATIONS: Record<string, CertificateConfig> = {
     certificatesPerPage: 3, // 3 certificados por página como 8-hours
     pageSize: { width: 792, height: 612, orientation: 'landscape' },
     tableVariables: [
-      { key: 'firstName', label: 'First Name', example: 'JOHN' },
-      { key: 'middleName', label: 'Middle Name', example: 'M' },
       { key: 'lastName', label: 'Last Name', example: 'DOE' },
+      { key: 'firstName', label: 'First Name', example: 'JOHN' },
+      { key: 'certn', label: 'Certificate Number', example: '100' },
+      { key: 'citationNumber', label: 'Citation Number', example: '2024-TC-12345' },
       { key: 'licenseNumber', label: 'License Number', example: 'D123-456-78-910-0' },
       { key: 'courseDate', label: 'Completion Date', example: 'Nov 10, 2025' },
       { key: 'address', label: 'Course Location', example: 'Palm Beach County, FL' },
-      { key: 'citationNumber', label: 'Citation Number', example: '2024-TC-12345' },
-      { key: 'certn', label: 'Certificate Number', example: '100' },
+      { key: 'instructorSignature', label: 'Instructor Signature', example: '(Upload Image)' },
     ],
     allowCombinedPDF: true, // Habilitar botón morado para múltiples certificados
     useMultiPositionCoordinates: true, // Usar sistema de coordenadas múltiples
@@ -79,14 +80,14 @@ export const CERTIFICATE_CONFIGURATIONS: Record<string, CertificateConfig> = {
     certificatesPerPage: 3, // 3 certificados por hoja
     pageSize: { width: 792, height: 612, orientation: 'landscape' },
     tableVariables: [
-      { key: 'firstName', label: 'First Name', example: 'JANE' },
-      { key: 'middleName', label: 'Middle Name', example: 'M' },
       { key: 'lastName', label: 'Last Name', example: 'SMITH' },
+      { key: 'firstName', label: 'First Name', example: 'JANE' },
+      { key: 'certn', label: 'Certificate Number', example: 'BDI-2025-001' },
+      { key: 'citationNumber', label: 'Citation Number', example: '2025-TC-12345' },
       { key: 'licenseNumber', label: 'License Number', example: 'A123456789' },
       { key: 'courseDate', label: 'Completion Date', example: 'Dec 1, 2025' },
-      { key: 'citationNumber', label: 'Citation Number', example: '2025-TC-12345' },
-      { key: 'certn', label: 'Certificate Number', example: 'BDI-2025-001' },
       { key: 'address', label: 'Course Location', example: 'Palm Beach County, FL' },
+      { key: 'instructorSignature', label: 'Instructor Signature', example: '(Upload Image)' },
     ],
     allowCombinedPDF: true, // SÍ mostrar botón morado
     useMultiPositionCoordinates: true, // Usa coordenadas multi-posición
@@ -100,16 +101,18 @@ export const CERTIFICATE_CONFIGURATIONS: Record<string, CertificateConfig> = {
     certificatesPerPage: 3, // 3 certificados por hoja
     pageSize: { width: 792, height: 612, orientation: 'landscape' },
     tableVariables: [
-      { key: 'firstName', label: 'First Name', example: 'JOHN' },
-      { key: 'middleName', label: 'Middle Name', example: 'M' },
       { key: 'lastName', label: 'Last Name', example: 'DOE' },
+      { key: 'firstName', label: 'First Name', example: 'JOHN' },
+      { key: 'midl', label: 'Middle Name', example: 'M' },
+      { key: 'certn', label: 'Certificate Number', example: '100' },
       {
         key: 'courseTime',
         label: 'Course Time',
         example: '8hr (IDI)',
         options: ['4hr', '8hr (IDI)', '8hr (Aggressive)', '8hr (Suspension)']
       },
-      { key: 'circuitCourtNo', label: 'Circuit Court No', example: '12345' },
+      { key: 'circuitCourtNo', label: 'Circuit Court No', example: '15-2024-MM-006789' },
+      { key: 'citationNumber', label: 'Citation Number', example: '2024-TC-12345' },
       { key: 'county', label: 'County', example: 'Palm Beach' },
       {
         key: 'attendance',
@@ -133,16 +136,18 @@ export const CERTIFICATE_CONFIGURATIONS: Record<string, CertificateConfig> = {
     certificatesPerPage: 3, // 3 certificados por hoja
     pageSize: { width: 792, height: 612, orientation: 'landscape' },
     tableVariables: [
-      { key: 'firstName', label: 'First Name', example: 'JOHN' },
-      { key: 'middleName', label: 'Middle Name', example: 'M' },
       { key: 'lastName', label: 'Last Name', example: 'DOE' },
+      { key: 'firstName', label: 'First Name', example: 'JOHN' },
+      { key: 'midl', label: 'Middle Name', example: 'M' },
+      { key: 'certn', label: 'Certificate Number', example: '100' },
       {
         key: 'courseTime',
         label: 'Course Time',
         example: '8hr (Aggressive)',
         options: ['4hr', '8hr (IDI)', '8hr (Aggressive)', '8hr (Suspension)']
       },
-      { key: 'circuitCourtNo', label: 'Circuit Court No', example: '12345' },
+      { key: 'circuitCourtNo', label: 'Circuit Court No', example: '15-2024-MM-006789' },
+      { key: 'citationNumber', label: 'Citation Number', example: '2024-TC-12345' },
       { key: 'county', label: 'County', example: 'Palm Beach' },
       {
         key: 'attendance',
@@ -166,16 +171,18 @@ export const CERTIFICATE_CONFIGURATIONS: Record<string, CertificateConfig> = {
     certificatesPerPage: 3, // 3 certificados por hoja
     pageSize: { width: 792, height: 612, orientation: 'landscape' },
     tableVariables: [
-      { key: 'firstName', label: 'First Name', example: 'JOHN' },
-      { key: 'middleName', label: 'Middle Name', example: 'M' },
       { key: 'lastName', label: 'Last Name', example: 'DOE' },
+      { key: 'firstName', label: 'First Name', example: 'JOHN' },
+      { key: 'midl', label: 'Middle Name', example: 'M' },
+      { key: 'certn', label: 'Certificate Number', example: '100' },
       {
         key: 'courseTime',
         label: 'Course Time',
         example: '8hr (Suspension)',
         options: ['4hr', '8hr (IDI)', '8hr (Aggressive)', '8hr (Suspension)']
       },
-      { key: 'circuitCourtNo', label: 'Circuit Court No', example: '12345' },
+      { key: 'circuitCourtNo', label: 'Circuit Court No', example: '15-2024-MM-006789' },
+      { key: 'citationNumber', label: 'Citation Number', example: '2024-TC-12345' },
       { key: 'county', label: 'County', example: 'Palm Beach' },
       {
         key: 'attendance',
