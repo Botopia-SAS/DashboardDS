@@ -122,8 +122,8 @@ export const POSITION_1_BDI_COORDINATES: Record<string, FieldBdiCoordinate> = {
 
   // Instructor Signature
   instructorSignature: {
-    x: 200,
-    y: 335,
+    x: 100,
+    y: 209,
     fontSize: 7,
     fontFamily: 'Montserrat',
     align: 'center',
@@ -209,7 +209,7 @@ export const POSITION_2_BDI_COORDINATES: Record<string, FieldBdiCoordinate> = {
 
   // Instructor Signature
   instructorSignature: {
-    x: 200,
+    x: 100,
     y: POSITION_1_BDI_COORDINATES.instructorSignature.y! + POSITION_2_OFFSET,
     fontSize: 7,
     fontFamily: 'Montserrat',
@@ -296,7 +296,7 @@ export const POSITION_3_BDI_COORDINATES: Record<string, FieldBdiCoordinate> = {
 
   // Instructor Signature
   instructorSignature: {
-    x: 200,
+    x: 100,
     y: POSITION_1_BDI_COORDINATES.instructorSignature.y! + POSITION_3_OFFSET,
     fontSize: 7,
     fontFamily: 'Montserrat',

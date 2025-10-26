@@ -36,35 +36,47 @@ export function SignatureCanvas({
   };
 
   const handleSaveDrawnSignature = async () => {
-    if (!tempSignature) return;
+    if (!tempSignature) {
+      console.warn('⚠️ No signature to save');
+      return;
+    }
+
+    console.log('📤 Starting signature upload...');
 
     try {
       const formData = new FormData();
       formData.append('file', tempSignature);
       formData.append('upload_preset', 'uznprz18');
-      formData.append('folder', 'signatures');
-      // Asegurar que se preserve la transparencia
-      formData.append('format', 'png');
-      formData.append('quality', 'auto');
+      // NO enviar 'format' ni 'quality' porque no están permitidos en unsigned uploads
+      // La transparencia se preserva automáticamente al subir PNG
 
-      const cloudName = process.env.NEXT_PUBLIC_CLOUDINARY_CLOUD_NAME;
-      const response = await fetch(
-        `https://api.cloudinary.com/v1_1/${cloudName}/image/upload`,
-        {
-          method: 'POST',
-          body: formData,
-        }
-      );
+      const cloudName = 'dzi2p0pqa'; // Usar directamente el cloud name
+      const uploadUrl = `https://api.cloudinary.com/v1_1/${cloudName}/image/upload`;
+
+      console.log('📡 Uploading to:', uploadUrl);
+
+      const response = await fetch(uploadUrl, {
+        method: 'POST',
+        body: formData,
+      });
+
+      console.log('📥 Response status:', response.status);
 
       if (response.ok) {
         const data = await response.json();
+        console.log('✅ Signature uploaded successfully:', data.secure_url);
         onSave(data.secure_url, applyToAll);
         setIsOpen(false);
         setTempSignature(null);
         setApplyToAll(false);
+      } else {
+        const errorData = await response.json();
+        console.error('❌ Upload failed:', errorData);
+        alert(`Error: ${errorData.error?.message || 'Failed to upload signature'}`);
       }
     } catch (error) {
-      console.error('Error uploading signature:', error);
+      console.error('❌ Error uploading signature:', error);
+      alert('Error uploading signature. Please check the console for details.');
     }
   };
 

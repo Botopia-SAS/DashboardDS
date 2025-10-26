@@ -125,10 +125,73 @@ export const SignatureCanvas: React.FC<SignatureCanvasProps> = ({
     setLastPoint(currentPoint);
   }, [isDrawing, disabled, lastPoint, getCoordinates, drawLine]);
 
+  // Función para recortar el canvas (auto-crop)
+  const trimCanvas = useCallback((canvas: HTMLCanvasElement): string => {
+    const ctx = canvas.getContext('2d');
+    if (!ctx) return canvas.toDataURL('image/png');
+
+    const imageData = ctx.getImageData(0, 0, canvas.width, canvas.height);
+    const pixels = imageData.data;
+
+    // Encontrar los límites de la firma (bounding box)
+    let minX = canvas.width;
+    let minY = canvas.height;
+    let maxX = 0;
+    let maxY = 0;
+
+    // Buscar píxeles no transparentes
+    for (let y = 0; y < canvas.height; y++) {
+      for (let x = 0; x < canvas.width; x++) {
+        const index = (y * canvas.width + x) * 4;
+        const alpha = pixels[index + 3]; // Canal alpha
+
+        if (alpha > 0) { // Si no es transparente
+          if (x < minX) minX = x;
+          if (x > maxX) maxX = x;
+          if (y < minY) minY = y;
+          if (y > maxY) maxY = y;
+        }
+      }
+    }
+
+    // Si no se encontró nada, devolver canvas original
+    if (minX > maxX || minY > maxY) {
+      return canvas.toDataURL('image/png');
+    }
+
+    // Agregar un pequeño padding (margen)
+    const padding = 10;
+    minX = Math.max(0, minX - padding);
+    minY = Math.max(0, minY - padding);
+    maxX = Math.min(canvas.width - 1, maxX + padding);
+    maxY = Math.min(canvas.height - 1, maxY + padding);
+
+    // Calcular dimensiones del recorte
+    const trimWidth = maxX - minX + 1;
+    const trimHeight = maxY - minY + 1;
+
+    // Crear un nuevo canvas con las dimensiones recortadas
+    const trimmedCanvas = document.createElement('canvas');
+    trimmedCanvas.width = trimWidth;
+    trimmedCanvas.height = trimHeight;
+    const trimmedCtx = trimmedCanvas.getContext('2d');
+
+    if (!trimmedCtx) return canvas.toDataURL('image/png');
+
+    // Copiar solo la parte con la firma
+    trimmedCtx.drawImage(
+      canvas,
+      minX, minY, trimWidth, trimHeight, // source
+      0, 0, trimWidth, trimHeight         // destination
+    );
+
+    return trimmedCanvas.toDataURL('image/png');
+  }, []);
+
   // Stop drawing
   const stopDrawing = useCallback((event: MouseEvent | TouchEvent) => {
     if (!isDrawing) return;
-    
+
     event.preventDefault();
     setIsDrawing(false);
     setLastPoint(null);
@@ -136,10 +199,11 @@ export const SignatureCanvas: React.FC<SignatureCanvasProps> = ({
     // Notify parent component of signature change
     const canvas = canvasRef.current;
     if (canvas && hasSignature) {
-      const dataURL = canvas.toDataURL('image/png');
-      onSignatureChange(dataURL);
+      // Recortar el canvas antes de exportar
+      const trimmedDataURL = trimCanvas(canvas);
+      onSignatureChange(trimmedDataURL);
     }
-  }, [isDrawing, hasSignature, onSignatureChange]);
+  }, [isDrawing, hasSignature, onSignatureChange, trimCanvas]);
 
   // Clear signature
   const clearSignature = useCallback(() => {
