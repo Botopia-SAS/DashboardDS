@@ -22,6 +22,35 @@ export async function drawBackground(
         height: height,
         color: rgb(bgColor.r, bgColor.g, bgColor.b),
       });
+    } else if (template.background.type === 'pdf' && template.background.value) {
+      // Load existing PDF as background
+      try {
+        const pdfBytes = await fetch(template.background.value).then((res) =>
+          res.arrayBuffer()
+        );
+
+        const existingPdf = await PDFDocument.load(pdfBytes);
+        const [existingPage] = await pdfDoc.copyPages(existingPdf, [0]);
+
+        // Draw the existing page as background
+        const { width: bgWidth, height: bgHeight } = existingPage.getSize();
+
+        // Calculate scale to fit the page
+        const scaleX = width / bgWidth;
+        const scaleY = height / bgHeight;
+        const scale = Math.min(scaleX, scaleY);
+
+        // Embed the page as a form object and draw it
+        const embeddedPage = await pdfDoc.embedPage(existingPage);
+        page.drawPage(embeddedPage, {
+          x: 0,
+          y: offsetY,
+          width: width,
+          height: height,
+        });
+      } catch (error) {
+        console.error('Error loading PDF background:', error);
+      }
     } else if (template.background.type === 'image' && template.background.value) {
       // Draw background image
       try {

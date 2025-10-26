@@ -23,8 +23,10 @@ import { Student } from "./columns";
 import { useTableData } from "./hooks/use-table-data";
 import { useUnifiedCertificateGenerator } from "./hooks/use-unified-certificate-generator";
 import { useDynamicCertificateGenerator } from "./hooks/use-dynamic-certificate-generator";
+import { use8HoursCertificateGenerator } from "./hooks/use-8hours-certificate-generator";
 import { RowActionButtons } from "./row-action-buttons";
 import { TableActions } from "./table-actions";
+import { SignatureCanvas } from "./SignatureCanvas";
 
 // Interface definitions
 interface DataTableProps {
@@ -58,6 +60,7 @@ export function DataTable({ columns, data, onUpdate, template }: DataTableProps)
 
   const { generateCertificatePDF } = useUnifiedCertificateGenerator();
   const { generateMultipleCertificatesPDF } = useDynamicCertificateGenerator();
+  const { generateSingle8HoursCertificate, generateMultiple8HoursCertificates } = use8HoursCertificateGenerator();
 
   const table = useReactTable({
     data: tableData,
@@ -193,14 +196,28 @@ export function DataTable({ columns, data, onUpdate, template }: DataTableProps)
         template = getDefaultBDITemplate(certType);
       }
 
-      const certsPerPage = template.certificatesPerPage || 1;
+      // Detectar si es un certificado de 8 horas
+      const is8Hours = certType.includes('8-HOURS') || certType.includes('8 HOURS');
+
+      // Para certificados de 8 horas, siempre usar 3 por página
+      const certsPerPage = is8Hours ? 3 : (template.certificatesPerPage || 1);
       console.log(`📄 Template: ${template.name} has ${certsPerPage} certificates per page`);
       console.log(`👥 ${validStudents.length} students selected`);
 
       // If students fit in ONE PDF (≤ certificatesPerPage), generate single PDF
       if (validStudents.length <= certsPerPage) {
         console.log(`✅ Generating single PDF with ${validStudents.length} certificate(s)`);
-        const pdfBlob = await generateMultipleCertificatesPDF(validStudents, template);
+
+        let pdfBlob: Blob;
+        if (is8Hours) {
+          console.log('🎓 Using 8-hours certificate generator');
+          const result = await generateMultiple8HoursCertificates(validStudents, '/templates_certificates/8-hours.pdf');
+          pdfBlob = Array.isArray(result) ? result[0] : result;
+        } else {
+          console.log('🎓 Using standard certificate generator');
+          pdfBlob = await generateMultipleCertificatesPDF(validStudents, template);
+        }
+
         const fileName = `Certificados_Combinados_${new Date().toISOString().split('T')[0]}.pdf`;
         saveAs(pdfBlob, fileName);
 
@@ -212,33 +229,55 @@ export function DataTable({ columns, data, onUpdate, template }: DataTableProps)
       else {
         console.log(`📦 Generating multiple PDFs (max ${certsPerPage} per PDF)`);
         const zip = new JSZip();
-        const numPDFs = Math.ceil(validStudents.length / certsPerPage);
 
-        for (let i = 0; i < numPDFs; i++) {
-          const start = i * certsPerPage;
-          const end = Math.min(start + certsPerPage, validStudents.length);
-          const chunk = validStudents.slice(start, end);
+        if (is8Hours) {
+          console.log('🎓 Using 8-hours certificate generator for multiple PDFs');
+          const result = await generateMultiple8HoursCertificates(validStudents, '/templates_certificates/8-hours.pdf');
+          const pdfBlobs = Array.isArray(result) ? result : [result];
 
-          console.log(`📄 PDF ${i + 1}/${numPDFs}: ${chunk.length} certificate(s)`);
-          const pdfBlob = await generateMultipleCertificatesPDF(chunk, template);
-          const pdfFileName = `Certificados_Grupo_${i + 1}_${chunk.length}_certs.pdf`;
-          zip.file(pdfFileName, pdfBlob);
+          pdfBlobs.forEach((pdfBlob, index) => {
+            const certsInThisPdf = Math.min(3, validStudents.length - (index * 3));
+            const pdfFileName = `Certificados_Grupo_${index + 1}_${certsInThisPdf}_certs.pdf`;
+            zip.file(pdfFileName, pdfBlob);
+          });
+
+          const zipBlob = await zip.generateAsync({ type: "blob" });
+          const zipFileName = `Certificados_${pdfBlobs.length}_PDFs_${validStudents.length}_estudiantes_${new Date().toISOString().split('T')[0]}.zip`;
+          saveAs(zipBlob, zipFileName);
+
+          setRowSelection({});
+          toast.dismiss(loadingToast);
+          toast.success(`${pdfBlobs.length} PDF(s) generados con ${validStudents.length} certificado(s) en total`);
+        } else {
+          console.log('🎓 Using standard certificate generator for multiple PDFs');
+          const numPDFs = Math.ceil(validStudents.length / certsPerPage);
+
+          for (let i = 0; i < numPDFs; i++) {
+            const start = i * certsPerPage;
+            const end = Math.min(start + certsPerPage, validStudents.length);
+            const chunk = validStudents.slice(start, end);
+
+            console.log(`📄 PDF ${i + 1}/${numPDFs}: ${chunk.length} certificate(s)`);
+            const pdfBlob = await generateMultipleCertificatesPDF(chunk, template);
+            const pdfFileName = `Certificados_Grupo_${i + 1}_${chunk.length}_certs.pdf`;
+            zip.file(pdfFileName, pdfBlob);
+          }
+
+          const zipBlob = await zip.generateAsync({ type: "blob" });
+          const zipFileName = `Certificados_${numPDFs}_PDFs_${validStudents.length}_estudiantes_${new Date().toISOString().split('T')[0]}.zip`;
+          saveAs(zipBlob, zipFileName);
+
+          setRowSelection({});
+          toast.dismiss(loadingToast);
+          toast.success(`${numPDFs} PDF(s) generados con ${validStudents.length} certificado(s) en total`);
         }
-
-        const zipBlob = await zip.generateAsync({ type: "blob" });
-        const zipFileName = `Certificados_${numPDFs}_PDFs_${validStudents.length}_estudiantes_${new Date().toISOString().split('T')[0]}.zip`;
-        saveAs(zipBlob, zipFileName);
-
-        setRowSelection({});
-        toast.dismiss(loadingToast);
-        toast.success(`${numPDFs} PDF(s) generados con ${validStudents.length} certificado(s) en total`);
       }
     } catch (error) {
       console.error("Error generating combined PDF:", error);
       toast.dismiss(loadingToast);
       toast.error("Error al generar el PDF combinado. Intente nuevamente.");
     }
-  }, [generateMultipleCertificatesPDF, table, setRowSelection]);
+  }, [generateMultipleCertificatesPDF, generateMultiple8HoursCertificates, table, setRowSelection]);
 
   const downloadSingleCertificate = useCallback(
     async (user: Student) => {
@@ -251,17 +290,32 @@ export function DataTable({ columns, data, onUpdate, template }: DataTableProps)
       // Proceed directly with generation using unified certificate generator
       await proceedWithGeneration(user);
     },
-    [generateCertificatePDF]
+    [generateCertificatePDF, generateSingle8HoursCertificate]
   );
 
   const proceedWithGeneration = async (user: Student) => {
     const loadingToast = toast.loading("Generando certificado...");
 
     try {
-      const pdfBlob = await generateCertificatePDF(user);
+      // Detectar si es un certificado de 8 horas
+      const classType = user.classType?.toUpperCase() || '';
+      const is8Hours = classType.includes('8-HOURS') || classType.includes('8 HOURS');
+
+      let pdfBlob: Blob;
+
+      if (is8Hours) {
+        // Usar generador de 8 horas con coordenadas exactas
+        console.log('🎓 Using 8-hours certificate generator');
+        pdfBlob = await generateSingle8HoursCertificate(user, '/templates_certificates/8-hours.pdf');
+      } else {
+        // Usar generador unificado estándar
+        console.log('🎓 Using standard certificate generator');
+        pdfBlob = await generateCertificatePDF(user);
+      }
+
       const name = `${user.first_name} ${user.last_name}`.replace(/[^a-zA-Z0-9\s]/g, '').trim();
       const fileName = `${name.replace(/\s+/g, "_")}_Certificado_${user.certn}.pdf`;
-      
+
       saveAs(pdfBlob, fileName);
       toast.dismiss(loadingToast);
       toast.success(`Certificado descargado exitosamente para ${user.first_name} ${user.last_name}`);
@@ -309,6 +363,39 @@ export function DataTable({ columns, data, onUpdate, template }: DataTableProps)
     }
   }, [data]);
 
+  // Test function to generate PDF with first 3 students with DATA FROM TABLE (8-hours only)
+  const testPDF3Students = useCallback(async () => {
+    const loadingToast = toast.loading("Generando PDF de prueba con los primeros 3 estudiantes de la tabla...");
+
+    try {
+      // Get first 3 students with certificate numbers FROM TABLE (not mock data)
+      const validStudents = data
+        .filter(student => student.certn !== null && student.certn !== undefined)
+        .slice(0, 3);
+
+      if (validStudents.length === 0) {
+        toast.dismiss(loadingToast);
+        toast.error("No hay estudiantes con número de certificado para generar el PDF de prueba.");
+        return;
+      }
+
+      console.log(`🧪 TEST: Generating PDF with ${validStudents.length} student(s) FROM TABLE DATA`);
+      console.log(`   📋 Students:`, validStudents.map(s => `${s.first_name} ${s.last_name}`));
+      const result = await generateMultiple8HoursCertificates(validStudents, '/templates_certificates/8-hours.pdf');
+      const pdfBlob = Array.isArray(result) ? result[0] : result;
+
+      const fileName = `Test_8Hours_${validStudents.length}_students_${new Date().toISOString().split('T')[0]}.pdf`;
+      saveAs(pdfBlob, fileName);
+
+      toast.dismiss(loadingToast);
+      toast.success(`PDF de prueba generado con ${validStudents.length} estudiante(s) de la tabla`);
+    } catch (error) {
+      console.error("Error generating test PDF:", error);
+      toast.dismiss(loadingToast);
+      toast.error("Error al generar el PDF de prueba. Intente nuevamente.");
+    }
+  }, [data, generateMultiple8HoursCertificates]);
+
   return (
     <div className="rounded-md border">
       <TableActions
@@ -316,6 +403,8 @@ export function DataTable({ columns, data, onUpdate, template }: DataTableProps)
         onDownloadAll={downloadAllCertificates}
         onDownloadCombined={downloadCombinedCertificates}
         onDownloadXLSX={downloadXLSX}
+        onTest3Students={testPDF3Students}
+        template={template}
       />
 
       <div className="rounded-md border overflow-x-auto">
@@ -368,8 +457,19 @@ export function DataTable({ columns, data, onUpdate, template }: DataTableProps)
                       return (
                         <TableCell key={cell.id}>
                           {isEditable ? (
-                            // Check if this column has options (checkbox variable)
+                            // Check if this is a signature field
                             (() => {
+                              if (columnId === 'instructorSignature') {
+                                return (
+                                  <SignatureCanvas
+                                    currentSignature={cellValue as string}
+                                    studentName={`${rowData.first_name} ${rowData.last_name}`}
+                                    onSave={(url) => handleChange(row.id, columnId, url)}
+                                  />
+                                );
+                              }
+
+                              // Check if this column has options (checkbox variable)
                               const options = getVariableOptions(columnId as string);
                               if (options && options.length > 0) {
                                 // Render as dropdown for checkbox variables
@@ -394,7 +494,7 @@ export function DataTable({ columns, data, onUpdate, template }: DataTableProps)
                                     type={typeof cellValue === "number" ? "number" : "text"}
                                     value={cellValue === "N/A" || cellValue === "-" ? "" : (cellValue || "")}
                                     onChange={(e) => {
-                                      const value = typeof cellValue === "number" 
+                                      const value = typeof cellValue === "number"
                                         ? (e.target.value === "" ? 0 : +e.target.value)
                                         : e.target.value;
                                       handleChange(row.id, columnId, value);
@@ -406,9 +506,18 @@ export function DataTable({ columns, data, onUpdate, template }: DataTableProps)
                               }
                             })()
                           ) : (
-                            flexRender(
-                              cell.column.columnDef.cell,
-                              cell.getContext()
+                            // Display mode - check if it's a signature field
+                            columnId === 'instructorSignature' && cellValue ? (
+                              <img
+                                src={cellValue as string}
+                                alt="Signature"
+                                className="h-12 border border-gray-300 rounded"
+                              />
+                            ) : (
+                              flexRender(
+                                cell.column.columnDef.cell,
+                                cell.getContext()
+                              )
                             )
                           )}
                         </TableCell>

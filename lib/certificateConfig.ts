@@ -34,7 +34,7 @@ export const CERTIFICATE_CONFIGS: Record<string, CertificateConfig> = {
   // DATE Certificate Configuration
   'DATE': {
     classType: 'DATE',
-    pdfPath: '/date_data.pdf',
+    pdfPath: '/templates_certificates/date.pdf',
     displayName: 'DATE Certificate',
     variables: [
       {
@@ -262,7 +262,7 @@ export const CERTIFICATE_CONFIGS: Record<string, CertificateConfig> = {
   // 8 Hours IDI Certificate
   '8 HOURS IDI': {
     classType: '8 HOURS IDI',
-    pdfPath: '/8hours_idi_certificate.pdf',
+    pdfPath: '/templates_certificates/8-hours.pdf',
     displayName: '8 Hours IDI Certificate',
     variables: [
       {
@@ -311,8 +311,153 @@ export const CERTIFICATE_CONFIGS: Record<string, CertificateConfig> = {
   // 8 Hours Aggressive Certificate
   '8 HOURS AGGRESSIVE': {
     classType: '8 HOURS AGGRESSIVE',
-    pdfPath: '/8hours_aggressive_certificate.pdf',
+    pdfPath: '/templates_certificates/8-hours.pdf',
     displayName: '8 Hours Aggressive Certificate',
+    variables: [
+      {
+        key: 'studentName',
+        label: 'Student Full Name',
+        x: 390,
+        y: 250,
+        fontSize: 14,
+        fontFamily: 'Times-Roman',
+        align: 'center',
+        transform: (value, student) => {
+          const firstName = student?.first_name || '';
+          const lastName = student?.last_name || '';
+          return `${firstName.toUpperCase()} ${lastName.toUpperCase()}`;
+        }
+      },
+      {
+        key: 'courseDate',
+        label: 'Course Completion Date',
+        x: 390,
+        y: 300,
+        fontSize: 12,
+        fontFamily: 'Times-Roman',
+        align: 'center',
+        transform: (value) => {
+          const date = value ? new Date(value) : new Date();
+          return date.toLocaleDateString('en-US', {
+            year: 'numeric',
+            month: 'short',
+            day: 'numeric'
+          });
+        }
+      },
+      {
+        key: 'certn',
+        label: 'Certificate Number',
+        x: 390,
+        y: 350,
+        fontSize: 12,
+        fontFamily: 'Times-Roman',
+        align: 'center'
+      }
+    ]
+  },
+
+  // Hyphenated versions for 8-hours certificates (normalized keys)
+  '8-HOURS-IDI': {
+    classType: '8-HOURS-IDI',
+    pdfPath: '/templates_certificates/8-hours.pdf',
+    displayName: '8 Hours IDI Certificate',
+    variables: [
+      {
+        key: 'studentName',
+        label: 'Student Full Name',
+        x: 390,
+        y: 250,
+        fontSize: 14,
+        fontFamily: 'Times-Roman',
+        align: 'center',
+        transform: (value, student) => {
+          const firstName = student?.first_name || '';
+          const lastName = student?.last_name || '';
+          return `${firstName.toUpperCase()} ${lastName.toUpperCase()}`;
+        }
+      },
+      {
+        key: 'courseDate',
+        label: 'Course Completion Date',
+        x: 390,
+        y: 300,
+        fontSize: 12,
+        fontFamily: 'Times-Roman',
+        align: 'center',
+        transform: (value) => {
+          const date = value ? new Date(value) : new Date();
+          return date.toLocaleDateString('en-US', {
+            year: 'numeric',
+            month: 'short',
+            day: 'numeric'
+          });
+        }
+      },
+      {
+        key: 'certn',
+        label: 'Certificate Number',
+        x: 390,
+        y: 350,
+        fontSize: 12,
+        fontFamily: 'Times-Roman',
+        align: 'center'
+      }
+    ]
+  },
+
+  '8-HOURS-AGGRESSIVE': {
+    classType: '8-HOURS-AGGRESSIVE',
+    pdfPath: '/templates_certificates/8-hours.pdf',
+    displayName: '8 Hours Aggressive Certificate',
+    variables: [
+      {
+        key: 'studentName',
+        label: 'Student Full Name',
+        x: 390,
+        y: 250,
+        fontSize: 14,
+        fontFamily: 'Times-Roman',
+        align: 'center',
+        transform: (value, student) => {
+          const firstName = student?.first_name || '';
+          const lastName = student?.last_name || '';
+          return `${firstName.toUpperCase()} ${lastName.toUpperCase()}`;
+        }
+      },
+      {
+        key: 'courseDate',
+        label: 'Course Completion Date',
+        x: 390,
+        y: 300,
+        fontSize: 12,
+        fontFamily: 'Times-Roman',
+        align: 'center',
+        transform: (value) => {
+          const date = value ? new Date(value) : new Date();
+          return date.toLocaleDateString('en-US', {
+            year: 'numeric',
+            month: 'short',
+            day: 'numeric'
+          });
+        }
+      },
+      {
+        key: 'certn',
+        label: 'Certificate Number',
+        x: 390,
+        y: 350,
+        fontSize: 12,
+        fontFamily: 'Times-Roman',
+        align: 'center'
+      }
+    ]
+  },
+
+  '8-HOURS-SUSPENSION': {
+    classType: '8-HOURS-SUSPENSION',
+    pdfPath: '/templates_certificates/8-hours.pdf',
+    displayName: '8 Hours Suspension Certificate',
     variables: [
       {
         key: 'studentName',
@@ -461,7 +606,8 @@ export const CERTIFICATE_CONFIGS: Record<string, CertificateConfig> = {
  * Falls back to DATE configuration if class type not found
  */
 export function getCertificateConfig(classType: string): CertificateConfig {
-  const normalizedType = classType.toUpperCase().trim();
+  // Normalize: uppercase, trim, and convert spaces to hyphens
+  const normalizedType = classType.toUpperCase().trim().replace(/\s+/g, '-');
   return CERTIFICATE_CONFIGS[normalizedType] || CERTIFICATE_CONFIGS['DATE'];
 }
 

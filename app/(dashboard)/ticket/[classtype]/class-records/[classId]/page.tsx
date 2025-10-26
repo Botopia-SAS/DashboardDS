@@ -164,8 +164,9 @@ export default function Page() {
         ? decodedClassType.toLowerCase() 
         : 'date';
       
-      // Fetch certificate template
-      const certType = (drivingClassData.data.classType || certificateType).toUpperCase();
+      // Fetch certificate template - normalize spaces to hyphens
+      const rawCertType = drivingClassData.data.classType || certificateType;
+      const certType = rawCertType.toUpperCase().replace(/\s+/g, '-');
       console.log('🔍 Fetching template for classType:', certType);
       const templateResponse = await fetch(`/api/certificate-templates?classType=${certType}`);
       let fetchedTemplate: CertificateTemplate | null = null;
@@ -183,10 +184,29 @@ export default function Page() {
         }
       }
 
-      // If no template found, use default
+      // If no template found, use default based on class type
       if (!fetchedTemplate) {
-        const { getDefaultBDITemplate } = await import("@/lib/defaultTemplates/bdiTemplate");
-        fetchedTemplate = getDefaultBDITemplate(certType);
+        const normalizedType = certType.toUpperCase();
+
+        if (normalizedType === 'DATE') {
+          const { getDefaultDATETemplate } = await import("@/lib/defaultTemplates/dateTemplate");
+          fetchedTemplate = getDefaultDATETemplate();
+        } else if (normalizedType === 'ADI') {
+          const { getDefaultADITemplate } = await import("@/lib/defaultTemplates/adiTemplate");
+          fetchedTemplate = getDefaultADITemplate();
+        } else if (normalizedType === '8-HOURS-IDI') {
+          const { get8HoursIdiTemplate } = await import("@/lib/defaultTemplates/8hoursIdiTemplate");
+          fetchedTemplate = get8HoursIdiTemplate();
+        } else if (normalizedType === '8-HOURS-AGGRESSIVE') {
+          const { get8HoursAggressiveTemplate } = await import("@/lib/defaultTemplates/8hoursAggressiveTemplate");
+          fetchedTemplate = get8HoursAggressiveTemplate();
+        } else if (normalizedType === '8-HOURS-SUSPENSION') {
+          const { get8HoursSuspensionTemplate } = await import("@/lib/defaultTemplates/8hoursSuspensionTemplate");
+          fetchedTemplate = get8HoursSuspensionTemplate();
+        } else {
+          const { getDefaultBDITemplate } = await import("@/lib/defaultTemplates/bdiTemplate");
+          fetchedTemplate = getDefaultBDITemplate(certType);
+        }
       }
 
       // Ensure checkbox variables have options and add checkboxElements as variables

@@ -20,7 +20,7 @@ export function useDateCertificateGenerator() {
       const { PDFDocument, rgb } = await import('pdf-lib');
 
       // Load the existing PDF template (same as test-date page)
-      const existingPdfBytes = await fetch('/date_data.pdf').then(res => res.arrayBuffer());
+      const existingPdfBytes = await fetch('/templates_certificates/date.pdf').then(res => res.arrayBuffer());
       const pdfDoc = await PDFDocument.load(existingPdfBytes);
       const pages = pdfDoc.getPages();
       const firstPage = pages[0];

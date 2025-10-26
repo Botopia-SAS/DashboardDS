@@ -1,0 +1,370 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>PDF Coordinate Tool - Medidor de Coordenadas</title>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.min.js"></script>
+  <style>
+    * {
+      margin: 0;
+      padding: 0;
+      box-sizing: border-box;
+    }
+
+    body {
+      font-family: Arial, sans-serif;
+      background: #1a1a1a;
+      color: #fff;
+      padding: 20px;
+    }
+
+    .container {
+      max-width: 1400px;
+      margin: 0 auto;
+    }
+
+    h1 {
+      text-align: center;
+      margin-bottom: 20px;
+      color: #4CAF50;
+    }
+
+    .controls {
+      background: #2a2a2a;
+      padding: 20px;
+      border-radius: 8px;
+      margin-bottom: 20px;
+    }
+
+    .control-group {
+      margin-bottom: 15px;
+    }
+
+    label {
+      display: block;
+      margin-bottom: 5px;
+      color: #aaa;
+    }
+
+    input[type="file"] {
+      padding: 10px;
+      background: #333;
+      border: 1px solid #555;
+      border-radius: 4px;
+      color: #fff;
+      width: 100%;
+    }
+
+    .info-panel {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+      gap: 15px;
+      margin-top: 15px;
+    }
+
+    .info-box {
+      background: #333;
+      padding: 15px;
+      border-radius: 4px;
+      border-left: 4px solid #4CAF50;
+    }
+
+    .info-box h3 {
+      font-size: 14px;
+      color: #aaa;
+      margin-bottom: 5px;
+    }
+
+    .info-box .value {
+      font-size: 24px;
+      font-weight: bold;
+      color: #4CAF50;
+      font-family: 'Courier New', monospace;
+    }
+
+    #canvas-container {
+      position: relative;
+      display: inline-block;
+      margin: 0 auto;
+      background: #fff;
+      box-shadow: 0 4px 20px rgba(0,0,0,0.5);
+    }
+
+    #pdf-canvas {
+      display: block;
+      cursor: crosshair;
+    }
+
+    .marker {
+      position: absolute;
+      width: 20px;
+      height: 20px;
+      margin-left: -10px;
+      margin-top: -10px;
+      pointer-events: none;
+    }
+
+    .marker::before,
+    .marker::after {
+      content: '';
+      position: absolute;
+      background: #ff0000;
+    }
+
+    .marker::before {
+      width: 2px;
+      height: 20px;
+      left: 9px;
+      top: 0;
+    }
+
+    .marker::after {
+      width: 20px;
+      height: 2px;
+      left: 0;
+      top: 9px;
+    }
+
+    .coordinates-list {
+      background: #2a2a2a;
+      padding: 20px;
+      border-radius: 8px;
+      margin-top: 20px;
+      max-height: 300px;
+      overflow-y: auto;
+    }
+
+    .coord-item {
+      background: #333;
+      padding: 10px;
+      margin-bottom: 10px;
+      border-radius: 4px;
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+    }
+
+    .coord-item .coords {
+      font-family: 'Courier New', monospace;
+      color: #4CAF50;
+    }
+
+    .coord-item button {
+      background: #4CAF50;
+      color: white;
+      border: none;
+      padding: 5px 15px;
+      border-radius: 4px;
+      cursor: pointer;
+    }
+
+    .coord-item button:hover {
+      background: #45a049;
+    }
+
+    .instructions {
+      background: #2a2a2a;
+      padding: 15px;
+      border-radius: 8px;
+      margin-bottom: 20px;
+      border-left: 4px solid #2196F3;
+    }
+
+    .instructions h3 {
+      color: #2196F3;
+      margin-bottom: 10px;
+    }
+
+    .instructions ul {
+      list-style: none;
+      padding-left: 0;
+    }
+
+    .instructions li {
+      padding: 5px 0;
+      color: #aaa;
+    }
+
+    .instructions li::before {
+      content: "▸ ";
+      color: #2196F3;
+      font-weight: bold;
+    }
+
+    .center-wrapper {
+      text-align: center;
+      margin-top: 20px;
+    }
+  </style>
+</head>
+<body>
+  <div class="container">
+    <h1>🎯 PDF Coordinate Tool - Medidor de Coordenadas</h1>
+
+    <div class="instructions">
+      <h3>📋 Instrucciones:</h3>
+      <ul>
+        <li>Carga tu PDF usando el botón de arriba</li>
+        <li>Haz clic en cualquier parte del PDF para obtener las coordenadas</li>
+        <li>Las coordenadas se muestran en formato PDF (origen en esquina inferior izquierda)</li>
+        <li>También se muestran las coordenadas "desde arriba" que usas en tu código</li>
+        <li>Copia las coordenadas para usarlas en tu configuración</li>
+      </ul>
+    </div>
+
+    <div class="controls">
+      <div class="control-group">
+        <label for="pdf-upload">Selecciona el PDF de 8-hours:</label>
+        <input type="file" id="pdf-upload" accept="application/pdf">
+      </div>
+
+      <div class="info-panel">
+        <div class="info-box">
+          <h3>Coordenada X</h3>
+          <div class="value" id="current-x">0</div>
+        </div>
+        <div class="info-box">
+          <h3>Coordenada Y (desde abajo)</h3>
+          <div class="value" id="current-y-bottom">0</div>
+        </div>
+        <div class="info-box">
+          <h3>Coordenada Y (desde arriba)</h3>
+          <div class="value" id="current-y-top">0</div>
+        </div>
+        <div class="info-box">
+          <h3>Ancho del PDF</h3>
+          <div class="value" id="pdf-width">0</div>
+        </div>
+        <div class="info-box">
+          <h3>Alto del PDF</h3>
+          <div class="value" id="pdf-height">0</div>
+        </div>
+      </div>
+    </div>
+
+    <div class="center-wrapper">
+      <div id="canvas-container"></div>
+    </div>
+
+    <div class="coordinates-list" id="coords-list">
+      <h3>📍 Coordenadas guardadas:</h3>
+      <p style="color: #aaa; font-style: italic;">Haz clic en el PDF para guardar coordenadas...</p>
+    </div>
+  </div>
+
+  <script>
+    pdfjsLib.GlobalWorkerOptions.workerSrc = 'https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.worker.min.js';
+
+    let pdfDoc = null;
+    let currentPage = 1;
+    let savedCoordinates = [];
+
+    const fileInput = document.getElementById('pdf-upload');
+    const canvasContainer = document.getElementById('canvas-container');
+    const coordsList = document.getElementById('coords-list');
+
+    fileInput.addEventListener('change', async (e) => {
+      const file = e.target.files[0];
+      if (!file) return;
+
+      const fileReader = new FileReader();
+      fileReader.onload = async (event) => {
+        const typedArray = new Uint8Array(event.target.result);
+        pdfDoc = await pdfjsLib.getDocument(typedArray).promise;
+        renderPage(currentPage);
+      };
+      fileReader.readAsArrayBuffer(file);
+    });
+
+    async function renderPage(pageNum) {
+      const page = await pdfDoc.getPage(pageNum);
+      const viewport = page.getViewport({ scale: 1.5 });
+
+      const canvas = document.createElement('canvas');
+      canvas.id = 'pdf-canvas';
+      const ctx = canvas.getContext('2d');
+      canvas.width = viewport.width;
+      canvas.height = viewport.height;
+
+      // Update PDF dimensions
+      const pdfWidth = viewport.width / 1.5; // Original size
+      const pdfHeight = viewport.height / 1.5;
+      document.getElementById('pdf-width').textContent = Math.round(pdfWidth);
+      document.getElementById('pdf-height').textContent = Math.round(pdfHeight);
+
+      canvasContainer.innerHTML = '';
+      canvasContainer.appendChild(canvas);
+
+      const renderContext = {
+        canvasContext: ctx,
+        viewport: viewport
+      };
+      await page.render(renderContext).promise;
+
+      // Add click event
+      canvas.addEventListener('click', (e) => {
+        const rect = canvas.getBoundingClientRect();
+        const x = e.clientX - rect.left;
+        const y = e.clientY - rect.top;
+
+        // Convert to PDF coordinates (scaled back to original size)
+        const pdfX = Math.round(x / 1.5);
+        const pdfYFromBottom = Math.round(pdfHeight - (y / 1.5));
+        const pdfYFromTop = Math.round(y / 1.5);
+
+        // Update display
+        document.getElementById('current-x').textContent = pdfX;
+        document.getElementById('current-y-bottom').textContent = pdfYFromBottom;
+        document.getElementById('current-y-top').textContent = pdfYFromTop;
+
+        // Add marker
+        const marker = document.createElement('div');
+        marker.className = 'marker';
+        marker.style.left = x + 'px';
+        marker.style.top = y + 'px';
+        canvasContainer.appendChild(marker);
+
+        // Save coordinate
+        saveCoordinate(pdfX, pdfYFromTop, pdfYFromBottom);
+
+        // Remove marker after 2 seconds
+        setTimeout(() => marker.remove(), 2000);
+      });
+    }
+
+    function saveCoordinate(x, yTop, yBottom) {
+      const coord = { x, yTop, yBottom, timestamp: new Date().toLocaleTimeString() };
+      savedCoordinates.push(coord);
+      updateCoordsList();
+    }
+
+    function updateCoordsList() {
+      if (savedCoordinates.length === 0) {
+        coordsList.innerHTML = '<h3>📍 Coordenadas guardadas:</h3><p style="color: #aaa; font-style: italic;">Haz clic en el PDF para guardar coordenadas...</p>';
+        return;
+      }
+
+      let html = '<h3>📍 Coordenadas guardadas:</h3>';
+      savedCoordinates.forEach((coord, index) => {
+        html += `
+          <div class="coord-item">
+            <div>
+              <strong>#${index + 1}</strong> (${coord.timestamp})
+              <div class="coords">x: ${coord.x}, y: ${coord.yTop} (desde arriba)</div>
+            </div>
+            <button onclick="copyCoord(${coord.x}, ${coord.yTop})">Copiar</button>
+          </div>
+        `;
+      });
+      coordsList.innerHTML = html;
+    }
+
+    function copyCoord(x, y) {
+      const text = `x: ${x}, y: ${y}`;
+      navigator.clipboard.writeText(text);
+      alert('Coordenadas copiadas: ' + text);
+    }
+  </script>
+</body>
+</html>
