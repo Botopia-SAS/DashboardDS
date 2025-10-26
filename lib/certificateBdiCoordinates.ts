@@ -38,235 +38,293 @@ export interface FieldBdiCoordinate {
 export const POSITION_1_BDI_COORDINATES: Record<string, FieldBdiCoordinate> = {
   // Citation No
   citationNumber: {
-    x: 180,
-    y: 198,
-    fontSize: 10,
-    fontFamily: 'Helvetica',
-    align: 'left',
+    x: 260,
+    y: 118,
+    fontSize: 7,
+    fontFamily: 'Montserrat',
+    align: 'center',
     maxWidth: 200
   },
 
-  // Certificate Number
+  // Certificate Number (al lado de "Certificate #:")
   certn: {
-    x: 730,
-    y: 218,
-    fontSize: 10,
-    fontFamily: 'Helvetica',
+    x: 415,
+    y: 128,
+    fontSize: 7,
+    fontFamily: 'Montserrat',
     align: 'left',
     maxWidth: 100
   },
 
-  // Driver License Number
+  // Driver License Number (primera posición - donde estaba Certificate #)
   licenseNumber: {
-    x: 226,
-    y: 228,
-    fontSize: 10,
-    fontFamily: 'Helvetica',
-    align: 'left',
+    x: 260,
+    y: 130,
+    fontSize: 7,
+    fontFamily: 'Montserrat',
+    align: 'center',
+    maxWidth: 200
+  },
+
+  // Driver License Number (segunda posición - donde dice Driver License Number)
+  licenseNumber2: {
+    x: 463,
+    y: 210,
+    fontSize: 7,
+    fontFamily: 'Montserrat',
+    align: 'center',
     maxWidth: 200
   },
 
   // Course Completion Date
   courseDate: {
-    x: 256,
-    y: 256,
-    fontSize: 10,
-    fontFamily: 'Helvetica',
-    align: 'left'
+    x: 260,
+    y: 143,
+    fontSize: 7,
+    fontFamily: 'Montserrat',
+    align: 'center'
   },
 
   // Name (Full name)
   firstName: {
-    x: 160,
-    y: 285,
-    fontSize: 10,
-    fontFamily: 'Helvetica',
-    align: 'left',
+    x: 240,
+    y: 155,
+    fontSize: 7,
+    fontFamily: 'Montserrat',
+    align: 'center',
     maxWidth: 120
   },
 
   // Middle Name/Initial
   middleName: {
-    x: 280,
-    y: 285,
-    fontSize: 10,
-    fontFamily: 'Helvetica',
-    align: 'left',
+    x: 260,
+    y: 155,
+    fontSize: 7,
+    fontFamily: 'Montserrat',
+    align: 'center',
     maxWidth: 30
   },
 
   // Last Name
   lastName: {
-    x: 310,
-    y: 285,
-    fontSize: 10,
-    fontFamily: 'Helvetica',
-    align: 'left',
+    x: 285,
+    y: 155,
+    fontSize: 7,
+    fontFamily: 'Montserrat',
+    align: 'center',
     maxWidth: 150
   },
 
   // Course Location
   address: {
-    x: 200,
-    y: 315,
-    fontSize: 10,
-    fontFamily: 'Helvetica',
-    align: 'left',
+    x: 260,
+    y: 168,
+    fontSize: 7,
+    fontFamily: 'Montserrat',
+    align: 'center',
     maxWidth: 300
+  },
+
+  // Instructor Signature
+  instructorSignature: {
+    x: 200,
+    y: 335,
+    fontSize: 7,
+    fontFamily: 'Montserrat',
+    align: 'center',
+    maxWidth: 200
   }
 };
 
 /**
  * Coordenadas para el SEGUNDO certificado BDI (parte media del PDF)
- * Todas las Y aumentan en 204 pixels (612 / 3)
+ * Todas las Y aumentan en 276 pixels desde position 1
  */
 export const POSITION_2_BDI_COORDINATES: Record<string, FieldBdiCoordinate> = {
   citationNumber: {
-    x: 180,
-    y: 402, // 198 + 204
-    fontSize: 10,
-    fontFamily: 'Helvetica',
-    align: 'left',
+    x: 260,
+    y: 394, // 118 + 276
+    fontSize: 7,
+    fontFamily: 'Montserrat',
+    align: 'center',
     maxWidth: 200
   },
 
   certn: {
-    x: 730,
-    y: 422, // 218 + 204
-    fontSize: 10,
-    fontFamily: 'Helvetica',
+    x: 415,
+    y: 404, // 128 + 276
+    fontSize: 7,
+    fontFamily: 'Montserrat',
     align: 'left',
     maxWidth: 100
   },
 
   licenseNumber: {
-    x: 226,
-    y: 432, // 228 + 204
-    fontSize: 10,
-    fontFamily: 'Helvetica',
-    align: 'left',
+    x: 260,
+    y: 406, // 130 + 276
+    fontSize: 7,
+    fontFamily: 'Montserrat',
+    align: 'center',
+    maxWidth: 200
+  },
+
+  licenseNumber2: {
+    x: 463,
+    y: 486, // 210 + 276
+    fontSize: 7,
+    fontFamily: 'Montserrat',
+    align: 'center',
     maxWidth: 200
   },
 
   courseDate: {
-    x: 256,
-    y: 460, // 256 + 204
-    fontSize: 10,
-    fontFamily: 'Helvetica',
-    align: 'left'
+    x: 260,
+    y: 419, // 143 + 276
+    fontSize: 7,
+    fontFamily: 'Montserrat',
+    align: 'center'
   },
 
   firstName: {
-    x: 160,
-    y: 489, // 285 + 204
-    fontSize: 10,
-    fontFamily: 'Helvetica',
-    align: 'left',
+    x: 240,
+    y: 431, // 155 + 276
+    fontSize: 7,
+    fontFamily: 'Montserrat',
+    align: 'center',
     maxWidth: 120
   },
 
   middleName: {
-    x: 280,
-    y: 489, // 285 + 204
-    fontSize: 10,
-    fontFamily: 'Helvetica',
-    align: 'left',
+    x: 260,
+    y: 431, // 155 + 276
+    fontSize: 7,
+    fontFamily: 'Montserrat',
+    align: 'center',
     maxWidth: 30
   },
 
   lastName: {
-    x: 310,
-    y: 489, // 285 + 204
-    fontSize: 10,
-    fontFamily: 'Helvetica',
-    align: 'left',
+    x: 285,
+    y: 431, // 155 + 276
+    fontSize: 7,
+    fontFamily: 'Montserrat',
+    align: 'center',
     maxWidth: 150
   },
 
   address: {
-    x: 200,
-    y: 519, // 315 + 204
-    fontSize: 10,
-    fontFamily: 'Helvetica',
-    align: 'left',
+    x: 260,
+    y: 444, // 168 + 276
+    fontSize: 7,
+    fontFamily: 'Montserrat',
+    align: 'center',
     maxWidth: 300
+  },
+
+  // Instructor Signature
+  instructorSignature: {
+    x: 200,
+    y: 611, // 335 + 276
+    fontSize: 7,
+    fontFamily: 'Montserrat',
+    align: 'center',
+    maxWidth: 200
   }
 };
 
 /**
  * Coordenadas para el TERCER certificado BDI (parte inferior del PDF)
- * Todas las Y aumentan en 408 pixels (204 * 2)
+ * Todas las Y aumentan en 552 pixels desde position 1 (276 + 276)
  */
 export const POSITION_3_BDI_COORDINATES: Record<string, FieldBdiCoordinate> = {
   citationNumber: {
-    x: 180,
-    y: 606, // 198 + 408
-    fontSize: 10,
-    fontFamily: 'Helvetica',
-    align: 'left',
+    x: 260,
+    y: 670, // 118 + 552
+    fontSize: 7,
+    fontFamily: 'Montserrat',
+    align: 'center',
     maxWidth: 200
   },
 
   certn: {
-    x: 730,
-    y: 626, // 218 + 408
-    fontSize: 10,
-    fontFamily: 'Helvetica',
+    x: 415,
+    y: 680, // 128 + 552
+    fontSize: 7,
+    fontFamily: 'Montserrat',
     align: 'left',
     maxWidth: 100
   },
 
   licenseNumber: {
-    x: 226,
-    y: 636, // 228 + 408
-    fontSize: 10,
-    fontFamily: 'Helvetica',
-    align: 'left',
+    x: 260,
+    y: 682, // 130 + 552
+    fontSize: 7,
+    fontFamily: 'Montserrat',
+    align: 'center',
+    maxWidth: 200
+  },
+
+  licenseNumber2: {
+    x: 463,
+    y: 762, // 210 + 552
+    fontSize: 7,
+    fontFamily: 'Montserrat',
+    align: 'center',
     maxWidth: 200
   },
 
   courseDate: {
-    x: 256,
-    y: 664, // 256 + 408
-    fontSize: 10,
-    fontFamily: 'Helvetica',
-    align: 'left'
+    x: 260,
+    y: 695, // 143 + 552
+    fontSize: 7,
+    fontFamily: 'Montserrat',
+    align: 'center'
   },
 
   firstName: {
-    x: 160,
-    y: 693, // 285 + 408
-    fontSize: 10,
-    fontFamily: 'Helvetica',
-    align: 'left',
+    x: 240,
+    y: 707, // 155 + 552
+    fontSize: 7,
+    fontFamily: 'Montserrat',
+    align: 'center',
     maxWidth: 120
   },
 
   middleName: {
-    x: 280,
-    y: 693, // 285 + 408
-    fontSize: 10,
-    fontFamily: 'Helvetica',
-    align: 'left',
+    x: 260,
+    y: 707, // 155 + 552
+    fontSize: 7,
+    fontFamily: 'Montserrat',
+    align: 'center',
     maxWidth: 30
   },
 
   lastName: {
-    x: 310,
-    y: 693, // 285 + 408
-    fontSize: 10,
-    fontFamily: 'Helvetica',
-    align: 'left',
+    x: 285,
+    y: 707, // 155 + 552
+    fontSize: 7,
+    fontFamily: 'Montserrat',
+    align: 'center',
     maxWidth: 150
   },
 
   address: {
-    x: 200,
-    y: 723, // 315 + 408
-    fontSize: 10,
-    fontFamily: 'Helvetica',
-    align: 'left',
+    x: 260,
+    y: 720, // 168 + 552
+    fontSize: 7,
+    fontFamily: 'Montserrat',
+    align: 'center',
     maxWidth: 300
+  },
+
+  // Instructor Signature
+  instructorSignature: {
+    x: 200,
+    y: 887, // 335 + 552
+    fontSize: 7,
+    fontFamily: 'Montserrat',
+    align: 'center',
+    maxWidth: 200
   }
 };
 
