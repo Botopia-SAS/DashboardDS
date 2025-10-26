@@ -60,7 +60,7 @@ export default function OrdersTable({ orders: initialOrders }: { orders: Order[]
         const data = JSON.parse(event.data)
         if (data.orders) {
           setOrders(data.orders)
-          console.log('📦 Orders updated in real-time')
+
         }
       } catch (error) {
         console.error('❌ Error parsing SSE data:', error)

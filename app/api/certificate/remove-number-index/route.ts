@@ -18,16 +18,14 @@ export async function POST() {
     
     // Get all indexes
     const indexes = await collection.indexes();
-    console.log("Current indexes:", indexes);
-    
+
     // Check if number_1 index exists
     const numberIndexExists = indexes.some(index => index.name === "number_1");
     
     if (numberIndexExists) {
       // Drop the unique index on the number field
       await collection.dropIndex("number_1");
-      console.log("✅ Successfully dropped unique index on 'number' field");
-      
+
       return NextResponse.json({
         success: true,
         message: "Unique index on 'number' field has been removed. Certificate numbers can now be duplicated.",

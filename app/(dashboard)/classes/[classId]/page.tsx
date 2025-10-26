@@ -46,7 +46,7 @@ const ClassDetails = () => {
       if (!classId) return; // ⏳ Esperar hasta que classId tenga valor
 
       try {
-        console.log("🔍 Fetching class details for ID:", classId);
+
         const res = await fetch(`/api/classes/${classId}`);
 
         if (!res.ok) {
@@ -55,8 +55,7 @@ const ClassDetails = () => {
         }
 
         const data = await res.json();
-        console.log("✅ Class details fetched successfully:", data);
-        
+
         // Extract the actual class data from the API response
         const classData = data.success ? data.data : data;
         setClassDetails(classData);

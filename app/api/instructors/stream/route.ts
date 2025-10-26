@@ -50,7 +50,7 @@ async function getPendingLessons() {
     }
   }
 
-  console.log(`📊 SSE: Found ${pendingRequests.length} pending local driving lessons`);
+
   return pendingRequests;
 }
 
@@ -65,11 +65,9 @@ export async function GET(request: NextRequest) {
   // Handle change stream events
   changeStream.on('change', async (change) => {
     try {
-      console.log('🚗 Driving lesson change detected:', change.operationType);
 
       // Check if any lesson status changed to "pending"
       const lessons = await getPendingLessons();
-      console.log(`📊 Found ${lessons.length} pending lessons after change`);
 
       // Send to driving lessons SSE clients
       sendToAllClients({
@@ -78,7 +76,6 @@ export async function GET(request: NextRequest) {
         lessons,
         timestamp: new Date().toISOString()
       });
-      console.log(`📡 Sent to ${lessons.length} SSE clients`);
 
       // ALWAYS broadcast to global notification system (not just when > 0)
       // This ensures the counter updates even when going from 1 to 0
@@ -88,7 +85,7 @@ export async function GET(request: NextRequest) {
         lessons,
         timestamp: new Date().toISOString()
       });
-      console.log(`✅ Global notification broadcast complete (count: ${lessons.length})`);
+
     } catch (error) {
       console.error('❌ Error processing driving lesson change:', error);
     }
@@ -108,14 +105,14 @@ export async function GET(request: NextRequest) {
           timestamp: new Date().toISOString()
         })}\n\n`;
         controller.enqueue(new TextEncoder().encode(message));
-        console.log('✅ Driving lessons SSE stream established');
+
       });
 
       // Clean up on close
       request.signal.addEventListener('abort', () => {
         connections.delete(controller);
         changeStream.close();
-        console.log('🔌 Driving lessons SSE connection closed');
+
       });
     }
   });

@@ -18,7 +18,7 @@ export async function POST() {
 
     if (existingTemplate) {
       // Update existing template
-      console.log('🔄 Updating existing youthful offender template...');
+
       const updated = await CertificateTemplate.findByIdAndUpdate(
         existingTemplate._id,
         templateData,
@@ -35,7 +35,7 @@ export async function POST() {
       }, { status: 200 });
     } else {
       // Create new template
-      console.log('➕ Creating new youthful offender template...');
+
       const newTemplate = await CertificateTemplate.create(templateData);
 
       return NextResponse.json({

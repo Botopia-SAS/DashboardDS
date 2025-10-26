@@ -47,7 +47,7 @@ export const POST = async (req: NextRequest) => {
 
     return NextResponse.json(newProduct, { status: 200 });
   } catch (err) {
-    console.log("[products_POST]", err);
+
     return new NextResponse("Internal Error", { status: 500 });
   }
 };
@@ -60,7 +60,7 @@ export const GET = async () => {
 
     return NextResponse.json(products, { status: 200 });
   } catch (err) {
-    console.log("[products_GET]", err);
+
     return new NextResponse("Internal Error", { status: 500 });
   }
 };

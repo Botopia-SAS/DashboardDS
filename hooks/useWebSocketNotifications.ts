@@ -28,12 +28,11 @@ export const useWebSocketNotifications = ({
     try {
       // Usar Server-Sent Events (SSE) que ya está implementado
       const sseUrl = '/api/notifications/stream';
-      console.log('🔌 Connecting to SSE:', sseUrl);
-      
+
       eventSourceRef.current = new EventSource(sseUrl);
 
       eventSourceRef.current.onopen = () => {
-        console.log('✅ SSE connected');
+
         setIsConnected(true);
         setConnectionError(null);
         reconnectAttempts.current = 0;
@@ -42,8 +41,7 @@ export const useWebSocketNotifications = ({
       eventSourceRef.current.onmessage = (event) => {
         try {
           const data = JSON.parse(event.data);
-          console.log('📨 SSE message received:', data);
-          
+
           // Manejar diferentes tipos de notificaciones
           if (data.type === 'notification') {
             onNotification?.(data);
@@ -78,8 +76,7 @@ export const useWebSocketNotifications = ({
         // Intentar reconectar con delay más largo para reducir carga del servidor
         if (reconnectAttempts.current < maxReconnectAttempts) {
           const delay = Math.min(5000 * Math.pow(2, reconnectAttempts.current), 60000); // Mínimo 5s, máximo 60s
-          console.log(`🔄 Reconnecting in ${delay}ms (attempt ${reconnectAttempts.current + 1})`);
-          
+
           reconnectTimeoutRef.current = setTimeout(() => {
             reconnectAttempts.current++;
             connect();

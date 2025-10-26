@@ -33,7 +33,7 @@ function getReminderTemplate(studentName: string, instructorName: string, date: 
 // Log de consulta recibida
 function logWithColor(message: string, color: string = "\x1b[36m") {
   // cyan por defecto
-  console.log(`${color}%s\x1b[0m`, message);
+
 }
 
 export async function POST(req: NextRequest) {

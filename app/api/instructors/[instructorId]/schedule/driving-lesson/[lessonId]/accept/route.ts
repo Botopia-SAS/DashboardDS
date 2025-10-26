@@ -16,7 +16,6 @@ export async function PATCH(
     const body = await req.json();
     const { status, paid } = body;
 
-    console.log('🎯 Accepting driving lesson:', { instructorId, lessonId, status, paid });
 
     // Buscar el instructor
     const instructor = await Instructor.findById(instructorId);
@@ -53,7 +52,6 @@ export async function PATCH(
 
     await instructor.save();
 
-    console.log('✅ Driving lesson accepted successfully');
 
     // Enviar notificación SSE en tiempo real
     broadcastNotification('driving_lesson_update', {

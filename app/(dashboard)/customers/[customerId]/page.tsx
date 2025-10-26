@@ -65,7 +65,7 @@ const CustomerDetails = () => {
       }
 
       try {
-        console.log("🔍 Fetching customer details for ID:", customerId);
+
         const res = await fetch(`/api/customers/${customerId}`);
         if (!res.ok) {
           console.error(
@@ -76,7 +76,7 @@ const CustomerDetails = () => {
         }
 
         const data = await res.json();
-        console.log("✅ Customer details fetched successfully:", data);
+
         setCustomer(data);
       } catch (err) {
         console.error("[customerId_GET] Error:", err);

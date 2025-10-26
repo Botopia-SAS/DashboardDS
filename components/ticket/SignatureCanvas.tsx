@@ -41,7 +41,6 @@ export function SignatureCanvas({
       return;
     }
 
-    console.log('📤 Starting signature upload...');
 
     try {
       const formData = new FormData();
@@ -53,18 +52,16 @@ export function SignatureCanvas({
       const cloudName = 'dzi2p0pqa'; // Usar directamente el cloud name
       const uploadUrl = `https://api.cloudinary.com/v1_1/${cloudName}/image/upload`;
 
-      console.log('📡 Uploading to:', uploadUrl);
 
       const response = await fetch(uploadUrl, {
         method: 'POST',
         body: formData,
       });
 
-      console.log('📥 Response status:', response.status);
 
       if (response.ok) {
         const data = await response.json();
-        console.log('✅ Signature uploaded successfully:', data.secure_url);
+
         onSave(data.secure_url, applyToAll);
         setIsOpen(false);
         setTempSignature(null);

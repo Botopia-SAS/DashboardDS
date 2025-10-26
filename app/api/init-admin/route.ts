@@ -9,7 +9,6 @@ export async function POST(req: NextRequest) {
 
     // Check what users exist in the database
     const allUsers = await User.find({}, { email: 1, firstName: 1, lastName: 1, role: 1 });
-    console.log("[INIT-ADMIN] Current users in database:", allUsers);
 
     if (allUsers.length > 0) {
       return NextResponse.json(
@@ -47,11 +46,6 @@ export async function POST(req: NextRequest) {
       updatedAt: new Date(),
     });
 
-    console.log("[INIT-ADMIN] Admin user created:", {
-      email: adminUser.email,
-      firstName: adminUser.firstName,
-      lastName: adminUser.lastName
-    });
 
     return NextResponse.json(
       {

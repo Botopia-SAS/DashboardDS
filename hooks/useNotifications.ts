@@ -82,15 +82,14 @@ export const useNotifications = () => {
     const eventSource = new EventSource('/api/notifications/stream');
     
     eventSource.onopen = () => {
-      console.log('SSE connection opened');
+
       setConnected(true);
     };
 
     eventSource.onmessage = (event) => {
       try {
         const notification: NotificationData = JSON.parse(event.data);
-        console.log('Received SSE notification:', notification);
-        
+
         // Refresh pending requests when any notification is received
         fetchPending();
       } catch (error) {
@@ -105,7 +104,7 @@ export const useNotifications = () => {
       // Attempt to reconnect after 3 seconds
       setTimeout(() => {
         if (eventSource.readyState === EventSource.CLOSED) {
-          console.log('Attempting to reconnect SSE...');
+
           // The useEffect will create a new connection
         }
       }, 3000);

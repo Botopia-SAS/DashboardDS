@@ -6,13 +6,13 @@ const connections = new Set<ReadableStreamDefaultController>();
 // Function to add a connection
 export function addConnection(controller: ReadableStreamDefaultController) {
   connections.add(controller);
-  console.log(`📊 Total SSE connections: ${connections.size}`);
+
 }
 
 // Function to remove a connection
 export function removeConnection(controller: ReadableStreamDefaultController) {
   connections.delete(controller);
-  console.log(`📊 Total SSE connections: ${connections.size}`);
+
 }
 
 // Function to send email notification
@@ -20,7 +20,7 @@ async function sendEmailNotification(type: string, data: any) {
   const adminEmail = process.env.NOTIFICATION_EMAIL;
 
   if (!adminEmail) {
-    console.log('⚠️ NOTIFICATION_EMAIL not configured, skipping email notification');
+
     return;
   }
 
@@ -86,7 +86,7 @@ async function sendEmailNotification(type: string, data: any) {
       htmlBody
     );
 
-    console.log(`📧 Email notification sent to ${adminEmail}`);
+
   } catch (error) {
     console.error('❌ Error sending email notification:', error);
   }
@@ -100,7 +100,7 @@ export async function broadcastNotification(type: string, data: any) {
   );
 
   if (connections.size === 0) {
-    console.log('📡 No SSE connections to broadcast to');
+
     return;
   }
 
@@ -135,8 +135,8 @@ export async function broadcastNotification(type: string, data: any) {
   });
 
   if (connectionsToRemove.length > 0) {
-    console.log(`🧹 Removed ${connectionsToRemove.length} dead connections`);
+
   }
 
-  console.log(`📡 Broadcasted to ${connections.size} active connections: ${type}`);
+
 }

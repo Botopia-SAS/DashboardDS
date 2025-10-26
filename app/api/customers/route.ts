@@ -137,7 +137,7 @@ export async function POST(req: NextRequest) {
       },
     });
   } catch (error) {
-    console.log("Error creando usuario:", error);
+
     return NextResponse.json(
       { error: "❌ Error creando usuario" },
       { status: 500 }

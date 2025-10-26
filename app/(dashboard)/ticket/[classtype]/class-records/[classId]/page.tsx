@@ -68,10 +68,9 @@ export default function Page() {
 
     // Add dynamic columns based on template variables
     if (template && template.availableVariables) {
-      console.log('📋 Generating columns from template variables:', template.availableVariables.length);
+
       template.availableVariables.forEach((variable) => {
-        console.log('  - Processing variable:', variable.key, variable.label);
-        
+
         // Skip variables that are already in base columns or redundant
         const skipKeys = [
           'last_name',
@@ -114,16 +113,14 @@ export default function Page() {
                           skipLabels.some(label => variable.label.toLowerCase().includes(label));
         
         if (shouldSkip) {
-          console.log('    ⏭️ Skipping variable:', variable.key);
+
           return;
         }
 
-        console.log('    ✅ Adding column:', variable.key, variable.label);
-        
+
         // Check if this variable has options (checkbox dropdown)
         const hasOptions = variable.options && variable.options.length > 0;
-        console.log('    📋 Variable options:', variable.options);
-        
+
         baseColumns.push({
           accessorKey: variable.key as keyof Student,
           header: variable.label,
@@ -135,7 +132,6 @@ export default function Page() {
       });
     }
     
-    console.log('📊 Total columns generated:', baseColumns.length);
 
     return baseColumns;
   }, []);
@@ -175,7 +171,6 @@ export default function Page() {
       // Use certificateConfigurations.ts directly (IGNORE database templates)
       const rawCertType = drivingClassData.data.classType || certificateType;
       const certType = rawCertType.toUpperCase().replace(/\s+/g, '-');
-      console.log('🔍 Using certificateConfigurations for classType:', certType);
 
       let fetchedTemplate: CertificateTemplate | null = null;
 
@@ -225,7 +220,7 @@ export default function Page() {
 
         // Add checkboxElements as variables with their options
         if (fetchedTemplate.checkboxElements && fetchedTemplate.checkboxElements.length > 0) {
-          console.log('🔲 Found checkboxElements:', fetchedTemplate.checkboxElements.length);
+
           const checkboxVariables = fetchedTemplate.checkboxElements.map(checkbox => ({
             key: checkbox.variableKey,
             label: checkbox.title,
@@ -233,7 +228,6 @@ export default function Page() {
             options: checkbox.options
           }));
 
-          console.log('📋 Checkbox variables to add:', checkboxVariables);
 
           // Add checkbox variables to availableVariables if they don't already exist
           checkboxVariables.forEach(checkboxVar => {
@@ -243,7 +237,7 @@ export default function Page() {
                 fetchedTemplate.availableVariables = [];
               }
               fetchedTemplate.availableVariables.push(checkboxVar);
-              console.log('✅ Added new checkbox variable:', checkboxVar.key, 'with options:', checkboxVar.options);
+
             } else {
               // Update existing variable with options if it doesn't have them
               fetchedTemplate.availableVariables = fetchedTemplate.availableVariables.map(v => 
@@ -251,7 +245,7 @@ export default function Page() {
                   ? { ...v, options: checkboxVar.options }
                   : v
               );
-              console.log('🔄 Updated existing variable with options:', checkboxVar.key);
+
             }
           });
         }

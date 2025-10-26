@@ -43,9 +43,9 @@ export default function DrivingTestLessonsPage() {
     if (instructorId && instructors.length > 0) {
       const targetInstructor = instructors.find(inst => inst._id === instructorId);
       if (targetInstructor && !selectedInstructor) {
-        console.log(`🎯 Auto-selecting instructor from notification: ${targetInstructor.name}`);
+
         if (targetDate) {
-          console.log(`📅 Target date: ${targetDate}, type: ${targetType}, eventId: ${eventId}`);
+
         }
         handleInstructorSelect(targetInstructor);
       }

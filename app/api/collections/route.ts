@@ -44,7 +44,7 @@ export const POST = async (req: NextRequest) => {
 
     return NextResponse.json(newCollection, { status: 200 });
   } catch (err) {
-    console.log("[collections_POST]", err);
+
     return new NextResponse("Internal Server Error", { status: 500 });
   }
 };
@@ -57,7 +57,7 @@ export const GET = async () => {
 
     return NextResponse.json(collections, { status: 200 });
   } catch (err) {
-    console.log("[collections_GET]", err);
+
     return new NextResponse("Internal Server Error", { status: 500 });
   }
 };

@@ -10,13 +10,11 @@ export async function DELETE(req: Request, { params }: { params: Promise<{ instr
     
     const { instructorId } = await params;
     
-    console.log(`[API] DELETE /instructors/${instructorId}/ticket-classes - Deleting all ticket classes for instructor`);
-    
+
     // Delete all ticket classes for this instructor
     const deleteResult = await TicketClass.deleteMany({ instructorId });
     
-    console.log(`[API] Deleted ${deleteResult.deletedCount} ticket classes for instructor ${instructorId}`);
-    
+
     // Also clean up the instructor's schedule to remove ticket class references
     const instructor = await Instructor.findById(instructorId);
     if (instructor) {
@@ -30,7 +28,7 @@ export async function DELETE(req: Request, { params }: { params: Promise<{ instr
           schedule_driving_test: cleanedDrivingTestSchedule
         });
         
-        console.log(`[API] Cleaned up instructor driving test schedule for ${instructorId}`);
+
       }
       
       // Clean up schedule_driving_lesson if it exists
@@ -43,7 +41,7 @@ export async function DELETE(req: Request, { params }: { params: Promise<{ instr
           schedule_driving_lesson: cleanedDrivingLessonSchedule
         });
         
-        console.log(`[API] Cleaned up instructor driving lesson schedule for ${instructorId}`);
+
       }
     }
     

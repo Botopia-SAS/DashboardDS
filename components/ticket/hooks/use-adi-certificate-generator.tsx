@@ -25,8 +25,6 @@ export function useAdiCertificateGenerator() {
    */
   const generateSingleAdiCertificate = useCallback(
     async (student: Student, pdfTemplatePath: string) => {
-      console.log("🎓 Generating single ADI certificate");
-      console.log(`👤 Student: ${student.first_name} ${student.last_name}`);
 
       try {
         const pdfDoc = await PDFDocument.create();
@@ -91,7 +89,7 @@ export function useAdiCertificateGenerator() {
                   width: signatureDims.width,
                   height: signatureDims.height,
                 });
-                console.log(`  🖼️ ${fieldKey}: Image drawn at (${coord.x}, ${pdfY})`);
+
               } catch (error) {
                 console.error(`  ❌ Error loading signature image:`, error);
               }
@@ -111,13 +109,13 @@ export function useAdiCertificateGenerator() {
 
           // Si no hay valor, saltar este campo (no usar datos mock)
           if (!value || value === "") {
-            console.log(`  ⚠️ ${fieldKey} (${dbFieldKey}) is empty, skipping`);
+
             continue;
           }
 
           // Validar que x e y existen (no son opcionales para campos de texto)
           if (coord.x === undefined || coord.y === undefined) {
-            console.log(`  ⚠️ ${fieldKey} missing coordinates, skipping`);
+
             continue;
           }
 
@@ -145,7 +143,7 @@ export function useAdiCertificateGenerator() {
             color: rgb(0, 0, 0),
           });
 
-          console.log(`  ✓ ${fieldKey}: "${value}" at (${finalX}, ${pdfY})`);
+
         }
 
         const pdfBytes = await pdfDoc.save();
@@ -164,8 +162,6 @@ export function useAdiCertificateGenerator() {
    */
   const generateMultipleAdiCertificates = useCallback(
     async (students: Student[], pdfTemplatePath: string) => {
-      console.log("🎓 Generating multiple ADI certificates");
-      console.log(`👥 Students: ${students.length}`);
 
       const pdfs: Blob[] = [];
 
@@ -173,7 +169,6 @@ export function useAdiCertificateGenerator() {
         // Procesar en chunks de 3
         for (let i = 0; i < students.length; i += 3) {
           const chunk = students.slice(i, Math.min(i + 3, students.length));
-          console.log(`📄 PDF ${Math.floor(i / 3) + 1}: ${chunk.length} certificate(s)`);
 
           const pdfDoc = await PDFDocument.create();
 
@@ -213,7 +208,6 @@ export function useAdiCertificateGenerator() {
             const position = (index + 1) as 1 | 2 | 3;
             const coordinates = getAdiPositionCoordinates(position);
 
-            console.log(`  🎫 ${student.first_name} ${student.last_name} at position ${position}`);
 
             for (const [fieldKey, coord] of Object.entries(coordinates)) {
               // Obtener el nombre del campo en la base de datos
@@ -241,7 +235,7 @@ export function useAdiCertificateGenerator() {
                       width: signatureDims.width,
                       height: signatureDims.height,
                     });
-                    console.log(`    🖼️ ${fieldKey}: Image drawn at (${coord.x}, ${pdfY})`);
+
                   } catch (error) {
                     console.error(`    ❌ Error loading signature image:`, error);
                   }
@@ -261,13 +255,13 @@ export function useAdiCertificateGenerator() {
 
               // Si no hay valor, saltar este campo (no usar datos mock)
               if (!value || value === "") {
-                console.log(`  ⚠️ ${fieldKey} (${dbFieldKey}) is empty, skipping`);
+
                 continue;
               }
 
               // Validar que x e y existen (no son opcionales para campos de texto)
               if (coord.x === undefined || coord.y === undefined) {
-                console.log(`  ⚠️ ${fieldKey} missing coordinates, skipping`);
+
                 continue;
               }
 

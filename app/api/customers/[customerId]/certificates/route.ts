@@ -47,7 +47,6 @@ export async function GET(req: NextRequest) {
       );
     }
 
-    console.log("🔍 Searching for certificates for customer:", customerId);
 
     // Find all ticket classes where this student is enrolled
     const allTicketClasses = await TicketClass.find({
@@ -57,7 +56,6 @@ export async function GET(req: NextRequest) {
       .populate("locationId", "_id title")
       .lean();
 
-    console.log(`📚 Found ${allTicketClasses.length} total ticket classes`);
 
     const certificates: CertificateResponse[] = [];
 
@@ -97,11 +95,6 @@ export async function GET(req: NextRequest) {
               const classInfo = ticketClass.classId as PopulatedClass;
               const locationInfo = ticketClass.locationId as PopulatedLocation;
 
-              console.log("✅ Found potential certificate for class:", {
-                class: classInfo?.title,
-                date: ticketClass.date,
-                studentId: customerId
-              });
 
               // Search for the actual certificate in the database
               let certificateNumber = "Pending";
@@ -129,15 +122,15 @@ export async function GET(req: NextRequest) {
                   
                   if (allCerts.length > 0) {
                     certificate = allCerts[0]; // Use the most recent certificate
-                    console.log("📜 Using most recent certificate for student:", certificate.number);
+
                   } else {
-                    console.log("🔍 No certificate found for studentId:", customerId);
+
                   }
                 }
 
                 if (certificate && !Array.isArray(certificate) && certificate.number) {
                   certificateNumber = certificate.number.toString();
-                  console.log("✅ Certificate number:", certificateNumber);
+
                 }
               } catch (certErr) {
                 console.error("Error fetching certificate:", certErr);
@@ -162,7 +155,6 @@ export async function GET(req: NextRequest) {
       }
     }
 
-    console.log(`✅ Returning ${certificates.length} certificates for customer`);
 
     // Sort by date descending
     certificates.sort((a, b) => new Date(b.classDate).getTime() - new Date(a.classDate).getTime());

@@ -44,7 +44,6 @@ export async function PATCH(
     const body = await request.json();
     const { action, studentId, requestId } = body;
 
-    console.log('🎫 PATCH ticket class:', { classId, action, studentId, requestId });
 
     const ticketClass = await TicketClass.findById(classId);
 
@@ -78,7 +77,6 @@ export async function PATCH(
       }
 
       await ticketClass.save();
-      console.log('✅ Student accepted and moved to students array');
 
       // Broadcast notification to update counters
       await broadcastNotification('ticket', {
@@ -87,7 +85,6 @@ export async function PATCH(
         studentId,
         timestamp: new Date().toISOString()
       });
-      console.log('📧 Notification broadcast sent');
 
       return NextResponse.json({
         success: true,
@@ -108,7 +105,6 @@ export async function PATCH(
       );
 
       await ticketClass.save();
-      console.log('✅ Student request rejected and removed');
 
       // Broadcast notification to update counters
       await broadcastNotification('ticket', {
@@ -117,7 +113,6 @@ export async function PATCH(
         studentId,
         timestamp: new Date().toISOString()
       });
-      console.log('📧 Notification broadcast sent');
 
       return NextResponse.json({
         success: true,
@@ -150,7 +145,6 @@ export async function PUT(
     const { classId } = await params;
     const body = await request.json();
 
-    console.log('🎫 PUT ticket class:', { classId, body });
 
     // Validar que el classId sea válido
     if (!classId) {
@@ -219,7 +213,6 @@ export async function PUT(
       );
     }
 
-    console.log('✅ Ticket class updated successfully');
 
     // Broadcast notification to update counters
     await broadcastNotification('ticket', {
@@ -252,7 +245,6 @@ export async function DELETE(
 
     const { classId } = await params;
 
-    console.log('🗑️ DELETE ticket class:', { classId });
 
     // Validar que el classId sea válido
     if (!classId) {
@@ -275,7 +267,6 @@ export async function DELETE(
     // Eliminar la clase
     await TicketClass.findByIdAndDelete(classId);
 
-    console.log('✅ Ticket class deleted successfully');
 
     // Broadcast notification to update counters
     await broadcastNotification('ticket', {

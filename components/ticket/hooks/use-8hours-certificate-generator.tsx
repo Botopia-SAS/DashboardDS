@@ -25,8 +25,6 @@ export function use8HoursCertificateGenerator() {
    */
   const generateSingle8HoursCertificate = useCallback(
     async (student: Student, pdfTemplatePath: string) => {
-      console.log("🎓 Generating single 8-hours certificate");
-      console.log(`👤 Student: ${student.first_name} ${student.last_name}`);
 
       try {
         const pdfDoc = await PDFDocument.create();
@@ -68,31 +66,27 @@ export function use8HoursCertificateGenerator() {
 
         // Dibujar cada campo en su posición
         for (const [fieldKey, coord] of Object.entries(coordinates)) {
-          console.log(`  🔍 Processing field: ${fieldKey}`);
 
           // Obtener el nombre del campo en la base de datos
           const dbFieldKey = fieldMapping[fieldKey] || fieldKey;
           let value = (student as any)[dbFieldKey];
-          console.log(`  📝 Field "${fieldKey}" -> DB "${dbFieldKey}" = "${value}"`);
 
           // Manejar firma del instructor como imagen
           if (fieldKey === "instructorSignature") {
             if (value && coord.x !== undefined && coord.y !== undefined) {
               try {
-                console.log(`  📥 Loading signature from: ${value}`);
+
                 const signatureResponse = await fetch(value);
-                console.log(`  📥 Signature response status: ${signatureResponse.status}`);
 
                 const signatureBytes = await signatureResponse.arrayBuffer();
-                console.log(`  📥 Signature bytes loaded: ${signatureBytes.byteLength} bytes`);
 
                 let signatureImage;
                 try {
                   signatureImage = await pdfDoc.embedPng(signatureBytes);
-                  console.log(`  ✅ Signature embedded as PNG`);
+
                 } catch {
                   signatureImage = await pdfDoc.embedJpg(signatureBytes);
-                  console.log(`  ✅ Signature embedded as JPG`);
+
                 }
 
                 const signatureDims = signatureImage.scale(0.15);
@@ -104,7 +98,7 @@ export function use8HoursCertificateGenerator() {
                   width: signatureDims.width,
                   height: signatureDims.height,
                 });
-                console.log(`  🖼️ ${fieldKey}: Image drawn at (${coord.x}, ${pdfY}) with size ${signatureDims.width}x${signatureDims.height}`);
+
               } catch (error) {
                 console.error(`  ❌ Error loading signature image:`, error);
                 // NO lanzar el error, solo logging - continuar sin firma
@@ -125,7 +119,7 @@ export function use8HoursCertificateGenerator() {
 
           // Si no hay valor, saltar este campo (no usar datos mock)
           if (!value || value === "") {
-            console.log(`  ⚠️ ${fieldKey} (${dbFieldKey}) is empty, skipping`);
+
             continue;
           }
 
@@ -147,13 +141,13 @@ export function use8HoursCertificateGenerator() {
                 color: rgb(0, 0, 0),
               });
 
-              console.log(`  ✓ ${fieldKey} checkbox: "${value}" marked at (${selectedOption.x}, ${pdfY})`);
+
             }
           } else {
             // Campo de texto normal - usar Helvetica como aproximación a Montserrat
             // Validar que x e y existen (no son opcionales para campos de texto)
             if (coord.x === undefined || coord.y === undefined) {
-              console.log(`  ⚠️ ${fieldKey} missing coordinates, skipping`);
+
               continue;
             }
 
@@ -180,13 +174,12 @@ export function use8HoursCertificateGenerator() {
               color: rgb(0, 0, 0),
             });
 
-            console.log(`  ✓ ${fieldKey}: "${value}" at (${finalX}, ${pdfY})`);
+
           }
         }
 
-        console.log('💾 Saving PDF...');
+
         const pdfBytes = await pdfDoc.save();
-        console.log(`✅ PDF saved: ${pdfBytes.length} bytes, type: ${pdfBytes.constructor.name}`);
 
         // Verificar que pdfBytes es un Uint8Array válido
         if (!(pdfBytes instanceof Uint8Array)) {
@@ -195,7 +188,6 @@ export function use8HoursCertificateGenerator() {
         }
 
         const blob = new Blob([pdfBytes], { type: "application/pdf" });
-        console.log(`✅ Blob created: ${blob.size} bytes, type: ${blob.type}`);
 
         return blob;
       } catch (error) {
@@ -212,8 +204,6 @@ export function use8HoursCertificateGenerator() {
    */
   const generateMultiple8HoursCertificates = useCallback(
     async (students: Student[], pdfTemplatePath: string) => {
-      console.log("🎓 Generating multiple 8-hours certificates");
-      console.log(`👥 Students: ${students.length}`);
 
       const pdfs: Blob[] = [];
 
@@ -221,7 +211,6 @@ export function use8HoursCertificateGenerator() {
         // Procesar en chunks de 3
         for (let i = 0; i < students.length; i += 3) {
           const chunk = students.slice(i, Math.min(i + 3, students.length));
-          console.log(`📄 PDF ${Math.floor(i / 3) + 1}: ${chunk.length} certificate(s)`);
 
           const pdfDoc = await PDFDocument.create();
 
@@ -263,7 +252,6 @@ export function use8HoursCertificateGenerator() {
             const position = (index + 1) as 1 | 2 | 3;
             const coordinates = get8HoursPositionCoordinates(position);
 
-            console.log(`  🎫 ${student.first_name} ${student.last_name} at position ${position}`);
 
             for (const [fieldKey, coord] of Object.entries(coordinates)) {
               // Obtener el nombre del campo en la base de datos
@@ -291,7 +279,7 @@ export function use8HoursCertificateGenerator() {
                       width: signatureDims.width,
                       height: signatureDims.height,
                     });
-                    console.log(`    🖼️ ${fieldKey}: Image drawn at (${coord.x}, ${pdfY})`);
+
                   } catch (error) {
                     console.error(`    ❌ Error loading signature image:`, error);
                   }
@@ -311,7 +299,7 @@ export function use8HoursCertificateGenerator() {
 
               // Si no hay valor, saltar este campo (no usar datos mock)
               if (!value || value === "") {
-                console.log(`  ⚠️ ${fieldKey} (${dbFieldKey}) is empty, skipping`);
+
                 continue;
               }
 
@@ -333,13 +321,13 @@ export function use8HoursCertificateGenerator() {
                     color: rgb(0, 0, 0),
                   });
 
-                  console.log(`  ✓ ${fieldKey} checkbox: "${value}" marked at (${selectedOption.x}, ${pdfY})`);
+
                 }
               } else {
                 // Campo de texto normal - usar Helvetica como aproximación a Montserrat
                 // Validar que x e y existen (no son opcionales para campos de texto)
                 if (coord.x === undefined || coord.y === undefined) {
-                  console.log(`  ⚠️ ${fieldKey} missing coordinates, skipping`);
+
                   return;
                 }
 

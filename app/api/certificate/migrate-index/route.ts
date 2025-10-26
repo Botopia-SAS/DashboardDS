@@ -6,14 +6,12 @@ export async function GET() {
   try {
     await connectToDB();
 
-    console.log("🔧 Starting index migration for Certificate collection...");
 
     // Get the collection
     const collection = Certificate.collection;
 
     // Get existing indexes
     const existingIndexes = await collection.indexes();
-    console.log("📋 Current indexes:", existingIndexes);
 
     // Find and drop the unique index on the 'number' field
     const droppedIndexes = [];
@@ -22,7 +20,7 @@ export async function GET() {
     for (const index of existingIndexes) {
       // Skip the _id index as it's required by MongoDB
       if (index.name === '_id_' || !index.name) {
-        console.log(`⏭️ Skipping required _id index`);
+
         continue;
       }
 
@@ -30,20 +28,18 @@ export async function GET() {
       if (index.key && index.key.number !== undefined) {
         try {
           await collection.dropIndex(index.name);
-          console.log(`✅ Dropped index: ${index.name} on field: number`);
+
           droppedIndexes.push(index.name);
         } catch (error) {
-          console.log(`⚠️ Could not drop index ${index.name}:`, error);
+
           notFoundIndexes.push(index.name);
         }
       }
     }
 
-    console.log("✅ Removed unique constraint from certificate number field");
 
     // List final indexes
     const finalIndexes = await collection.indexes();
-    console.log("📋 Final indexes:", finalIndexes);
 
     return NextResponse.json({
       success: true,

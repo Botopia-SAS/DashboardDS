@@ -25,8 +25,6 @@ export function useYouthfulOffenderCertificateGenerator() {
    */
   const generateSingleYouthfulOffenderCertificate = useCallback(
     async (student: Student, pdfTemplatePath: string) => {
-      console.log("🎓 Youthful Offender: Generating single certificate");
-      console.log(`   📋 Student: ${student.first_name} ${student.last_name}`);
 
       try {
         // Cargar el template PDF
@@ -39,7 +37,6 @@ export function useYouthfulOffenderCertificateGenerator() {
         const firstPage = pages[0];
         const { width, height } = firstPage.getSize();
 
-        console.log(`   📄 PDF size: ${width}x${height}`);
 
         // Cargar fuentes
         const helvetica = await pdfDoc.embedFont(StandardFonts.Helvetica);
@@ -91,7 +88,7 @@ export function useYouthfulOffenderCertificateGenerator() {
                   width: signatureDims.width,
                   height: signatureDims.height,
                 });
-                console.log(`  🖼️ ${fieldKey}: Image drawn at (${coord.x}, ${pdfY})`);
+
               } catch (error) {
                 console.error(`  ❌ Error loading signature image:`, error);
               }
@@ -111,7 +108,7 @@ export function useYouthfulOffenderCertificateGenerator() {
 
           // Si no hay valor, omitir (no usar mock data)
           if (!value || value === "") {
-            console.log(`  ⚠️ ${fieldKey} is empty, skipping`);
+
             continue;
           }
 
@@ -133,7 +130,7 @@ export function useYouthfulOffenderCertificateGenerator() {
                 color: rgb(0, 0, 0),
               });
 
-              console.log(`  ✓ ${fieldKey} checkbox: "${value}" marked at (${selectedOption.x}, ${pdfY})`);
+
             }
             continue;
           }
@@ -141,7 +138,7 @@ export function useYouthfulOffenderCertificateGenerator() {
           // Campo de texto normal - usar Helvetica
           // Validar que x e y existen (no son opcionales para campos de texto)
           if (coord.x === undefined || coord.y === undefined) {
-            console.log(`  ⚠️ ${fieldKey} missing coordinates, skipping`);
+
             continue;
           }
 
@@ -169,7 +166,6 @@ export function useYouthfulOffenderCertificateGenerator() {
             finalText = finalText.substring(0, maxChars) + "...";
           }
 
-          console.log(`  ✏️ ${fieldKey}: "${finalText}" at (${finalX}, ${pdfY})`);
 
           firstPage.drawText(finalText, {
             x: finalX,
@@ -196,7 +192,6 @@ export function useYouthfulOffenderCertificateGenerator() {
    */
   const generateMultipleYouthfulOffenderCertificates = useCallback(
     async (students: Student[], pdfTemplatePath: string) => {
-      console.log(`🎓 Youthful Offender: Generating certificates for ${students.length} students`);
 
       try {
         const pdfs: Blob[] = [];
@@ -205,7 +200,6 @@ export function useYouthfulOffenderCertificateGenerator() {
         // Procesar estudiantes en grupos de 3
         for (let i = 0; i < students.length; i += studentsPerPage) {
           const studentsGroup = students.slice(i, i + studentsPerPage);
-          console.log(`📄 Processing page ${Math.floor(i / studentsPerPage) + 1} with ${studentsGroup.length} students`);
 
           // Cargar el template PDF
           const templateResponse = await fetch(pdfTemplatePath);
@@ -224,7 +218,6 @@ export function useYouthfulOffenderCertificateGenerator() {
           for (let studentIndex = 0; studentIndex < studentsGroup.length; studentIndex++) {
             const student = studentsGroup[studentIndex];
             const position = (studentIndex + 1) as 1 | 2 | 3;
-            console.log(`  👤 Student ${studentIndex + 1}: ${student.first_name} ${student.last_name} (position ${position})`);
 
             // Obtener coordenadas para esta posición
             const coordinates = getYouthfulOffenderPositionCoordinates(position);
@@ -273,7 +266,7 @@ export function useYouthfulOffenderCertificateGenerator() {
                       width: signatureDims.width,
                       height: signatureDims.height,
                     });
-                    console.log(`    🖼️ ${fieldKey}: Image drawn at (${coord.x}, ${pdfY})`);
+
                   } catch (error) {
                     console.error(`    ❌ Error loading signature image:`, error);
                   }
@@ -293,7 +286,7 @@ export function useYouthfulOffenderCertificateGenerator() {
 
               // Si no hay valor, omitir (no usar mock data)
               if (!value || value === "") {
-                console.log(`    ⚠️ ${fieldKey} is empty, skipping`);
+
                 continue;
               }
 
@@ -315,7 +308,7 @@ export function useYouthfulOffenderCertificateGenerator() {
                     color: rgb(0, 0, 0),
                   });
 
-                  console.log(`    ✓ ${fieldKey} checkbox: "${value}" marked at (${selectedOption.x}, ${pdfY})`);
+
                 }
                 continue;
               }
@@ -323,7 +316,7 @@ export function useYouthfulOffenderCertificateGenerator() {
               // Campo de texto normal - usar Helvetica
               // Validar que x e y existen (no son opcionales para campos de texto)
               if (coord.x === undefined || coord.y === undefined) {
-                console.log(`    ⚠️ ${fieldKey} missing coordinates, skipping`);
+
                 continue;
               }
 
@@ -351,7 +344,6 @@ export function useYouthfulOffenderCertificateGenerator() {
                 finalText = finalText.substring(0, maxChars) + "...";
               }
 
-              console.log(`    ✏️ ${fieldKey}: "${finalText}" at (${finalX}, ${pdfY})`);
 
               firstPage.drawText(finalText, {
                 x: finalX,
@@ -368,7 +360,7 @@ export function useYouthfulOffenderCertificateGenerator() {
           pdfs.push(new Blob([pdfBytes as any], { type: "application/pdf" }));
         }
 
-        console.log(`✅ Youthful Offender: Generated ${pdfs.length} PDF(s) for ${students.length} students`);
+
         return pdfs.length === 1 ? pdfs[0] : pdfs;
       } catch (error) {
         console.error("❌ Error generating multiple Youthful Offender certificates:", error);

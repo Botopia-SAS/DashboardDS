@@ -43,7 +43,7 @@ const ProductDetails = ({ productId }: { productId: string }) => {
         console.error("[productId_GET] Error:", err);
       } finally {
         setLoading(false);
-        console.log("⏳ Loading state set to false.");
+
       }
     };
 

@@ -85,7 +85,7 @@ const ProductForm: React.FC<ProductFormProps> = ({ initialData }) => {
         router.push("/products");
       }
     } catch (err) {
-      console.log("[products_POST]", err);
+
       toast.error("Something went wrong! Please try again.");
     }
   };

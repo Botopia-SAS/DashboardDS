@@ -82,7 +82,7 @@ export async function DELETE(req: NextRequest) {
       );
     }
 
-    console.log("🗑️ Deleting collection:", collectionId);
+
     const deletedCollection = await Collection.findByIdAndDelete(collectionId);
 
     if (!deletedCollection) {

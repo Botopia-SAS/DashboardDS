@@ -100,7 +100,7 @@ const CustomForm: React.FC<FormProps> = ({ initialData }) => {
   // ✅ Función para manejar selección en el dropdown
   const handleSelectChange = (newValue: MultiValue<{ label: string; value: string }>, actionMeta: ActionMeta<{ label: string; value: string }>) => {
       const selectedValues = newValue.map((hq) => hq.value);
-      console.log(actionMeta)
+
       form.setValue("headquarters", selectedValues);
       setSelectedHeadquarters(newValue as { label: string; value: string }[]);
     };
@@ -231,10 +231,7 @@ const CustomForm: React.FC<FormProps> = ({ initialData }) => {
       setHasChanges(hasChanged);
 
       if (hasChanged) {
-        console.log("[DEBUG] Changes detected:", {
-          original: originalData,
-          current: currentData
-        });
+
       }
     }
   }, [currentValues, originalData, initialData, form]);
@@ -252,14 +249,8 @@ const CustomForm: React.FC<FormProps> = ({ initialData }) => {
       setIsLoading(true);
       const currentValues = form.getValues();
 
-      console.log("[SAVE_DEBUG] Current form values:", currentValues);
-      console.log("[SAVE_DEBUG] Saving to ID:", initialData._id);
-      console.log("[SAVE_DEBUG] Original data:", originalData);
-      
+
       // Log specific fields you're changing
-      console.log("[SAVE_DEBUG] ClassType field:", currentValues.classType);
-      console.log("[SAVE_DEBUG] Length field:", currentValues.length);
-      console.log("[SAVE_DEBUG] Price field:", currentValues.price);
 
       // Validate required fields before sending
       if (!currentValues.title || !currentValues.overview || !currentValues.buttonLabel) {
@@ -283,10 +274,6 @@ const CustomForm: React.FC<FormProps> = ({ initialData }) => {
         classType: currentValues.classType || "date", // Usar fallback solo si está vacío
       };
 
-      console.log("[SAVE_DEBUG] Final payload:", payload);
-      console.log("[SAVE_DEBUG] Payload ClassType:", payload.classType);
-      console.log("[SAVE_DEBUG] Payload Length:", payload.length);
-      console.log("[SAVE_DEBUG] Payload Price:", payload.price);
 
       const res = await fetch(`/api/classes/${initialData._id}`, {
         method: "PUT",
@@ -294,16 +281,14 @@ const CustomForm: React.FC<FormProps> = ({ initialData }) => {
         body: JSON.stringify(payload),
       });
 
-      console.log("[SAVE_DEBUG] Response status:", res.status);
 
       if (res.ok) {
         const responseText = await res.text();
-        console.log("[SAVE_DEBUG] Raw response:", responseText);
-        
+
         let updatedData;
         try {
           updatedData = JSON.parse(responseText);
-          console.log("[SAVE_DEBUG] Parsed response:", updatedData);
+
         } catch (parseError) {
           console.error("[SAVE_DEBUG] JSON parse error:", parseError);
           toast.error("Invalid response from server");
@@ -311,11 +296,7 @@ const CustomForm: React.FC<FormProps> = ({ initialData }) => {
         }
         
         if (updatedData.success) {
-          console.log("[SAVE_DEBUG] Updated successfully:", updatedData.data);
-          console.log("[SAVE_DEBUG] Server confirmed ClassType:", updatedData.data?.classType);
-          console.log("[SAVE_DEBUG] Server confirmed Length:", updatedData.data?.length);
-          console.log("[SAVE_DEBUG] Server confirmed Price:", updatedData.data?.price);
-          
+
           toast.success("Class updated successfully!");
           setHasChanges(false);
           
@@ -361,9 +342,6 @@ const CustomForm: React.FC<FormProps> = ({ initialData }) => {
     try {
       setIsLoading(true);
 
-      console.log("[DEBUG] Form values recibidos:", values);
-      console.log("[DEBUG] Current classType in form:", form.getValues("classType"));
-      console.log("[DEBUG] initialData:", initialData);
 
       const url = initialData ? `/api/classes/${initialData._id}` : "/api/classes";
       const method = initialData ? "PUT" : "POST";
@@ -374,9 +352,6 @@ const CustomForm: React.FC<FormProps> = ({ initialData }) => {
         classType: values.classType, // No usar fallback que puede sobrescribir el valor seleccionado
       };
 
-      console.log("[DEBUG] Payload final:", payload);
-      console.log("[DEBUG] URL:", url);
-      console.log("[DEBUG] Method:", method);
 
       const res = await fetch(url, {
         method,
@@ -384,16 +359,14 @@ const CustomForm: React.FC<FormProps> = ({ initialData }) => {
         body: JSON.stringify(payload),
       });
 
-      console.log("[DEBUG] Response status:", res.status);
 
       if (res.ok) {
         const responseText = await res.text();
-        console.log("[DEBUG] Raw response:", responseText);
-        
+
         let responseData;
         try {
           responseData = JSON.parse(responseText);
-          console.log("[DEBUG] Parsed response:", responseData);
+
         } catch (parseError) {
           console.error("[DEBUG] JSON parse error:", parseError);
           toast.error("Invalid response from server");
@@ -483,7 +456,7 @@ const CustomForm: React.FC<FormProps> = ({ initialData }) => {
                     <select
                       {...field}
                       onChange={(e) => {
-                        console.log("[DEBUG] ClassType changed to:", e.target.value);
+
                         field.onChange(e);
                       }}
                       className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"

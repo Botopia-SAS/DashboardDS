@@ -276,14 +276,13 @@ export default function ScheduleModal({
     const formType = normalizeClassType(form.type || '');
     const matches = clsType === formType;
     if (matches) {
-      console.log(`✅ Class matched: "${cls.title}" (classType: "${cls.classType}" → "${clsType}") matches form.type: "${form.type}" → "${formType}"`);
+
     } else {
-      console.log(`❌ Class NOT matched: "${cls.title}" (classType: "${cls.classType}" → "${clsType}") vs form.type: "${form.type}" → "${formType}"`);
+
     }
     return matches;
   });
 
-  console.log(`🔍 ScheduleModal - Filtering classes: form.type="${form.type}", total classes=${classes.length}, filtered=${filteredClasses.length}`);
 
   // Función para verificar si el formulario es válido
   const isFormValid = () => {

@@ -26,7 +26,7 @@ const Instructors = () => {
       setInstructors(data);
       setLoading(false);
     } catch (err) {
-      console.log("[instructors_GET]", err);
+
     }
   };
 

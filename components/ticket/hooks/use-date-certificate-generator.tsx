@@ -14,8 +14,6 @@ export function useDateCertificateGenerator() {
    */
   const generateDateCertificatePDF = useCallback(
     async (student: Student) => {
-      console.log("🎓 DATE: Generating certificate");
-      console.log(`   📋 Student: ${student.first_name} ${student.last_name}`);
 
       try {
         // Usar el template por defecto para DATE
@@ -35,7 +33,6 @@ export function useDateCertificateGenerator() {
         const firstPage = pages[0];
         const { width, height } = firstPage.getSize();
 
-        console.log(`   📄 PDF size: ${width}x${height}`);
 
         // Cargar fuente Times-Roman (MISMA que unified generator)
         const timesFont = await pdfDoc.embedFont(StandardFonts.TimesRoman);
@@ -67,29 +64,26 @@ export function useDateCertificateGenerator() {
         // studentName (firstName + lastName juntos, centrado)
         const studentName = `${student.first_name.toUpperCase()} ${student.last_name.toUpperCase()}`;
         drawText(studentName, 390, 242, 14, 'center');
-        console.log(`  ✏️ studentName: "${studentName}" at (390, 242)`);
 
         // birthDate (centrado)
         if (student.birthDate) {
           const birthDate = new Date(student.birthDate).toLocaleDateString('en-US');
           drawText(birthDate, 390, 290, 12, 'center');
-          console.log(`  ✏️ birthDate: "${birthDate}" at (390, 290)`);
+
         }
 
         // classType (centrado)
         const classType = (student.classType || 'DATE').toUpperCase();
         drawText(classType, 385, 385, 18, 'center');
-        console.log(`  ✏️ classType: "${classType}" at (385, 385)`);
 
         // classTitle (centrado) - puede ser "4hr Traffic Law & Substance Abuse Class"
         const classTitle = '4hr Traffic Law & Substance Abuse Class';
         drawText(classTitle, 390, 415, 12, 'center');
-        console.log(`  ✏️ classTitle: "${classTitle}" at (390, 415)`);
 
         // certn - Certificate Number (centrado)
         if (student.certn !== null && student.certn !== undefined) {
           drawText(String(student.certn), 163, 394, 12, 'center');
-          console.log(`  ✏️ certn: "${student.certn}" at (163, 394)`);
+
         }
 
         // courseDate (centrado)
@@ -101,7 +95,7 @@ export function useDateCertificateGenerator() {
             timeZone: 'UTC'
           });
           drawText(courseDate, 390, 487, 12, 'center');
-          console.log(`  ✏️ courseDate: "${courseDate}" at (390, 487)`);
+
         }
 
         // Generar el PDF
@@ -121,7 +115,6 @@ export function useDateCertificateGenerator() {
    */
   const generateMultipleDateCertificates = useCallback(
     async (students: Student[]) => {
-      console.log(`🎓 DATE: Generating ${students.length} individual certificates for ZIP`);
 
       const pdfBlobs: Blob[] = [];
 
@@ -130,7 +123,7 @@ export function useDateCertificateGenerator() {
         pdfBlobs.push(pdfBlob);
       }
 
-      console.log(`✅ DATE: Generated ${pdfBlobs.length} individual PDFs`);
+
       return pdfBlobs;
     },
     [generateDateCertificatePDF]
@@ -142,7 +135,6 @@ export function useDateCertificateGenerator() {
    */
   const generateCombinedDateCertificates = useCallback(
     async (students: Student[]) => {
-      console.log(`🎓 DATE: Generating combined PDF with ${students.length} pages`);
 
       try {
         const combinedPdf = await PDFDocument.create();
@@ -157,7 +149,6 @@ export function useDateCertificateGenerator() {
 
         // Generar cada certificado y agregarlo al PDF combinado
         for (const student of students) {
-          console.log(`  📄 Adding page for: ${student.first_name} ${student.last_name}`);
 
           const pdfDoc = await PDFDocument.load(templateBytes);
           const pages = pdfDoc.getPages();
@@ -230,7 +221,7 @@ export function useDateCertificateGenerator() {
         }
 
         const pdfBytes = await combinedPdf.save();
-        console.log(`✅ DATE: Generated combined PDF with ${students.length} pages`);
+
         return new Blob([pdfBytes as any], { type: "application/pdf" });
       } catch (error) {
         console.error("❌ Error generating combined DATE certificates:", error);

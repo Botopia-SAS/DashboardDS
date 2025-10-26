@@ -46,7 +46,7 @@ export async function GET(req: NextRequest) {
       const location = await Location.findById(ticketClass.locationId).exec();
       if (location) {
         locationAddress = location.zone || "";
-        console.log('Location found for address:', locationAddress);
+
       }
     } catch (error) {
       console.error('Error importing Location model:', error);
@@ -81,8 +81,7 @@ export async function GET(req: NextRequest) {
       classId,
     }).exec();
     
-    console.log('🔍 Raw certificate from DB:', cert?.toObject());
-    
+
     // Build student object with base fields
     const studentData: any = {
       id: user.id,
@@ -120,20 +119,18 @@ export async function GET(req: NextRequest) {
     // Add dynamic fields from certificate if they exist
     if (cert) {
       const certObj = cert.toObject();
-      console.log('📋 Loading certificate data for student:', user.firstName, certObj);
-      console.log('🔍 Certificate has courseTime:', certObj.courseTime);
-      console.log('🔍 Certificate has attendanceReason:', certObj.attendanceReason);
+
       Object.keys(certObj).forEach((key) => {
         // Skip fields that are already in studentData
         if (!['_id', 'studentId', 'classId', 'number', 'citation_number', '__v'].includes(key)) {
           studentData[key] = certObj[key];
           if (key === 'courseTime' || key === 'attendanceReason') {
-            console.log('✅ Loaded', key, ':', certObj[key]);
+
           }
         }
       });
     } else {
-      console.log('❌ No certificate found for student:', user.firstName);
+
     }
     
     students.push(studentData);
@@ -148,9 +145,7 @@ export async function PATCH(req: NextRequest) {
     const classId = req.url.split("/").pop();
     const body = await req.json();
     const { id, certn, payedAmount, paymentMethod, citation_number, ...dynamicFields } = body;
-    console.log('API received data:', body);
-    console.log('Dynamic fields:', dynamicFields);
-    
+
     const user = await User.findOne({ _id: id }).exec();
     if (!user) {
       return NextResponse.json(
@@ -184,13 +179,12 @@ export async function PATCH(req: NextRequest) {
         classId,
         number: Number(certn) || 0,
       });
-      console.log('Created new certificate for student:', user._id);
+
     }
 
     // Save ALL dynamic fields to certificate
     if (Object.keys(dynamicFields).length > 0 || citation_number !== undefined) {
-      console.log('💾 Saving dynamic fields to certificate:', { ...dynamicFields, citation_number });
-      
+
       // Update citation number if provided
       if (citation_number !== undefined) {
         cert.citation_number = citation_number;
@@ -199,44 +193,43 @@ export async function PATCH(req: NextRequest) {
       // Update all other dynamic fields
       Object.entries(dynamicFields).forEach(([key, value]) => {
         cert[key] = value;
-        console.log('💾 Saving dynamic field:', key, ':', value);
+
       });
       
       // Force save specific checkbox fields
       if (dynamicFields.attendanceReason !== undefined) {
         cert.attendanceReason = dynamicFields.attendanceReason;
-        console.log('🔧 FORCING attendanceReason save:', dynamicFields.attendanceReason);
+
       }
       if (dynamicFields.courseTime !== undefined) {
         cert.courseTime = dynamicFields.courseTime;
-        console.log('🔧 FORCING courseTime save:', dynamicFields.courseTime);
+
       }
       if (dynamicFields.prueba !== undefined) {
         cert.prueba = dynamicFields.prueba;
-        console.log('🔧 FORCING prueba save:', dynamicFields.prueba);
+
       }
       if (dynamicFields.s !== undefined) {
         cert.s = dynamicFields.s;
-        console.log('🔧 FORCING s (test) save:', dynamicFields.s);
+
       }
       if (dynamicFields.test !== undefined) {
         cert.test = dynamicFields.test;
-        console.log('🔧 FORCING test save:', dynamicFields.test);
+
       }
       if (dynamicFields.ejme !== undefined) {
         cert.ejme = dynamicFields.ejme;
-        console.log('🔧 FORCING ejme save:', dynamicFields.ejme);
+
       }
       
       // Force mark as modified for all dynamic fields
       Object.keys(dynamicFields).forEach(key => {
         cert.markModified(key);
-        console.log('🔧 Marking field as modified:', key);
+
       });
       
       await cert.save();
-      console.log('✅ Certificate updated with all fields');
-      
+
       // Alternative approach: Update directly with $set to ensure dynamic fields are saved
       const updateData: any = {};
       Object.entries(dynamicFields).forEach(([key, value]) => {
@@ -244,12 +237,12 @@ export async function PATCH(req: NextRequest) {
       });
       
       if (Object.keys(updateData).length > 0) {
-        console.log('🔄 Direct MongoDB update with $set:', updateData);
+
         await Certificate.updateOne(
           { studentId: user._id, classId },
           { $set: updateData }
         );
-        console.log('✅ Direct MongoDB update completed');
+
       }
       
       // Verify the save worked
@@ -257,15 +250,7 @@ export async function PATCH(req: NextRequest) {
         studentId: user._id,
         classId,
       }).exec();
-      console.log('🔍 Verification - Saved certificate:', savedCert?.toObject());
-      console.log('🔍 Verification - All checkbox fields:', {
-        attendanceReason: savedCert?.attendanceReason,
-        courseTime: savedCert?.courseTime,
-        prueba: savedCert?.prueba,
-        s: savedCert?.s,
-        test: savedCert?.test,
-        ejme: savedCert?.ejme
-      });
+
     }
 
     // Check if there's an existing payment record to update
@@ -298,7 +283,7 @@ export async function PATCH(req: NextRequest) {
       // Allow duplicate certificate numbers - update the certificate number
       cert.number = Number(certn);
       await cert.save();
-      console.log('Certificate number updated to:', certn);
+
     }
 
     return NextResponse.json({ success: true }, { status: 200 });

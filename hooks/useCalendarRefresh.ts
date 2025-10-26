@@ -13,7 +13,7 @@ export const useCalendarRefresh = () => {
     // También usar localStorage como backup
     localStorage.setItem('calendarNeedsRefresh', 'true');
     
-    console.log('🔄 Calendar refresh triggered via useCalendarRefresh hook');
+
   }, []);
 
   const refreshCalendarWithDelay = useCallback((delay: number = 1000) => {

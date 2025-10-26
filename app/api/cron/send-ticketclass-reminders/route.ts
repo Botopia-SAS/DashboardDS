@@ -31,7 +31,7 @@ function getTicketClassReminderTemplate(studentName: string, className: string, 
 }
 
 function logWithColor(message: string, color: string = "\x1b[36m") {
-  console.log(`${color}%s\x1b[0m`, message);
+
 }
 
 export async function POST(req: NextRequest) {

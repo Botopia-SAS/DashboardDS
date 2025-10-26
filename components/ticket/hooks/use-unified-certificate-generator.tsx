@@ -21,11 +21,6 @@ export function useUnifiedCertificateGenerator() {
     // Get configuration for this class type
     const config = getCertificateConfig(classType || 'DATE');
 
-    console.log('🎓 Generating certificate:', {
-      classType: config.classType,
-      studentName: `${student.first_name} ${student.last_name}`,
-      pdfPath: config.pdfPath
-    });
 
     try {
       // Import pdf-lib for PDF manipulation
@@ -102,7 +97,7 @@ export function useUnifiedCertificateGenerator() {
           variable.align || 'left'
         );
 
-        console.log(`  ✓ ${variable.label}: "${value}" at (${variable.x}, ${variable.y})`);
+
       });
 
       // Serialize the PDF
@@ -111,7 +106,7 @@ export function useUnifiedCertificateGenerator() {
       // Create blob
       const blob = new Blob([pdfBytes], { type: 'application/pdf' });
 
-      console.log('✅ Certificate generated successfully');
+
       return blob;
 
     } catch (error) {

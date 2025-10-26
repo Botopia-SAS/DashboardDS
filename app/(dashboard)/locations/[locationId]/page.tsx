@@ -30,7 +30,7 @@ const LocationDetails = () => {
           return;
         }
 
-        console.log("🔍 Fetching location details for ID:", locationId);
+
         const res = await fetch(`/api/locations/${locationId}`);
 
         if (!res.ok) {
@@ -39,7 +39,6 @@ const LocationDetails = () => {
         }
 
         const data = await res.json();
-        console.log("✅ Location details fetched successfully:", data);
 
         // 📌 Transformar instructores a solo IDs
         setLocationDetails({

@@ -34,7 +34,7 @@ export function NotificationProvider({ children }: NotificationProviderProps) {
   const [isConnected, setIsConnected] = useState(false);
 
   const refreshNotifications = () => {
-    console.log('🔄 Triggering global notification refresh...');
+
     // Disparar evento para que los componentes se actualicen
     window.dispatchEvent(new CustomEvent('notificationRefresh'));
   };
@@ -51,7 +51,7 @@ export function NotificationProvider({ children }: NotificationProviderProps) {
 
     // Si ya hay una conexión global activa, no crear otra
     if (globalEventSource && globalEventSource.readyState === EventSource.OPEN) {
-      console.log('🔗 Using existing SSE connection');
+
       setIsConnected(true);
       return;
     }
@@ -59,21 +59,19 @@ export function NotificationProvider({ children }: NotificationProviderProps) {
     connectionCount++;
     const currentConnection = connectionCount;
 
-    console.log(`� Creating SSE connection #${currentConnection}`);
 
     try {
       globalEventSource = new EventSource('/api/notifications/stream');
 
       globalEventSource.onopen = () => {
-        console.log(`✅ SSE connected #${currentConnection}`);
+
         setIsConnected(true);
       };
 
       globalEventSource.onmessage = (event) => {
         try {
           const data = JSON.parse(event.data);
-          console.log('📨 SSE message received:', data);
-          
+
           // Solo disparar eventos para notificaciones reales, no para conexión o ping
           if (data.type !== 'connection' && data.type !== 'ping') {
             // Limpiar notificaciones antiguas solo cuando llegue una nueva
@@ -108,7 +106,7 @@ export function NotificationProvider({ children }: NotificationProviderProps) {
           // Solo reconectar si realmente es necesario
           setTimeout(() => {
             if (currentConnection === connectionCount && typeof window !== 'undefined') {
-              console.log(`🔄 Attempting reconnection SSE #${currentConnection}`);
+
               // No cambiar isConnected aquí - dejar que onopen lo maneje
             }
           }, 2 * 60 * 1000); // Cambiado a 2 minutos
@@ -121,7 +119,7 @@ export function NotificationProvider({ children }: NotificationProviderProps) {
 
     // Cleanup cuando el componente se desmonta
     return () => {
-      console.log(`🧹 Cleaning up SSE connection #${currentConnection}`);
+
       if (currentConnection === connectionCount && globalEventSource) {
         globalEventSource.close();
         globalEventSource = null;

@@ -13,9 +13,6 @@ import { drawBackground } from "./pdf-helpers/draw-background";
 
 export function useDynamicCertificateGenerator() {
   const generateDynamicCertificatePDF = useCallback(async (user: Student, template: CertificateTemplate) => {
-    console.log('🎨 Starting dynamic certificate generation');
-    console.log('👤 User:', `${user.first_name} ${user.last_name}`);
-    console.log('📋 Template:', template.name);
 
     try {
       const pdfDoc = await PDFDocument.create();
@@ -32,7 +29,6 @@ export function useDynamicCertificateGenerator() {
       // Create page
       const page = pdfDoc.addPage([template.pageSize.width, template.pageSize.height]);
       const { width, height } = page.getSize();
-      console.log(`📄 Page: ${width}x${height}, Certificates: ${certsPerPage}`);
 
       // Embed fonts
       const fonts = {
@@ -80,7 +76,6 @@ export function useDynamicCertificateGenerator() {
         const row = Math.floor(certIndex / cols);
         // offsetY is the start position of each certificate slot (top-down coordinates for shapes/text/images)
         const offsetY = row * (height / rows);
-        console.log(`🎫 Drawing certificate ${certIndex + 1}/${certsPerPage} at position ${certIndex + 1}`);
 
         // Draw background for this certificate with scaled dimensions
         // For backgrounds, we need PDF coordinates (bottom-up), so invert the offsetY
@@ -103,9 +98,8 @@ export function useDynamicCertificateGenerator() {
       }
 
       // Serialize PDF
-      console.log('💾 Serializing PDF...');
+
       const pdfBytes = await pdfDoc.save();
-      console.log(`✅ PDF generated: ${pdfBytes.length} bytes`);
 
       const arrayBuffer = pdfBytes.slice().buffer as ArrayBuffer;
       const blob = new Blob([arrayBuffer], { type: 'application/pdf' });
@@ -119,9 +113,6 @@ export function useDynamicCertificateGenerator() {
 
   // Generate multiple certificates in one PDF (up to certificatesPerPage per page)
   const generateMultipleCertificatesPDF = useCallback(async (users: Student[], template: CertificateTemplate) => {
-    console.log('🎨 Starting multiple certificates generation');
-    console.log('👥 Users:', users.length);
-    console.log('📋 Template:', template.name);
 
     try {
       const pdfDoc = await PDFDocument.create();
@@ -166,7 +157,6 @@ export function useDynamicCertificateGenerator() {
         const startIdx = pageIndex * certsPerPage;
         const endIdx = Math.min(startIdx + certsPerPage, users.length);
 
-        console.log(`📄 Page ${pageIndex + 1}: Drawing ${endIdx - startIdx} certificate(s)`);
 
         for (let i = startIdx; i < endIdx; i++) {
           const user = users[i];
@@ -175,7 +165,6 @@ export function useDynamicCertificateGenerator() {
           // offsetY is the start position of each certificate slot (top-down coordinates for shapes/text/images)
           const offsetY = row * (height / rows);
 
-          console.log(`🎫 Certificate ${i + 1}/${users.length}: ${user.first_name} ${user.last_name} at position ${positionInPage + 1}`);
 
           const variables = getVariables(user);
           const replaceVariables = (text: string): string => {
@@ -208,9 +197,8 @@ export function useDynamicCertificateGenerator() {
         }
       }
 
-      console.log('💾 Serializing multi-certificate PDF...');
+
       const pdfBytes = await pdfDoc.save();
-      console.log(`✅ PDF generated: ${pdfBytes.length} bytes`);
 
       const arrayBuffer = pdfBytes.slice().buffer as ArrayBuffer;
       const blob = new Blob([arrayBuffer], { type: 'application/pdf' });

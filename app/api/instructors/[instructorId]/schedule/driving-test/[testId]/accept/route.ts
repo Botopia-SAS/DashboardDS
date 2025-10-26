@@ -16,7 +16,6 @@ export async function PATCH(
     const body = await req.json();
     const { status, paid } = body;
 
-    console.log('🎯 Accepting driving test:', { instructorId, testId, status, paid });
 
     // Buscar el instructor
     const instructor = await Instructor.findById(instructorId);
@@ -53,29 +52,18 @@ export async function PATCH(
     test.status = status;
     test.paid = paid;
 
-    console.log(`📝 Updating test status: ${oldStatus} → ${status}`);
-    console.log(`💾 Test data before save:`, {
-      id: test._id,
-      status: test.status,
-      paid: test.paid,
-      studentName: test.studentName
-    });
 
     // Marcar que el array ha sido modificado para Mongoose
     instructor.markModified('schedule_driving_test');
     
     await instructor.save();
 
-    console.log('✅ Driving test accepted successfully');
-    console.log(`🔍 Final test status: ${test.status}`);
 
     // Verificar que realmente se guardó - con un nuevo query
     const updatedInstructor = await Instructor.findById(instructorId).lean() as { schedule_driving_test: any[] } | null;
     const updatedTest = updatedInstructor?.schedule_driving_test.find(
       (testItem: any) => testItem._id.toString() === testId 
     );
-    console.log('🔍 Verification - Test status in DB:', updatedTest?.status);
-    console.log('🔍 Full test from DB:', updatedTest);
 
     // Enviar notificación SSE en tiempo real
     broadcastNotification('driving_test_update', {

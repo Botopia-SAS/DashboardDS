@@ -222,8 +222,7 @@ const ScheduleModal: React.FC<ScheduleModalProps> = ({
       if (clipboard) {
         try {
           const pastedData = JSON.parse(clipboard);
-          console.log("Loading pasted data:", pastedData);
-          
+
           setFormData({
             classType: pastedData.classType || "driving lesson",
             start: pastedData.start || selectedTime || "",
@@ -1249,13 +1248,7 @@ const ScheduleModal: React.FC<ScheduleModalProps> = ({
                   <div>
                     <Label>Selected Product <span className="text-red-500">*</span></Label>
                     {/* {(() => {
-                      console.log("🔍 Product dropdown debug:", {
-                        selectedProduct: formData.selectedProduct,
-                        productsCount: products.length,
-                        products: products.map(p => ({ id: p._id, name: p.title })),
-                        isEditMode,
-                        eventDataProduct: eventData?.extendedProps?.selectedProduct
-                      });
+
                       return null;
                     })()} */}
                     <Select

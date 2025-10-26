@@ -36,7 +36,6 @@ export async function GET() {
       }
     }
 
-    console.log(`📊 Found ${pendingRequests.length} pending local driving lesson requests`);
 
     return NextResponse.json(pendingRequests);
   } catch (error) {

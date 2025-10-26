@@ -125,18 +125,16 @@ export function DataTable({ columns, data, onUpdate, template }: DataTableProps)
       const { type, classType } = validStudents[0];
       const certType = (classType || type || 'DATE').toUpperCase();
 
-      console.log(`🔍 Student data:`, validStudents[0]);
-      console.log(`📋 Resolved certType: ${certType}`);
 
       const templateResponse = await fetch(`/api/certificate-templates?classType=${certType}`);
       let template = null;
 
       if (templateResponse.ok) {
         const templates = await templateResponse.json();
-        console.log(`📥 Templates from API:`, templates);
+
         if (templates.length > 0) {
           template = templates[0];
-          console.log(`✅ Using template from database:`, template.name);
+
         }
       }
 
@@ -150,7 +148,7 @@ export function DataTable({ columns, data, onUpdate, template }: DataTableProps)
 
       if (!template) {
         if (isDate) {
-          console.log(`⚠️ No template found for DATE, using DATE template`);
+
           // Para DATE, crear un template básico con el path correcto
           template = {
             name: 'DATE Certificate',
@@ -168,7 +166,7 @@ export function DataTable({ columns, data, onUpdate, template }: DataTableProps)
             availableVariables: []
           };
         } else {
-          console.log(`⚠️ No template found, using default BDI template for ${certType}`);
+
           const { getDefaultBDITemplate } = await import("@/lib/defaultTemplates/bdiTemplate");
           template = getDefaultBDITemplate(certType);
         }
@@ -176,12 +174,11 @@ export function DataTable({ columns, data, onUpdate, template }: DataTableProps)
 
       // Para certificados de 8 horas, ADI, BDI, Insurance y Youthful Offender, siempre usar 3 por página
       const certsPerPage = (is8Hours || isAdi || isBdi || isInsurance || isYouthfulOffender) ? 3 : (template.certificatesPerPage || 1);
-      console.log(`📄 Template: ${template.name} has ${certsPerPage} certificates per page`);
 
       const zip = new JSZip();
 
       if (is8Hours) {
-        console.log('🎓 Using 8-hours certificate generator for multiple PDFs');
+
         const result = await generateMultiple8HoursCertificates(validStudents, '/templates_certificates/8-hours.pdf');
         const pdfBlobs = Array.isArray(result) ? result : [result];
 
@@ -200,7 +197,7 @@ export function DataTable({ columns, data, onUpdate, template }: DataTableProps)
         toast.dismiss(loadingToast);
         toast.success(`${pdfBlobs.length} PDF(s) generados con ${validStudents.length} certificado(s) en total`);
       } else if (isAdi) {
-        console.log('🎓 Using ADI certificate generator for multiple PDFs');
+
         const result = await generateMultipleAdiCertificates(validStudents, '/templates_certificates/adi.pdf');
         const pdfBlobs = Array.isArray(result) ? result : [result];
 
@@ -219,7 +216,7 @@ export function DataTable({ columns, data, onUpdate, template }: DataTableProps)
         toast.dismiss(loadingToast);
         toast.success(`${pdfBlobs.length} PDF(s) ADI generados con ${validStudents.length} certificado(s) en total`);
       } else if (isBdi) {
-        console.log('🎓 Using BDI certificate generator for multiple PDFs');
+
         const result = await generateMultipleBdiCertificates(validStudents, '/templates_certificates/bdi.pdf');
         const pdfBlobs = Array.isArray(result) ? result : [result];
 
@@ -238,7 +235,7 @@ export function DataTable({ columns, data, onUpdate, template }: DataTableProps)
         toast.dismiss(loadingToast);
         toast.success(`${pdfBlobs.length} PDF(s) BDI generados con ${validStudents.length} certificado(s) en total`);
       } else if (isInsurance) {
-        console.log('🎓 Using Insurance certificate generator for multiple PDFs');
+
         const result = await generateMultipleInsuranceCertificates(validStudents, '/templates_certificates/insurance.pdf');
         const pdfBlobs = Array.isArray(result) ? result : [result];
 
@@ -257,7 +254,7 @@ export function DataTable({ columns, data, onUpdate, template }: DataTableProps)
         toast.dismiss(loadingToast);
         toast.success(`${pdfBlobs.length} PDF(s) Insurance generados con ${validStudents.length} certificado(s) en total`);
       } else if (isYouthfulOffender) {
-        console.log('🎓 Using Youthful Offender certificate generator for multiple PDFs');
+
         const result = await generateMultipleYouthfulOffenderCertificates(validStudents, '/templates_certificates/youthful-offender-class.pdf');
         const pdfBlobs = Array.isArray(result) ? result : [result];
 
@@ -276,7 +273,7 @@ export function DataTable({ columns, data, onUpdate, template }: DataTableProps)
         toast.dismiss(loadingToast);
         toast.success(`${pdfBlobs.length} PDF(s) YO generados con ${validStudents.length} certificado(s) en total`);
       } else if (isDate) {
-        console.log('🎓 Using DATE certificate generator for ZIP download');
+
         const pdfBlobs = await generateMultipleDateCertificates(validStudents);
 
         pdfBlobs.forEach((pdfBlob, index) => {
@@ -295,7 +292,7 @@ export function DataTable({ columns, data, onUpdate, template }: DataTableProps)
         toast.dismiss(loadingToast);
         toast.success(`${validStudents.length} certificado(s) DATE generados (1 por estudiante)`);
       } else {
-        console.log('🎓 Using standard certificate generator for multiple PDFs');
+
         const numPDFs = Math.ceil(validStudents.length / certsPerPage);
 
         for (let i = 0; i < numPDFs; i++) {
@@ -303,7 +300,7 @@ export function DataTable({ columns, data, onUpdate, template }: DataTableProps)
           const end = Math.min(start + certsPerPage, validStudents.length);
           const chunk = validStudents.slice(start, end);
 
-          console.log(`📄 PDF ${i + 1}/${numPDFs}: ${chunk.length} certificate(s)`);
+
           const pdfBlob = await generateMultipleCertificatesPDF(chunk, template);
           const pdfFileName = `Certificados_Grupo_${i + 1}_${chunk.length}_certs.pdf`;
           zip.file(pdfFileName, pdfBlob);
@@ -366,18 +363,16 @@ export function DataTable({ columns, data, onUpdate, template }: DataTableProps)
       const { type, classType } = validStudents[0];
       const certType = (classType || type || 'DATE').toUpperCase();
 
-      console.log(`🔍 Student data:`, validStudents[0]);
-      console.log(`📋 Resolved certType: ${certType}`);
 
       const templateResponse = await fetch(`/api/certificate-templates?classType=${certType}`);
       let template = null;
 
       if (templateResponse.ok) {
         const templates = await templateResponse.json();
-        console.log(`📥 Templates from API:`, templates);
+
         if (templates.length > 0) {
           template = templates[0];
-          console.log(`✅ Using template from database:`, template.name);
+
         }
       }
 
@@ -391,7 +386,7 @@ export function DataTable({ columns, data, onUpdate, template }: DataTableProps)
 
       if (!template) {
         if (isDate) {
-          console.log(`⚠️ No template found for DATE, using DATE template`);
+
           // Para DATE, crear un template básico con el path correcto
           template = {
             name: 'DATE Certificate',
@@ -409,7 +404,7 @@ export function DataTable({ columns, data, onUpdate, template }: DataTableProps)
             availableVariables: []
           };
         } else {
-          console.log(`⚠️ No template found, using default BDI template for ${certType}`);
+
           const { getDefaultBDITemplate } = await import("@/lib/defaultTemplates/bdiTemplate");
           template = getDefaultBDITemplate(certType);
         }
@@ -417,19 +412,16 @@ export function DataTable({ columns, data, onUpdate, template }: DataTableProps)
 
       // Para certificados de 8 horas, ADI, BDI, Insurance y Youthful Offender, siempre usar 3 por página
       const certsPerPage = (is8Hours || isAdi || isBdi || isInsurance || isYouthfulOffender) ? 3 : (template.certificatesPerPage || 1);
-      console.log(`📄 Template: ${template.name} has ${certsPerPage} certificates per page`);
-      console.log(`👥 ${validStudents.length} students selected`);
 
       // Generar un solo PDF con TODOS los estudiantes en múltiples páginas
-      console.log(`✅ Generating combined PDF with ALL ${validStudents.length} certificate(s) across multiple pages`);
 
       let pdfBlob: Blob | undefined;
       if (is8Hours) {
-        console.log('🎓 Using 8-hours certificate generator');
+
         const result = await generateMultiple8HoursCertificates(validStudents, '/templates_certificates/8-hours.pdf');
         // Si hay múltiples PDFs, combinarlos
         if (Array.isArray(result) && result.length > 1) {
-          console.log(`📄 Combining ${result.length} PDFs into one`);
+
           const combinedPdf = await PDFDocument.create();
           for (const pdfBlobItem of result) {
             const pdfBytes = await pdfBlobItem.arrayBuffer();
@@ -444,10 +436,10 @@ export function DataTable({ columns, data, onUpdate, template }: DataTableProps)
           pdfBlob = result;
         }
       } else if (isAdi) {
-        console.log('🎓 Using ADI certificate generator');
+
         const result = await generateMultipleAdiCertificates(validStudents, '/templates_certificates/adi.pdf');
         if (Array.isArray(result) && result.length > 1) {
-          console.log(`📄 Combining ${result.length} PDFs into one`);
+
           const combinedPdf = await PDFDocument.create();
           for (const pdfBlobItem of result) {
             const pdfBytes = await pdfBlobItem.arrayBuffer();
@@ -462,10 +454,10 @@ export function DataTable({ columns, data, onUpdate, template }: DataTableProps)
           pdfBlob = result;
         }
       } else if (isBdi) {
-        console.log('🎓 Using BDI certificate generator');
+
         const result = await generateMultipleBdiCertificates(validStudents, '/templates_certificates/bdi.pdf');
         if (Array.isArray(result) && result.length > 1) {
-          console.log(`📄 Combining ${result.length} PDFs into one`);
+
           const combinedPdf = await PDFDocument.create();
           for (const pdfBlobItem of result) {
             const pdfBytes = await pdfBlobItem.arrayBuffer();
@@ -480,10 +472,10 @@ export function DataTable({ columns, data, onUpdate, template }: DataTableProps)
           pdfBlob = result;
         }
       } else if (isInsurance) {
-        console.log('🎓 Using Insurance certificate generator');
+
         const result = await generateMultipleInsuranceCertificates(validStudents, '/templates_certificates/insurance.pdf');
         if (Array.isArray(result) && result.length > 1) {
-          console.log(`📄 Combining ${result.length} PDFs into one`);
+
           const combinedPdf = await PDFDocument.create();
           for (const pdfBlobItem of result) {
             const pdfBytes = await pdfBlobItem.arrayBuffer();
@@ -498,10 +490,10 @@ export function DataTable({ columns, data, onUpdate, template }: DataTableProps)
           pdfBlob = result;
         }
       } else if (isYouthfulOffender) {
-        console.log('🎓 Using Youthful Offender certificate generator');
+
         const result = await generateMultipleYouthfulOffenderCertificates(validStudents, '/templates_certificates/youthful-offender-class.pdf');
         if (Array.isArray(result) && result.length > 1) {
-          console.log(`📄 Combining ${result.length} PDFs into one`);
+
           const combinedPdf = await PDFDocument.create();
           for (const pdfBlobItem of result) {
             const pdfBytes = await pdfBlobItem.arrayBuffer();
@@ -516,10 +508,10 @@ export function DataTable({ columns, data, onUpdate, template }: DataTableProps)
           pdfBlob = result;
         }
       } else if (isDate) {
-        console.log('🎓 Using DATE certificate generator for combined PDF');
+
         pdfBlob = await generateCombinedDateCertificates(validStudents);
       } else {
-        console.log('🎓 Using standard certificate generator');
+
         pdfBlob = await generateMultipleCertificatesPDF(validStudents, template);
       }
 
@@ -571,27 +563,27 @@ export function DataTable({ columns, data, onUpdate, template }: DataTableProps)
 
       if (is8Hours) {
         // Usar generador de 8 horas con coordenadas exactas
-        console.log('🎓 Using 8-hours certificate generator');
+
         pdfBlob = await generateSingle8HoursCertificate(user, '/templates_certificates/8-hours.pdf');
       } else if (isAdi) {
         // Usar generador ADI con coordenadas exactas
-        console.log('🎓 Using ADI certificate generator');
+
         pdfBlob = await generateSingleAdiCertificate(user, '/templates_certificates/adi.pdf');
       } else if (isBdi) {
         // Usar generador BDI con coordenadas exactas
-        console.log('🎓 Using BDI certificate generator');
+
         pdfBlob = await generateSingleBdiCertificate(user, '/templates_certificates/bdi.pdf');
       } else if (isInsurance) {
         // Usar generador Insurance con coordenadas exactas
-        console.log('🎓 Using Insurance certificate generator');
+
         pdfBlob = await generateSingleInsuranceCertificate(user, '/templates_certificates/insurance.pdf');
       } else if (isYouthfulOffender) {
         // Usar generador Youthful Offender con coordenadas exactas
-        console.log('🎓 Using Youthful Offender certificate generator');
+
         pdfBlob = await generateSingleYouthfulOffenderCertificate(user, '/templates_certificates/youthful-offender-class.pdf');
       } else {
         // Usar generador unificado estándar
-        console.log('🎓 Using standard certificate generator');
+
         pdfBlob = await generateCertificatePDF(user);
       }
 
@@ -684,7 +676,7 @@ export function DataTable({ columns, data, onUpdate, template }: DataTableProps)
                 
                 // Debug: Log available columns when editing
                 if (isEditing) {
-                  console.log('📋 Available columns:', row.getVisibleCells().map(cell => cell.column.id));
+
                 }
                 
                 return (
@@ -698,7 +690,7 @@ export function DataTable({ columns, data, onUpdate, template }: DataTableProps)
                       
                       // Debug logs
                       if (isEditing && (columnId === "courseTime" || columnId === "attendanceReason")) {
-                        console.log('🔍 Editing cell:', columnId, 'value:', cellValue, 'isEditable:', isEditing);
+
                       }
                       
                       // Make all fields editable when in edit mode (except select checkbox)

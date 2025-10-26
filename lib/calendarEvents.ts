@@ -1,7 +1,6 @@
 // Utility functions to trigger calendar refresh events
 
 export const triggerCalendarRefresh = () => {
-  console.log('🔄 Triggering calendar refresh event');
 
   // Disparar evento personalizado
   window.dispatchEvent(new CustomEvent('calendarRefresh'));
@@ -11,7 +10,6 @@ export const triggerCalendarRefresh = () => {
 };
 
 export const triggerStudentRequestUpdate = () => {
-  console.log('🔄 Triggering student request update event');
 
   // Disparar evento personalizado
   window.dispatchEvent(new CustomEvent('studentRequestUpdate'));
@@ -21,7 +19,6 @@ export const triggerStudentRequestUpdate = () => {
 };
 
 export const triggerTicketClassUpdate = () => {
-  console.log('🔄 Triggering ticket class update event');
 
   // Disparar evento personalizado
   window.dispatchEvent(new CustomEvent('ticketClassUpdate'));
@@ -38,8 +35,8 @@ export const refreshTicketCalendar = () => {
 
 // Función de testing para verificar que los eventos funcionan
 export const testCalendarEvents = () => {
-  console.log('🧪 Testing calendar events...');
+
   refreshTicketCalendar();
   triggerStudentRequestUpdate();
-  console.log('✅ All calendar events triggered successfully');
+
 };
