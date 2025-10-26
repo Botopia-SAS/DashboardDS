@@ -648,22 +648,24 @@ export function DataTable({ columns, data, onUpdate, template }: DataTableProps)
                             (() => {
                               if (columnId === 'instructorSignature') {
                                 return (
-                                  <SignatureCanvas
-                                    currentSignature={cellValue as string}
-                                    studentName={`${rowData.first_name} ${rowData.last_name}`}
-                                    showApplyToAll={true}
-                                    onSave={(url, applyToAll) => {
-                                      if (applyToAll) {
-                                        // Apply signature to all rows
-                                        table.getRowModel().rows.forEach((r) => {
-                                          handleChange(r.id, columnId, url);
-                                        });
-                                      } else {
-                                        // Apply only to current row
-                                        handleChange(row.id, columnId, url);
-                                      }
-                                    }}
-                                  />
+                                  <div className="min-w-[400px]">
+                                    <SignatureCanvas
+                                      currentSignature={cellValue as string}
+                                      studentName={`${rowData.first_name} ${rowData.last_name}`}
+                                      showApplyToAll={true}
+                                      onSave={(url, applyToAll) => {
+                                        if (applyToAll) {
+                                          // Apply signature to all rows
+                                          table.getRowModel().rows.forEach((r) => {
+                                            handleChange(r.id, columnId, url);
+                                          });
+                                        } else {
+                                          // Apply only to current row
+                                          handleChange(row.id, columnId, url);
+                                        }
+                                      }}
+                                    />
+                                  </div>
                                 );
                               }
 

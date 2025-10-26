@@ -215,6 +215,7 @@ export const CERTIFICATE_CONFIGURATIONS: Record<string, CertificateConfig> = {
       { key: 'lastName', label: 'Last Name', example: 'DOE' },
       { key: 'licenseNumber', label: 'License Number', example: 'D123-456-78-910-0' },
       { key: 'courseDate', label: 'Completion Date', example: 'Nov 10, 2025' },
+      { key: 'instructorSignature', label: 'Instructor Signature', example: '(Canvas - Upload)' },
       { key: 'certn', label: 'Certificate Number', example: 'YO-2025-001' },
     ],
     allowCombinedPDF: true, // SÍ mostrar botón morado

@@ -198,6 +198,9 @@ export default function Page() {
         } else if (normalizedType === '8-HOURS-SUSPENSION') {
           const { get8HoursSuspensionTemplate } = await import("@/lib/defaultTemplates/8hoursSuspensionTemplate");
           fetchedTemplate = get8HoursSuspensionTemplate();
+        } else if (normalizedType === 'YOUTHFUL-OFFENDER-CLASS') {
+          const { getYouthfulOffenderTemplate } = await import("@/lib/defaultTemplates/youthfulOffenderTemplate");
+          fetchedTemplate = getYouthfulOffenderTemplate();
         } else {
           const { getDefaultBDITemplate } = await import("@/lib/defaultTemplates/bdiTemplate");
           fetchedTemplate = getDefaultBDITemplate(certType);

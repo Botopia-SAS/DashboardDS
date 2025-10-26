@@ -445,10 +445,12 @@ export const getYouthfulOffenderTemplate = (): Omit<CertificateTemplate, '_id' |
     { key: 'court', label: 'Court', example: '' },
     { key: 'county', label: 'County', example: 'Palm Beach County, FL' },
     { key: 'courseDate', label: 'Completion Date', example: '10/18/2025' },
+    { key: 'instructorSchoolName', label: "Instructor's School Name", example: 'ABC Driving School' },
     { key: 'certn', label: 'Certificate Number', example: '12345' },
     // Dropdown fields - these will show as select dropdowns in the table
     { key: 'courseTime', label: 'Course Time', example: '4 hr', options: ['4 hr', '6 hr', '8 hr'] },
     { key: 'attendanceReason', label: 'Attendance Reason', example: 'Ticket/Citation', options: ['Court Order', 'Volunteer', 'Ticket/Citation'] },
+    { key: 'instructorSignature', label: 'Instructor Signature', example: '(Canvas - Upload)' },
   ],
 
   isDefault: true,

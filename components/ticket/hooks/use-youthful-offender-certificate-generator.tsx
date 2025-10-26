@@ -47,9 +47,28 @@ export function useYouthfulOffenderCertificateGenerator() {
         // Obtener coordenadas para la posición 1
         const coordinates = getYouthfulOffenderPositionCoordinates(1);
 
+        // Mapeo de nombres de campos (coordenadas -> base de datos)
+        const fieldMapping: Record<string, string> = {
+          firstName: 'first_name',
+          lastName: 'last_name',
+          middleName: 'midl',
+          licenseNumber: 'licenseNumber',
+          citationNumber: 'citationNumber',
+          courseDate: 'courseDate',
+          certn: 'certn',
+          court: 'court',
+          county: 'county',
+          instructorSignature: 'instructorSignature',
+          courseTime: 'courseTime',
+          attendanceReason: 'attendanceReason',
+          instructorSchoolName: 'instructorSchoolName'
+        };
+
         // Dibujar cada campo en su posición
         for (const [fieldKey, coord] of Object.entries(coordinates)) {
-          let value = (student as any)[fieldKey];
+          // Obtener el nombre del campo en la base de datos
+          const dbFieldKey = fieldMapping[fieldKey] || fieldKey;
+          let value = (student as any)[dbFieldKey];
 
           // Manejar firma del instructor como imagen
           if (fieldKey === "instructorSignature") {
@@ -93,6 +112,29 @@ export function useYouthfulOffenderCertificateGenerator() {
           // Si no hay valor, omitir (no usar mock data)
           if (!value || value === "") {
             console.log(`  ⚠️ ${fieldKey} is empty, skipping`);
+            continue;
+          }
+
+          // Manejar checkboxes
+          if (coord.isCheckbox && coord.checkboxOptions) {
+            // Encontrar la opción que coincide con el valor
+            const selectedOption = coord.checkboxOptions.find(opt => opt.value === value);
+
+            if (selectedOption) {
+              // Dibujar una X en el checkbox seleccionado
+              const checkSize = coord.fontSize || 8;
+              const pdfY = height - selectedOption.y - checkSize;
+
+              firstPage.drawText("X", {
+                x: selectedOption.x,
+                y: pdfY,
+                size: checkSize,
+                font: helvetica,
+                color: rgb(0, 0, 0),
+              });
+
+              console.log(`  ✓ ${fieldKey} checkbox: "${value}" marked at (${selectedOption.x}, ${pdfY})`);
+            }
             continue;
           }
 
@@ -187,9 +229,28 @@ export function useYouthfulOffenderCertificateGenerator() {
             // Obtener coordenadas para esta posición
             const coordinates = getYouthfulOffenderPositionCoordinates(position);
 
+            // Mapeo de nombres de campos (coordenadas -> base de datos)
+            const fieldMapping: Record<string, string> = {
+              firstName: 'first_name',
+              lastName: 'last_name',
+              middleName: 'midl',
+              licenseNumber: 'licenseNumber',
+              citationNumber: 'citationNumber',
+              courseDate: 'courseDate',
+              certn: 'certn',
+              court: 'court',
+              county: 'county',
+              instructorSignature: 'instructorSignature',
+              courseTime: 'courseTime',
+              attendanceReason: 'attendanceReason',
+              instructorSchoolName: 'instructorSchoolName'
+            };
+
             // Dibujar cada campo en su posición
             for (const [fieldKey, coord] of Object.entries(coordinates)) {
-              let value = (student as any)[fieldKey];
+              // Obtener el nombre del campo en la base de datos
+              const dbFieldKey = fieldMapping[fieldKey] || fieldKey;
+              let value = (student as any)[dbFieldKey];
 
               // Manejar firma del instructor como imagen
               if (fieldKey === "instructorSignature") {
@@ -233,6 +294,29 @@ export function useYouthfulOffenderCertificateGenerator() {
               // Si no hay valor, omitir (no usar mock data)
               if (!value || value === "") {
                 console.log(`    ⚠️ ${fieldKey} is empty, skipping`);
+                continue;
+              }
+
+              // Manejar checkboxes
+              if (coord.isCheckbox && coord.checkboxOptions) {
+                // Encontrar la opción que coincide con el valor
+                const selectedOption = coord.checkboxOptions.find(opt => opt.value === value);
+
+                if (selectedOption) {
+                  // Dibujar una X en el checkbox seleccionado
+                  const checkSize = coord.fontSize || 8;
+                  const pdfY = height - selectedOption.y - checkSize;
+
+                  firstPage.drawText("X", {
+                    x: selectedOption.x,
+                    y: pdfY,
+                    size: checkSize,
+                    font: helvetica,
+                    color: rgb(0, 0, 0),
+                  });
+
+                  console.log(`    ✓ ${fieldKey} checkbox: "${value}" marked at (${selectedOption.x}, ${pdfY})`);
+                }
                 continue;
               }
 
