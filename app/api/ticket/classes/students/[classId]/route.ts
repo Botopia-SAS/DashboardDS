@@ -295,20 +295,7 @@ export async function PATCH(req: NextRequest) {
 
     // Update certificate number if provided
     if (certn) {
-      // Check if certificate number is already used by another student
-      const existingCertWithNumber = await Certificate.findOne({
-        number: Number(certn),
-        studentId: { $ne: user._id }, // Not by this student
-      }).exec();
-
-      if (existingCertWithNumber) {
-        return NextResponse.json(
-          { success: false, message: "Certificate number already exists" },
-          { status: 400 }
-        );
-      }
-
-      // Update the certificate number
+      // Allow duplicate certificate numbers - update the certificate number
       cert.number = Number(certn);
       await cert.save();
       console.log('Certificate number updated to:', certn);

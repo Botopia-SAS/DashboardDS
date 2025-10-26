@@ -30,7 +30,7 @@ export interface ICertificate extends Document {
 }
 
 const CertificateSchema: Schema = new Schema({
-  number: { type: Number, default: 0, unique: true },
+  number: { type: Number, default: 0 },
   studentId: { type: Schema.Types.ObjectId, ref: "User", required: true },
   classId: { type: Schema.Types.ObjectId, ref: "DrivingClass", required: true },
   date: { type: Date, default: Date.now },
