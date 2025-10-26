@@ -50,7 +50,7 @@ export const CERTIFICATE_CONFIGURATIONS: Record<string, CertificateConfig> = {
       { key: 'classType', label: 'Class Type', example: 'DATE' },
       { key: 'classTitle', label: 'Class Title', example: 'D.A.T.E. Course' },
     ],
-    allowCombinedPDF: false, // NO mostrar botón morado
+    allowCombinedPDF: true, // SÍ mostrar botón morado
   },
 
   ADI: {
@@ -102,8 +102,8 @@ export const CERTIFICATE_CONFIGURATIONS: Record<string, CertificateConfig> = {
     pageSize: { width: 792, height: 612, orientation: 'landscape' },
     tableVariables: [
       { key: 'lastName', label: 'Last Name', example: 'DOE' },
-      { key: 'firstName', label: 'First Name', example: 'JOHN' },
       { key: 'midl', label: 'Middle Name', example: 'M' },
+      { key: 'firstName', label: 'First Name', example: 'JOHN' },
       { key: 'certn', label: 'Certificate Number', example: '100' },
       {
         key: 'courseTime',
@@ -137,8 +137,8 @@ export const CERTIFICATE_CONFIGURATIONS: Record<string, CertificateConfig> = {
     pageSize: { width: 792, height: 612, orientation: 'landscape' },
     tableVariables: [
       { key: 'lastName', label: 'Last Name', example: 'DOE' },
-      { key: 'firstName', label: 'First Name', example: 'JOHN' },
       { key: 'midl', label: 'Middle Name', example: 'M' },
+      { key: 'firstName', label: 'First Name', example: 'JOHN' },
       { key: 'certn', label: 'Certificate Number', example: '100' },
       {
         key: 'courseTime',
@@ -172,8 +172,8 @@ export const CERTIFICATE_CONFIGURATIONS: Record<string, CertificateConfig> = {
     pageSize: { width: 792, height: 612, orientation: 'landscape' },
     tableVariables: [
       { key: 'lastName', label: 'Last Name', example: 'DOE' },
-      { key: 'firstName', label: 'First Name', example: 'JOHN' },
       { key: 'midl', label: 'Middle Name', example: 'M' },
+      { key: 'firstName', label: 'First Name', example: 'JOHN' },
       { key: 'certn', label: 'Certificate Number', example: '100' },
       {
         key: 'courseTime',

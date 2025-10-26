@@ -50,9 +50,26 @@ export function use8HoursCertificateGenerator() {
         // Usar coordenadas de la posición 1
         const coordinates = get8HoursPositionCoordinates(1);
 
+        // Mapeo de nombres de campos (coordenadas -> base de datos)
+        const fieldMapping: Record<string, string> = {
+          firstName: 'first_name',
+          lastName: 'last_name',
+          middleName: 'midl',
+          licenseNumber: 'licenseNumber',
+          citationNumber: 'citationNumber',
+          courseDate: 'courseDate',
+          address: 'address',
+          schoolOfficial: 'schoolOfficial',
+          attendance: 'attendance',
+          circuitCourtNo: 'circuitCourtNo',
+          county: 'county'
+        };
+
         // Dibujar cada campo en su posición
         Object.entries(coordinates).forEach(([fieldKey, coord]) => {
-          let value = (student as any)[fieldKey];
+          // Obtener el nombre del campo en la base de datos
+          const dbFieldKey = fieldMapping[fieldKey] || fieldKey;
+          let value = (student as any)[dbFieldKey];
 
           // Transformaciones especiales
           if (fieldKey === "courseDate" && value) {
@@ -69,7 +86,7 @@ export function use8HoursCertificateGenerator() {
 
           // Si no hay valor, saltar este campo (no usar datos mock)
           if (!value || value === "") {
-            console.log(`  ⚠️ ${fieldKey} is empty, skipping`);
+            console.log(`  ⚠️ ${fieldKey} (${dbFieldKey}) is empty, skipping`);
             return;
           }
 
@@ -173,6 +190,21 @@ export function use8HoursCertificateGenerator() {
           const helvetica = await pdfDoc.embedFont(StandardFonts.Helvetica);
           const timesRoman = await pdfDoc.embedFont(StandardFonts.TimesRoman);
 
+          // Mapeo de nombres de campos (coordenadas -> base de datos)
+          const fieldMapping: Record<string, string> = {
+            firstName: 'first_name',
+            lastName: 'last_name',
+            middleName: 'midl',
+            licenseNumber: 'licenseNumber',
+            citationNumber: 'citationNumber',
+            courseDate: 'courseDate',
+            address: 'address',
+            schoolOfficial: 'schoolOfficial',
+            attendance: 'attendance',
+            circuitCourtNo: 'circuitCourtNo',
+            county: 'county'
+          };
+
           // Dibujar cada estudiante en su posición
           chunk.forEach((student, index) => {
             const position = (index + 1) as 1 | 2 | 3;
@@ -181,7 +213,9 @@ export function use8HoursCertificateGenerator() {
             console.log(`  🎫 ${student.first_name} ${student.last_name} at position ${position}`);
 
             Object.entries(coordinates).forEach(([fieldKey, coord]) => {
-              let value = (student as any)[fieldKey];
+              // Obtener el nombre del campo en la base de datos
+              const dbFieldKey = fieldMapping[fieldKey] || fieldKey;
+              let value = (student as any)[dbFieldKey];
 
               // Transformaciones especiales
               if (fieldKey === "courseDate" && value) {
@@ -198,7 +232,7 @@ export function use8HoursCertificateGenerator() {
 
               // Si no hay valor, saltar este campo (no usar datos mock)
               if (!value || value === "") {
-                console.log(`  ⚠️ ${fieldKey} is empty, skipping`);
+                console.log(`  ⚠️ ${fieldKey} (${dbFieldKey}) is empty, skipping`);
                 return;
               }
 
