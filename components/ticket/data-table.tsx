@@ -27,6 +27,7 @@ import { useDynamicCertificateGenerator } from "./hooks/use-dynamic-certificate-
 import { use8HoursCertificateGenerator } from "./hooks/use-8hours-certificate-generator";
 import { useAdiCertificateGenerator } from "./hooks/use-adi-certificate-generator";
 import { useBdiCertificateGenerator } from "./hooks/use-bdi-certificate-generator";
+import { useInsuranceCertificateGenerator } from "./hooks/use-insurance-certificate-generator";
 import { useDateCertificateGenerator } from "./hooks/use-date-certificate-generator";
 import { useYouthfulOffenderCertificateGenerator } from "./hooks/use-youthful-offender-certificate-generator";
 import { RowActionButtons } from "./row-action-buttons";
@@ -68,6 +69,7 @@ export function DataTable({ columns, data, onUpdate, template }: DataTableProps)
   const { generateSingle8HoursCertificate, generateMultiple8HoursCertificates } = use8HoursCertificateGenerator();
   const { generateSingleAdiCertificate, generateMultipleAdiCertificates } = useAdiCertificateGenerator();
   const { generateSingleBdiCertificate, generateMultipleBdiCertificates } = useBdiCertificateGenerator();
+  const { generateSingleInsuranceCertificate, generateMultipleInsuranceCertificates } = useInsuranceCertificateGenerator();
   const { generateDateCertificatePDF, generateMultipleDateCertificates, generateCombinedDateCertificates } = useDateCertificateGenerator();
   const { generateSingleYouthfulOffenderCertificate, generateMultipleYouthfulOffenderCertificates } = useYouthfulOffenderCertificateGenerator();
 
@@ -138,10 +140,11 @@ export function DataTable({ columns, data, onUpdate, template }: DataTableProps)
         }
       }
 
-      // Detectar si es un certificado de 8 horas, ADI, BDI, DATE o Youthful Offender
+      // Detectar si es un certificado de 8 horas, ADI, BDI, Insurance, DATE o Youthful Offender
       const is8Hours = certType.includes('8-HOURS') || certType.includes('8 HOURS');
       const isAdi = certType.includes('ADI');
       const isBdi = certType.includes('BDI');
+      const isInsurance = certType.includes('INSURANCE');
       const isDate = certType === 'DATE';
       const isYouthfulOffender = certType.includes('YOUTHFUL OFFENDER') || certType.includes('YOUTHFUL-OFFENDER');
 
@@ -171,8 +174,8 @@ export function DataTable({ columns, data, onUpdate, template }: DataTableProps)
         }
       }
 
-      // Para certificados de 8 horas, ADI, BDI y Youthful Offender, siempre usar 3 por página
-      const certsPerPage = (is8Hours || isAdi || isBdi || isYouthfulOffender) ? 3 : (template.certificatesPerPage || 1);
+      // Para certificados de 8 horas, ADI, BDI, Insurance y Youthful Offender, siempre usar 3 por página
+      const certsPerPage = (is8Hours || isAdi || isBdi || isInsurance || isYouthfulOffender) ? 3 : (template.certificatesPerPage || 1);
       console.log(`📄 Template: ${template.name} has ${certsPerPage} certificates per page`);
 
       const zip = new JSZip();
@@ -231,6 +234,24 @@ export function DataTable({ columns, data, onUpdate, template }: DataTableProps)
         setRowSelection({});
         toast.dismiss(loadingToast);
         toast.success(`${pdfBlobs.length} PDF(s) BDI generados con ${validStudents.length} certificado(s) en total`);
+      } else if (isInsurance) {
+        console.log('🎓 Using Insurance certificate generator for multiple PDFs');
+        const result = await generateMultipleInsuranceCertificates(validStudents, '/templates_certificates/insurance.pdf');
+        const pdfBlobs = Array.isArray(result) ? result : [result];
+
+        pdfBlobs.forEach((pdfBlob, index) => {
+          const certsInThisPdf = Math.min(3, validStudents.length - (index * 3));
+          const pdfFileName = `Certificados_Insurance_Grupo_${index + 1}_${certsInThisPdf}_certs.pdf`;
+          zip.file(pdfFileName, pdfBlob);
+        });
+
+        const zipBlob = await zip.generateAsync({ type: "blob" });
+        const zipFileName = `Certificados_Insurance_${pdfBlobs.length}_PDFs_${validStudents.length}_estudiantes_${new Date().toISOString().split('T')[0]}.zip`;
+        saveAs(zipBlob, zipFileName);
+
+        setRowSelection({});
+        toast.dismiss(loadingToast);
+        toast.success(`${pdfBlobs.length} PDF(s) Insurance generados con ${validStudents.length} certificado(s) en total`);
       } else if (isYouthfulOffender) {
         console.log('🎓 Using Youthful Offender certificate generator for multiple PDFs');
         const result = await generateMultipleYouthfulOffenderCertificates(validStudents, '/templates_certificates/youthful-offender-class.pdf');
@@ -354,10 +375,11 @@ export function DataTable({ columns, data, onUpdate, template }: DataTableProps)
         }
       }
 
-      // Detectar si es un certificado de 8 horas, ADI, BDI, DATE o Youthful Offender
+      // Detectar si es un certificado de 8 horas, ADI, BDI, Insurance, DATE o Youthful Offender
       const is8Hours = certType.includes('8-HOURS') || certType.includes('8 HOURS');
       const isAdi = certType.includes('ADI');
       const isBdi = certType.includes('BDI');
+      const isInsurance = certType.includes('INSURANCE');
       const isDate = certType === 'DATE';
       const isYouthfulOffender = certType.includes('YOUTHFUL OFFENDER') || certType.includes('YOUTHFUL-OFFENDER');
 
@@ -387,8 +409,8 @@ export function DataTable({ columns, data, onUpdate, template }: DataTableProps)
         }
       }
 
-      // Para certificados de 8 horas, ADI, BDI y Youthful Offender, siempre usar 3 por página
-      const certsPerPage = (is8Hours || isAdi || isBdi || isYouthfulOffender) ? 3 : (template.certificatesPerPage || 1);
+      // Para certificados de 8 horas, ADI, BDI, Insurance y Youthful Offender, siempre usar 3 por página
+      const certsPerPage = (is8Hours || isAdi || isBdi || isInsurance || isYouthfulOffender) ? 3 : (template.certificatesPerPage || 1);
       console.log(`📄 Template: ${template.name} has ${certsPerPage} certificates per page`);
       console.log(`👥 ${validStudents.length} students selected`);
 
@@ -445,6 +467,22 @@ export function DataTable({ columns, data, onUpdate, template }: DataTableProps)
         } else {
           pdfBlob = Array.isArray(result) ? result[0] : result;
         }
+      } else if (isInsurance) {
+        console.log('🎓 Using Insurance certificate generator');
+        const result = await generateMultipleInsuranceCertificates(validStudents, '/templates_certificates/insurance.pdf');
+        if (Array.isArray(result) && result.length > 1) {
+          console.log(`📄 Combining ${result.length} PDFs into one`);
+          const combinedPdf = await PDFDocument.create();
+          for (const pdfBlobItem of result) {
+            const pdfBytes = await pdfBlobItem.arrayBuffer();
+            const pdf = await PDFDocument.load(pdfBytes);
+            const pages = await combinedPdf.copyPages(pdf, pdf.getPageIndices());
+            pages.forEach((page) => combinedPdf.addPage(page));
+          }
+          pdfBlob = new Blob([await combinedPdf.save()], { type: 'application/pdf' });
+        } else {
+          pdfBlob = Array.isArray(result) ? result[0] : result;
+        }
       } else if (isYouthfulOffender) {
         console.log('🎓 Using Youthful Offender certificate generator');
         const result = await generateMultipleYouthfulOffenderCertificates(validStudents, '/templates_certificates/youthful-offender-class.pdf');
@@ -481,7 +519,7 @@ export function DataTable({ columns, data, onUpdate, template }: DataTableProps)
       toast.dismiss(loadingToast);
       toast.error("Error al generar el PDF combinado. Intente nuevamente.");
     }
-  }, [generateMultipleCertificatesPDF, generateMultiple8HoursCertificates, generateMultipleAdiCertificates, generateMultipleBdiCertificates, generateMultipleYouthfulOffenderCertificates, table, setRowSelection]);
+  }, [generateMultipleCertificatesPDF, generateMultiple8HoursCertificates, generateMultipleAdiCertificates, generateMultipleBdiCertificates, generateMultipleInsuranceCertificates, generateMultipleYouthfulOffenderCertificates, table, setRowSelection]);
 
   const downloadSingleCertificate = useCallback(
     async (user: Student) => {
@@ -494,18 +532,19 @@ export function DataTable({ columns, data, onUpdate, template }: DataTableProps)
       // Proceed directly with generation using unified certificate generator
       await proceedWithGeneration(user);
     },
-    [generateCertificatePDF, generateSingle8HoursCertificate, generateSingleAdiCertificate, generateSingleBdiCertificate, generateSingleYouthfulOffenderCertificate]
+    [generateCertificatePDF, generateSingle8HoursCertificate, generateSingleAdiCertificate, generateSingleBdiCertificate, generateSingleInsuranceCertificate, generateSingleYouthfulOffenderCertificate]
   );
 
   const proceedWithGeneration = async (user: Student) => {
     const loadingToast = toast.loading("Generando certificado...");
 
     try {
-      // Detectar si es un certificado de 8 horas, ADI, BDI o Youthful Offender
+      // Detectar si es un certificado de 8 horas, ADI, BDI, Insurance o Youthful Offender
       const classType = user.classType?.toUpperCase() || '';
       const is8Hours = classType.includes('8-HOURS') || classType.includes('8 HOURS');
       const isAdi = classType.includes('ADI');
       const isBdi = classType.includes('BDI');
+      const isInsurance = classType.includes('INSURANCE');
       const isYouthfulOffender = classType.includes('YOUTHFUL OFFENDER') || classType.includes('YOUTHFUL-OFFENDER');
 
       let pdfBlob: Blob;
@@ -522,6 +561,10 @@ export function DataTable({ columns, data, onUpdate, template }: DataTableProps)
         // Usar generador BDI con coordenadas exactas
         console.log('🎓 Using BDI certificate generator');
         pdfBlob = await generateSingleBdiCertificate(user, '/templates_certificates/bdi.pdf');
+      } else if (isInsurance) {
+        // Usar generador Insurance con coordenadas exactas
+        console.log('🎓 Using Insurance certificate generator');
+        pdfBlob = await generateSingleInsuranceCertificate(user, '/templates_certificates/insurance.pdf');
       } else if (isYouthfulOffender) {
         // Usar generador Youthful Offender con coordenadas exactas
         console.log('🎓 Using Youthful Offender certificate generator');

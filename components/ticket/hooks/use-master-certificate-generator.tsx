@@ -5,6 +5,7 @@ import { useCallback } from "react";
 import { useDateCertificateGenerator } from "./use-date-certificate-generator";
 import { useBdiCertificateGenerator } from "./use-bdi-certificate-generator";
 import { useAdiCertificateGenerator } from "./use-adi-certificate-generator";
+import { useInsuranceCertificateGenerator } from "./use-insurance-certificate-generator";
 import { useYouthfulOffenderCertificateGenerator } from "./use-youthful-offender-certificate-generator";
 import { useDynamicCertificateGenerator } from "./use-dynamic-certificate-generator";
 import { CertificateTemplate } from "@/lib/certificateTypes";
@@ -20,6 +21,7 @@ export function useCertificateGenerator() {
   const { generateDateCertificatePDF } = useDateCertificateGenerator();
   const { generateSingleBdiCertificate: generateBdiCertificatePDF } = useBdiCertificateGenerator();
   const { generateSingleAdiCertificate } = useAdiCertificateGenerator();
+  const { generateSingleInsuranceCertificate } = useInsuranceCertificateGenerator();
   const { generateSingleYouthfulOffenderCertificate } = useYouthfulOffenderCertificateGenerator();
   const { generateDynamicCertificatePDF } = useDynamicCertificateGenerator();
 
@@ -127,6 +129,9 @@ export function useCertificateGenerator() {
       } else if (certType === "BDI") {
         console.log('📋 Using BDI PDF generator');
         return generateBdiCertificatePDF(user, '/templates_certificates/bdi.pdf');
+      } else if (certType === "INSURANCE DISCOUNT CLASS" || certType === "INSURANCE-DISCOUNT-CLASS") {
+        console.log('📋 Using Insurance PDF generator');
+        return generateSingleInsuranceCertificate(user, '/templates_certificates/insurance.pdf');
       } else if (certType === "DATE") {
         console.log('📋 Using DATE PDF generator');
         return generateDateCertificatePDF(user);
@@ -168,6 +173,7 @@ export function useCertificateGenerator() {
       generateDateCertificatePDF,
       generateBdiCertificatePDF,
       generateSingleAdiCertificate,
+      generateSingleInsuranceCertificate,
       generateSingleYouthfulOffenderCertificate,
       generateDynamicCertificatePDF,
     ]
