@@ -41,26 +41,21 @@ export default function DrivingTestLessonsPage() {
       const randomInstructor = instructors[randomIndex];
       handleInstructorSelect(randomInstructor);
     }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [instructors]);
 
   // Efecto para auto-seleccionar instructor desde URL params
   useEffect(() => {
     const instructorId = searchParams.get('instructorId');
-    const targetDate = searchParams.get('date');
-    const targetType = searchParams.get('type');
-    const eventId = searchParams.get('eventId');
 
     if (instructorId && instructors.length > 0) {
       const targetInstructor = instructors.find(inst => inst._id === instructorId);
       if (targetInstructor && !selectedInstructor) {
-
-        if (targetDate) {
-
-        }
         handleInstructorSelect(targetInstructor);
       }
     }
-  }, [instructors, searchParams, selectedInstructor]);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [instructors, searchParams]);
 
   const fetchInstructors = async () => {
     try {
