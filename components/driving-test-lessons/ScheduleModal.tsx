@@ -847,7 +847,7 @@ const ScheduleModal: React.FC<ScheduleModalProps> = ({
           )}
 
           {selectedInstructor && (
-            <div className="mb-2 p-1.5 bg-gray-50 rounded">
+            <div className="mb-2 p-1.5 bg-white rounded">
               <div className="text-xs">
                 {selectedInstructor.name} - {selectedInstructor.email}
               </div>
@@ -1113,7 +1113,7 @@ const ScheduleModal: React.FC<ScheduleModalProps> = ({
                     )}
                   </div>
                   {selectedUser && (
-                    <div className="mt-2 flex items-center justify-between p-2 bg-blue-50 border border-blue-200 rounded">
+                    <div className="mt-2 flex items-center justify-between p-2 bg-white border border-blue-200 rounded">
                       <div className="text-sm">
                         <span className="font-medium">Selected:</span> {selectedUser.firstName} {selectedUser.lastName}
                       </div>
@@ -1222,7 +1222,7 @@ const ScheduleModal: React.FC<ScheduleModalProps> = ({
                     )}
                   </div>
                   {selectedUser && (
-                    <div className="mt-2 flex items-center justify-between p-2 bg-blue-50 border border-blue-200 rounded">
+                    <div className="mt-2 flex items-center justify-between p-2 bg-white border border-blue-200 rounded">
                       <div className="text-sm">
                         <span className="font-medium">Selected:</span> {selectedUser.firstName} {selectedUser.lastName}
                       </div>

@@ -33,6 +33,16 @@ export default function DrivingTestLessonsPage() {
     fetchInstructors();
   }, []);
 
+  // Efecto para auto-seleccionar instructor aleatorio al cargar
+  useEffect(() => {
+    if (instructors.length > 0 && !selectedInstructor && !searchParams.get('instructorId')) {
+      // Seleccionar un instructor aleatorio
+      const randomIndex = Math.floor(Math.random() * instructors.length);
+      const randomInstructor = instructors[randomIndex];
+      handleInstructorSelect(randomInstructor);
+    }
+  }, [instructors]);
+
   // Efecto para auto-seleccionar instructor desde URL params
   useEffect(() => {
     const instructorId = searchParams.get('instructorId');
@@ -140,8 +150,18 @@ export default function DrivingTestLessonsPage() {
   if (loading) return <Loader />;
 
   return (
-    <div className="p-6 md:p-10 bg-gray-100 min-h-screen">
-      <DashboardHeader title="Driving Test / Lessons" />
+    <div className="p-6 md:p-10 bg-white min-h-screen">
+      <DashboardHeader title="Driving Test / Lessons">
+        <button
+          onClick={() => window.location.href = '/driving-test-lessons/certificates'}
+          className="px-4 py-2 bg-blue-600 hover:bg-blue-700 text-white rounded-lg font-medium transition-colors flex items-center gap-2 shadow-md"
+        >
+          <svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5" viewBox="0 0 20 20" fill="currentColor">
+            <path fillRule="evenodd" d="M6 2a2 2 0 00-2 2v12a2 2 0 002 2h8a2 2 0 002-2V7.414A2 2 0 0015.414 6L12 2.586A2 2 0 0010.586 2H6zm5 6a1 1 0 10-2 0v3.586l-1.293-1.293a1 1 0 10-1.414 1.414l3 3a1 1 0 001.414 0l3-3a1 1 0 00-1.414-1.414L11 11.586V8z" clipRule="evenodd" />
+          </svg>
+          Certificates Driving Lesson
+        </button>
+      </DashboardHeader>
       <div className="bg-white rounded-2xl shadow-lg p-6 md:p-10">
         <InstructorsRow 
           instructors={instructors} 
@@ -160,7 +180,7 @@ export default function DrivingTestLessonsPage() {
 
         {!selectedInstructor && !initializingInstructor && (
           <div className="mt-8 text-center">
-            <div className="bg-gray-50 rounded-lg p-8 border-2 border-dashed border-gray-300">
+            <div className="bg-white rounded-lg p-8 border-2 border-dashed border-gray-300">
               <div className="text-gray-500 text-lg font-medium mb-2">
                 Select an instructor to configure their schedule
               </div>

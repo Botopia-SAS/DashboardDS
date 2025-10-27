@@ -5,6 +5,7 @@ import FullCalendar from "@fullcalendar/react";
 import timeGridPlugin from "@fullcalendar/timegrid";
 import interactionPlugin from "@fullcalendar/interaction";
 import ScheduleModal from "./ScheduleModal";
+import Loader from "@/components/custom ui/Loader";
 
 interface CalendarProps {
   selectedInstructor?: any;
@@ -590,14 +591,8 @@ const Calendar: React.FC<CalendarProps> = ({ selectedInstructor, targetDate, tar
           }
         }
       `}</style>
-      
-      {loading && (
-        <div className="flex justify-center items-center h-64">
-          <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-blue-600"></div>
-        </div>
-      )}
-      
-      <div className="relative">
+
+      <div className="relative" style={{ opacity: loading ? 0.5 : 1, transition: 'opacity 0.3s' }}>
         <div className="border rounded-lg p-4">
           <FullCalendar
             ref={calendarRef}
