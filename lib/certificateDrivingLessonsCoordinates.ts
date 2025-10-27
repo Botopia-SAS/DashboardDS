@@ -29,8 +29,8 @@ export interface FieldDrivingLessonCoordinate {
 }
 
 // Offsets configurables para las diferentes posiciones
-const POSITION_2_OFFSET = 204; // Offset para el segundo certificado
-const POSITION_3_OFFSET = 408; // Offset para el tercer certificado
+const POSITION_2_OFFSET = 279; // Offset para el segundo certificado
+const POSITION_3_OFFSET = 556; // Offset para el tercer certificado
 
 /**
  * Coordenadas para el PRIMER certificado Driving Lesson (parte superior del PDF)
@@ -42,58 +42,58 @@ const POSITION_3_OFFSET = 408; // Offset para el tercer certificado
 export const POSITION_1_DRIVING_LESSON_COORDINATES: Record<string, FieldDrivingLessonCoordinate> = {
   // Student Name (First Name)
   firstName: {
-    x: 150,
-    y: 520,
-    fontSize: 12,
-    fontFamily: 'Times-Roman',
+    x: 310,
+    y: 105,
+    fontSize: 8,
+    fontFamily: 'Montserrat',
     align: 'left',
     maxWidth: 200
   },
 
   // Last Name
   lastName: {
-    x: 300,
-    y: 520,
-    fontSize: 12,
-    fontFamily: 'Times-Roman',
-    align: 'left',
+    x: 250,
+    y: 105,
+    fontSize: 8,
+    fontFamily: 'Montserrat',
+    align: 'right',
     maxWidth: 200
   },
 
   // License Number
   licenseNumber: {
-    x: 150,
-    y: 480,
-    fontSize: 11,
-    fontFamily: 'Times-Roman',
-    align: 'left',
+    x: 304,
+    y: 125,
+    fontSize: 8,
+    fontFamily: 'Montserrat',
+    align: 'center',
     maxWidth: 250
   },
 
   // Completion Date
   completionDate: {
-    x: 500,
-    y: 480,
-    fontSize: 11,
-    fontFamily: 'Times-Roman',
-    align: 'left'
+    x: 375,
+    y: 205,
+    fontSize: 8,
+    fontFamily: 'Montserrat',
+    align: 'center'
   },
 
   // Hours
   hours: {
-    x: 500,
-    y: 450,
-    fontSize: 11,
-    fontFamily: 'Times-Roman',
+    x: 333,
+    y: 141,
+    fontSize: 8,
+    fontFamily: 'Montserrat',
     align: 'center'
   },
 
   // Instructor Signature
   instructorSignature: {
-    x: 150,
-    y: 350,
-    fontSize: 10,
-    fontFamily: 'Times-Roman',
+    x: 200,
+    y: 188,
+    fontSize: 8,
+    fontFamily: 'Montserrat',
     align: 'center',
     maxWidth: 200,
     width: 100,
@@ -109,8 +109,8 @@ export const POSITION_2_DRIVING_LESSON_COORDINATES: Record<string, FieldDrivingL
   firstName: {
     x: POSITION_1_DRIVING_LESSON_COORDINATES.firstName.x,
     y: POSITION_1_DRIVING_LESSON_COORDINATES.firstName.y! + POSITION_2_OFFSET,
-    fontSize: 12,
-    fontFamily: 'Times-Roman',
+    fontSize: 8,
+    fontFamily: 'Montserrat',
     align: 'left',
     maxWidth: 200
   },
@@ -118,8 +118,8 @@ export const POSITION_2_DRIVING_LESSON_COORDINATES: Record<string, FieldDrivingL
   lastName: {
     x: POSITION_1_DRIVING_LESSON_COORDINATES.lastName.x,
     y: POSITION_1_DRIVING_LESSON_COORDINATES.lastName.y! + POSITION_2_OFFSET,
-    fontSize: 12,
-    fontFamily: 'Times-Roman',
+    fontSize: 8,
+    fontFamily: 'Montserrat',
     align: 'left',
     maxWidth: 200
   },
@@ -127,8 +127,8 @@ export const POSITION_2_DRIVING_LESSON_COORDINATES: Record<string, FieldDrivingL
   licenseNumber: {
     x: POSITION_1_DRIVING_LESSON_COORDINATES.licenseNumber.x,
     y: POSITION_1_DRIVING_LESSON_COORDINATES.licenseNumber.y! + POSITION_2_OFFSET,
-    fontSize: 11,
-    fontFamily: 'Times-Roman',
+    fontSize: 8,
+    fontFamily: 'Montserrat',
     align: 'left',
     maxWidth: 250
   },
@@ -136,24 +136,24 @@ export const POSITION_2_DRIVING_LESSON_COORDINATES: Record<string, FieldDrivingL
   completionDate: {
     x: POSITION_1_DRIVING_LESSON_COORDINATES.completionDate.x,
     y: POSITION_1_DRIVING_LESSON_COORDINATES.completionDate.y! + POSITION_2_OFFSET,
-    fontSize: 11,
-    fontFamily: 'Times-Roman',
+    fontSize: 8,
+    fontFamily: 'Montserrat',
     align: 'left'
   },
 
   hours: {
     x: POSITION_1_DRIVING_LESSON_COORDINATES.hours.x,
     y: POSITION_1_DRIVING_LESSON_COORDINATES.hours.y! + POSITION_2_OFFSET,
-    fontSize: 11,
-    fontFamily: 'Times-Roman',
+    fontSize: 8,
+    fontFamily: 'Montserrat',
     align: 'center'
   },
 
   instructorSignature: {
     x: POSITION_1_DRIVING_LESSON_COORDINATES.instructorSignature.x,
     y: POSITION_1_DRIVING_LESSON_COORDINATES.instructorSignature.y! + POSITION_2_OFFSET,
-    fontSize: 10,
-    fontFamily: 'Times-Roman',
+    fontSize: 8,
+    fontFamily: 'Montserrat',
     align: 'center',
     maxWidth: 200,
     width: 100,
@@ -169,8 +169,8 @@ export const POSITION_3_DRIVING_LESSON_COORDINATES: Record<string, FieldDrivingL
   firstName: {
     x: POSITION_1_DRIVING_LESSON_COORDINATES.firstName.x,
     y: POSITION_1_DRIVING_LESSON_COORDINATES.firstName.y! + POSITION_3_OFFSET,
-    fontSize: 12,
-    fontFamily: 'Times-Roman',
+    fontSize: 8,
+    fontFamily: 'Montserrat',
     align: 'left',
     maxWidth: 200
   },
@@ -178,8 +178,8 @@ export const POSITION_3_DRIVING_LESSON_COORDINATES: Record<string, FieldDrivingL
   lastName: {
     x: POSITION_1_DRIVING_LESSON_COORDINATES.lastName.x,
     y: POSITION_1_DRIVING_LESSON_COORDINATES.lastName.y! + POSITION_3_OFFSET,
-    fontSize: 12,
-    fontFamily: 'Times-Roman',
+    fontSize: 8,
+    fontFamily: 'Montserrat',
     align: 'left',
     maxWidth: 200
   },
@@ -187,8 +187,8 @@ export const POSITION_3_DRIVING_LESSON_COORDINATES: Record<string, FieldDrivingL
   licenseNumber: {
     x: POSITION_1_DRIVING_LESSON_COORDINATES.licenseNumber.x,
     y: POSITION_1_DRIVING_LESSON_COORDINATES.licenseNumber.y! + POSITION_3_OFFSET,
-    fontSize: 11,
-    fontFamily: 'Times-Roman',
+    fontSize: 8,
+    fontFamily: 'Montserrat',
     align: 'left',
     maxWidth: 250
   },
@@ -196,24 +196,24 @@ export const POSITION_3_DRIVING_LESSON_COORDINATES: Record<string, FieldDrivingL
   completionDate: {
     x: POSITION_1_DRIVING_LESSON_COORDINATES.completionDate.x,
     y: POSITION_1_DRIVING_LESSON_COORDINATES.completionDate.y! + POSITION_3_OFFSET,
-    fontSize: 11,
-    fontFamily: 'Times-Roman',
+    fontSize: 8,
+    fontFamily: 'Montserrat',
     align: 'left'
   },
 
   hours: {
     x: POSITION_1_DRIVING_LESSON_COORDINATES.hours.x,
     y: POSITION_1_DRIVING_LESSON_COORDINATES.hours.y! + POSITION_3_OFFSET,
-    fontSize: 11,
-    fontFamily: 'Times-Roman',
+    fontSize: 8,
+    fontFamily: 'Montserrat',
     align: 'center'
   },
 
   instructorSignature: {
     x: POSITION_1_DRIVING_LESSON_COORDINATES.instructorSignature.x,
     y: POSITION_1_DRIVING_LESSON_COORDINATES.instructorSignature.y! + POSITION_3_OFFSET,
-    fontSize: 10,
-    fontFamily: 'Times-Roman',
+    fontSize: 8,
+    fontFamily: 'Montserrat',
     align: 'center',
     maxWidth: 200,
     width: 100,
