@@ -1,13 +1,59 @@
 import SessionChecklist from "@/lib/models/SessionChecklist";
 import { connectToDB } from "@/lib/mongoDB";
 import { NextRequest, NextResponse } from "next/server";
+import mongoose from "mongoose";
 
 export const dynamic = "force-dynamic";
+
+interface ChecklistItem {
+  rating?: number;
+}
+
+interface InstructorData {
+  _id: string;
+  name: string;
+  email: string;
+}
+
+const calculateProgress = (items: ChecklistItem[]): number => {
+  if (items.length === 0) return 0;
+
+  const itemsWithRating = items.filter(
+    (item) => item.rating !== undefined && item.rating !== null && item.rating > 0
+  );
+
+  return Math.round((itemsWithRating.length / items.length) * 100);
+};
+
+const calculateAverageRating = (items: ChecklistItem[]): string => {
+  if (items.length === 0) return "0.0";
+
+  const totalRating = items.reduce(
+    (sum: number, item) => sum + (item.rating ?? 0),
+    0
+  );
+
+  return (totalRating / items.length).toFixed(1);
+};
+
+const buildStudentQuery = (customerId: string) => {
+  if (!mongoose.Types.ObjectId.isValid(customerId)) {
+    return { studentId: customerId };
+  }
+
+  return {
+    $or: [
+      { studentId: customerId },
+      { studentId: new mongoose.Types.ObjectId(customerId) }
+    ]
+  };
+};
 
 export async function GET(req: NextRequest) {
   try {
     await connectToDB();
-    const customerId = req.nextUrl.pathname.split("/")[3]; // /api/customers/[customerId]/session-checklists
+
+    const customerId = req.nextUrl.pathname.split("/")[3];
 
     if (!customerId) {
       return NextResponse.json(
@@ -16,38 +62,17 @@ export async function GET(req: NextRequest) {
       );
     }
 
+    const query = buildStudentQuery(customerId);
 
-    // Find all checklists for this student
-    const checklists = await SessionChecklist.find({
-      studentId: customerId,
-    })
+    const checklists = await SessionChecklist.find(query)
       .populate("instructorId", "name email")
       .lean()
       .sort({ createdAt: -1 });
 
-
-    // Calculate progress for each checklist
     const checklistsWithProgress = checklists.map((checklist) => {
-      const itemsWithRating = checklist.items.filter(
-        (item) => item.rating !== undefined && item.rating !== null && item.rating > 0
-      );
-      const progress =
-        checklist.items.length > 0
-          ? Math.round((itemsWithRating.length / checklist.items.length) * 100)
-          : 0;
-
-      // Calculate average rating
-      const totalRating = checklist.items.reduce(
-        (sum: number, item) => sum + (item.rating ?? 0),
-        0
-      );
-      const averageRating =
-        checklist.items.length > 0
-          ? (totalRating / checklist.items.length).toFixed(1)
-          : "0.0";
-
-      // Type assertion for populated instructorId
-      const instructor = checklist.instructorId as unknown as { _id: string; name: string; email: string } | null;
+      const progress = calculateProgress(checklist.items);
+      const averageRating = calculateAverageRating(checklist.items);
+      const instructor = checklist.instructorId as unknown as InstructorData | null;
 
       return {
         _id: checklist._id,
@@ -58,8 +83,8 @@ export async function GET(req: NextRequest) {
         instructorName: instructor?.name || "Unknown",
         instructorEmail: instructor?.email,
         items: checklist.items,
-        notes: checklist.notes,
-        status: checklist.status,
+        notes: checklist.notes || [],
+        status: checklist.status || "pending",
         createdAt: checklist.createdAt,
         updatedAt: checklist.updatedAt,
         progress,
@@ -70,6 +95,7 @@ export async function GET(req: NextRequest) {
     return NextResponse.json(checklistsWithProgress, { status: 200 });
   } catch (error) {
     console.error("Error fetching session checklists:", error);
+
     return NextResponse.json(
       {
         error: "Error fetching session checklists",

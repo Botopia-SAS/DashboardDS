@@ -71,7 +71,7 @@ const SessionChecklistSchema: Schema = new Schema(
       required: true,
     },
     studentId: {
-      type: Schema.Types.ObjectId,
+      type: Schema.Types.Mixed, // Accept both ObjectId and String
       ref: "User",
       required: true,
     },
