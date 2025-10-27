@@ -69,7 +69,7 @@ const InstructorsRow: React.FC<InstructorsRowProps> = ({
         <button
           onClick={() => setStart(s => Math.max(0, s - 1))}
           disabled={!canPrev}
-          className={`rounded-full p-2 transition ${canPrev ? 'bg-blue-100 hover:bg-blue-200 text-blue-600' : 'bg-gray-100 text-gray-400 cursor-not-allowed'}`}
+          className={`rounded-full p-2 transition ${canPrev ? 'bg-blue-100 hover:bg-blue-200 text-blue-600' : 'bg-white text-gray-400 cursor-not-allowed'}`}
         >
           <span className="text-2xl">&#60;</span>
         </button>
@@ -85,7 +85,7 @@ const InstructorsRow: React.FC<InstructorsRowProps> = ({
               }`}
               onClick={() => handleInstructorClick(instr)}
             >
-              <div className={`w-16 h-16 rounded-full overflow-hidden border-2 shadow-sm mb-2 bg-gray-50 flex items-center justify-center transition-all duration-200 ${
+              <div className={`w-16 h-16 rounded-full overflow-hidden border-2 shadow-sm mb-2 bg-white flex items-center justify-center transition-all duration-200 ${
                 isSelected 
                   ? 'border-blue-500 ring-4 ring-blue-100' 
                   : 'border-blue-200 hover:border-blue-300'
@@ -120,7 +120,7 @@ const InstructorsRow: React.FC<InstructorsRowProps> = ({
         <button
           onClick={() => setStart(s => Math.min(filtered.length - MAX_VISIBLE, s + 1))}
           disabled={!canNext}
-          className={`rounded-full p-2 transition ${canNext ? 'bg-blue-100 hover:bg-blue-200 text-blue-600' : 'bg-gray-100 text-gray-400 cursor-not-allowed'}`}
+          className={`rounded-full p-2 transition ${canNext ? 'bg-blue-100 hover:bg-blue-200 text-blue-600' : 'bg-white text-gray-400 cursor-not-allowed'}`}
         >
           <span className="text-2xl">&#62;</span>
         </button>

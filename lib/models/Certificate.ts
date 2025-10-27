@@ -5,6 +5,11 @@ export interface ICertificate extends Document {
   studentId: Schema.Types.ObjectId;
   classId: Schema.Types.ObjectId;
   date?: Date;
+  // Fields for driving lesson certificates
+  selectedClassIds?: Schema.Types.ObjectId[];
+  classType?: string; // "driving lesson"
+  totalHours?: number;
+  instructorSignature?: string;
   // Fields for Date certificate
   birthDate?: string;
   // Fields for BDI certificate
@@ -34,6 +39,11 @@ const CertificateSchema: Schema = new Schema({
   studentId: { type: Schema.Types.ObjectId, ref: "User", required: true },
   classId: { type: Schema.Types.ObjectId, ref: "DrivingClass", required: true },
   date: { type: Date, default: Date.now },
+  // Fields for driving lesson certificates
+  selectedClassIds: [{ type: Schema.Types.ObjectId }],
+  classType: { type: String },
+  totalHours: { type: Number },
+  instructorSignature: { type: String },
   // Fields for Date certificate
   birthDate: { type: String },
   // Fields for BDI certificate
