@@ -22,6 +22,7 @@ const ticketClassSchema = Joi.object({
   duration: Joi.string().valid("2h", "4h", "8h", "12h").required(),
   students: Joi.array().items(Joi.string()).default([]),
   spots: Joi.number().integer().min(1).default(30),
+  status: Joi.string().valid("available", "cancel", "full", "expired").default("available"),
   studentRequests: Joi.array().items(Joi.string()).default([]),
   clientTempId: Joi.string().optional(), // Allow clientTempId for tracking purposes
 }).unknown(false);
@@ -184,7 +185,18 @@ export async function POST(req: NextRequest) {
     }
 
     return NextResponse.json(newClass, { status: 201 });
-  } catch (error) {
+  } catch (error: any) {
+    // Manejar errores comunes de índice único heredado (Mongo error code 11000)
+    if (error && (error.code === 11000 || (error.message && error.message.includes("E11000")))) {
+      return NextResponse.json(
+        {
+          error: "Duplicate time slot",
+          message: "Ya existe una clase programada con la misma ubicación, fecha y hora. Si deben coexistir distintos tipos a la misma hora, ejecuta la migración de índices en /api/ticket/migrate-indexes y vuelve a intentar.",
+        },
+        { status: 409 }
+      );
+    }
+
     console.error("Error creating class:", error);
     return NextResponse.json(
       { error: "Internal server error." },

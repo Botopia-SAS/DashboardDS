@@ -190,15 +190,6 @@ export default function TicketClassTypePage() {
         <DashboardHeader title="Tickets">
           <div className="flex gap-2">
             <Button
-              onClick={() => setIsGovCertDialogOpen(true)}
-              className="flex items-center gap-2 text-xs sm:text-sm px-3 sm:px-4"
-              variant="outline"
-            >
-              <FileText className="h-3 w-3 sm:h-4 sm:w-4" />
-              <span className="hidden sm:inline">Government Certificate</span>
-              <span className="sm:hidden">Gov Cert</span>
-            </Button>
-            <Button
               onClick={() => setIsAdiCertDialogOpen(true)}
               className="flex items-center gap-2 text-xs sm:text-sm px-3 sm:px-4"
               variant="outline"
