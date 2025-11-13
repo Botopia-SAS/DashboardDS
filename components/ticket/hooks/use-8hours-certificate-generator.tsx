@@ -4,7 +4,6 @@ import { Student } from "../columns";
 import { useCallback } from "react";
 import { PDFDocument, rgb, StandardFonts } from "pdf-lib";
 import {
-  get8HoursFieldCoordinates,
   get8HoursPositionCoordinates,
 } from "@/lib/certificate8HoursCoordinates";
 
@@ -43,7 +42,6 @@ export function use8HoursCertificateGenerator() {
 
         // Embed fonts
         const helvetica = await pdfDoc.embedFont(StandardFonts.Helvetica);
-        const timesRoman = await pdfDoc.embedFont(StandardFonts.TimesRoman);
 
         // Usar coordenadas de la posición 1
         const coordinates = get8HoursPositionCoordinates(1);
@@ -61,7 +59,11 @@ export function use8HoursCertificateGenerator() {
           attendance: 'attendance',
           circuitCourtNo: 'circuitCourtNo',
           county: 'county',
-          instructorSignature: 'instructorSignature'
+          instructorSignature: 'instructorSignature',
+          certn: 'certn',
+          courseTime: 'courseTime',
+          schoolAddress: 'schoolAddress',
+          schoolPhone: 'schoolPhone'
         };
 
         // Dibujar cada campo en su posición
@@ -187,7 +189,7 @@ export function use8HoursCertificateGenerator() {
           throw new Error('PDF save did not return a Uint8Array');
         }
 
-        const blob = new Blob([pdfBytes], { type: "application/pdf" });
+        const blob = new Blob([new Uint8Array(pdfBytes)], { type: "application/pdf" });
 
         return blob;
       } catch (error) {
@@ -228,7 +230,6 @@ export function use8HoursCertificateGenerator() {
 
           // Embed fonts
           const helvetica = await pdfDoc.embedFont(StandardFonts.Helvetica);
-          const timesRoman = await pdfDoc.embedFont(StandardFonts.TimesRoman);
 
           // Mapeo de nombres de campos (coordenadas -> base de datos)
           const fieldMapping: Record<string, string> = {
@@ -243,7 +244,11 @@ export function use8HoursCertificateGenerator() {
             attendance: 'attendance',
             circuitCourtNo: 'circuitCourtNo',
             county: 'county',
-            instructorSignature: 'instructorSignature'
+            instructorSignature: 'instructorSignature',
+            certn: 'certn',
+            courseTime: 'courseTime',
+            schoolAddress: 'schoolAddress',
+            schoolPhone: 'schoolPhone'
           };
 
           // Dibujar cada estudiante en su posición
@@ -358,7 +363,7 @@ export function use8HoursCertificateGenerator() {
           }
 
           const pdfBytes = await pdfDoc.save();
-          pdfs.push(new Blob([pdfBytes as any], { type: "application/pdf" }));
+          pdfs.push(new Blob([new Uint8Array(pdfBytes)], { type: "application/pdf" }));
         }
 
         // Si solo hay 1 PDF, retornarlo directamente

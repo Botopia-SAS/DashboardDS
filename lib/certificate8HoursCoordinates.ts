@@ -144,7 +144,7 @@ export const POSITION_1_COORDINATES: Record<string, Field8HoursCoordinate> = {
 
   // Instructor's Signature (imagen)
   instructorSignature: {
-    x: 210,
+    x: 460,
     y: 210,
     fontSize: 0, // Es una imagen, no texto
     align: 'center',
@@ -153,11 +153,41 @@ export const POSITION_1_COORDINATES: Record<string, Field8HoursCoordinate> = {
 
   // School Official
   schoolOfficial: {
-    x: 438,
-    y: 219,
-    fontSize: 8,
+    x:136,
+    y: 210,
+    fontSize: 7,
+    fontFamily: 'Montserrat',
+    align: 'left',
+    maxWidth: 150
+  },
+
+  // Certificate Number (campo existente: certn)
+  certn: {
+    x: 510,
+    y: 85,
+    fontSize: 12,
     fontFamily: 'Montserrat',
     align: 'center',
+    maxWidth: 100
+  },
+
+  // School Address (nuevo campo)
+  schoolAddress: {
+    x: 136,
+    y: 222,
+    fontSize: 7,
+    fontFamily: 'Montserrat',
+    align: 'left',
+    maxWidth: 300
+  },
+
+  // School Phone (nuevo campo)
+  schoolPhone: {
+    x: 136,
+    y: 232,
+    fontSize: 7,
+    fontFamily: 'Montserrat',
+    align: 'left',
     maxWidth: 150
   }
 };
@@ -263,7 +293,7 @@ export const POSITION_2_COORDINATES: Record<string, Field8HoursCoordinate> = {
   },
 
   instructorSignature: {
-    x: 210,
+    x: 460,
     y: 490,
     fontSize: 0,
     align: 'center',
@@ -271,11 +301,41 @@ export const POSITION_2_COORDINATES: Record<string, Field8HoursCoordinate> = {
   },
 
   schoolOfficial: {
-    x: 438,
-    y: 499,
-    fontSize: 8,
+    x: 136,
+    y: 490,
+    fontSize: 7,
+    fontFamily: 'Montserrat',
+    align: 'left',
+    maxWidth: 150
+  },
+
+  // Certificate Number (campo existente: certn)
+  certn: {
+    x: 510,
+    y: 365,
+    fontSize: 12,
     fontFamily: 'Montserrat',
     align: 'center',
+    maxWidth: 100
+  },
+
+  // School Address (nuevo campo)
+  schoolAddress: {
+    x: 136,
+    y: 502 ,
+    fontSize: 7,
+    fontFamily: 'Montserrat',
+    align: 'left',
+    maxWidth: 300
+  },
+
+  // School Phone (nuevo campo)
+  schoolPhone: {
+    x: 136,
+    y: 512,
+    fontSize: 7,
+    fontFamily: 'Montserrat',
+    align: 'left',
     maxWidth: 150
   }
 };
@@ -381,7 +441,7 @@ export const POSITION_3_COORDINATES: Record<string, Field8HoursCoordinate> = {
   },
 
   instructorSignature: {
-    x: 210,
+    x: 460,
     y: 770,
     fontSize: 0,
     align: 'center',
@@ -389,11 +449,41 @@ export const POSITION_3_COORDINATES: Record<string, Field8HoursCoordinate> = {
   },
 
   schoolOfficial: {
-    x: 438,
-    y: 779,
-    fontSize: 8,
+    x: 136,
+    y: 770,
+    fontSize: 7,
+    fontFamily: 'Montserrat',
+    align: 'left',
+    maxWidth: 150
+  },
+
+  // Certificate Number (campo existente: certn)
+  certn: {
+    x: 510,
+    y: 645,
+    fontSize: 12,
     fontFamily: 'Montserrat',
     align: 'center',
+    maxWidth: 100
+  },
+
+  // School Address (nuevo campo)
+  schoolAddress: {
+    x: 136,
+    y: 782,
+    fontSize: 7,
+    fontFamily: 'Montserrat',
+    align: 'left',
+    maxWidth: 300
+  },
+
+  // School Phone (nuevo campo)
+  schoolPhone: {
+    x: 136,
+    y: 792,
+    fontSize: 7,
+    fontFamily: 'Montserrat',
+    align: 'left',
     maxWidth: 150
   }
 };

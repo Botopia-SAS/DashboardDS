@@ -144,6 +144,8 @@ export const CERTIFICATE_CONFIGURATIONS: Record<string, CertificateConfig> = {
       { key: 'courseDate', label: 'Completion Date', example: 'Nov 10, 2025' },
       { key: 'instructorSignature', label: 'Instructor Signature', example: '(Canvas - Upload)' },
       { key: 'schoolOfficial', label: 'School Official', example: 'Official Name' },
+      { key: 'schoolAddress', label: 'School Address', example: '3167 Forest Hill Blvd, West Palm Beach, Florida 33406' },
+      { key: 'schoolPhone', label: 'School Phone', example: '(561) 969-0150' },
     ],
     allowCombinedPDF: true, // SÍ mostrar botón morado
     useMultiPositionCoordinates: true, // Usa coordenadas específicas por posición
@@ -179,6 +181,8 @@ export const CERTIFICATE_CONFIGURATIONS: Record<string, CertificateConfig> = {
       { key: 'courseDate', label: 'Completion Date', example: 'Nov 10, 2025' },
       { key: 'instructorSignature', label: 'Instructor Signature', example: '(Canvas - Upload)' },
       { key: 'schoolOfficial', label: 'School Official', example: 'Official Name' },
+      { key: 'schoolAddress', label: 'School Address', example: '3167 Forest Hill Blvd, West Palm Beach, Florida 33406' },
+      { key: 'schoolPhone', label: 'School Phone', example: '(561) 969-0150' },
     ],
     allowCombinedPDF: true, // SÍ mostrar botón morado
     useMultiPositionCoordinates: true, // Usa coordenadas específicas por posición
@@ -214,6 +218,8 @@ export const CERTIFICATE_CONFIGURATIONS: Record<string, CertificateConfig> = {
       { key: 'courseDate', label: 'Completion Date', example: 'Nov 10, 2025' },
       { key: 'instructorSignature', label: 'Instructor Signature', example: '(Canvas - Upload)' },
       { key: 'schoolOfficial', label: 'School Official', example: 'Official Name' },
+      { key: 'schoolAddress', label: 'School Address', example: '3167 Forest Hill Blvd, West Palm Beach, Florida 33406' },
+      { key: 'schoolPhone', label: 'School Phone', example: '(561) 969-0150' },
     ],
     allowCombinedPDF: true, // SÍ mostrar botón morado
     useMultiPositionCoordinates: true, // Usa coordenadas específicas por posición

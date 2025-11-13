@@ -266,7 +266,10 @@ export default function Page() {
         ...student,
         type: certificateType, // Use determined certificate type
         classTitle: drivingClassData.data.title,
-        classType: drivingClassData.data.classType
+        classType: drivingClassData.data.classType,
+        // Add default values for school address and phone (editable)
+        schoolAddress: student.schoolAddress || '3167 Forest Hill Blvd West Palm Beach, Florida 33406',
+        schoolPhone: student.schoolPhone || '(561) 969-0150'
       }));
       
       setStudents(studentsWithClassInfo);
