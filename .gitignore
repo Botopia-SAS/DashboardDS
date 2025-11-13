@@ -46,3 +46,6 @@ next-env.d.ts
 
 # unlighthouse reports (may contain API keys)
 /.unlighthouse/
+
+# vscode settings (may contain local configurations)
+.vscode/
